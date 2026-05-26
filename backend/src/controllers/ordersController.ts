@@ -8,6 +8,7 @@ interface OrderItem {
   reference: string
   boxes_count: number
   unit_price: number
+  sizes?: Record<string, number> | null
 }
 
 async function computeOrderTotals(
@@ -21,18 +22,35 @@ async function computeOrderTotals(
   const enrichedItems = []
 
   for (const item of items) {
-    // Soma peças: boxes_count × total_pieces de todas as grade_configs do produto
-    const { rows: grades } = await client.query(
-      'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
-    )
-    const piecesPerBox = grades.reduce((sum: number, g: { total_pieces: number }) => sum + g.total_pieces, 0) || 1
-    const itemPieces = item.boxes_count * piecesPerBox
+    let itemPieces: number
+    const sizesMap = item.sizes && typeof item.sizes === 'object' ? item.sizes : {}
+    const sizesTotal = Object.values(sizesMap).reduce((s: number, v: unknown) => s + Number(v || 0), 0)
+
+    if (sizesTotal > 0) {
+      // Produto regular: usa as quantidades por tamanho definidas pelo rep
+      itemPieces = sizesTotal
+    } else {
+      // Pack: boxes_count × total_pieces das grade_configs
+      const { rows: grades } = await client.query(
+        'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
+      )
+      const piecesPerBox = grades.reduce((sum: number, g: { total_pieces: number }) => sum + g.total_pieces, 0) || 1
+      itemPieces = (item.boxes_count || 1) * piecesPerBox
+    }
+
     const discountedPrice = item.unit_price * (1 - discountPct / 100)
     const subtotal = discountedPrice * itemPieces
 
     totalPieces += itemPieces
     totalValue += subtotal
-    enrichedItems.push({ ...item, total_pieces: itemPieces, subtotal, unit_price: item.unit_price })
+    enrichedItems.push({
+      ...item,
+      total_pieces: itemPieces,
+      subtotal,
+      unit_price: item.unit_price,
+      sizes: sizesTotal > 0 ? sizesMap : null,
+      boxes_count: sizesTotal > 0 ? 1 : (item.boxes_count || 1),
+    })
   }
 
   // Comissão baseada na regra mais próxima
@@ -186,9 +204,10 @@ export async function createOrder(req: AuthRequest, res: Response) {
 
     for (const item of totals.enrichedItems) {
       await dbClient.query(
-        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [order.id, item.product_id, item.reference, item.boxes_count, item.unit_price, item.total_pieces, item.subtotal]
+        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, sizes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [order.id, item.product_id, item.reference, item.boxes_count, item.unit_price, item.total_pieces, item.subtotal,
+         item.sizes ? JSON.stringify(item.sizes) : null]
       )
     }
 
@@ -264,15 +283,16 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
     const newTotals = await computeOrderTotals(items, disc, order.price_table_id, dbClient as any)
     for (const item of newTotals.enrichedItems) {
       await dbClient.query(
-        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [orderId, item.product_id, item.reference, item.boxes_count, item.unit_price, item.total_pieces, item.subtotal]
+        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, sizes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [orderId, item.product_id, item.reference, item.boxes_count, item.unit_price, item.total_pieces, item.subtotal,
+         item.sizes ? JSON.stringify(item.sizes) : null]
       )
     }
 
     // Recalcula totais com TODOS os itens (antigos + novos)
     const { rows: allItems } = await dbClient.query(
-      'SELECT product_id, reference, boxes_count, unit_price FROM order_items WHERE order_id=$1',
+      'SELECT product_id, reference, boxes_count, unit_price, sizes FROM order_items WHERE order_id=$1',
       [orderId]
     )
     const allTotals = await computeOrderTotals(allItems, disc, order.price_table_id, dbClient as any)

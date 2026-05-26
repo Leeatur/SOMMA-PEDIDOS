@@ -48,6 +48,7 @@ interface OrderItem {
   unit_price: number
   total_pieces: number
   subtotal: number
+  sizes: Record<string, number> | null
   grade_configs: GradeConfig[] | null
 }
 
@@ -100,7 +101,29 @@ interface Product {
   grade_configs: Array<{ id: string; color: string | null; sizes: Record<string, number>; total_pieces: number; sort_order: number }> | null
 }
 
-interface AddCartItem { product: Product; boxes_count: number }
+interface AddCartItem { product: Product; boxes_count: number; sizes: Record<string, number> }
+
+const SIZE_ORDER_DETAIL = [
+  'RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG','4XG',
+  '34','36','38','40','42','44','46','48','50','52','54','56','58','60',
+  '1','2','4','6','8','10','12','14','16','18','U',
+]
+function sortSizesDetail(sizes: string[]) {
+  return [...sizes].sort((a, b) => {
+    const ai = SIZE_ORDER_DETAIL.indexOf(a.toUpperCase())
+    const bi = SIZE_ORDER_DETAIL.indexOf(b.toUpperCase())
+    if (ai === -1 && bi === -1) return a.localeCompare(b)
+    if (ai === -1) return 1
+    if (bi === -1) return -1
+    return ai - bi
+  })
+}
+function initSizesDetail(product: Product): Record<string, number> {
+  if (!product.grade_configs || product.grade_configs.length === 0) return {}
+  const allSizes = new Set<string>()
+  product.grade_configs.forEach(gc => Object.keys(gc.sizes).forEach(s => allSizes.add(s)))
+  return Object.fromEntries(sortSizesDetail([...allSizes]).map(s => [s, 0]))
+}
 
 function GradeDisplay({ configs, boxCount }: { configs: GradeConfig[]; boxCount: number }) {
   return (
@@ -182,6 +205,7 @@ export function OrderDetail() {
       reference: c.product.reference,
       boxes_count: c.boxes_count,
       unit_price: c.product.base_price,
+      sizes: c.product.type === 'regular' ? c.sizes : undefined,
     }))),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['order', id] })
@@ -200,9 +224,16 @@ export function OrderDetail() {
   const addToCart = useCallback((product: Product) => {
     setAddCart(prev => {
       const ex = prev.find(c => c.product.id === product.id)
-      if (ex) return prev.map(c => c.product.id === product.id ? { ...c, boxes_count: c.boxes_count + 1 } : c)
-      return [...prev, { product, boxes_count: 1 }]
+      if (ex) return prev
+      const sizes = product.type === 'regular' ? initSizesDetail(product) : {}
+      return [...prev, { product, boxes_count: 1, sizes }]
     })
+  }, [])
+
+  const updateAddSize = useCallback((productId: string, size: string, value: number) => {
+    setAddCart(prev => prev.map(c =>
+      c.product.id === productId ? { ...c, sizes: { ...c.sizes, [size]: Math.max(0, value) } } : c
+    ))
   }, [])
 
   const removeFromAddCart = useCallback((productId: string) => {
@@ -409,9 +440,13 @@ export function OrderDetail() {
                         {item.product_name && (
                           <p className="text-xs text-gray-500 truncate">{item.product_name}</p>
                         )}
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {item.boxes_count} cx × {Math.round(item.total_pieces / item.boxes_count)} pç/cx = {item.total_pieces} peças
-                        </p>
+                        {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
+                          <p className="text-xs text-gray-500 mt-0.5">{item.total_pieces} peças</p>
+                        ) : (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {item.boxes_count} cx × {Math.round(item.total_pieces / Math.max(item.boxes_count,1))} pç/cx = {item.total_pieces} peças
+                          </p>
+                        )}
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-sm font-bold text-gray-900">{formatCurrency(item.subtotal)}</p>
@@ -421,10 +456,32 @@ export function OrderDetail() {
                     </div>
                   </button>
 
-                  {isExpanded && item.grade_configs && item.grade_configs.length > 0 && (
+                  {isExpanded && (
                     <div className="px-3 pb-3 border-t border-gray-100 pt-2">
-                      <p className="text-xs font-medium text-gray-600 mb-1.5">Composição da grade:</p>
-                      <GradeDisplay configs={item.grade_configs} boxCount={item.boxes_count} />
+                      {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
+                        <>
+                          <p className="text-xs font-medium text-gray-600 mb-1.5">Quantidades por tamanho:</p>
+                          <div className="overflow-x-auto scrollbar-hide">
+                            <table className="min-w-max text-xs border border-gray-200 rounded-lg overflow-hidden">
+                              <thead className="bg-gray-50">
+                                <tr>{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
+                                  <th key={s} className="px-2 py-1 text-center text-gray-600 font-medium min-w-[28px]">{s}</th>
+                                ))}<th className="px-2 py-1 text-center text-gray-500 border-l border-gray-200">Total</th></tr>
+                              </thead>
+                              <tbody>
+                                <tr className="bg-white">{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
+                                  <td key={s} className="px-2 py-1 text-center">{item.sizes![s]}</td>
+                                ))}<td className="px-2 py-1 text-center font-bold border-l border-gray-200">{item.total_pieces}</td></tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      ) : item.grade_configs && item.grade_configs.length > 0 ? (
+                        <>
+                          <p className="text-xs font-medium text-gray-600 mb-1.5">Composição da grade:</p>
+                          <GradeDisplay configs={item.grade_configs} boxCount={item.boxes_count} />
+                        </>
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -508,25 +565,53 @@ export function OrderDetail() {
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
               <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Itens a adicionar</p>
               {addCart.map(c => {
+                const isRegular = c.product.type === 'regular'
                 const piecesPerBox = c.product.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 1
+                const totalPieces = isRegular
+                  ? Object.values(c.sizes).reduce((s, v) => s + (v || 0), 0)
+                  : c.boxes_count * piecesPerBox
                 return (
-                  <div key={c.product.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{c.product.reference}</p>
-                      <p className="text-xs text-gray-500">{c.boxes_count} cx × {piecesPerBox} pç = {c.boxes_count * piecesPerBox} pç</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => updateAddCount(c.product.id, -1)} className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center hover:bg-gray-200">
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-8 text-center text-sm font-bold">{c.boxes_count}</span>
-                      <button onClick={() => updateAddCount(c.product.id, 1)} className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center hover:bg-blue-200">
-                        <Plus className="h-3 w-3 text-blue-700" />
-                      </button>
-                      <button onClick={() => removeFromAddCart(c.product.id)} className="w-6 h-6 rounded text-red-400 hover:bg-red-50 flex items-center justify-center ml-1">
+                  <div key={c.product.id} className="bg-white rounded-lg px-3 py-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900">{c.product.reference}</p>
+                        <p className="text-xs text-gray-500">{totalPieces} pç</p>
+                      </div>
+                      {!isRegular && (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => updateAddCount(c.product.id, -1)} className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center hover:bg-gray-200">
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-8 text-center text-sm font-bold">{c.boxes_count}</span>
+                          <button onClick={() => updateAddCount(c.product.id, 1)} className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center hover:bg-blue-200">
+                            <Plus className="h-3 w-3 text-blue-700" />
+                          </button>
+                        </div>
+                      )}
+                      <button onClick={() => removeFromAddCart(c.product.id)} className="w-6 h-6 rounded text-red-400 hover:bg-red-50 flex items-center justify-center">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
+                    {isRegular && (
+                      <div className="overflow-x-auto">
+                        <table className="text-xs">
+                          <thead>
+                            <tr>{sortSizesDetail(Object.keys(c.sizes)).map(s => (
+                              <th key={s} className="px-1 pb-0.5 text-center text-gray-500 font-medium min-w-[34px]">{s}</th>
+                            ))}<th className="px-1 pb-0.5 text-center text-blue-600 font-bold pl-1">Tot</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr>{sortSizesDetail(Object.keys(c.sizes)).map(s => (
+                              <td key={s} className="px-0.5">
+                                <input type="number" min="0" value={c.sizes[s] || 0}
+                                  onChange={e => updateAddSize(c.product.id, s, parseInt(e.target.value) || 0)}
+                                  className="w-8 h-6 text-center border border-gray-200 rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                              </td>
+                            ))}<td className="px-1 pl-1 text-center font-bold text-blue-700">{totalPieces}</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -566,18 +651,24 @@ export function OrderDetail() {
                       </div>
                     </div>
                     {inCart ? (
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={() => updateAddCount(p.id, -1)} className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200">
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="w-8 text-center font-bold text-sm">{inCart.boxes_count}</span>
-                        <button onClick={() => updateAddCount(p.id, 1)} className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center hover:bg-blue-200">
-                          <Plus className="h-3.5 w-3.5 text-blue-700" />
-                        </button>
-                        <button onClick={() => removeFromAddCart(p.id)} className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center">
+                      p.type === 'regular' ? (
+                        <button onClick={() => removeFromAddCart(p.id)} className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center flex-shrink-0">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
-                      </div>
+                      ) : (
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button onClick={() => updateAddCount(p.id, -1)} className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200">
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-8 text-center font-bold text-sm">{inCart.boxes_count}</span>
+                          <button onClick={() => updateAddCount(p.id, 1)} className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center hover:bg-blue-200">
+                            <Plus className="h-3.5 w-3.5 text-blue-700" />
+                          </button>
+                          <button onClick={() => removeFromAddCart(p.id)} className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )
                     ) : (
                       <button onClick={() => addToCart(p)} className="flex-shrink-0 flex items-center gap-1 bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-800">
                         <Plus className="h-3.5 w-3.5" /> Add

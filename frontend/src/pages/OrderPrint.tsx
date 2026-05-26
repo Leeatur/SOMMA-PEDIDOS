@@ -6,7 +6,7 @@ import { ordersApi, companyApi } from '../api/client'
 // Ordem lógica de tamanhos
 const SIZE_ORDER = [
   'RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG','4XG',
-  '36','38','40','42','44','46','48','50','52','54','56','58','60',
+  '34','36','38','40','42','44','46','48','50','52','54','56','58','60',
   '1','2','4','6','8','10','12','14','16','18','U',
 ]
 
@@ -49,6 +49,7 @@ interface OrderItem {
   unit_price: number
   total_pieces: number
   subtotal: number
+  sizes: Record<string, number> | null
   grade_configs: GradeConfig[] | null
 }
 
@@ -115,7 +116,11 @@ export function OrderPrint() {
   // Coleta todos os tamanhos únicos de todos os itens
   const allSizes = new Set<string>()
   for (const item of order.items) {
-    if (item.grade_configs) {
+    // Produto regular: usa item.sizes
+    if (item.sizes && Object.keys(item.sizes).length > 0) {
+      Object.keys(item.sizes).forEach(s => allSizes.add(s))
+    } else if (item.grade_configs) {
+      // Pack: usa grade_configs
       for (const gc of item.grade_configs) {
         Object.keys(gc.sizes).forEach(s => allSizes.add(s))
       }
@@ -123,7 +128,7 @@ export function OrderPrint() {
   }
   const sizes = sortSizes(Array.from(allSizes))
 
-  // Monta linhas da tabela (uma por cor/grade_config por item)
+  // Monta linhas da tabela
   interface PrintRow {
     seq: number
     reference: string
@@ -141,12 +146,36 @@ export function OrderPrint() {
   const rows: PrintRow[] = []
   let seq = 0
 
-  // Calcula gross value for computing actual discount%
   const actualDiscPct = order.discount_pct
 
   for (const item of order.items) {
-    const piecesPerBox = item.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 1
-    if (item.grade_configs && item.grade_configs.length > 0) {
+    const hasCustomSizes = item.sizes && Object.keys(item.sizes).length > 0
+      && Object.values(item.sizes).some(v => (v || 0) > 0)
+
+    if (hasCustomSizes && item.sizes) {
+      // Produto regular: uma linha com as quantidades reais por tamanho
+      seq++
+      const qtde = Object.values(item.sizes).reduce((s, v) => s + (v || 0), 0)
+      const sizeCols: Record<string, number> = {}
+      for (const s of sizes) {
+        sizeCols[s] = item.sizes[s] || 0
+      }
+      const gradeLabel = sortSizes(Object.keys(item.sizes).filter(s => (item.sizes![s] || 0) > 0)).join('/')
+      rows.push({
+        seq,
+        reference: item.reference,
+        product_name: item.product_name || '',
+        color: '',
+        gradeLabel,
+        sizeCols,
+        qtde,
+        unitPriceBase: item.unit_price,
+        unitPriceDisc: item.unit_price * (1 - actualDiscPct / 100),
+        discPct: actualDiscPct,
+        total: item.unit_price * (1 - actualDiscPct / 100) * qtde,
+      })
+    } else if (item.grade_configs && item.grade_configs.length > 0) {
+      // Pack: uma linha por cor
       for (const gc of item.grade_configs) {
         seq++
         const qtde = gc.total_pieces * item.boxes_count
@@ -170,9 +199,9 @@ export function OrderPrint() {
         })
       }
     } else {
-      // Produto sem grade configurada
+      // Sem grade configurada
       seq++
-      const qtde = item.boxes_count * piecesPerBox
+      const qtde = item.total_pieces || item.boxes_count
       const sizeCols: Record<string, number> = {}
       rows.push({
         seq,

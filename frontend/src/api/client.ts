@@ -203,7 +203,7 @@ export const ordersApi = {
     client_id: string
     factory_id: string
     price_table_id: string
-    items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number }>
+    items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number; sizes?: Record<string, number> }>
     discount_pct: number
     notes?: string
     offline_id?: string
@@ -215,7 +215,7 @@ export const ordersApi = {
   }) => apiClient.post('/orders', data),
   updateStatus: (id: string, status_id: string, notes?: string) =>
     apiClient.patch(`/orders/${id}/status`, { status_id, notes }),
-  addItems: (id: string, items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number }>) =>
+  addItems: (id: string, items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number; sizes?: Record<string, number> }>) =>
     apiClient.post(`/orders/${id}/items`, { items }),
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),
 }

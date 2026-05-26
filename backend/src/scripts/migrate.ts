@@ -196,6 +196,9 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS buyer_name VARCHAR(200);
 -- Coluna whatsapp nos clientes (adicionada em v2)
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30);
 
+-- Sizes por item de pedido (v3 — grade livre por referência)
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS sizes JSONB DEFAULT '{}';
+
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_products_price_table ON products(price_table_id);
 CREATE INDEX IF NOT EXISTS idx_products_reference ON products(reference);
