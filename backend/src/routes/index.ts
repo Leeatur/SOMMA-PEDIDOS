@@ -57,6 +57,7 @@ router.get('/price-tables/:id', authenticate, priceTables.getPriceTable)
 router.post('/price-tables/preview', authenticate, requireAdmin, upload.single('file'), priceTables.previewExcelImport)
 router.post('/price-tables/import', authenticate, requireAdmin, upload.single('file'), priceTables.confirmExcelImport)
 router.post('/price-tables/import-catalog', authenticate, requireAdmin, upload.single('file'), priceTables.importCatalog)
+router.delete('/price-tables/:id', authenticate, requireAdmin, priceTables.deletePriceTable)
 
 // Produtos
 router.get('/products', authenticate, priceTables.listProducts)

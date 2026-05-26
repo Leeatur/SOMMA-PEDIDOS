@@ -233,6 +233,33 @@ export async function listProducts(req: AuthRequest, res: Response) {
   res.json(rows)
 }
 
+export async function deletePriceTable(req: AuthRequest, res: Response) {
+  const { id } = req.params
+
+  // Check if any orders reference this price table
+  const { rows: linked } = await query(
+    'SELECT id FROM orders WHERE price_table_id = $1 LIMIT 1',
+    [id]
+  )
+  if (linked.length > 0) {
+    res.status(400).json({
+      error: 'Não é possível excluir esta tabela pois ela possui pedidos vinculados.',
+    })
+    return
+  }
+
+  // Products and discount_commission_rules cascade automatically
+  const { rows } = await query(
+    'DELETE FROM price_tables WHERE id = $1 RETURNING id',
+    [id]
+  )
+  if (!rows[0]) {
+    res.status(404).json({ error: 'Tabela não encontrada' })
+    return
+  }
+  res.json({ deleted: true })
+}
+
 export async function updateGradeConfig(req: AuthRequest, res: Response) {
   const { product_id } = req.params
   const { grade_configs } = req.body

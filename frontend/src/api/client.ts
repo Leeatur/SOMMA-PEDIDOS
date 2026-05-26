@@ -138,6 +138,7 @@ export const priceTablesApi = {
       timeout: 120000,
     })
   },
+  delete: (id: string) => apiClient.delete(`/price-tables/${id}`),
 }
 
 export const productsApi = {
