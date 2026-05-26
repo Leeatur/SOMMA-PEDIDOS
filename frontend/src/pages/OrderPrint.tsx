@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ordersApi, companyApi } from '../api/client'
-import { formatCurrency } from '../utils/format'
 
 // Ordem lógica de tamanhos
 const SIZE_ORDER = [
