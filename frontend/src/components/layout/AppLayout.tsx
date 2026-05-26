@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Shirt,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -34,7 +35,8 @@ const navItems: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
   { to: '/orders', label: 'Pedidos', icon: <ShoppingCart className="h-5 w-5" /> },
   { to: '/clients', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
-  { to: '/catalog', label: 'Catálogo', icon: <BookOpen className="h-5 w-5" /> },
+  { to: '/products', label: 'Produtos', icon: <Shirt className="h-5 w-5" /> },
+  { to: '/catalog', label: 'Catálogo', icon: <BookOpen className="h-5 w-5" />, adminOnly: true },
   { to: '/price-tables', label: 'Tabelas', icon: <Tags className="h-5 w-5" />, adminOnly: true },
   { to: '/factories', label: 'Fábricas', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
   { to: '/statuses', label: 'Status', icon: <Package className="h-5 w-5" />, adminOnly: true },
@@ -42,12 +44,12 @@ const navItems: NavItem[] = [
   { to: '/settings', label: 'Ajustes', icon: <Settings className="h-5 w-5" /> },
 ]
 
-// Mobile bottom nav — show only top 5 items
+// Mobile bottom nav — show only top 4 items
 const mobileNav: NavItem[] = [
   { to: '/dashboard', label: 'Início', icon: <LayoutDashboard className="h-5 w-5" /> },
   { to: '/orders', label: 'Pedidos', icon: <ShoppingCart className="h-5 w-5" /> },
   { to: '/clients', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
-  { to: '/catalog', label: 'Catálogo', icon: <BookOpen className="h-5 w-5" /> },
+  { to: '/products', label: 'Produtos', icon: <Shirt className="h-5 w-5" /> },
 ]
 
 function useOnlineStatus() {

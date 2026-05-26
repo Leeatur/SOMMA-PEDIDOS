@@ -242,13 +242,19 @@ export function importExcel(filePath: string): ImportResult {
   return { products: allProducts, tableName, discountColumns }
 }
 
+// Ordem lógica de tamanhos alfanuméricos (moda brasileira)
+const ALPHA_SIZE_ORDER = ['PP', 'XP', 'P', 'M', 'G', 'GG', 'EXG', 'XGG', '2XG', '3XG', '4XG']
+
 export function buildDefaultGrade(sizeRange: string): Record<string, number> {
-  // "34-52" → {34:1, 36:1, 38:1, 40:1, 42:1, 44:1, 46:1, 48:1, 50:1, 52:1}
+  // "34-52"    → {34:1, 36:1, 38:1, 40:1, 42:1, 44:1, 46:1, 48:1, 50:1, 52:1}
+  // "P-GG"     → {P:1, M:1, G:1, GG:1}
+  // "P-EXG"    → {P:1, M:1, G:1, GG:1, EXG:1}
   // "P/M/G/GG" → {P:1, M:1, G:1, GG:1}
   const grade: Record<string, number> = {}
   if (!sizeRange) return grade
 
-  const dashMatch = sizeRange.match(/(\d+)[^\d]+(\d+)/)
+  // Faixa numérica: "34-52"
+  const dashMatch = sizeRange.match(/^(\d+)[^\d]+(\d+)$/)
   if (dashMatch) {
     const start = parseInt(dashMatch[1])
     const end = parseInt(dashMatch[2])
@@ -256,7 +262,20 @@ export function buildDefaultGrade(sizeRange: string): Record<string, number> {
     return grade
   }
 
-  // Letras: P, M, G, GG, EXG
+  // Faixa alfa com hífen: "P-GG", "P-EXG"
+  const alphaDashMatch = sizeRange.match(/^([A-Za-z]+)-([A-Za-z]+)$/)
+  if (alphaDashMatch) {
+    const startKey = alphaDashMatch[1].toUpperCase()
+    const endKey = alphaDashMatch[2].toUpperCase()
+    const startIdx = ALPHA_SIZE_ORDER.indexOf(startKey)
+    const endIdx = ALPHA_SIZE_ORDER.indexOf(endKey)
+    if (startIdx >= 0 && endIdx >= startIdx) {
+      for (let i = startIdx; i <= endIdx; i++) grade[ALPHA_SIZE_ORDER[i]] = 1
+      return grade
+    }
+  }
+
+  // Lista separada por espaço, vírgula ou barra: "P/M/G/GG" ou "P M G GG"
   const letters = sizeRange.split(/[\s,/]+/).map(s => s.trim()).filter(Boolean)
   for (const l of letters) grade[l] = 1
   return grade

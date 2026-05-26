@@ -210,8 +210,12 @@ export async function listProducts(req: AuthRequest, res: Response) {
   const { price_table_id, search, type } = req.query
   let sql = `
     SELECT p.*,
+      pt.name as price_table_name,
+      f.name as factory_name,
       json_agg(gc ORDER BY gc.sort_order) FILTER (WHERE gc.id IS NOT NULL) as grade_configs
     FROM products p
+    LEFT JOIN price_tables pt ON pt.id = p.price_table_id
+    LEFT JOIN factories f ON f.id = pt.factory_id
     LEFT JOIN grade_configs gc ON gc.product_id = p.id
     WHERE p.active = true
   `
