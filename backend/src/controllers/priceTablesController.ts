@@ -235,20 +235,9 @@ export async function listProducts(req: AuthRequest, res: Response) {
 
 export async function deletePriceTable(req: AuthRequest, res: Response) {
   const { id } = req.params
-
-  // Check if any orders reference this price table
-  const { rows: linked } = await query(
-    'SELECT id FROM orders WHERE price_table_id = $1 LIMIT 1',
-    [id]
-  )
-  if (linked.length > 0) {
-    res.status(400).json({
-      error: 'Não é possível excluir esta tabela pois ela possui pedidos vinculados.',
-    })
-    return
-  }
-
-  // Products and discount_commission_rules cascade automatically
+  // Products/grade_configs/discount_rules cascade delete.
+  // orders.price_table_id and order_items.product_id are SET NULL automatically
+  // (see migration v4), so order history is fully preserved.
   const { rows } = await query(
     'DELETE FROM price_tables WHERE id = $1 RETURNING id',
     [id]

@@ -199,6 +199,33 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30);
 -- Sizes por item de pedido (v3 — grade livre por referência)
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS sizes JSONB DEFAULT '{}';
 
+-- v4 — permite excluir tabela de preços sem perder histórico de pedidos
+-- orders.price_table_id → nullable + ON DELETE SET NULL
+ALTER TABLE orders ALTER COLUMN price_table_id DROP NOT NULL;
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'orders_price_table_id_fkey' AND table_name = 'orders'
+  ) THEN
+    ALTER TABLE orders DROP CONSTRAINT orders_price_table_id_fkey;
+  END IF;
+END $$;
+ALTER TABLE orders ADD CONSTRAINT orders_price_table_id_fkey
+  FOREIGN KEY (price_table_id) REFERENCES price_tables(id) ON DELETE SET NULL;
+
+-- order_items.product_id → nullable + ON DELETE SET NULL
+ALTER TABLE order_items ALTER COLUMN product_id DROP NOT NULL;
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'order_items_product_id_fkey' AND table_name = 'order_items'
+  ) THEN
+    ALTER TABLE order_items DROP CONSTRAINT order_items_product_id_fkey;
+  END IF;
+END $$;
+ALTER TABLE order_items ADD CONSTRAINT order_items_product_id_fkey
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
+
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_products_price_table ON products(price_table_id);
 CREATE INDEX IF NOT EXISTS idx_products_reference ON products(reference);

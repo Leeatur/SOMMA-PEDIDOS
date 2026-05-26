@@ -49,7 +49,6 @@ export function PriceTables() {
   const [catalogOpen, setCatalogOpen] = useState(false)
   const [selectedTable, setSelectedTable] = useState<PriceTable | null>(null)
   const [deleteTable, setDeleteTable] = useState<PriceTable | null>(null)
-  const [deleteError, setDeleteError] = useState('')
 
   // Import Excel state
   const [importStep, setImportStep] = useState<1 | 2 | 3>(1)
@@ -119,11 +118,6 @@ export function PriceTables() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['price-tables'] })
       setDeleteTable(null)
-      setDeleteError('')
-    },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-      setDeleteError(msg || 'Erro ao excluir tabela.')
     },
   })
 
@@ -249,7 +243,7 @@ export function PriceTables() {
                       Catálogo
                     </button>
                     <button
-                      onClick={() => { setDeleteTable(t); setDeleteError('') }}
+                      onClick={() => setDeleteTable(t)}
                       className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded-lg transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -507,12 +501,12 @@ export function PriceTables() {
       {/* Delete Confirmation Modal */}
       <Modal
         open={!!deleteTable}
-        onClose={() => { setDeleteTable(null); setDeleteError('') }}
+        onClose={() => setDeleteTable(null)}
         title="Excluir Tabela de Preços"
         size="sm"
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => { setDeleteTable(null); setDeleteError('') }}>
+            <Button variant="outline" onClick={() => setDeleteTable(null)}>
               Cancelar
             </Button>
             <Button
@@ -532,14 +526,8 @@ export function PriceTables() {
             <span className="font-semibold">"{deleteTable?.name}"</span>?
           </p>
           <p className="text-xs text-gray-500">
-            Todos os produtos e configurações de grade vinculados a esta tabela serão removidos. Esta ação não pode ser desfeita.
+            Os produtos e fotos desta tabela serão removidos. Os pedidos já realizados são mantidos no histórico com todos os valores intactos.
           </p>
-          {deleteError && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
-              <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{deleteError}</p>
-            </div>
-          )}
         </div>
       </Modal>
 
