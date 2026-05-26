@@ -1,0 +1,83 @@
+import { Response } from 'express'
+import { query, pool } from '../config/database'
+import { AuthRequest } from '../middleware/auth'
+import { previewClientsExcel, importClientsExcel } from '../services/import/clientsImporter'
+
+// Passo 1: faz upload e retorna preview + mapeamento detectado
+export async function previewImport(req: AuthRequest, res: Response) {
+  if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
+  try {
+    const preview = previewClientsExcel(req.file.path)
+    res.json(preview)
+  } catch (err) {
+    console.error(err)
+    res.status(400).json({ error: 'Erro ao ler arquivo. Verifique se é um Excel válido.' })
+  }
+}
+
+// Passo 2: confirma importação com mapeamento (pode ser ajustado pelo usuário)
+export async function confirmImport(req: AuthRequest, res: Response) {
+  if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
+
+  let mapping: Record<string, string>
+  try {
+    mapping = typeof req.body.mapping === 'string'
+      ? JSON.parse(req.body.mapping)
+      : req.body.mapping
+  } catch {
+    res.status(400).json({ error: 'Mapeamento inválido' }); return
+  }
+
+  const rep_id = req.user!.id
+  const clients = importClientsExcel(req.file.path, mapping)
+
+  if (!clients.length) {
+    res.status(400).json({ error: 'Nenhum cliente encontrado no arquivo' }); return
+  }
+
+  const dbClient = await pool.connect()
+  let imported = 0
+  let skipped  = 0
+  const errors: string[] = []
+
+  try {
+    await dbClient.query('BEGIN')
+
+    for (const c of clients) {
+      try {
+        // Evita duplicar pelo CNPJ se já existir
+        if (c.cnpj) {
+          const { rows } = await dbClient.query(
+            'SELECT id FROM clients WHERE cnpj=$1 AND active=true LIMIT 1',
+            [c.cnpj]
+          )
+          if (rows[0]) { skipped++; continue }
+        }
+
+        await dbClient.query(
+          `INSERT INTO clients
+           (name, trade_name, cnpj, cpf, phone, whatsapp, email, address, city, state, zip, notes, rep_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+          [
+            c.name, c.trade_name||null, c.cnpj||null, c.cpf||null,
+            c.phone||null, c.whatsapp||null, c.email||null,
+            c.address||null, c.city||null, c.state||null,
+            c.zip||null, c.notes||null, rep_id,
+          ]
+        )
+        imported++
+      } catch (err: any) {
+        errors.push(`${c.name}: ${err.message}`)
+      }
+    }
+
+    await dbClient.query('COMMIT')
+    res.json({ imported, skipped, errors: errors.slice(0, 20), total: clients.length })
+  } catch (err) {
+    await dbClient.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao importar clientes' })
+  } finally {
+    dbClient.release()
+  }
+}

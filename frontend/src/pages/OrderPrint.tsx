@@ -1,0 +1,417 @@
+import { useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { ordersApi, companyApi } from '../api/client'
+import { formatCurrency } from '../utils/format'
+
+// Ordem lógica de tamanhos
+const SIZE_ORDER = [
+  'RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG','4XG',
+  '36','38','40','42','44','46','48','50','52','54','56','58','60',
+  '1','2','4','6','8','10','12','14','16','18','U',
+]
+
+function sortSizes(sizes: string[]) {
+  return [...sizes].sort((a, b) => {
+    const ai = SIZE_ORDER.indexOf(a.toUpperCase())
+    const bi = SIZE_ORDER.indexOf(b.toUpperCase())
+    if (ai === -1 && bi === -1) return a.localeCompare(b)
+    if (ai === -1) return 1
+    if (bi === -1) return -1
+    return ai - bi
+  })
+}
+
+function fmt(n: number | string | null | undefined) {
+  return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function fmtDate(d: string | null | undefined) {
+  if (!d) return '—'
+  try {
+    return new Date(d).toLocaleDateString('pt-BR')
+  } catch { return d }
+}
+
+interface GradeConfig {
+  color: string | null
+  sizes: Record<string, number>
+  total_pieces: number
+  sort_order: number
+}
+
+interface OrderItem {
+  id: string
+  product_id: string
+  reference: string
+  product_name: string | null
+  type: string
+  boxes_count: number
+  unit_price: number
+  total_pieces: number
+  subtotal: number
+  grade_configs: GradeConfig[] | null
+}
+
+interface Order {
+  id: string
+  order_number: number
+  client_name: string
+  client_trade_name: string | null
+  client_city: string | null
+  client_state: string | null
+  client_phone: string | null
+  client_whatsapp: string | null
+  client_email: string | null
+  client_cnpj: string | null
+  client_address: string | null
+  client_zip: string | null
+  rep_name: string
+  factory_name: string
+  factory_contact: string | null
+  price_table_name: string
+  discount_pct: number
+  total_pieces: number
+  total_value: number
+  notes: string | null
+  status_name: string | null
+  created_at: string
+  payment_terms: string | null
+  freight_type: string | null
+  delivery_date: string | null
+  industry_order_number: string | null
+  buyer_name: string | null
+  items: OrderItem[]
+}
+
+export function OrderPrint() {
+  const { id } = useParams<{ id: string }>()
+
+  const { data: order } = useQuery<Order>({
+    queryKey: ['order', id],
+    queryFn: () => ordersApi.get(id!).then(r => r.data),
+    enabled: !!id,
+  })
+
+  const { data: company } = useQuery<Record<string, string>>({
+    queryKey: ['company'],
+    queryFn: () => companyApi.get().then(r => r.data),
+  })
+
+  useEffect(() => {
+    if (order && company) {
+      document.title = `Pedido #${order.order_number} - ${order.client_name}`
+      setTimeout(() => window.print(), 600)
+    }
+  }, [order, company])
+
+  if (!order || !company) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-gray-500 text-sm">
+        Preparando pedido para impressão…
+      </div>
+    )
+  }
+
+  // Coleta todos os tamanhos únicos de todos os itens
+  const allSizes = new Set<string>()
+  for (const item of order.items) {
+    if (item.grade_configs) {
+      for (const gc of item.grade_configs) {
+        Object.keys(gc.sizes).forEach(s => allSizes.add(s))
+      }
+    }
+  }
+  const sizes = sortSizes(Array.from(allSizes))
+
+  // Monta linhas da tabela (uma por cor/grade_config por item)
+  interface PrintRow {
+    seq: number
+    reference: string
+    product_name: string
+    color: string
+    gradeLabel: string
+    sizeCols: Record<string, number>
+    qtde: number
+    unitPriceBase: number
+    unitPriceDisc: number
+    discPct: number
+    total: number
+  }
+
+  const rows: PrintRow[] = []
+  let seq = 0
+
+  // Calcula gross value for computing actual discount%
+  const actualDiscPct = order.discount_pct
+
+  for (const item of order.items) {
+    const piecesPerBox = item.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 1
+    if (item.grade_configs && item.grade_configs.length > 0) {
+      for (const gc of item.grade_configs) {
+        seq++
+        const qtde = gc.total_pieces * item.boxes_count
+        const sizeCols: Record<string, number> = {}
+        for (const s of sizes) {
+          sizeCols[s] = (gc.sizes[s] || 0) * item.boxes_count
+        }
+        const gradeLabel = sortSizes(Object.keys(gc.sizes)).join('/')
+        rows.push({
+          seq,
+          reference: item.reference,
+          product_name: item.product_name || '',
+          color: gc.color || '',
+          gradeLabel,
+          sizeCols,
+          qtde,
+          unitPriceBase: item.unit_price,
+          unitPriceDisc: item.unit_price * (1 - actualDiscPct / 100),
+          discPct: actualDiscPct,
+          total: item.unit_price * (1 - actualDiscPct / 100) * qtde,
+        })
+      }
+    } else {
+      // Produto sem grade configurada
+      seq++
+      const qtde = item.boxes_count * piecesPerBox
+      const sizeCols: Record<string, number> = {}
+      rows.push({
+        seq,
+        reference: item.reference,
+        product_name: item.product_name || '',
+        color: '',
+        gradeLabel: '',
+        sizeCols,
+        qtde,
+        unitPriceBase: item.unit_price,
+        unitPriceDisc: item.unit_price * (1 - actualDiscPct / 100),
+        discPct: actualDiscPct,
+        total: item.unit_price * (1 - actualDiscPct / 100) * qtde,
+      })
+    }
+  }
+
+  // Totais por tamanho
+  const sizeTotals: Record<string, number> = {}
+  for (const s of sizes) {
+    sizeTotals[s] = rows.reduce((sum, r) => sum + (r.sizeCols[s] || 0), 0)
+  }
+  const totalQtde = rows.reduce((s, r) => s + r.qtde, 0)
+  const totalGross = rows.reduce((s, r) => s + r.unitPriceBase * r.qtde, 0)
+  const totalNet = rows.reduce((s, r) => s + r.total, 0)
+  const totalDiscount = totalGross - totalNet
+
+  const companyName    = company.name || 'SOMMA GESTÃO COMERCIAL'
+  const companyAddress = [company.address, company.city, company.state].filter(Boolean).join(' — ')
+  const companyZip     = company.zip || ''
+  const companyPhone   = company.phone || ''
+  const companyWhats   = company.whatsapp || ''
+  const logoUrl        = company.logo_url ? `/api${company.logo_url}` : null
+
+  const clientAddress  = [
+    order.client_address,
+    order.client_city && order.client_state
+      ? `${order.client_city}-${order.client_state}`
+      : (order.client_city || order.client_state || ''),
+    order.client_zip ? `CEP ${order.client_zip}` : '',
+  ].filter(Boolean).join(', ')
+
+  return (
+    <>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #000; background: #fff; }
+        .page { width: 210mm; min-height: 297mm; padding: 10mm 12mm; margin: 0 auto; background: #fff; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 2px 4px; }
+        th { background: #f0f0f0; font-weight: bold; text-align: center; }
+        td { vertical-align: middle; }
+        .no-border td, .no-border th { border: none; }
+        .section-title { font-weight: bold; font-size: 10px; background: #e0e0e0; padding: 3px 6px; margin: 6px 0 3px; border-left: 3px solid #333; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; margin-bottom: 4px; }
+        .info-row { display: flex; gap: 4px; font-size: 9.5px; }
+        .info-label { font-weight: bold; white-space: nowrap; }
+        .header-box { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+        .company-info { flex: 1; }
+        .company-name { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+        .logo-area { width: 80px; text-align: right; }
+        .logo-area img { max-width: 80px; max-height: 60px; object-fit: contain; }
+        .items-table th { font-size: 8.5px; padding: 2px 3px; }
+        .items-table td { font-size: 8.5px; padding: 2px 3px; }
+        .items-table .ref { font-weight: bold; }
+        .items-table .num { text-align: right; }
+        .items-table .ctr { text-align: center; }
+        .totals-row td { font-weight: bold; background: #f5f5f5; }
+        .grand-total { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #ccc; margin-top: 6px; }
+        .grand-total-cell { padding: 5px 8px; border-right: 1px solid #ccc; text-align: center; }
+        .grand-total-cell:last-child { border-right: none; }
+        .grand-total-cell .label { font-size: 9px; color: #555; }
+        .grand-total-cell .value { font-size: 12px; font-weight: bold; }
+        .obs-box { border: 1px solid #ccc; padding: 5px 8px; margin-top: 6px; min-height: 30px; font-size: 9px; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 20mm; gap: 20mm; }
+        .sig-line { flex: 1; text-align: center; }
+        .sig-line .line { border-top: 1px solid #333; margin-bottom: 4px; }
+        .sig-line .name { font-size: 9px; }
+        @media print {
+          body { margin: 0; }
+          .page { padding: 8mm 10mm; width: 100%; }
+          .no-print { display: none; }
+          @page { size: A4; margin: 0; }
+        }
+      `}</style>
+
+      {/* Botão imprimir - só aparece na tela, não no PDF */}
+      <div className="no-print" style={{ background: '#1d4ed8', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>
+          Pedido #{order.order_number} — {order.client_name}
+        </span>
+        <button
+          onClick={() => window.print()}
+          style={{ marginLeft: 'auto', background: '#fff', color: '#1d4ed8', fontWeight: 'bold', border: 'none', padding: '6px 18px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}
+        >
+          🖨️ Imprimir / Salvar PDF
+        </button>
+      </div>
+
+      <div className="page">
+        {/* ── CABEÇALHO ── */}
+        <div className="header-box">
+          <div className="company-info">
+            {logoUrl && (
+              <img src={logoUrl} alt="Logo" style={{ height: 48, marginBottom: 4, objectFit: 'contain' }} />
+            )}
+            <div className="company-name">{companyName}</div>
+            <div style={{ fontSize: 9 }}>{companyAddress}{companyZip ? ` — CEP ${companyZip}` : ''}</div>
+            {(companyPhone || companyWhats) && (
+              <div style={{ fontSize: 9, marginTop: 2 }}>
+                {companyPhone && <span>Tel: {companyPhone}</span>}
+                {companyPhone && companyWhats && ' · '}
+                {companyWhats && <span>WhatsApp: {companyWhats}</span>}
+              </div>
+            )}
+            {company.email && <div style={{ fontSize: 9 }}>{company.email}</div>}
+          </div>
+          <div className="logo-area" style={{ fontSize: 10, fontWeight: 'bold', textAlign: 'right', color: '#333' }}>
+            {order.factory_name}
+          </div>
+        </div>
+
+        {/* ── CLIENTE ── */}
+        <div className="section-title">Informações sobre o Cliente</div>
+        <div className="info-grid" style={{ marginBottom: 6 }}>
+          <div>
+            <div className="info-row"><span className="info-label">Razão Social:</span> {order.client_name}</div>
+            <div className="info-row"><span className="info-label">Nome Fantasia:</span> {order.client_trade_name || '—'}</div>
+            <div className="info-row"><span className="info-label">CNPJ/CPF:</span> {order.client_cnpj || '—'}</div>
+            <div className="info-row"><span className="info-label">E-mail:</span> {order.client_email || '—'}</div>
+            <div className="info-row"><span className="info-label">WhatsApp:</span> {order.client_whatsapp || '—'}</div>
+            <div className="info-row" style={{ marginTop: 2 }}><span className="info-label">Endereço:</span> {clientAddress || '—'}</div>
+          </div>
+          <div>
+            <div className="info-row"><span className="info-label">Comprador:</span> {order.buyer_name || '—'}</div>
+            <div className="info-row"><span className="info-label">Telefone:</span> {order.client_phone || '—'}</div>
+          </div>
+        </div>
+
+        {/* ── PEDIDO ── */}
+        <div className="section-title">Informações sobre o PEDIDO — Nº <strong>{order.order_number}</strong></div>
+        <div className="info-grid" style={{ marginBottom: 6 }}>
+          <div>
+            <div className="info-row"><span className="info-label">Indústria:</span> {order.factory_name}</div>
+            {order.factory_contact && <div className="info-row"><span className="info-label">Contato Indústria:</span> {order.factory_contact}</div>}
+            <div className="info-row"><span className="info-label">Data da Venda:</span> {fmtDate(order.created_at)}</div>
+            <div className="info-row"><span className="info-label">Condição de Pagto:</span> {order.payment_terms || '—'}</div>
+            <div className="info-row"><span className="info-label">Nº na Indústria:</span> {order.industry_order_number || '—'}</div>
+          </div>
+          <div>
+            <div className="info-row"><span className="info-label">Tabela de Preço:</span> {order.price_table_name}</div>
+            <div className="info-row"><span className="info-label">Previsão de Entrega:</span> {fmtDate(order.delivery_date)}</div>
+            <div className="info-row"><span className="info-label">Tipo de Frete:</span> {order.freight_type || 'CIF'}</div>
+            <div className="info-row"><span className="info-label">Representante:</span> {order.rep_name}</div>
+          </div>
+        </div>
+
+        {/* ── TABELA DE ITENS ── */}
+        <table className="items-table" style={{ marginTop: 6 }}>
+          <thead>
+            <tr>
+              <th style={{ width: 20 }}>#</th>
+              <th style={{ width: 70 }}>Cód. Produto</th>
+              <th>Produto</th>
+              <th style={{ width: 70 }}>Cor</th>
+              {sizes.map(s => <th key={s} style={{ width: 24 }}>{s}</th>)}
+              <th style={{ width: 32 }}>Qtde</th>
+              <th style={{ width: 50 }}>R$ Tabela</th>
+              <th style={{ width: 55 }}>R$ Unit c/<br/>Desconto</th>
+              <th style={{ width: 40 }}>Desc.%</th>
+              <th style={{ width: 55 }}>R$ Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.seq}>
+                <td className="ctr">{row.seq}</td>
+                <td className="ref">{row.reference}</td>
+                <td>{row.product_name}</td>
+                <td>{row.color}</td>
+                {sizes.map(s => (
+                  <td key={s} className="ctr">{row.sizeCols[s] > 0 ? row.sizeCols[s] : ''}</td>
+                ))}
+                <td className="ctr" style={{ fontWeight: 'bold' }}>{row.qtde}</td>
+                <td className="num">{fmt(row.unitPriceBase)}</td>
+                <td className="num">{fmt(row.unitPriceDisc)}</td>
+                <td className="ctr">{fmt(row.discPct)}</td>
+                <td className="num" style={{ fontWeight: 'bold' }}>{fmt(row.total)}</td>
+              </tr>
+            ))}
+            {/* Linha de totais por tamanho */}
+            <tr className="totals-row">
+              <td colSpan={4} className="ctr" style={{ fontStyle: 'italic' }}>Itens:</td>
+              {sizes.map(s => (
+                <td key={s} className="ctr">{sizeTotals[s] > 0 ? sizeTotals[s] : ''}</td>
+              ))}
+              <td className="ctr" style={{ fontWeight: 'bold' }}>{totalQtde}</td>
+              <td colSpan={4}></td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* ── RESUMO FINANCEIRO ── */}
+        <div className="grand-total">
+          <div className="grand-total-cell">
+            <div className="label">Total Tabela (R$)</div>
+            <div className="value">{fmt(totalGross)}</div>
+          </div>
+          <div className="grand-total-cell">
+            <div className="label">Total c/ Desconto (R$)</div>
+            <div className="value">{fmt(totalNet)}</div>
+          </div>
+          <div className="grand-total-cell">
+            <div className="label">Desconto R$ Total</div>
+            <div className="value">{fmt(totalDiscount)}</div>
+          </div>
+          <div className="grand-total-cell">
+            <div className="label">Total Qtde Itens</div>
+            <div className="value">{totalQtde}</div>
+          </div>
+        </div>
+
+        {/* ── OBSERVAÇÕES ── */}
+        <div style={{ marginTop: 6, fontSize: 9, fontWeight: 'bold' }}>Observação</div>
+        <div className="obs-box">{order.notes || ''}</div>
+
+        {/* ── ASSINATURAS ── */}
+        <div className="signatures">
+          <div className="sig-line">
+            <div className="line" />
+            <div className="name">{order.buyer_name || 'Comprador'}</div>
+          </div>
+          <div className="sig-line">
+            <div className="line" />
+            <div className="name">{order.rep_name} — Vendedor</div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}

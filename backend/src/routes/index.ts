@@ -1,0 +1,94 @@
+import { Router } from 'express'
+import multer from 'multer'
+import path from 'path'
+import { authenticate, requireAdmin } from '../middleware/auth'
+import * as auth from '../controllers/authController'
+import * as users from '../controllers/usersController'
+import * as factories from '../controllers/factoriesController'
+import * as priceTables from '../controllers/priceTablesController'
+import * as clients from '../controllers/clientsController'
+import * as orders from '../controllers/ordersController'
+import * as statuses from '../controllers/statusController'
+import * as clientsImport from '../controllers/clientsImportController'
+import * as company from '../controllers/companyController'
+
+const router = Router()
+
+// Multer para uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dest = file.fieldname === 'logo'
+      ? path.join(__dirname, '../../..', 'uploads', 'logos')
+      : path.join(__dirname, '../../..', 'uploads', 'products')
+    cb(null, dest)
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname)
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`)
+  },
+})
+const upload = multer({
+  storage,
+  limits: { fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB || '50')) * 1024 * 1024 },
+})
+
+// Auth
+router.post('/auth/login', auth.login)
+router.post('/auth/refresh', auth.refresh)
+router.post('/auth/logout', auth.logout)
+router.get('/auth/me', authenticate, auth.me)
+
+// Usuários (admin only)
+router.get('/users', authenticate, requireAdmin, users.listUsers)
+router.post('/users', authenticate, requireAdmin, users.createUser)
+router.put('/users/:id', authenticate, requireAdmin, users.updateUser)
+router.delete('/users/:id', authenticate, requireAdmin, users.deleteUser)
+
+// Fábricas
+router.get('/factories', authenticate, factories.listFactories)
+router.get('/factories/:id', authenticate, factories.getFactory)
+router.post('/factories', authenticate, requireAdmin, factories.createFactory)
+router.put('/factories/:id', authenticate, requireAdmin, factories.updateFactory)
+router.post('/factories/:id/logo', authenticate, requireAdmin, upload.single('logo'), factories.uploadLogo)
+
+// Tabelas de Preço
+router.get('/price-tables', authenticate, priceTables.listPriceTables)
+router.get('/price-tables/:id', authenticate, priceTables.getPriceTable)
+router.post('/price-tables/preview', authenticate, requireAdmin, upload.single('file'), priceTables.previewExcelImport)
+router.post('/price-tables/import', authenticate, requireAdmin, upload.single('file'), priceTables.confirmExcelImport)
+router.post('/price-tables/import-catalog', authenticate, requireAdmin, upload.single('file'), priceTables.importCatalog)
+
+// Produtos
+router.get('/products', authenticate, priceTables.listProducts)
+router.post('/products/:id/image', authenticate, requireAdmin, upload.single('image'), priceTables.uploadProductImage)
+router.put('/products/:product_id/grade', authenticate, requireAdmin, priceTables.updateGradeConfig)
+
+// Clientes
+router.get('/clients', authenticate, clients.listClients)
+router.get('/clients/:id', authenticate, clients.getClient)
+router.post('/clients', authenticate, clients.createClient)
+router.put('/clients/:id', authenticate, clients.updateClient)
+router.post('/clients/import/preview', authenticate, upload.single('file'), clientsImport.previewImport)
+router.post('/clients/import/confirm', authenticate, upload.single('file'), clientsImport.confirmImport)
+
+// Pedidos
+router.get('/orders', authenticate, orders.listOrders)
+router.get('/orders/:id', authenticate, orders.getOrder)
+router.post('/orders', authenticate, orders.createOrder)
+router.patch('/orders/:id/status', authenticate, orders.updateOrderStatus)
+router.post('/orders/:id/items', authenticate, orders.addOrderItems)
+router.post('/orders/sync', authenticate, orders.syncOfflineOrders)
+
+// Empresa (Somma)
+router.get('/company', authenticate, company.getSettings)
+router.put('/company', authenticate, requireAdmin, company.updateSettings)
+router.post('/company/logo', authenticate, requireAdmin, upload.single('logo'), company.uploadLogo)
+
+// Status
+router.get('/statuses', authenticate, statuses.listStatuses)
+router.post('/statuses', authenticate, requireAdmin, statuses.createStatus)
+router.put('/statuses/:id', authenticate, requireAdmin, statuses.updateStatus)
+router.delete('/statuses/:id', authenticate, requireAdmin, statuses.deleteStatus)
+router.post('/statuses/reorder', authenticate, requireAdmin, statuses.reorderStatuses)
+
+export default router

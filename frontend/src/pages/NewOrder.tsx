@@ -1,0 +1,915 @@
+import { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import {
+  Users,
+  Tags,
+  Package,
+  ClipboardList,
+  ChevronRight,
+  ChevronLeft,
+  Search,
+  Plus,
+  Minus,
+  Trash2,
+  Image as ImageIcon,
+  Check,
+  WifiOff,
+  AlertCircle,
+  Info,
+} from 'lucide-react'
+import { clientsApi, priceTablesApi, productsApi, ordersApi, factoriesApi } from '../api/client'
+import { useAuthStore } from '../stores/authStore'
+import { db } from '../db/db'
+import { Button } from '../components/ui/Button'
+import { Input, Textarea, Select } from '../components/ui/Input'
+import { Card } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+import { PageSpinner } from '../components/ui/Spinner'
+import { NewClientModal, CreatedClient } from '../components/ui/NewClientModal'
+import { formatCurrency, formatPct } from '../utils/format'
+
+interface Client {
+  id: string
+  name: string
+  trade_name: string | null
+  city: string | null
+  cnpj: string | null
+  phone: string | null
+}
+
+interface PriceTable {
+  id: string
+  name: string
+  factory_id: string
+  factory_name: string
+  collection: string | null
+  season: string | null
+  year: number | null
+  discount_rules?: DiscountRule[]
+}
+
+interface DiscountRule {
+  id: string
+  discount_pct: number
+  total_commission_pct: number
+  rep_commission_pct: number
+  office_commission_pct: number
+}
+
+interface GradeConfig {
+  id: string
+  color: string | null
+  sizes: Record<string, number>
+  total_pieces: number
+  sort_order: number
+}
+
+interface Product {
+  id: string
+  reference: string
+  type: 'regular' | 'pack'
+  product_name: string | null
+  model: string | null
+  base_price: number
+  image_url: string | null
+  grade_configs: GradeConfig[] | null
+}
+
+interface CartItem {
+  product: Product
+  boxes_count: number
+  unit_price: number
+}
+
+const STEPS = [
+  { label: 'Cliente', icon: <Users className="h-4 w-4" /> },
+  { label: 'Tabela', icon: <Tags className="h-4 w-4" /> },
+  { label: 'Produtos', icon: <Package className="h-4 w-4" /> },
+  { label: 'Revisão', icon: <ClipboardList className="h-4 w-4" /> },
+]
+
+function GradePreview({ configs, boxCount }: { configs: GradeConfig[]; boxCount: number }) {
+  return (
+    <div className="space-y-1.5 mt-2">
+      {configs.map((gc, i) => {
+        const sizes = Object.keys(gc.sizes).sort()
+        return (
+          <div key={i}>
+            {gc.color && <p className="text-xs font-medium text-gray-600">{gc.color}</p>}
+            <div className="overflow-x-auto scrollbar-hide">
+              <table className="min-w-max text-xs border border-gray-200 rounded-lg overflow-hidden">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {sizes.map((s) => (
+                      <th key={s} className="px-2 py-1 text-gray-600 text-center font-medium min-w-[28px]">{s}</th>
+                    ))}
+                    <th className="px-2 py-1 text-gray-500 border-l border-gray-200 text-center">Total/cx</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white">
+                    {sizes.map((s) => (
+                      <td key={s} className="px-2 py-1 text-center">{gc.sizes[s] * boxCount}</td>
+                    ))}
+                    <td className="px-2 py-1 text-center font-bold border-l border-gray-200">{gc.total_pieces * boxCount}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export function NewOrder() {
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'admin'
+  const [step, setStep] = useState(0)
+
+  // Step 1: Client
+  const [clientSearch, setClientSearch] = useState('')
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [showNewClient, setShowNewClient] = useState(false)
+
+  // Step 2: Price table
+  const [selectedFactory, setSelectedFactory] = useState('')
+  const [selectedTable, setSelectedTable] = useState<PriceTable | null>(null)
+
+  // Step 3: Products
+  const [productSearch, setProductSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
+
+  // Step 4: Review
+  const [discountPct, setDiscountPct] = useState<string>('0')
+  const [customDiscount, setCustomDiscount] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [paymentTerms, setPaymentTerms] = useState('')
+  const [freightType, setFreightType] = useState('CIF')
+  const [deliveryDate, setDeliveryDate] = useState('')
+  const [buyerName, setBuyerName] = useState('')
+  const [industryOrderNumber, setIndustryOrderNumber] = useState('')
+
+  const online = navigator.onLine
+
+  // Queries
+  const { data: clients, isLoading: loadingClients } = useQuery<Client[]>({
+    queryKey: ['clients', clientSearch],
+    queryFn: () => clientsApi.list(clientSearch || undefined).then((r) => r.data),
+    enabled: step === 0,
+  })
+
+  const { data: factories } = useQuery({
+    queryKey: ['factories'],
+    queryFn: () => factoriesApi.list().then((r) => r.data),
+    enabled: step === 1,
+  })
+
+  const { data: priceTables, isLoading: loadingTables } = useQuery<PriceTable[]>({
+    queryKey: ['price-tables', selectedFactory],
+    queryFn: () => priceTablesApi.list(selectedFactory || undefined).then((r) => r.data),
+    enabled: step === 1,
+  })
+
+  const { data: tableDetail } = useQuery<PriceTable>({
+    queryKey: ['price-table-detail', selectedTable?.id],
+    queryFn: () => priceTablesApi.get(selectedTable!.id).then((r) => r.data),
+    enabled: !!selectedTable?.id && step >= 3,
+  })
+
+  const { data: products, isLoading: loadingProducts } = useQuery<Product[]>({
+    queryKey: ['products', selectedTable?.id, productSearch, typeFilter],
+    queryFn: () =>
+      productsApi.list({
+        price_table_id: selectedTable?.id,
+        search: productSearch || undefined,
+        type: typeFilter || undefined,
+      }).then((r) => r.data),
+    enabled: step === 2 && !!selectedTable?.id,
+  })
+
+  // Calculations
+  const discountNum = parseFloat(discountPct) || 0
+  const discountRules = tableDetail?.discount_rules || []
+
+  const findMatchingRule = useCallback((discount: number): DiscountRule | null => {
+    if (!discountRules.length) return null
+    return discountRules.reduce((closest, rule) => {
+      if (!closest) return rule
+      const d1 = Math.abs(rule.discount_pct - discount)
+      const d2 = Math.abs(closest.discount_pct - discount)
+      return d1 < d2 ? rule : closest
+    }, null as DiscountRule | null)
+  }, [discountRules])
+
+  const cartTotals = useCallback(() => {
+    let totalPieces = 0
+    let grossValue = 0
+    for (const item of cart) {
+      const piecesPerBox = item.product.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 1
+      const itemPieces = item.boxes_count * piecesPerBox
+      totalPieces += itemPieces
+      grossValue += item.unit_price * itemPieces
+    }
+    const totalValue = grossValue * (1 - discountNum / 100)
+    const rule = findMatchingRule(discountNum)
+    return {
+      totalPieces,
+      grossValue,
+      totalValue,
+      repCommission: rule ? totalValue * rule.rep_commission_pct / 100 : 0,
+      officeCommission: rule ? totalValue * rule.office_commission_pct / 100 : 0,
+      totalCommission: rule ? totalValue * rule.total_commission_pct / 100 : 0,
+      rule,
+    }
+  }, [cart, discountNum, findMatchingRule])
+
+  function addToCart(product: Product) {
+    const existing = cart.find((c) => c.product.id === product.id)
+    if (existing) {
+      setCart(cart.map((c) =>
+        c.product.id === product.id
+          ? { ...c, boxes_count: c.boxes_count + 1 }
+          : c
+      ))
+    } else {
+      setCart([...cart, { product, boxes_count: 1, unit_price: product.base_price }])
+    }
+  }
+
+  function removeFromCart(productId: string) {
+    setCart(cart.filter((c) => c.product.id !== productId))
+  }
+
+  function updateBoxCount(productId: string, delta: number) {
+    setCart(cart.map((c) => {
+      if (c.product.id !== productId) return c
+      const newCount = Math.max(1, c.boxes_count + delta)
+      return { ...c, boxes_count: newCount }
+    }))
+  }
+
+  function setBoxCountDirect(productId: string, value: number) {
+    if (value < 1) return
+    setCart(cart.map((c) =>
+      c.product.id === productId ? { ...c, boxes_count: value } : c
+    ))
+  }
+
+  const createMut = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        client_id: selectedClient!.id,
+        factory_id: selectedTable!.factory_id,
+        price_table_id: selectedTable!.id,
+        items: cart.map((c) => ({
+          product_id: c.product.id,
+          reference: c.product.reference,
+          boxes_count: c.boxes_count,
+          unit_price: c.unit_price,
+        })),
+        discount_pct: discountNum,
+        notes: notes || undefined,
+        payment_terms: paymentTerms || undefined,
+        freight_type: freightType || 'CIF',
+        delivery_date: deliveryDate || undefined,
+        industry_order_number: industryOrderNumber || undefined,
+        buyer_name: buyerName || undefined,
+      }
+      if (online) {
+        const res = await ordersApi.create(payload)
+        return { online: true, id: res.data.id }
+      } else {
+        const offline_id = `offline_${Date.now()}_${Math.random().toString(36).slice(2)}`
+        await db.pendingOrders.add({
+          offline_id,
+          ...payload,
+          notes: notes || null,
+          createdAt: Date.now(),
+          status: 'pending',
+        })
+        return { online: false, offline_id }
+      }
+    },
+    onSuccess: (result) => {
+      if (result.online) {
+        navigate(`/orders/${result.id}`)
+      } else {
+        navigate('/orders')
+      }
+    },
+  })
+
+  const totals = cartTotals()
+  const factoryOptions = ((factories || []) as { id: string; name: string }[]).map((f) => ({
+    value: f.id,
+    label: f.name,
+  }))
+
+  return (
+    <div className="pb-24 lg:pb-0 min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3 lg:px-8 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-3 mb-3">
+            <button
+              onClick={() => {
+                if (step === 0) navigate('/orders')
+                else setStep(step - 1)
+              }}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <h1 className="text-base font-bold text-gray-900">Novo Pedido</h1>
+          </div>
+
+          {/* Step indicator */}
+          <div className="flex items-center gap-0">
+            {STEPS.map((s, i) => (
+              <div key={i} className="flex items-center flex-1">
+                <div className={`flex-1 flex flex-col items-center gap-1 ${i <= step ? 'text-blue-600' : 'text-gray-300'}`}>
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                    i < step ? 'bg-blue-700 text-white' :
+                    i === step ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-300' :
+                    'bg-gray-100 text-gray-400'
+                  }`}>
+                    {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                  </div>
+                  <span className="text-xs font-medium hidden sm:block">{s.label}</span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={`h-0.5 flex-1 transition-colors ${i < step ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 py-5 lg:px-8 max-w-2xl mx-auto">
+        {/* STEP 0: Select Client */}
+        {step === 0 && (
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 mb-1">Selecionar Cliente</h2>
+                <p className="text-sm text-gray-500">Escolha o cliente para este pedido</p>
+              </div>
+              <button
+                onClick={() => setShowNewClient(true)}
+                className="flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Novo Cliente
+              </button>
+            </div>
+
+            <Input
+              placeholder="Buscar cliente..."
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+              leftIcon={<Search className="h-4 w-4" />}
+              autoFocus
+            />
+
+            {loadingClients ? (
+              <PageSpinner />
+            ) : (
+              <div className="space-y-2">
+                {(clients || []).map((c) => (
+                  <Card
+                    key={c.id}
+                    padding="md"
+                    onClick={() => {
+                      setSelectedClient(c)
+                      setStep(1)
+                    }}
+                    className={selectedClient?.id === c.id ? 'ring-2 ring-blue-500' : ''}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-bold text-emerald-700">
+                          {c.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{c.name}</p>
+                        {c.city && <p className="text-xs text-gray-500">{c.city}</p>}
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                    </div>
+                  </Card>
+                ))}
+                {clients?.length === 0 && (
+                  <div className="text-center py-6 space-y-3">
+                    <p className="text-sm text-gray-500">Nenhum cliente encontrado</p>
+                    <button
+                      onClick={() => setShowNewClient(true)}
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-4 py-2 transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Cadastrar novo cliente
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <NewClientModal
+              open={showNewClient}
+              onClose={() => setShowNewClient(false)}
+              onCreated={(c: CreatedClient) => {
+                setSelectedClient(c)
+                setShowNewClient(false)
+                setStep(1)
+              }}
+            />
+          </div>
+        )}
+
+        {/* STEP 1: Select Price Table */}
+        {step === 1 && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 mb-1">Tabela de Preços</h2>
+              {selectedClient && (
+                <p className="text-sm text-gray-500">Cliente: <strong>{selectedClient.name}</strong></p>
+              )}
+            </div>
+
+            <Select
+              label="Filtrar por fábrica"
+              options={factoryOptions}
+              value={selectedFactory}
+              onChange={(e) => setSelectedFactory(e.target.value)}
+              placeholder="Todas as fábricas"
+            />
+
+            {loadingTables ? (
+              <PageSpinner />
+            ) : (
+              <div className="space-y-2">
+                {(priceTables || []).map((t) => (
+                  <Card
+                    key={t.id}
+                    padding="md"
+                    onClick={() => {
+                      setSelectedTable(t)
+                      setCart([])
+                      setStep(2)
+                    }}
+                    className={selectedTable?.id === t.id ? 'ring-2 ring-blue-500' : ''}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Tags className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{t.name}</p>
+                        <p className="text-xs text-gray-500">{t.factory_name}</p>
+                        <div className="flex gap-1.5 mt-1 flex-wrap">
+                          {t.collection && <Badge variant="info">{t.collection}</Badge>}
+                          {t.season && <Badge variant="default">{t.season}</Badge>}
+                          {t.year && <Badge variant="default">{t.year}</Badge>}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                    </div>
+                  </Card>
+                ))}
+                {priceTables?.length === 0 && (
+                  <p className="text-center text-sm text-gray-500 py-4">Nenhuma tabela disponível</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STEP 2: Browse Catalog + Cart */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Produtos</h2>
+                <p className="text-xs text-gray-500">{selectedTable?.name} — {selectedTable?.factory_name}</p>
+              </div>
+              {cart.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="info">{cart.length} itens</Badge>
+                  <Button size="sm" onClick={() => setStep(3)}>
+                    Revisar <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Search + filter */}
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  placeholder="Referência, nome..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  leftIcon={<Search className="h-4 w-4" />}
+                />
+              </div>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">Todos</option>
+                <option value="regular">Regular</option>
+                <option value="pack">Pack</option>
+              </select>
+            </div>
+
+            {loadingProducts ? (
+              <PageSpinner />
+            ) : (
+              <div className="space-y-2">
+                {(products || []).map((p) => {
+                  const cartItem = cart.find((c) => c.product.id === p.id)
+                  const totalPiecesPerBox = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
+                  const isExpanded = expandedGrade === p.id
+
+                  return (
+                    <div key={p.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                      <div className="flex gap-3 p-3">
+                        {/* Image */}
+                        <div className="w-14 h-14 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+                          {p.image_url ? (
+                            <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-300">
+                              <ImageIcon className="h-6 w-6" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-1.5">
+                            <p className="font-bold text-gray-900 text-sm">{p.reference}</p>
+                            <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-xs flex-shrink-0">
+                              {p.type === 'pack' ? 'PACK' : 'REG'}
+                            </Badge>
+                          </div>
+                          {p.product_name && <p className="text-xs text-gray-500 truncate">{p.product_name}</p>}
+                          <p className="text-sm font-semibold text-blue-700">
+                            R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-gray-400 font-normal">/pç</span>
+                          </p>
+                          {totalPiecesPerBox > 0 && (
+                            <button
+                              onClick={() => setExpandedGrade(isExpanded ? null : p.id)}
+                              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mt-0.5"
+                            >
+                              <Info className="h-3 w-3" />
+                              {totalPiecesPerBox} pç/cx
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Add/quantity */}
+                        <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                          {cartItem ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => updateBoxCount(p.id, -1)}
+                                className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200"
+                              >
+                                <Minus className="h-3.5 w-3.5" />
+                              </button>
+                              <input
+                                type="number"
+                                min="1"
+                                value={cartItem.boxes_count}
+                                onChange={(e) => setBoxCountDirect(p.id, parseInt(e.target.value) || 1)}
+                                className="w-10 h-7 text-center border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              />
+                              <button
+                                onClick={() => updateBoxCount(p.id, 1)}
+                                className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-200"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => removeFromCart(p.id)}
+                                className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => addToCart(p)}
+                              className="flex items-center gap-1 bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-800"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Adicionar
+                            </button>
+                          )}
+                          {cartItem && (
+                            <p className="text-xs text-gray-500">
+                              {cartItem.boxes_count * totalPiecesPerBox} pç total
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Grade preview */}
+                      {isExpanded && p.grade_configs && (
+                        <div className="px-3 pb-3 border-t border-gray-100 pt-2">
+                          <p className="text-xs font-medium text-gray-600 mb-1.5">Composição da grade:</p>
+                          <GradePreview
+                            configs={p.grade_configs}
+                            boxCount={cartItem?.boxes_count || 1}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+                {products?.length === 0 && (
+                  <p className="text-center text-sm text-gray-500 py-4">Nenhum produto encontrado</p>
+                )}
+              </div>
+            )}
+
+            {/* Floating cart summary */}
+            {cart.length > 0 && (
+              <div className="fixed bottom-20 lg:bottom-6 left-4 right-4 lg:left-auto lg:right-8 lg:max-w-sm">
+                <Card padding="md" className="shadow-lg border-blue-200 bg-blue-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900">{cart.length} produto{cart.length > 1 ? 's' : ''} no carrinho</p>
+                      <p className="text-xs text-blue-700">{totals.totalPieces} peças</p>
+                    </div>
+                    <Button onClick={() => setStep(3)} size="sm">
+                      Revisar <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STEP 3: Review */}
+        {step === 3 && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Revisão do Pedido</h2>
+              <p className="text-sm text-gray-500">Confirme os dados antes de enviar</p>
+            </div>
+
+            {/* Offline warning */}
+            {!online && (
+              <div className="flex items-start gap-2 bg-orange-50 border border-orange-200 rounded-xl p-3">
+                <WifiOff className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-orange-800">
+                  Sem conexão. O pedido será salvo localmente e sincronizado quando você voltar online.
+                </p>
+              </div>
+            )}
+
+            {/* Client + Table summary */}
+            <Card padding="sm">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Cliente:</span>
+                  <span className="font-medium text-gray-900">{selectedClient?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Tabela:</span>
+                  <span className="font-medium text-gray-900">{selectedTable?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Fábrica:</span>
+                  <span className="font-medium text-gray-900">{selectedTable?.factory_name}</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Items */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-700">Itens ({cart.length})</h3>
+                <button
+                  onClick={() => setStep(2)}
+                  className="text-xs text-blue-600 hover:text-blue-700"
+                >
+                  Editar
+                </button>
+              </div>
+              <div className="space-y-2">
+                {cart.map((item) => {
+                  const piecesPerBox = item.product.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 1
+                  const totalPieces = item.boxes_count * piecesPerBox
+                  const subtotal = item.unit_price * totalPieces * (1 - discountNum / 100)
+                  return (
+                    <div key={item.product.id} className="bg-white rounded-xl border border-gray-200 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-gray-900">{item.product.reference}</p>
+                          <p className="text-xs text-gray-500">{item.product.product_name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {item.boxes_count} cx × {piecesPerBox} pç/cx = {totalPieces} peças
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-bold text-gray-900">{formatCurrency(subtotal)}</p>
+                          <p className="text-xs text-gray-400">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
+                        </div>
+                      </div>
+                      {item.product.grade_configs && item.product.grade_configs.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                          <GradePreview configs={item.product.grade_configs} boxCount={item.boxes_count} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Campos do pedido */}
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Condição de Pagamento"
+                value={paymentTerms}
+                onChange={(e) => setPaymentTerms(e.target.value)}
+                placeholder="Ex: 30/60/90 dias"
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Frete</label>
+                <select
+                  value={freightType}
+                  onChange={(e) => setFreightType(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="CIF">CIF</option>
+                  <option value="FOB">FOB</option>
+                </select>
+              </div>
+              <Input
+                label="Previsão de Entrega"
+                type="date"
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+              />
+              <Input
+                label="Comprador"
+                value={buyerName}
+                onChange={(e) => setBuyerName(e.target.value)}
+                placeholder="Nome do comprador"
+              />
+              <div className="col-span-2">
+                <Input
+                  label="Nº do Pedido na Indústria"
+                  value={industryOrderNumber}
+                  onChange={(e) => setIndustryOrderNumber(e.target.value)}
+                  placeholder="Número gerado pela fábrica"
+                />
+              </div>
+            </div>
+
+            {/* Notes */}
+            <Textarea
+              label="Observações"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Instruções especiais, prazo de entrega, etc."
+              rows={2}
+            />
+
+            {/* ── Bloco de fechamento: desconto + totais + confirmar ── */}
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+
+              {/* Desconto */}
+              <div className="p-4 border-b border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Desconto</h3>
+                {discountRules.length > 0 && !customDiscount ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {discountRules.map((rule) => {
+                        const isSelected = parseFloat(discountPct) === rule.discount_pct
+                        const discountedTotal = totals.grossValue * (1 - rule.discount_pct / 100)
+                        return (
+                          <button
+                            key={rule.id}
+                            onClick={() => setDiscountPct(String(rule.discount_pct))}
+                            className={`text-left p-3 rounded-xl border transition-colors ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400'
+                                : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-1">
+                              <div className="min-w-0">
+                                <p className="font-bold text-gray-900 text-sm leading-tight">
+                                  {formatPct(rule.discount_pct)}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5 leading-tight">
+                                  {formatCurrency(discountedTotal)}
+                                </p>
+                                {isAdmin && rule.rep_commission_pct > 0 && (
+                                  <p className="text-xs text-emerald-600 mt-0.5 leading-tight">
+                                    com. {formatPct(rule.rep_commission_pct)}
+                                  </p>
+                                )}
+                              </div>
+                              {isSelected && <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setCustomDiscount(true)}
+                      className="text-xs text-blue-600 hover:text-blue-700"
+                    >
+                      Digitar desconto personalizado
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      label="Desconto (%)"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={discountPct}
+                      onChange={(e) => setDiscountPct(e.target.value)}
+                    />
+                    {discountRules.length > 0 && (
+                      <button
+                        onClick={() => setCustomDiscount(false)}
+                        className="text-xs text-blue-600 hover:text-blue-700"
+                      >
+                        Ver descontos configurados
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Resumo financeiro */}
+              <div className="p-4 space-y-2 text-sm bg-gray-50">
+                <div className="flex justify-between text-gray-500">
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(totals.grossValue)}</span>
+                </div>
+                {discountNum > 0 && (
+                  <div className="flex justify-between text-orange-600">
+                    <span>Desconto ({formatPct(discountNum)}):</span>
+                    <span>−{formatCurrency(totals.grossValue * discountNum / 100)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-gray-900 text-base pt-1.5 border-t border-gray-200">
+                  <span>Total do pedido:</span>
+                  <span>{formatCurrency(totals.totalValue)}</span>
+                </div>
+                <div className="flex justify-between text-gray-400 text-xs">
+                  <span>Peças:</span>
+                  <span>{totals.totalPieces} pç</span>
+                </div>
+                {isAdmin && totals.rule && (
+                  <div className="flex justify-between text-emerald-600 pt-1 border-t border-gray-200">
+                    <span>Comissão rep ({formatPct(totals.rule.rep_commission_pct)}):</span>
+                    <span className="font-semibold">{formatCurrency(totals.repCommission)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Botão confirmar */}
+              <div className="p-4 pt-0 bg-gray-50">
+                {createMut.isError && (
+                  <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 mb-3">
+                    <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">Erro ao criar pedido. Tente novamente.</p>
+                  </div>
+                )}
+                <Button
+                  fullWidth
+                  size="lg"
+                  loading={createMut.isPending}
+                  onClick={() => createMut.mutate()}
+                  icon={online ? <Check className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
+                >
+                  {online ? 'Confirmar Pedido' : 'Salvar Offline'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
