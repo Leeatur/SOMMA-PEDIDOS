@@ -384,30 +384,6 @@ export function OrderDetail() {
               <span>Total de Peças:</span>
               <span>{order.total_pieces} pç</span>
             </div>
-            {isAdmin && (
-              <div className="pt-2 mt-2 border-t border-gray-100 space-y-1.5">
-                <div className="flex justify-between text-emerald-600">
-                  <span>Comissão Total ({formatPct(order.total_commission_pct)}):</span>
-                  <span className="font-semibold">
-                    {formatCurrency(Number(order.rep_commission_value) + Number(order.office_commission_value))}
-                  </span>
-                </div>
-                <div className="flex justify-between text-indigo-500 text-xs">
-                  <span>Representante ({formatPct(order.rep_commission_pct)}):</span>
-                  <span>{formatCurrency(order.rep_commission_value)}</span>
-                </div>
-                <div className="flex justify-between text-purple-600 text-xs">
-                  <span>Escritório ({formatPct(order.office_commission_pct)}):</span>
-                  <span>{formatCurrency(order.office_commission_value)}</span>
-                </div>
-              </div>
-            )}
-            {!isAdmin && (
-              <div className="flex justify-between text-emerald-600 font-medium pt-2 border-t border-gray-100">
-                <span>Sua comissão ({formatPct(order.rep_commission_pct)}):</span>
-                <span>{formatCurrency(order.rep_commission_value)}</span>
-              </div>
-            )}
           </div>
         </Card>
 
