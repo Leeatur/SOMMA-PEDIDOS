@@ -104,7 +104,7 @@ function CompanySection() {
       <div className="flex items-center gap-4">
         <div
           onClick={() => logoRef.current?.click()}
-          className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50 flex items-center justify-center cursor-pointer transition-colors overflow-hidden flex-shrink-0"
+          className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-indigo-50 flex items-center justify-center cursor-pointer transition-colors overflow-hidden flex-shrink-0"
         >
           {logoPreview ? (
             <img
@@ -254,8 +254,8 @@ export function Settings() {
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Conta</h2>
           <Card padding="md">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <span className="text-xl font-bold text-blue-700">
+              <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <span className="text-xl font-bold text-indigo-600">
                   {user?.name?.charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -320,8 +320,8 @@ export function Settings() {
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Cache Offline</h2>
           <Card padding="md">
             <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Database className="h-5 w-5 text-blue-600" />
+              <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Database className="h-5 w-5 text-indigo-500" />
               </div>
               <div>
                 <p className="font-medium text-gray-900">Dados em cache</p>
@@ -359,7 +359,7 @@ export function Settings() {
           <Card padding="md">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
                   <ShieldCheck className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -376,14 +376,14 @@ export function Settings() {
         </div>
 
         {/* PWA install hint */}
-        <Card padding="md" className="bg-blue-50 border-blue-200">
+        <Card padding="md" className="bg-indigo-50 border-indigo-200">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
               <Smartphone className="h-5 w-5 text-white" />
             </div>
             <div>
               <p className="font-semibold text-blue-900">Instalar no celular</p>
-              <p className="text-sm text-blue-700 mt-0.5">
+              <p className="text-sm text-indigo-600 mt-0.5">
                 Adicione este app à tela inicial para acesso rápido e uso offline completo.
                 No Safari/Chrome, toque em Compartilhar → "Adicionar à Tela Inicial".
               </p>

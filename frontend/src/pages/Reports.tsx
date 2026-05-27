@@ -156,7 +156,7 @@ export function Reports() {
         <div className="max-w-5xl mx-auto space-y-3">
 
           <div className="flex items-center gap-2">
-            <BarChart2 className="h-5 w-5 text-blue-600" />
+            <BarChart2 className="h-5 w-5 text-indigo-500" />
             <h1 className="text-lg font-bold text-gray-900">Relatórios</h1>
           </div>
 
@@ -165,12 +165,12 @@ export function Reports() {
             {/* date inputs */}
             <input
               type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <span className="text-gray-400 text-sm">–</span>
             <input
               type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
 
             {/* quick range buttons */}
@@ -189,7 +189,7 @@ export function Reports() {
             {tab !== 'commissions' && (
               <select
                 value={factoryId} onChange={e => setFactoryId(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
               >
                 <option value="">Todas as fábricas</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -200,7 +200,7 @@ export function Reports() {
             {isAdmin && tab !== 'products' && (
               <select
                 value={repId} onChange={e => setRepId(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
               >
                 <option value="">Todos os representantes</option>
                 {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -215,7 +215,7 @@ export function Reports() {
                 key={t.id} onClick={() => setTab(t.id)}
                 className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
                   tab === t.id
-                    ? 'border-blue-600 text-blue-700'
+                    ? 'border-blue-600 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -238,7 +238,7 @@ export function Reports() {
             {/* KPI cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                { label: 'Pedidos',     value: fmtN(ordersQ.data.summary.order_count),       color: 'bg-blue-50',    text: 'text-blue-700' },
+                { label: 'Pedidos',     value: fmtN(ordersQ.data.summary.order_count),       color: 'bg-indigo-50',    text: 'text-indigo-600' },
                 { label: 'Peças',       value: fmtN(ordersQ.data.summary.total_pieces),       color: 'bg-purple-50',  text: 'text-purple-700' },
                 { label: 'Valor Total', value: fmtR(ordersQ.data.summary.total_value),         color: 'bg-gray-50',    text: 'text-gray-900' },
                 { label: 'Com. Rep',    value: fmtR(ordersQ.data.summary.rep_commission_value), color: 'bg-emerald-50', text: 'text-emerald-700' },

@@ -285,7 +285,7 @@ export function OrderDetail() {
           </div>
           <button
             onClick={() => window.open(`/orders/${id}/print`, '_blank')}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-blue-600 transition-colors"
+            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-indigo-500 transition-colors"
             title="Imprimir pedido"
           >
             <Printer className="h-4.5 w-4.5" />
@@ -324,7 +324,7 @@ export function OrderDetail() {
               {order.client_phone && (
                 <a
                   href={`tel:${order.client_phone}`}
-                  className="text-xs text-blue-600 hover:underline"
+                  className="text-xs text-indigo-500 hover:underline"
                 >
                   {order.client_phone}
                 </a>
@@ -392,7 +392,7 @@ export function OrderDetail() {
                     {formatCurrency(Number(order.rep_commission_value) + Number(order.office_commission_value))}
                   </span>
                 </div>
-                <div className="flex justify-between text-blue-600 text-xs">
+                <div className="flex justify-between text-indigo-500 text-xs">
                   <span>Representante ({formatPct(order.rep_commission_pct)}):</span>
                   <span>{formatCurrency(order.rep_commission_value)}</span>
                 </div>
@@ -562,8 +562,8 @@ export function OrderDetail() {
 
           {/* Carrinho temporário */}
           {addCart.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Itens a adicionar</p>
+            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 space-y-2">
+              <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">Itens a adicionar</p>
               {addCart.map(c => {
                 const isRegular = c.product.type === 'regular'
                 const piecesPerBox = c.product.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 1
@@ -583,8 +583,8 @@ export function OrderDetail() {
                             <Minus className="h-3 w-3" />
                           </button>
                           <span className="w-8 text-center text-sm font-bold">{c.boxes_count}</span>
-                          <button onClick={() => updateAddCount(c.product.id, 1)} className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center hover:bg-blue-200">
-                            <Plus className="h-3 w-3 text-blue-700" />
+                          <button onClick={() => updateAddCount(c.product.id, 1)} className="w-6 h-6 rounded bg-indigo-100 flex items-center justify-center hover:bg-indigo-200">
+                            <Plus className="h-3 w-3 text-indigo-600" />
                           </button>
                         </div>
                       )}
@@ -598,7 +598,7 @@ export function OrderDetail() {
                           <thead>
                             <tr>{sortSizesDetail(Object.keys(c.sizes)).map(s => (
                               <th key={s} className="px-1 pb-0.5 text-center text-gray-500 font-medium min-w-[34px]">{s}</th>
-                            ))}<th className="px-1 pb-0.5 text-center text-blue-600 font-bold pl-1">Tot</th></tr>
+                            ))}<th className="px-1 pb-0.5 text-center text-indigo-500 font-bold pl-1">Tot</th></tr>
                           </thead>
                           <tbody>
                             <tr>{sortSizesDetail(Object.keys(c.sizes)).map(s => (
@@ -607,7 +607,7 @@ export function OrderDetail() {
                                   onChange={e => updateAddSize(c.product.id, s, parseInt(e.target.value) || 0)}
                                   className="w-8 h-6 text-center border border-gray-200 rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-blue-400" />
                               </td>
-                            ))}<td className="px-1 pl-1 text-center font-bold text-blue-700">{totalPieces}</td></tr>
+                            ))}<td className="px-1 pl-1 text-center font-bold text-indigo-600">{totalPieces}</td></tr>
                           </tbody>
                         </table>
                       </div>
@@ -642,7 +642,7 @@ export function OrderDetail() {
                       <p className="font-bold text-sm text-gray-900">{p.reference}</p>
                       {p.product_name && <p className="text-xs text-gray-500 truncate">{p.product_name}</p>}
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-blue-700">R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-gray-400 font-normal">/pç</span></p>
+                        <p className="text-sm font-semibold text-indigo-600">R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-gray-400 font-normal">/pç</span></p>
                         {piecesPerBox > 0 && (
                           <button onClick={() => setExpandedGrade(isExpanded ? null : p.id)} className="text-xs text-gray-400 flex items-center gap-0.5 hover:text-gray-600">
                             <Info className="h-3 w-3" />{piecesPerBox} pç/cx
@@ -661,8 +661,8 @@ export function OrderDetail() {
                             <Minus className="h-3.5 w-3.5" />
                           </button>
                           <span className="w-8 text-center font-bold text-sm">{inCart.boxes_count}</span>
-                          <button onClick={() => updateAddCount(p.id, 1)} className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center hover:bg-blue-200">
-                            <Plus className="h-3.5 w-3.5 text-blue-700" />
+                          <button onClick={() => updateAddCount(p.id, 1)} className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center hover:bg-indigo-200">
+                            <Plus className="h-3.5 w-3.5 text-indigo-600" />
                           </button>
                           <button onClick={() => removeFromAddCart(p.id)} className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center">
                             <Trash2 className="h-3.5 w-3.5" />
@@ -670,7 +670,7 @@ export function OrderDetail() {
                         </div>
                       )
                     ) : (
-                      <button onClick={() => addToCart(p)} className="flex-shrink-0 flex items-center gap-1 bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-800">
+                      <button onClick={() => addToCart(p)} className="flex-shrink-0 flex items-center gap-1 bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700">
                         <Plus className="h-3.5 w-3.5" /> Add
                       </button>
                     )}

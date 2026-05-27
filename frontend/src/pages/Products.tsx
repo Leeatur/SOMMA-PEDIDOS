@@ -107,9 +107,9 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
 
         {/* Preços */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-blue-50 rounded-xl p-3 text-center">
-            <p className="text-xs text-blue-500 mb-0.5">Preço por peça</p>
-            <p className="text-lg font-bold text-blue-700">R$ {Number(p.base_price).toFixed(2)}</p>
+          <div className="bg-indigo-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-indigo-400 mb-0.5">Preço por peça</p>
+            <p className="text-lg font-bold text-indigo-600">R$ {Number(p.base_price).toFixed(2)}</p>
           </div>
           {totalPieces > 0 && (
             <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -196,7 +196,7 @@ function ProductCard({ p, onOpenDetail }: { p: Product; onOpenDetail: (p: Produc
             {/* Referência clicável */}
             <button
               onClick={() => onOpenDetail(p)}
-              className="font-bold text-blue-700 text-sm hover:underline"
+              className="font-bold text-indigo-600 text-sm hover:underline"
             >
               {p.reference}
             </button>
@@ -211,7 +211,7 @@ function ProductCard({ p, onOpenDetail }: { p: Product; onOpenDetail: (p: Produc
             <p className="text-xs text-gray-400 truncate">{p.model}</p>
           )}
           <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <p className="text-sm font-bold text-blue-700">
+            <p className="text-sm font-bold text-indigo-600">
               R$ {Number(p.base_price).toFixed(2)}
               <span className="text-xs text-gray-400 font-normal">/pç</span>
             </p>
@@ -236,7 +236,7 @@ function ProductCard({ p, onOpenDetail }: { p: Product; onOpenDetail: (p: Produc
         {p.grade_configs && p.grade_configs.length > 0 && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex-shrink-0 self-start mt-1 p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            className="flex-shrink-0 self-start mt-1 p-1.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
             title="Ver grade"
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <Info className="h-4 w-4" />}
@@ -307,7 +307,7 @@ export function Products() {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
         >
           <option value="">Todos</option>
           <option value="regular">Regular</option>

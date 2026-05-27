@@ -140,8 +140,8 @@ export function Users() {
             {list.map((u) => (
               <Card key={u.id} padding="md">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-blue-700">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-indigo-600">
                       {u.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -166,7 +166,7 @@ export function Users() {
                     </button>
                     <button
                       onClick={() => openEdit(u)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>

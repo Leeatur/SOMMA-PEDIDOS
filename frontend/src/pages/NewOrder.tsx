@@ -184,7 +184,7 @@ function SizeGrid({
               {sizeKeys.map(s => (
                 <th key={s} className="px-1 pb-0.5 text-center text-gray-500 font-medium min-w-[36px]">{s}</th>
               ))}
-              <th className="px-1 pb-0.5 text-center text-blue-600 font-bold pl-2">Total</th>
+              <th className="px-1 pb-0.5 text-center text-indigo-500 font-bold pl-2">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -196,11 +196,11 @@ function SizeGrid({
                     min="0"
                     value={sizes[s] || 0}
                     onChange={e => onChange(s, parseInt(e.target.value) || 0)}
-                    className="w-9 h-7 text-center border border-gray-200 rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-400"
+                    className="w-9 h-7 text-center border border-gray-200 rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-blue-400"
                   />
                 </td>
               ))}
-              <td className="px-1 pl-2 text-center font-bold text-blue-700 text-sm">{total}</td>
+              <td className="px-1 pl-2 text-center font-bold text-indigo-600 text-sm">{total}</td>
             </tr>
           </tbody>
         </table>
@@ -231,7 +231,7 @@ function SizeDisplay({ sizes }: { sizes: Record<string, number> }) {
             {sizeKeys.map(s => (
               <td key={s} className="px-2 py-1 text-center">{sizes[s]}</td>
             ))}
-            <td className="px-2 py-1 text-center font-bold border-l border-gray-200 text-blue-700">{total}</td>
+            <td className="px-2 py-1 text-center font-bold border-l border-gray-200 text-indigo-600">{total}</td>
           </tr>
         </tbody>
       </table>
@@ -453,10 +453,10 @@ export function NewOrder() {
           <div className="flex items-center gap-0">
             {STEPS.map((s, i) => (
               <div key={i} className="flex items-center flex-1">
-                <div className={`flex-1 flex flex-col items-center gap-1 ${i <= step ? 'text-blue-600' : 'text-gray-300'}`}>
+                <div className={`flex-1 flex flex-col items-center gap-1 ${i <= step ? 'text-indigo-500' : 'text-gray-300'}`}>
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                    i < step ? 'bg-blue-700 text-white' :
-                    i === step ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-300' :
+                    i < step ? 'bg-indigo-600 text-white' :
+                    i === step ? 'bg-indigo-100 text-indigo-600 ring-2 ring-blue-300' :
                     'bg-gray-100 text-gray-400'
                   }`}>
                     {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
@@ -464,7 +464,7 @@ export function NewOrder() {
                   <span className="text-xs font-medium hidden sm:block">{s.label}</span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`h-0.5 flex-1 transition-colors ${i < step ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                  <div className={`h-0.5 flex-1 transition-colors ${i < step ? 'bg-indigo-500' : 'bg-gray-200'}`} />
                 )}
               </div>
             ))}
@@ -483,7 +483,7 @@ export function NewOrder() {
               </div>
               <button
                 onClick={() => setShowNewClient(true)}
-                className="flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors"
+                className="flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg px-3 py-1.5 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Novo Cliente
@@ -510,7 +510,7 @@ export function NewOrder() {
                       setSelectedClient(c)
                       setStep(1)
                     }}
-                    className={selectedClient?.id === c.id ? 'ring-2 ring-blue-500' : ''}
+                    className={selectedClient?.id === c.id ? 'ring-2 ring-indigo-500' : ''}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -531,7 +531,7 @@ export function NewOrder() {
                     <p className="text-sm text-gray-500">Nenhum cliente encontrado</p>
                     <button
                       onClick={() => setShowNewClient(true)}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-4 py-2 transition-colors"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg px-4 py-2 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                       Cadastrar novo cliente
@@ -584,11 +584,11 @@ export function NewOrder() {
                       setCart([])
                       setStep(2)
                     }}
-                    className={selectedTable?.id === t.id ? 'ring-2 ring-blue-500' : ''}
+                    className={selectedTable?.id === t.id ? 'ring-2 ring-indigo-500' : ''}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Tags className="h-4 w-4 text-blue-600" />
+                      <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Tags className="h-4 w-4 text-indigo-500" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 truncate">{t.name}</p>
@@ -642,7 +642,7 @@ export function NewOrder() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
               >
                 <option value="">Todos</option>
                 <option value="regular">Regular</option>
@@ -688,7 +688,7 @@ export function NewOrder() {
                             </Badge>
                           </div>
                           {p.product_name && <p className="text-xs text-gray-500 truncate">{p.product_name}</p>}
-                          <p className="text-sm font-semibold text-blue-700">
+                          <p className="text-sm font-semibold text-indigo-600">
                             R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-gray-400 font-normal">/pç</span>
                           </p>
                           {/* Para packs: exibe pç/cx com toggle de grade */}
@@ -715,7 +715,7 @@ export function NewOrder() {
                             isRegular ? (
                               /* Regular: mostra total de peças + botão remover */
                               <div className="flex flex-col items-end gap-1">
-                                <span className="text-xs font-bold text-blue-700">{cartTotal} pç</span>
+                                <span className="text-xs font-bold text-indigo-600">{cartTotal} pç</span>
                                 <button
                                   onClick={() => removeFromCart(p.id)}
                                   className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center"
@@ -737,11 +737,11 @@ export function NewOrder() {
                                   min="1"
                                   value={cartItem.boxes_count}
                                   onChange={(e) => setBoxCountDirect(p.id, parseInt(e.target.value) || 1)}
-                                  className="w-10 h-7 text-center border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  className="w-10 h-7 text-center border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                 />
                                 <button
                                   onClick={() => updateBoxCount(p.id, 1)}
-                                  className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-200"
+                                  className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-500 hover:bg-indigo-200"
                                 >
                                   <Plus className="h-3.5 w-3.5" />
                                 </button>
@@ -756,7 +756,7 @@ export function NewOrder() {
                           ) : (
                             <button
                               onClick={() => addToCart(p)}
-                              className="flex items-center gap-1 bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-800"
+                              className="flex items-center gap-1 bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700"
                             >
                               <Plus className="h-3.5 w-3.5" /> Adicionar
                             </button>
@@ -774,7 +774,7 @@ export function NewOrder() {
                           - Regular em carrinho: SizeGrid (sempre visível)
                           - Pack: grade preview (toggle) */}
                       {cartItem && isRegular && (
-                        <div className="px-3 pb-3 border-t border-gray-100 pt-2 bg-blue-50/40">
+                        <div className="px-3 pb-3 border-t border-gray-100 pt-2 bg-indigo-50/40">
                           <SizeGrid
                             sizes={cartItem.sizes}
                             onChange={(size, val) => updateSize(p.id, size, val)}
@@ -803,11 +803,11 @@ export function NewOrder() {
             {/* Floating cart summary */}
             {cart.length > 0 && (
               <div className="fixed bottom-20 lg:bottom-6 left-4 right-4 lg:left-auto lg:right-8 lg:max-w-sm">
-                <Card padding="md" className="shadow-lg border-blue-200 bg-blue-50">
+                <Card padding="md" className="shadow-lg border-indigo-200 bg-indigo-50">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-blue-900">{cart.length} produto{cart.length > 1 ? 's' : ''} no carrinho</p>
-                      <p className="text-xs text-blue-700">{totals.totalPieces} peças</p>
+                      <p className="text-xs text-indigo-600">{totals.totalPieces} peças</p>
                     </div>
                     <Button onClick={() => setStep(3)} size="sm">
                       Revisar <ChevronRight className="h-4 w-4" />
@@ -861,7 +861,7 @@ export function NewOrder() {
                 <h3 className="text-sm font-semibold text-gray-700">Itens ({cart.length})</h3>
                 <button
                   onClick={() => setStep(2)}
-                  className="text-xs text-blue-600 hover:text-blue-700"
+                  className="text-xs text-indigo-500 hover:text-indigo-600"
                 >
                   Editar
                 </button>
@@ -922,7 +922,7 @@ export function NewOrder() {
                 <select
                   value={freightType}
                   onChange={(e) => setFreightType(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="CIF">CIF</option>
                   <option value="FOB">FOB</option>
@@ -977,7 +977,7 @@ export function NewOrder() {
                             onClick={() => setDiscountPct(maskPercent(String(rule.discount_pct)))}
                             className={`text-left p-3 rounded-xl border transition-colors ${
                               isSelected
-                                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400'
+                                ? 'border-indigo-500 bg-indigo-50 ring-1 ring-blue-400'
                                 : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'
                             }`}
                           >
@@ -995,7 +995,7 @@ export function NewOrder() {
                                   </p>
                                 )}
                               </div>
-                              {isSelected && <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />}
+                              {isSelected && <Check className="h-4 w-4 text-indigo-500 flex-shrink-0 mt-0.5" />}
                             </div>
                           </button>
                         )
@@ -1003,7 +1003,7 @@ export function NewOrder() {
                     </div>
                     <button
                       onClick={() => setCustomDiscount(true)}
-                      className="text-xs text-blue-600 hover:text-blue-700"
+                      className="text-xs text-indigo-500 hover:text-indigo-600"
                     >
                       Digitar desconto personalizado
                     </button>
@@ -1019,7 +1019,7 @@ export function NewOrder() {
                     {discountRules.length > 0 && (
                       <button
                         onClick={() => setCustomDiscount(false)}
-                        className="text-xs text-blue-600 hover:text-blue-700"
+                        className="text-xs text-indigo-500 hover:text-indigo-600"
                       >
                         Ver descontos configurados
                       </button>

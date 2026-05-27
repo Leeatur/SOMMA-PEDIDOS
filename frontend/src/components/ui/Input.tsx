@@ -31,7 +31,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={clsx(
               'block w-full rounded-lg border text-sm transition-colors',
-              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+              'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
               'disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed',
               error
                 ? 'border-red-300 bg-red-50 text-red-900 placeholder-red-400 focus:ring-red-500 focus:border-red-500'
@@ -77,7 +77,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={inputId}
           className={clsx(
             'block w-full rounded-lg border text-sm transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+            'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
             'disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed',
             error
               ? 'border-red-300 bg-red-50 text-red-900 placeholder-red-400'
@@ -116,7 +116,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           id={inputId}
           className={clsx(
             'block w-full rounded-lg border text-sm transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+            'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
             'disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed',
             error
               ? 'border-red-300 bg-red-50 text-red-900'

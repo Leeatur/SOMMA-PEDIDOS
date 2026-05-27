@@ -237,7 +237,7 @@ export function PriceTables() {
                   <div className="flex flex-col gap-1.5">
                     <button
                       onClick={() => openCatalogImport(t)}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1.5 rounded-lg transition-colors"
+                      className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1.5 rounded-lg transition-colors"
                     >
                       <FileImage className="h-3.5 w-3.5" />
                       Catálogo
@@ -270,7 +270,7 @@ export function PriceTables() {
                 <div
                   key={s}
                   className={`h-2 w-8 rounded-full transition-colors ${
-                    importStep >= s ? 'bg-blue-600' : 'bg-gray-200'
+                    importStep >= s ? 'bg-indigo-500' : 'bg-gray-200'
                   }`}
                 />
               ))}
@@ -312,7 +312,7 @@ export function PriceTables() {
               </div>
             )}
             <div
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-indigo-50 transition-colors"
               onClick={() => fileRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
@@ -356,8 +356,8 @@ export function PriceTables() {
                   <p className="text-xs text-emerald-600">Total</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold text-blue-700">{preview.regularCount}</p>
-                  <p className="text-xs text-blue-600">Regular (TE)</p>
+                  <p className="text-xl font-bold text-indigo-600">{preview.regularCount}</p>
+                  <p className="text-xs text-indigo-500">Regular (TE)</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xl font-bold text-purple-700">{preview.packCount}</p>
@@ -408,7 +408,7 @@ export function PriceTables() {
                 <p className="text-sm font-medium text-gray-700">Tabela Desconto × Comissão</p>
                 <button
                   onClick={addDiscountRule}
-                  className="text-xs text-blue-600 flex items-center gap-1 hover:text-blue-700"
+                  className="text-xs text-indigo-500 flex items-center gap-1 hover:text-indigo-600"
                 >
                   <Plus className="h-3.5 w-3.5" /> Adicionar linha
                 </button>
@@ -432,7 +432,7 @@ export function PriceTables() {
                         max="100"
                         value={rule[field]}
                         onChange={(e) => updateRule(i, field, e.target.value)}
-                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
                     ))}
                     <button
@@ -452,7 +452,7 @@ export function PriceTables() {
         {/* Step 3: Confirm */}
         {importStep === 3 && preview && (
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-2">
               <p className="font-semibold text-blue-900">Resumo da Importação</p>
               <div className="text-sm text-blue-800 space-y-1">
                 <p><span className="font-medium">Tabela:</span> {importForm.name}</p>
@@ -574,14 +574,14 @@ export function PriceTables() {
               O sistema irá extrair as fotos do catálogo PDF e associar automaticamente às referências da tabela de preços.
             </p>
             <div
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-indigo-50 transition-colors"
               onClick={() => catalogFileRef.current?.click()}
             >
               {catalogMut.isPending ? (
                 <Spinner label="Processando PDF..." />
               ) : catalogFile ? (
                 <div>
-                  <FileImage className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                  <FileImage className="h-8 w-8 text-indigo-400 mx-auto mb-2" />
                   <p className="text-sm font-medium text-gray-700">{catalogFile.name}</p>
                   <p className="text-xs text-gray-400">Clique para trocar</p>
                 </div>

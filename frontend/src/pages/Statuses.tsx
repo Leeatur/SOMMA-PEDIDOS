@@ -159,7 +159,7 @@ export function Statuses() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mt-0.5">
                       {s.is_initial && (
-                        <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">inicial</span>
+                        <span className="text-xs bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded-full">inicial</span>
                       )}
                       {s.is_final && (
                         <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">final</span>
@@ -179,7 +179,7 @@ export function Statuses() {
                     </button>
                     <button
                       onClick={() => openEdit(s)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
@@ -259,7 +259,7 @@ export function Statuses() {
           <div className="space-y-2">
             <label className="flex items-center gap-3 cursor-pointer">
               <div
-                className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_initial ? 'bg-blue-600' : 'bg-gray-200'}`}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_initial ? 'bg-indigo-500' : 'bg-gray-200'}`}
                 onClick={() => setForm({ ...form, is_initial: !form.is_initial })}
               >
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_initial ? 'translate-x-4' : 'translate-x-0'}`} />

@@ -120,8 +120,8 @@ export function Factories() {
               <Card key={f.id} padding="md">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Building2 className="h-5 w-5 text-blue-600" />
+                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-5 w-5 text-indigo-500" />
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">{f.name}</p>
@@ -135,7 +135,7 @@ export function Factories() {
                   </div>
                   <button
                     onClick={() => openEdit(f)}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>

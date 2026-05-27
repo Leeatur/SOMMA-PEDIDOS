@@ -131,7 +131,7 @@ function GradeEditor({
                 value={gc.color || ''}
                 onChange={(e) => updateColor(i, e.target.value)}
                 placeholder="Cor (opcional)"
-                className="text-sm font-medium border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="text-sm font-medium border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
               {configs.length > 1 && (
                 <button onClick={() => removeColor(i)} className="text-red-400 hover:text-red-600 p-1">
@@ -157,7 +157,7 @@ function GradeEditor({
                           min="0"
                           value={gc.sizes[s] || 0}
                           onChange={(e) => updateSize(i, s, e.target.value)}
-                          className="w-10 text-center border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-10 text-center border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
                       </td>
                     ))}
@@ -171,7 +171,7 @@ function GradeEditor({
       })}
       <button
         onClick={addColor}
-        className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700"
+        className="flex items-center gap-1.5 text-sm text-indigo-500 hover:text-indigo-600"
       >
         <Plus className="h-4 w-4" /> Adicionar cor
       </button>
@@ -373,7 +373,7 @@ export function Catalog() {
                     {/* Upload photo button */}
                     <button
                       onClick={() => { setImageModal(p); imageFileRef.current?.click() }}
-                      className="absolute bottom-1.5 right-1.5 p-1.5 bg-white/90 backdrop-blur rounded-lg shadow text-gray-600 hover:text-blue-600"
+                      className="absolute bottom-1.5 right-1.5 p-1.5 bg-white/90 backdrop-blur rounded-lg shadow text-gray-600 hover:text-indigo-500"
                     >
                       <Camera className="h-3.5 w-3.5" />
                     </button>
@@ -385,7 +385,7 @@ export function Catalog() {
                     {p.product_name && (
                       <p className="text-xs text-gray-500 truncate">{p.product_name}</p>
                     )}
-                    <p className="text-sm font-semibold text-blue-700 mt-1">
+                    <p className="text-sm font-semibold text-indigo-600 mt-1">
                       R$ {Number(p.base_price).toFixed(2)}
                     </p>
                     <p className="text-xs text-gray-400">{totalPieces} pç/cx</p>
@@ -401,7 +401,7 @@ export function Catalog() {
                       </button>
                       <button
                         onClick={() => openGradeEdit(p)}
-                        className="p-1 border border-gray-200 rounded-lg text-gray-400 hover:text-blue-600 hover:border-blue-300"
+                        className="p-1 border border-gray-200 rounded-lg text-gray-400 hover:text-indigo-500 hover:border-blue-300"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
@@ -482,18 +482,18 @@ export function Catalog() {
               Selecione um PDF de catálogo. O sistema irá extrair as fotos e associar automaticamente
               às referências da tabela de preços selecionada.
             </p>
-            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+            <p className="text-xs text-indigo-600 bg-indigo-50 border border-blue-100 rounded-lg px-3 py-2">
               💡 Você pode importar múltiplos catálogos para a mesma tabela — cada um completa as fotos restantes.
             </p>
             <div
               onClick={() => catalogFileRef.current?.click()}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-indigo-50 transition-colors"
             >
               {catalogMut.isPending ? (
                 <Spinner label="Processando PDF..." />
               ) : catalogFile ? (
                 <div>
-                  <FileImage className="h-10 w-10 text-blue-500 mx-auto mb-2" />
+                  <FileImage className="h-10 w-10 text-indigo-400 mx-auto mb-2" />
                   <p className="text-sm font-medium text-gray-900">{catalogFile.name}</p>
                   <p className="text-xs text-gray-400 mt-1">{(catalogFile.size / 1024 / 1024).toFixed(1)} MB — clique para trocar</p>
                 </div>
@@ -516,7 +516,7 @@ export function Catalog() {
                 type="checkbox"
                 checked={catalogOverwrite}
                 onChange={(e) => setCatalogOverwrite(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                className="w-4 h-4 rounded border-gray-300 text-indigo-500"
               />
               <span className="text-sm text-gray-600">
                 Substituir fotos já existentes

@@ -152,7 +152,7 @@ export function Clients() {
           </button>
           <button
             onClick={() => setShowNewCnpj(true)}
-            className="flex items-center gap-1.5 text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg px-3 py-2 transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg px-3 py-2 transition-colors whitespace-nowrap"
           >
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">Novo</span>
@@ -199,7 +199,7 @@ export function Clients() {
             {list.map((c, idx) => (
               <div
                 key={c.id}
-                className={`grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr_1fr_auto] lg:grid-cols-[2fr_1.2fr_1fr_1fr_auto] gap-0 items-center px-4 py-3 hover:bg-blue-50/40 transition-colors ${idx < list.length - 1 ? 'border-b border-gray-100' : ''}`}
+                className={`grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr_1fr_auto] lg:grid-cols-[2fr_1.2fr_1fr_1fr_auto] gap-0 items-center px-4 py-3 hover:bg-indigo-50/40 transition-colors ${idx < list.length - 1 ? 'border-b border-gray-100' : ''}`}
               >
                 {/* Nome */}
                 <div className="min-w-0 pr-3">
@@ -248,7 +248,7 @@ export function Clients() {
                 {/* Representante — lg+ */}
                 <div className="hidden lg:block min-w-0 pr-2">
                   {(c as any).rep_name ? (
-                    <span className="text-xs text-blue-600 font-medium truncate">{(c as any).rep_name}</span>
+                    <span className="text-xs text-indigo-500 font-medium truncate">{(c as any).rep_name}</span>
                   ) : (
                     <span className="text-gray-300 text-sm">—</span>
                   )}
@@ -257,7 +257,7 @@ export function Clients() {
                 {/* Editar */}
                 <button
                   onClick={() => openEdit(c)}
-                  className="p-1.5 text-gray-300 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex-shrink-0"
+                  className="p-1.5 text-gray-300 hover:text-indigo-500 hover:bg-indigo-100 rounded-lg transition-colors flex-shrink-0"
                 >
                   <Edit2 className="h-3.5 w-3.5" />
                 </button>

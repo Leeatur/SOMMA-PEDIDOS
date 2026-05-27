@@ -81,7 +81,7 @@ export function Dashboard() {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-700 to-blue-800 px-5 py-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <p className="text-blue-200 text-sm">{greeting()},</p>
+          <p className="text-indigo-200 text-sm">{greeting()},</p>
           <h1 className="text-xl font-bold text-white">{user?.name}</h1>
           <p className="text-blue-300 text-xs mt-0.5">
             {isAdmin ? 'Administrador' : 'Representante'} &bull;{' '}
@@ -99,8 +99,8 @@ export function Dashboard() {
                 <p className="text-xs text-gray-500 font-medium">Total Pedidos</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">{allOrders.length}</p>
               </div>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <ShoppingCart className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <ShoppingCart className="h-5 w-5 text-indigo-500" />
               </div>
             </div>
           </Card>
@@ -181,7 +181,7 @@ export function Dashboard() {
             <h2 className="text-sm font-semibold text-gray-700">Pedidos Recentes</h2>
             <button
               onClick={() => navigate('/orders')}
-              className="text-xs text-blue-600 font-medium flex items-center gap-1"
+              className="text-xs text-indigo-500 font-medium flex items-center gap-1"
             >
               Ver todos <ArrowRight className="h-3.5 w-3.5" />
             </button>
@@ -194,7 +194,7 @@ export function Dashboard() {
                 <p className="text-sm text-gray-500">Nenhum pedido ainda</p>
                 <button
                   onClick={() => navigate('/orders/new')}
-                  className="mt-3 text-sm text-blue-600 font-medium"
+                  className="mt-3 text-sm text-indigo-500 font-medium"
                 >
                   Criar primeiro pedido
                 </button>

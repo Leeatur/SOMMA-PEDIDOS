@@ -169,7 +169,7 @@ export function Orders() {
                 <div className="flex items-start gap-3">
                   {/* Order number */}
                   <div className="flex-shrink-0 text-center min-w-[44px]">
-                    <p className="text-xs font-bold text-blue-700">
+                    <p className="text-xs font-bold text-indigo-600">
                       {formatOrderNumber(o.order_number)}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">{formatDate(o.created_at)}</p>

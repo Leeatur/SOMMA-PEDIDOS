@@ -111,8 +111,8 @@ export function ClientsImportModal({ open, onClose }: Props) {
           const done = (step === 'mapping' && i === 0) || (step === 'result' && i < 2)
           return (
             <div key={s} className="flex items-center gap-2 flex-1">
-              <div className={`flex items-center gap-1.5 text-xs font-semibold ${active ? 'text-blue-700' : done ? 'text-emerald-600' : 'text-gray-400'}`}>
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${active ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-300' : done ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+              <div className={`flex items-center gap-1.5 text-xs font-semibold ${active ? 'text-indigo-600' : done ? 'text-emerald-600' : 'text-gray-400'}`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${active ? 'bg-indigo-100 text-indigo-600 ring-2 ring-blue-300' : done ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
                   {done ? <CheckCircle2 className="h-3 w-3" /> : i + 1}
                 </div>
                 {labels[i]}
@@ -136,10 +136,10 @@ export function ClientsImportModal({ open, onClose }: Props) {
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${dragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50'}`}
+            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${dragging ? 'border-blue-400 bg-indigo-50' : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50'}`}
           >
             {previewMut.isPending ? (
-              <div className="flex flex-col items-center gap-3 text-blue-600">
+              <div className="flex flex-col items-center gap-3 text-indigo-500">
                 <Loader2 className="h-10 w-10 animate-spin" />
                 <p className="text-sm font-medium">Lendo arquivo...</p>
               </div>
