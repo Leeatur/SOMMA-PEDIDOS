@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, Info, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, Image as ImageIcon, ChevronDown } from 'lucide-react'
 import { productsApi } from '../api/client'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
@@ -85,7 +85,6 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
   return (
     <Modal open onClose={onClose} title={p.reference} size="md">
       <div className="space-y-4">
-        {/* Imagem grande */}
         {p.image_url ? (
           <div className="w-full aspect-square max-h-64 overflow-hidden rounded-xl bg-gray-100">
             <img src={p.image_url} alt={p.reference} className="w-full h-full object-contain" />
@@ -96,7 +95,6 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
           </div>
         )}
 
-        {/* Cabeçalho */}
         <div className="flex items-start gap-2 flex-wrap">
           <Badge variant={p.type === 'pack' ? 'purple' : 'info'}>
             {p.type === 'pack' ? 'PACK' : 'Regular'}
@@ -105,7 +103,6 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
           {p.model && <span className="text-sm text-gray-500">{p.model}</span>}
         </div>
 
-        {/* Preços */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-indigo-50 rounded-xl p-3 text-center">
             <p className="text-xs text-indigo-400 mb-0.5">Preço por peça</p>
@@ -119,7 +116,6 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
           )}
         </div>
 
-        {/* Detalhes */}
         <div className="space-y-1.5 text-sm">
           {p.size_range && (
             <div className="flex justify-between">
@@ -153,7 +149,6 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
           )}
         </div>
 
-        {/* Grade */}
         {p.grade_configs && p.grade_configs.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Grade por caixa</p>
@@ -169,100 +164,81 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
   )
 }
 
-function ProductCard({ p, onOpenDetail }: { p: Product; onOpenDetail: (p: Product) => void }) {
-  const [expanded, setExpanded] = useState(false)
+// ─── Table Row ───────────────────────────────────────────────────────────────
+function ProductRow({ p, onOpenDetail }: { p: Product; onOpenDetail: (p: Product) => void }) {
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="flex gap-3 p-3">
-        {/* Imagem — clicável para abrir detalhe */}
-        <button
-          onClick={() => onOpenDetail(p)}
-          className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden hover:opacity-80 transition-opacity"
-        >
+    <tr
+      className="border-b border-gray-100 hover:bg-indigo-50/40 cursor-pointer transition-colors"
+      onClick={() => onOpenDetail(p)}
+    >
+      {/* Foto */}
+      <td className="pl-3 pr-2 py-2">
+        <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
           {p.image_url ? (
             <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-300">
-              <ImageIcon className="h-7 w-7" />
-            </div>
-          )}
-        </button>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start gap-1.5 flex-wrap">
-            {/* Referência clicável */}
-            <button
-              onClick={() => onOpenDetail(p)}
-              className="font-bold text-indigo-600 text-sm hover:underline"
-            >
-              {p.reference}
-            </button>
-            <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-xs">
-              {p.type === 'pack' ? 'PACK' : 'REG'}
-            </Badge>
-          </div>
-          {p.product_name && (
-            <p className="text-xs text-gray-600 font-medium truncate">{p.product_name}</p>
-          )}
-          {p.model && (
-            <p className="text-xs text-gray-400 truncate">{p.model}</p>
-          )}
-          <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <p className="text-sm font-bold text-indigo-600">
-              R$ {Number(p.base_price).toFixed(2)}
-              <span className="text-xs text-gray-400 font-normal">/pç</span>
-            </p>
-            {totalPieces > 0 && (
-              <span className="text-xs text-gray-400">{totalPieces} pç/cx</span>
-            )}
-            {p.size_range && (
-              <span className="text-xs text-gray-400">Tam: {p.size_range}</span>
-            )}
-          </div>
-          {(p.price_table_name || p.factory_name) && (
-            <p className="text-xs text-gray-400 truncate mt-0.5">
-              {[p.factory_name, p.price_table_name].filter(Boolean).join(' · ')}
-            </p>
-          )}
-          {p.observation && (
-            <p className="text-xs text-orange-500 truncate mt-0.5">{p.observation}</p>
+            <ImageIcon className="h-4 w-4 text-gray-300" />
           )}
         </div>
+      </td>
 
-        {/* Toggle grade */}
-        {p.grade_configs && p.grade_configs.length > 0 && (
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex-shrink-0 self-start mt-1 p-1.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
-            title="Ver grade"
-          >
-            {expanded ? <ChevronUp className="h-4 w-4" /> : <Info className="h-4 w-4" />}
-          </button>
+      {/* Referência */}
+      <td className="px-2 py-2">
+        <div className="flex items-center gap-1.5">
+          <span className="font-bold text-indigo-600 text-sm whitespace-nowrap">{p.reference}</span>
+          <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[10px] px-1.5 py-0">
+            {p.type === 'pack' ? 'PK' : 'REG'}
+          </Badge>
+        </div>
+      </td>
+
+      {/* Nome */}
+      <td className="px-2 py-2 max-w-[180px]">
+        <p className="text-sm font-medium text-gray-800 truncate">{p.product_name || '—'}</p>
+        {p.model && <p className="text-xs text-gray-400 truncate">{p.model}</p>}
+      </td>
+
+      {/* Tamanhos */}
+      <td className="px-2 py-2 whitespace-nowrap">
+        <span className="text-xs text-gray-600">{p.size_range || '—'}</span>
+      </td>
+
+      {/* Preço */}
+      <td className="px-2 py-2 whitespace-nowrap text-right">
+        <span className="text-sm font-bold text-indigo-600">R$ {Number(p.base_price).toFixed(2)}</span>
+        <span className="text-xs text-gray-400 ml-0.5">/pç</span>
+      </td>
+
+      {/* Pç/cx */}
+      <td className="px-2 py-2 whitespace-nowrap text-center">
+        <span className="text-xs text-gray-500">{totalPieces > 0 ? `${totalPieces} pç` : '—'}</span>
+      </td>
+
+      {/* Fábrica */}
+      <td className="px-2 py-2 max-w-[120px]">
+        <span className="text-xs text-gray-600 truncate block">{p.factory_name || '—'}</span>
+      </td>
+
+      {/* Tabela */}
+      <td className="px-2 pr-3 py-2 max-w-[150px]">
+        <span className="text-xs text-gray-500 truncate block">{p.price_table_name || '—'}</span>
+        {p.observation && (
+          <span className="text-[10px] text-orange-500 truncate block">{p.observation}</span>
         )}
-      </div>
-
-      {/* Grade expandida */}
-      {expanded && p.grade_configs && p.grade_configs.length > 0 && (
-        <div className="px-3 pb-3 border-t border-gray-100 pt-2 bg-gray-50/50 space-y-2">
-          {p.grade_configs.map((gc, i) => (
-            <GradeRow key={i} gc={gc} boxCount={1} />
-          ))}
-        </div>
-      )}
-    </div>
+      </td>
+    </tr>
   )
 }
 
+// ─── Main Page ───────────────────────────────────────────────────────────────
 export function Products() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
 
-  // Debounce search
   const handleSearch = (val: string) => {
     setSearch(val)
     clearTimeout((window as unknown as { _searchTimer?: number })._searchTimer)
@@ -283,63 +259,82 @@ export function Products() {
   const total = products?.length || 0
 
   return (
-    <div className="px-4 py-5 lg:px-8 max-w-4xl mx-auto">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Produtos</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {isLoading ? 'Carregando…' : `${total} produto${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
+      <div className="px-4 pt-5 pb-3 lg:px-6 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Produtos</h1>
+            <p className="text-xs text-gray-500">
+              {isLoading ? 'Carregando…' : `${total} produto${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Filtros */}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Input
+              placeholder="Buscar por referência, nome, modelo..."
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              leftIcon={<Search className="h-4 w-4" />}
+            />
+          </div>
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+          >
+            <option value="">Todos</option>
+            <option value="regular">Regular</option>
+            <option value="pack">Pack</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Tabela */}
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <PageSpinner />
+        </div>
+      ) : total === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <ChevronDown className="h-8 w-8 text-gray-300" />
+          </div>
+          <p className="text-gray-500 font-medium">Nenhum produto encontrado</p>
+          <p className="text-sm text-gray-400 mt-1">
+            {debouncedSearch
+              ? `Nenhum resultado para "${debouncedSearch}"`
+              : 'Importe uma tabela de preços para começar'}
           </p>
         </div>
-      </div>
-
-      {/* Filtros */}
-      <div className="flex gap-2 mb-5">
-        <div className="flex-1">
-          <Input
-            placeholder="Buscar por referência, nome ou modelo..."
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            leftIcon={<Search className="h-4 w-4" />}
-          />
-        </div>
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-        >
-          <option value="">Todos</option>
-          <option value="regular">Regular</option>
-          <option value="pack">Pack</option>
-        </select>
-      </div>
-
-      {/* Lista */}
-      {isLoading ? (
-        <PageSpinner />
       ) : (
-        <div className="space-y-2">
-          {(products || []).map(p => (
-            <ProductCard key={p.id} p={p} onOpenDetail={setDetailProduct} />
-          ))}
-          {!isLoading && (products || []).length === 0 && (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <ChevronDown className="h-8 w-8 text-gray-300" />
-              </div>
-              <p className="text-gray-500 font-medium">Nenhum produto encontrado</p>
-              <p className="text-sm text-gray-400 mt-1">
-                {debouncedSearch
-                  ? `Nenhum resultado para "${debouncedSearch}"`
-                  : 'Importe uma tabela de preços para começar'}
-              </p>
-            </div>
-          )}
+        <div className="flex-1 overflow-auto">
+          <table className="w-full min-w-[700px] text-left">
+            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+              <tr>
+                <th className="pl-3 pr-2 py-2.5 text-xs font-semibold text-gray-500 w-14">Foto</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Referência</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Nome / Modelo</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Tamanhos</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 text-right">Preço</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 text-center">Pç/cx</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Fábrica</th>
+                <th className="px-2 pr-3 py-2.5 text-xs font-semibold text-gray-500">Tabela</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-50">
+              {(products || []).map(p => (
+                <ProductRow key={p.id} p={p} onOpenDetail={setDetailProduct} />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Modal de detalhe do produto */}
+      {/* Modal */}
       {detailProduct && (
         <ProductDetailModal p={detailProduct} onClose={() => setDetailProduct(null)} />
       )}
