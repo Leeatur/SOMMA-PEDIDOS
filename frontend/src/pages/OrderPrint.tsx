@@ -234,7 +234,8 @@ export function OrderPrint() {
   const companyZip     = company.zip || ''
   const companyPhone   = company.phone || ''
   const companyWhats   = company.whatsapp || ''
-  const logoUrl        = company.logo_url ? `/api${company.logo_url}` : null
+  // Usa a URL diretamente: se for R2 já é https://..., se for local é /uploads/...
+  const logoUrl = company.logo_url || null
 
   const clientAddress  = [
     order.client_address,
@@ -262,7 +263,7 @@ export function OrderPrint() {
         .header-box { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 8px; }
         .company-info { flex: 1; }
         .company-name { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
-        .logo-area { width: 80px; text-align: right; }
+        .logo-area { width: 160px; text-align: right; flex-shrink: 0; }
         .logo-area img { max-width: 80px; max-height: 60px; object-fit: contain; }
         .items-table th { font-size: 8.5px; padding: 2px 3px; }
         .items-table td { font-size: 8.5px; padding: 2px 3px; }
@@ -319,8 +320,10 @@ export function OrderPrint() {
             )}
             {company.email && <div style={{ fontSize: 9 }}>{company.email}</div>}
           </div>
-          <div className="logo-area" style={{ fontSize: 10, fontWeight: 'bold', textAlign: 'right', color: '#333' }}>
-            {order.factory_name}
+          <div className="logo-area" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            <span style={{ fontSize: 32, fontWeight: 900, color: '#111', lineHeight: 1, letterSpacing: '-0.5px' }}>
+              {order.factory_name}
+            </span>
           </div>
         </div>
 
