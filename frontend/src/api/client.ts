@@ -220,6 +220,7 @@ export const ordersApi = {
   addItems: (id: string, items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number; sizes?: Record<string, number> }>) =>
     apiClient.post(`/orders/${id}/items`, { items }),
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),
+  delete: (id: string) => apiClient.delete(`/orders/${id}`),
 }
 
 export const reportsApi = {

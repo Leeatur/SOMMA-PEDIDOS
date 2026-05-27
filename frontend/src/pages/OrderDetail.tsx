@@ -176,6 +176,7 @@ export function OrderDetail() {
   const [productSearch, setProductSearch] = useState('')
   const [addCart, setAddCart] = useState<AddCartItem[]>([])
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
+  const [deleteModal, setDeleteModal] = useState(false)
 
   const { data: order, isLoading } = useQuery<OrderDetail>({
     queryKey: ['order', id],
@@ -212,6 +213,14 @@ export function OrderDetail() {
       setAddItemsModal(false)
       setAddCart([])
       setProductSearch('')
+    },
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: () => ordersApi.delete(id!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      navigate('/orders', { replace: true })
     },
   })
 
@@ -308,6 +317,13 @@ export function OrderDetail() {
               Status
             </Button>
           )}
+          <button
+            onClick={() => setDeleteModal(true)}
+            className="p-1.5 rounded-lg text-red-300 hover:bg-red-50 hover:text-red-500 transition-colors"
+            title="Excluir pedido"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -710,6 +726,38 @@ export function OrderDetail() {
             placeholder="Motivo da alteração..."
             rows={2}
           />
+        </div>
+      </Modal>
+
+      {/* ── Modal Excluir Pedido ── */}
+      <Modal
+        open={deleteModal}
+        onClose={() => setDeleteModal(false)}
+        title="Excluir pedido"
+        size="sm"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDeleteModal(false)}>
+              Cancelar
+            </Button>
+            <button
+              onClick={() => deleteMut.mutate()}
+              disabled={deleteMut.isPending}
+              className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-colors"
+            >
+              {deleteMut.isPending ? 'Excluindo…' : 'Excluir pedido'}
+            </button>
+          </div>
+        }
+      >
+        <div className="text-center py-2">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Trash2 className="h-6 w-6 text-red-500" />
+          </div>
+          <p className="text-gray-700 font-medium">
+            Tem certeza que deseja excluir o pedido <span className="font-bold">{order && formatOrderNumber(order.order_number)}</span>?
+          </p>
+          <p className="text-sm text-gray-400 mt-1">Esta ação não pode ser desfeita.</p>
         </div>
       </Modal>
     </div>

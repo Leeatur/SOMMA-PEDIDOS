@@ -65,6 +65,7 @@ router.get('/orders', authenticate, orders.listOrders)
 router.get('/orders/:id', authenticate, orders.getOrder)
 router.post('/orders', authenticate, orders.createOrder)
 router.patch('/orders/:id/status', authenticate, orders.updateOrderStatus)
+router.delete('/orders/:id', authenticate, orders.deleteOrder)
 router.post('/orders/:id/items', authenticate, orders.addOrderItems)
 router.post('/orders/sync', authenticate, orders.syncOfflineOrders)
 

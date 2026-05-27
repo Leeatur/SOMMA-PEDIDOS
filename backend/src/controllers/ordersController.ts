@@ -318,6 +318,18 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
   }
 }
 
+// Exclui um pedido (admin ou rep dono do pedido)
+export async function deleteOrder(req: AuthRequest, res: Response) {
+  const isAdmin = req.user!.role === 'admin'
+  const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1', [req.params.id])
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  if (!isAdmin && order.rep_id !== req.user!.id) {
+    res.status(403).json({ error: 'Acesso negado' }); return
+  }
+  await query('DELETE FROM orders WHERE id=$1', [req.params.id])
+  res.json({ ok: true })
+}
+
 // Sync offline: recebe array de pedidos criados offline
 export async function syncOfflineOrders(req: AuthRequest, res: Response) {
   const { orders: offlineOrders } = req.body

@@ -178,7 +178,7 @@ function SizeGrid({
         </button>
       </div>
       <div className="overflow-x-auto">
-        <table className="text-xs">
+        <table className="text-xs size-grid-table">
           <thead>
             <tr>
               {sizeKeys.map(s => (
@@ -189,14 +189,27 @@ function SizeGrid({
           </thead>
           <tbody>
             <tr>
-              {sizeKeys.map(s => (
+              {sizeKeys.map((s, idx) => (
                 <td key={s} className="px-0.5">
                   <input
                     type="number"
+                    inputMode="numeric"
                     min="0"
-                    value={sizes[s] || 0}
+                    value={sizes[s] === 0 ? '' : sizes[s]}
+                    placeholder="0"
                     onChange={e => onChange(s, parseInt(e.target.value) || 0)}
-                    className="w-9 h-7 text-center border border-gray-200 rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-blue-400"
+                    onFocus={e => e.target.select()}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+                        if (e.key === 'Enter') e.preventDefault()
+                        const table = e.currentTarget.closest('table')
+                        if (!table) return
+                        const inputs = Array.from(table.querySelectorAll<HTMLInputElement>('input[type="number"]'))
+                        const next = inputs[idx + 1]
+                        if (next) { e.preventDefault(); next.focus() }
+                      }
+                    }}
+                    className="w-9 h-7 text-center border border-gray-200 rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-400 bg-white"
                   />
                 </td>
               ))}
