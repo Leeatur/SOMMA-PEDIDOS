@@ -228,7 +228,7 @@ export async function listProducts(req: AuthRequest, res: Response) {
     params.push(`%${search}%`)
     idx++
   }
-  sql += ' GROUP BY p.id ORDER BY p.reference'
+  sql += ' GROUP BY p.id, pt.name, f.name ORDER BY p.reference'
   const { rows } = await query(sql, params)
   res.json(rows)
 }
