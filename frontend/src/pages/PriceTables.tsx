@@ -77,7 +77,12 @@ export function PriceTables() {
   // Import catalog state
   const [catalogFile, setCatalogFile] = useState<File | null>(null)
   const [catalogResult, setCatalogResult] = useState<{
-    totalPages: number; matched: string[]; unmatchedCount: number
+    totalPages: number
+    pagesWithText: number
+    foundInPdf: number
+    matched: string[]
+    matchedCount: number
+    unmatchedCount: number
   } | null>(null)
 
   const fileRef = useRef<HTMLInputElement>(null)
@@ -603,19 +608,35 @@ export function PriceTables() {
           </div>
         ) : (
           <div className="space-y-4 text-center py-4">
-            <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto" />
-            <p className="font-semibold text-gray-900">Catálogo Importado!</p>
+            {catalogResult.matchedCount > 0 ? (
+              <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto" />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
+                <span className="text-amber-500 text-xl font-bold">!</span>
+              </div>
+            )}
+            <p className="font-semibold text-gray-900">
+              {catalogResult.matchedCount > 0 ? 'Catálogo Importado!' : 'Catálogo Processado'}
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-emerald-50 rounded-xl p-3">
-                <p className="text-2xl font-bold text-emerald-700">{catalogResult.matched.length}</p>
-                <p className="text-xs text-emerald-600">Referências encontradas</p>
+                <p className="text-2xl font-bold text-emerald-700">{catalogResult.matchedCount}</p>
+                <p className="text-xs text-emerald-600">Fotos vinculadas</p>
               </div>
               <div className="bg-amber-50 rounded-xl p-3">
                 <p className="text-2xl font-bold text-amber-700">{catalogResult.unmatchedCount}</p>
-                <p className="text-xs text-amber-600">Não encontradas</p>
+                <p className="text-xs text-amber-600">Sem foto</p>
               </div>
             </div>
-            <p className="text-sm text-gray-500">Total de {catalogResult.totalPages} páginas processadas</p>
+            <div className="text-xs text-gray-400 space-y-0.5">
+              <p>{catalogResult.totalPages} páginas · {catalogResult.pagesWithText} com texto · {catalogResult.foundInPdf} refs no PDF</p>
+              {catalogResult.matchedCount === 0 && catalogResult.pagesWithText === 0 && (
+                <p className="text-amber-500 font-medium">PDF escaneado — sem texto extraível. Use um PDF com texto pesquisável.</p>
+              )}
+              {catalogResult.matchedCount === 0 && catalogResult.foundInPdf > 0 && (
+                <p className="text-amber-500 font-medium">{catalogResult.foundInPdf} refs encontradas no PDF mas nenhuma bate com esta tabela.</p>
+              )}
+            </div>
           </div>
         )}
       </Modal>

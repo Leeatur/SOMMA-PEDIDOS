@@ -13,8 +13,10 @@ export interface CatalogPage {
 export interface CatalogImportResult {
   pages: CatalogPage[]
   totalPages: number
-  matched: number   // referências encontradas no catálogo
-  unmatched: string[] // refs da tabela de preço sem foto
+  pagesWithText: number  // quantas páginas tinham texto extraível
+  foundInPdf: string[]   // todas as refs encontradas no texto do PDF
+  matched: string[]      // refs encontradas no PDF E que existem na tabela de preço
+  unmatched: string[]    // refs da tabela de preço sem foto
 }
 
 // Extrai texto de todas as páginas do PDF via Python/PyMuPDF
@@ -97,8 +99,10 @@ export async function importCatalogPdf(
   const pages = extractPdfData(pdfPath)
   const result: CatalogPage[] = []
   const foundRefs = new Set<string>()
+  let pagesWithText = 0
 
   for (const page of pages) {
+    if (page.text && page.text.trim().length > 3) pagesWithText++
     if (!page.text && page.imageCount === 0) continue
 
     const references = extractReferences(page.text)
@@ -127,12 +131,16 @@ export async function importCatalogPdf(
     result.push({ pageNumber: page.page, references, productName, sizeRange, imagePath })
   }
 
+  const priceTableRefsUpper = priceTableRefs.map(r => r.toUpperCase())
   const unmatched = priceTableRefs.filter(r => !foundRefs.has(r.toUpperCase()))
+  const matched = [...foundRefs].filter(r => priceTableRefsUpper.includes(r.toUpperCase()))
 
   return {
     pages: result,
     totalPages: pages.length,
-    matched: foundRefs.size,
+    pagesWithText,
+    foundInPdf: [...foundRefs],
+    matched,
     unmatched,
   }
 }
