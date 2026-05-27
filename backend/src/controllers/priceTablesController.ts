@@ -4,6 +4,7 @@ import { query, pool } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 import { importExcel, buildDefaultGrade, ImportedProduct } from '../services/import/excelImporter'
 import { importCatalogPdf } from '../services/import/pdfImporter'
+import { uploadToR2, isR2Configured } from '../utils/r2'
 
 export async function listPriceTables(req: AuthRequest, res: Response) {
   const { factory_id } = req.query
@@ -167,17 +168,18 @@ export async function importCatalog(req: AuthRequest, res: Response) {
   )
   const tableRefs = prods.map(p => p.reference)
 
-  const uploadDir = path.join(__dirname, '../../..', 'uploads', 'products')
-
-  // Garante que o diretório existe
+  // Salva PDF em diretório temporário para o importador
+  const os = await import('os')
   const fs = await import('fs')
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true })
-  }
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'somma-pdf-'))
+  const pdfPath = path.join(tmpDir, 'catalog.pdf')
+  const uploadDir = path.join(tmpDir, 'images')
+  fs.mkdirSync(uploadDir, { recursive: true })
+  fs.writeFileSync(pdfPath, req.file.buffer)
 
   let result
   try {
-    result = await importCatalogPdf(req.file.path, uploadDir, tableRefs)
+    result = await importCatalogPdf(pdfPath, uploadDir, tableRefs)
   } catch (pdfErr: unknown) {
     console.error('❌ Erro ao processar PDF:', pdfErr)
     const msg = pdfErr instanceof Error ? pdfErr.message : String(pdfErr)
@@ -185,25 +187,38 @@ export async function importCatalog(req: AuthRequest, res: Response) {
     return
   }
 
-  // Atualiza image_url nos produtos encontrados
+  // Faz upload das imagens extraídas para R2 (ou mantém local)
   const client = await pool.connect()
   try {
     for (const page of result.pages) {
-      for (const ref of page.references) {
-        if (page.imagePath) {
-          const condition = shouldOverwrite
-            ? ''
-            : 'AND image_url IS NULL'
-          await client.query(
-            `UPDATE products SET image_url=$1, updated_at=NOW()
-             WHERE price_table_id=$2 AND reference=$3 ${condition}`,
-            [page.imagePath, price_table_id, ref]
-          )
+      if (!page.imagePath) continue
+      let finalUrl = page.imagePath
+
+      // Se R2 configurado, faz upload do arquivo extraído para a nuvem
+      if (isR2Configured() && fs.existsSync(page.imagePath)) {
+        try {
+          const imgBuffer = fs.readFileSync(page.imagePath)
+          const imgName = path.basename(page.imagePath)
+          finalUrl = await uploadToR2(imgBuffer, imgName, 'products')
+        } catch (r2Err) {
+          console.error('Erro upload R2:', r2Err)
+          // mantém caminho local como fallback
         }
+      }
+
+      for (const ref of page.references) {
+        const condition = shouldOverwrite ? '' : 'AND image_url IS NULL'
+        await client.query(
+          `UPDATE products SET image_url=$1, updated_at=NOW()
+           WHERE price_table_id=$2 AND reference=$3 ${condition}`,
+          [finalUrl, price_table_id, ref]
+        )
       }
     }
   } finally {
     client.release()
+    // Limpa arquivos temporários
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch {}
   }
 
   res.json({
@@ -217,13 +232,29 @@ export async function importCatalog(req: AuthRequest, res: Response) {
 // Upload manual de foto para uma referência
 export async function uploadProductImage(req: AuthRequest, res: Response) {
   if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
-  const imageUrl = `/uploads/products/${req.file.filename}`
-  const { rows } = await query(
-    'UPDATE products SET image_url=$1, updated_at=NOW() WHERE id=$2 RETURNING *',
-    [imageUrl, req.params.id]
-  )
-  if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
-  res.json(rows[0])
+  try {
+    let imageUrl: string
+    if (isR2Configured()) {
+      imageUrl = await uploadToR2(req.file.buffer, req.file.originalname, 'products')
+    } else {
+      // Fallback local
+      const fs = await import('fs')
+      const ext = path.extname(req.file.originalname)
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+      const dest = path.join(__dirname, '../../..', 'uploads', 'products', filename)
+      fs.writeFileSync(dest, req.file.buffer)
+      imageUrl = `/uploads/products/${filename}`
+    }
+    const { rows } = await query(
+      'UPDATE products SET image_url=$1, updated_at=NOW() WHERE id=$2 RETURNING *',
+      [imageUrl, req.params.id]
+    )
+    if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
+    res.json(rows[0])
+  } catch (err) {
+    console.error('Erro upload imagem produto:', err)
+    res.status(500).json({ error: 'Erro ao salvar imagem' })
+  }
 }
 
 export async function listProducts(req: AuthRequest, res: Response) {

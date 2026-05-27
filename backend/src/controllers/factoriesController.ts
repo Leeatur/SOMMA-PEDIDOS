@@ -1,6 +1,8 @@
 import { Response } from 'express'
+import path from 'path'
 import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
+import { uploadToR2, isR2Configured } from '../utils/r2'
 
 export async function listFactories(req: AuthRequest, res: Response) {
   const { rows } = await query(
@@ -45,10 +47,25 @@ export async function updateFactory(req: AuthRequest, res: Response) {
 
 export async function uploadLogo(req: AuthRequest, res: Response) {
   if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
-  const logoUrl = `/uploads/logos/${req.file.filename}`
-  const { rows } = await query(
-    'UPDATE factories SET logo_url=$1, updated_at=NOW() WHERE id=$2 RETURNING *',
-    [logoUrl, req.params.id]
-  )
-  res.json(rows[0])
+  try {
+    let logoUrl: string
+    if (isR2Configured()) {
+      logoUrl = await uploadToR2(req.file.buffer, req.file.originalname, 'logos')
+    } else {
+      const fs = await import('fs')
+      const ext = path.extname(req.file.originalname)
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+      const dest = path.join(__dirname, '../../..', 'uploads', 'logos', filename)
+      fs.writeFileSync(dest, req.file.buffer)
+      logoUrl = `/uploads/logos/${filename}`
+    }
+    const { rows } = await query(
+      'UPDATE factories SET logo_url=$1, updated_at=NOW() WHERE id=$2 RETURNING *',
+      [logoUrl, req.params.id]
+    )
+    res.json(rows[0])
+  } catch (err) {
+    console.error('Erro upload logo fábrica:', err)
+    res.status(500).json({ error: 'Erro ao salvar logo' })
+  }
 }

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
-import path from 'path'
 import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
+import { uploadToR2, isR2Configured } from '../utils/r2'
 
 // Retorna todas as configurações como objeto chave→valor
 export async function getSettings(_req: Request, res: Response) {
@@ -40,15 +40,29 @@ export async function updateSettings(req: AuthRequest, res: Response) {
 // Upload do logo da empresa
 export async function uploadLogo(req: AuthRequest, res: Response) {
   if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
-  const logoUrl = `/uploads/logos/company-logo${path.extname(req.file.originalname)}`
-  // Renomeia para um nome fixo (substitui a anterior)
-  const fs = await import('fs')
-  const dest = path.join(__dirname, '../../..', 'uploads', 'logos', `company-logo${path.extname(req.file.originalname)}`)
-  fs.renameSync(req.file.path, dest)
-  await query(
-    `INSERT INTO company_settings (key, value) VALUES ('logo_url', $1)
-     ON CONFLICT (key) DO UPDATE SET value=$1, updated_at=NOW()`,
-    [logoUrl]
-  )
-  res.json({ logo_url: logoUrl })
+  try {
+    let logoUrl: string
+    if (isR2Configured()) {
+      // Usa nome fixo para sobrescrever logo anterior no R2
+      const ext = req.file.originalname.split('.').pop() || 'png'
+      logoUrl = await uploadToR2(req.file.buffer, req.file.originalname, 'logos', `company-logo.${ext}`)
+    } else {
+      // Fallback: salva localmente
+      const path = await import('path')
+      const fs = await import('fs')
+      const ext = path.extname(req.file.originalname)
+      const dest = path.join(__dirname, '../../..', 'uploads', 'logos', `company-logo${ext}`)
+      fs.writeFileSync(dest, req.file.buffer)
+      logoUrl = `/uploads/logos/company-logo${ext}`
+    }
+    await query(
+      `INSERT INTO company_settings (key, value) VALUES ('logo_url', $1)
+       ON CONFLICT (key) DO UPDATE SET value=$1, updated_at=NOW()`,
+      [logoUrl]
+    )
+    res.json({ logo_url: logoUrl })
+  } catch (err) {
+    console.error('Erro upload logo:', err)
+    res.status(500).json({ error: 'Erro ao salvar logo' })
+  }
 }

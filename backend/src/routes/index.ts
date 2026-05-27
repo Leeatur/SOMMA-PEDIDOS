@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import multer from 'multer'
-import path from 'path'
 import { authenticate, requireAdmin } from '../middleware/auth'
 import * as auth from '../controllers/authController'
 import * as users from '../controllers/usersController'
@@ -15,21 +14,9 @@ import * as reports from '../controllers/reportsController'
 
 const router = Router()
 
-// Multer para uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dest = file.fieldname === 'logo'
-      ? path.join(__dirname, '../../..', 'uploads', 'logos')
-      : path.join(__dirname, '../../..', 'uploads', 'products')
-    cb(null, dest)
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname)
-    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`)
-  },
-})
+// Multer — usa memória para poder enviar para R2
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB || '300')) * 1024 * 1024 },
 })
 
