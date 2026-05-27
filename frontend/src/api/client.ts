@@ -136,7 +136,7 @@ export const priceTablesApi = {
     fd.append('price_table_id', price_table_id)
     if (overwrite) fd.append('overwrite', 'true')
     return apiClient.post('/price-tables/import-catalog', fd, {
-      timeout: 120000,
+      timeout: 600000, // 10 min — PDFs grandes podem demorar
     })
   },
   delete: (id: string) => apiClient.delete(`/price-tables/${id}`),
