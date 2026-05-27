@@ -108,7 +108,7 @@ function CompanySection() {
         >
           {logoPreview ? (
             <img
-              src={logoPreview.startsWith('data:') ? logoPreview : `/api${logoPreview}`}
+              src={logoPreview}
               alt="Logo"
               className="w-full h-full object-contain p-1"
             />
