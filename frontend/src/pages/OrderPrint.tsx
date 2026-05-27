@@ -281,33 +281,32 @@ export function OrderPrint() {
         .sig-line { flex: 1; text-align: center; }
         .sig-line .line { border-top: 1px solid #333; margin-bottom: 4px; }
         .sig-line .name { font-size: 9px; }
+        .print-btn { position: fixed; top: 8px; right: 12px; background: #1d4ed8; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; z-index: 999; }
+        .footer-msg { margin-top: 12px; padding: 6px 10px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #555; font-style: italic; }
         @media print {
           body { margin: 0; }
           .page { padding: 8mm 10mm; width: 100%; }
-          .no-print { display: none; }
+          .print-btn { display: none; }
           @page { size: A4; margin: 0; }
         }
       `}</style>
 
-      {/* Botão imprimir - só aparece na tela, não no PDF */}
-      <div className="no-print" style={{ background: '#1d4ed8', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>
-          Pedido #{order.order_number} — {order.client_name}
-        </span>
-        <button
-          onClick={() => window.print()}
-          style={{ marginLeft: 'auto', background: '#fff', color: '#1d4ed8', fontWeight: 'bold', border: 'none', padding: '6px 18px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}
-        >
-          🖨️ Imprimir / Salvar PDF
-        </button>
-      </div>
+      {/* Botão flutuante discreto — some ao imprimir */}
+      <button className="print-btn" onClick={() => window.print()}>
+        🖨️ Imprimir / PDF
+      </button>
 
       <div className="page">
         {/* ── CABEÇALHO ── */}
         <div className="header-box">
           <div className="company-info">
             {logoUrl && (
-              <img src={logoUrl} alt="Logo" style={{ height: 48, marginBottom: 4, objectFit: 'contain' }} />
+              <img
+                src={logoUrl}
+                alt=""
+                style={{ height: 56, marginBottom: 6, objectFit: 'contain', display: 'block' }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+              />
             )}
             <div className="company-name">{companyName}</div>
             <div style={{ fontSize: 9 }}>{companyAddress}{companyZip ? ` — CEP ${companyZip}` : ''}</div>
@@ -442,6 +441,13 @@ export function OrderPrint() {
             <div className="name">{order.rep_name} — Vendedor</div>
           </div>
         </div>
+
+        {/* ── MENSAGEM DE RODAPÉ ── */}
+        {company.order_footer && (
+          <div className="footer-msg">
+            {company.order_footer}
+          </div>
+        )}
       </div>
     </>
   )
