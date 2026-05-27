@@ -154,10 +154,12 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
 }
 
 // Importa catálogo PDF e associa fotos às referências
+// overwrite=true → substitui fotos já existentes; overwrite=false (padrão) → só preenche vazias
 export async function importCatalog(req: AuthRequest, res: Response) {
   if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
-  const { price_table_id } = req.body
+  const { price_table_id, overwrite } = req.body
   if (!price_table_id) { res.status(400).json({ error: 'price_table_id obrigatório' }); return }
+  const shouldOverwrite = overwrite === 'true' || overwrite === true
 
   // Referências da tabela de preço
   const { rows: prods } = await query(
@@ -174,9 +176,12 @@ export async function importCatalog(req: AuthRequest, res: Response) {
     for (const page of result.pages) {
       for (const ref of page.references) {
         if (page.imagePath) {
+          const condition = shouldOverwrite
+            ? ''
+            : 'AND image_url IS NULL'
           await client.query(
             `UPDATE products SET image_url=$1, updated_at=NOW()
-             WHERE price_table_id=$2 AND reference=$3 AND image_url IS NULL`,
+             WHERE price_table_id=$2 AND reference=$3 ${condition}`,
             [page.imagePath, price_table_id, ref]
           )
         }

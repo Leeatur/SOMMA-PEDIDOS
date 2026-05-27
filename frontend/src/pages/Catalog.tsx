@@ -12,13 +12,15 @@ import {
   Plus,
   Trash2,
   Check,
+  FileImage,
+  Upload,
 } from 'lucide-react'
 import { productsApi, priceTablesApi, factoriesApi } from '../api/client'
 import { Input, Select } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
 import { Badge } from '../components/ui/Badge'
-import { PageSpinner } from '../components/ui/Spinner'
+import { PageSpinner, Spinner } from '../components/ui/Spinner'
 import { EmptyState } from '../components/ui/EmptyState'
 
 interface GradeConfig {
@@ -190,6 +192,24 @@ export function Catalog() {
   const [imageModal, setImageModal] = useState<Product | null>(null)
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null)
 
+  // Catalog PDF import
+  const [catalogOpen, setCatalogOpen] = useState(false)
+  const [catalogFile, setCatalogFile] = useState<File | null>(null)
+  const [catalogOverwrite, setCatalogOverwrite] = useState(false)
+  const [catalogResult, setCatalogResult] = useState<{
+    totalPages: number; matched: number; unmatchedCount: number; unmatched: string[]
+  } | null>(null)
+  const catalogFileRef = useRef<HTMLInputElement>(null)
+
+  const catalogMut = useMutation({
+    mutationFn: (args: { file: File; tableId: string; overwrite: boolean }) =>
+      priceTablesApi.importCatalog(args.file, args.tableId, args.overwrite),
+    onSuccess: (res) => {
+      setCatalogResult(res.data)
+      qc.invalidateQueries({ queryKey: ['products'] })
+    },
+  })
+
   const imageFileRef = useRef<HTMLInputElement>(null)
 
   const { data: factories } = useQuery<Factory[]>({
@@ -249,14 +269,26 @@ export function Catalog() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold text-gray-900">Catálogo de Produtos</h1>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-            >
-              <Filter className="h-4 w-4" />
-              Filtros
-              {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            </button>
+            <div className="flex items-center gap-2">
+              {selectedTable && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<FileImage className="h-4 w-4" />}
+                  onClick={() => { setCatalogFile(null); setCatalogResult(null); setCatalogOpen(true) }}
+                >
+                  Importar Catálogo PDF
+                </Button>
+              )}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+              >
+                <Filter className="h-4 w-4" />
+                Filtros
+                {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+            </div>
           </div>
           <Input
             placeholder="Buscar referência, nome ou modelo..."
@@ -404,6 +436,126 @@ export function Catalog() {
           e.target.value = ''
         }}
       />
+
+      {/* Import Catalog PDF Modal */}
+      <Modal
+        open={catalogOpen}
+        onClose={() => { setCatalogOpen(false); setCatalogFile(null); setCatalogResult(null) }}
+        title="Importar Catálogo PDF"
+        size="md"
+        footer={
+          !catalogResult ? (
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setCatalogOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={() => {
+                  if (catalogFile && selectedTable) {
+                    catalogMut.mutate({ file: catalogFile, tableId: selectedTable, overwrite: catalogOverwrite })
+                  }
+                }}
+                loading={catalogMut.isPending}
+                disabled={!catalogFile}
+                icon={<Upload className="h-4 w-4" />}
+              >
+                Importar
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => { setCatalogFile(null); setCatalogResult(null); setCatalogOverwrite(false) }}
+                icon={<FileImage className="h-4 w-4" />}
+              >
+                Importar outro catálogo
+              </Button>
+              <Button onClick={() => { setCatalogOpen(false); setCatalogFile(null); setCatalogResult(null) }}>
+                Fechar
+              </Button>
+            </div>
+          )
+        }
+      >
+        {!catalogResult ? (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Selecione um PDF de catálogo. O sistema irá extrair as fotos e associar automaticamente
+              às referências da tabela de preços selecionada.
+            </p>
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+              💡 Você pode importar múltiplos catálogos para a mesma tabela — cada um completa as fotos restantes.
+            </p>
+            <div
+              onClick={() => catalogFileRef.current?.click()}
+              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+            >
+              {catalogMut.isPending ? (
+                <Spinner label="Processando PDF..." />
+              ) : catalogFile ? (
+                <div>
+                  <FileImage className="h-10 w-10 text-blue-500 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-gray-900">{catalogFile.name}</p>
+                  <p className="text-xs text-gray-400 mt-1">{(catalogFile.size / 1024 / 1024).toFixed(1)} MB — clique para trocar</p>
+                </div>
+              ) : (
+                <div>
+                  <FileImage className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">Clique para selecionar o PDF do catálogo</p>
+                </div>
+              )}
+            </div>
+            <input
+              ref={catalogFileRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => { setCatalogFile(e.target.files?.[0] || null); e.target.value = '' }}
+            />
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={catalogOverwrite}
+                onChange={(e) => setCatalogOverwrite(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600"
+              />
+              <span className="text-sm text-gray-600">
+                Substituir fotos já existentes
+              </span>
+            </label>
+            {catalogMut.isError && (
+              <p className="text-sm text-red-600">Erro ao processar o catálogo. Tente novamente.</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-gray-900">{catalogResult.totalPages}</p>
+                <p className="text-xs text-gray-500 mt-0.5">páginas</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-green-700">{catalogResult.matched}</p>
+                <p className="text-xs text-green-600 mt-0.5">fotos vinculadas</p>
+              </div>
+              <div className="bg-orange-50 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-orange-600">{catalogResult.unmatchedCount}</p>
+                <p className="text-xs text-orange-500 mt-0.5">não encontradas</p>
+              </div>
+            </div>
+            {catalogResult.unmatched.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-gray-600 mb-1">Referências não encontradas na tabela:</p>
+                <p className="text-xs text-gray-400 font-mono leading-relaxed">
+                  {catalogResult.unmatched.join(', ')}
+                </p>
+              </div>
+            )}
+            <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+              ✅ Catálogo importado! Você pode importar mais catálogos para completar as fotos restantes.
+            </p>
+          </div>
+        )}
+      </Modal>
 
       {/* Grade Edit Modal */}
       <Modal

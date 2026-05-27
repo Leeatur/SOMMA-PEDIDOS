@@ -130,10 +130,11 @@ export const priceTablesApi = {
     })
     return apiClient.post('/price-tables/import', fd)
   },
-  importCatalog: (file: File, price_table_id: string) => {
+  importCatalog: (file: File, price_table_id: string, overwrite = false) => {
     const fd = new FormData()
     fd.append('file', file)
     fd.append('price_table_id', price_table_id)
+    if (overwrite) fd.append('overwrite', 'true')
     return apiClient.post('/price-tables/import-catalog', fd, {
       timeout: 120000,
     })
