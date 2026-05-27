@@ -26,10 +26,11 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: /^https?:\/\/.*\/api\/products/,
-            handler: 'CacheFirst',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'products-cache',
-              expiration: { maxEntries: 500, maxAgeSeconds: 7 * 24 * 60 * 60 },
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 500, maxAgeSeconds: 1 * 24 * 60 * 60 },
             },
           },
           {
