@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, Plus, Edit2, Search, Phone, MapPin, Upload } from 'lucide-react'
+import { Users, Plus, Edit2, Search, Upload } from 'lucide-react'
 import { clientsApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Button } from '../components/ui/Button'
 import { Input, MaskedInput, Textarea, Select } from '../components/ui/Input'
 import { maskCnpj, maskCpf, maskPhone, maskCep } from '../utils/masks'
 import { Modal } from '../components/ui/Modal'
-import { EmptyState } from '../components/ui/EmptyState'
 import { PageSpinner } from '../components/ui/Spinner'
 import { ClientsImportModal } from '../components/ui/ClientsImportModal'
 import { NewClientModal } from '../components/ui/NewClientModal'
@@ -126,147 +125,156 @@ export function Clients() {
       setForm({ ...form, [key]: e.target.value }),
   })
 
-  if (isLoading) return <PageSpinner />
-  const list = clients || []
+  const total = clients?.length || 0
 
   return (
-    <div className="pb-24 lg:pb-0">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 lg:px-8 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <div className="flex-1">
-            <Input
-              placeholder="Buscar clientes..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              leftIcon={<Search className="h-4 w-4" />}
-            />
+      <div className="px-4 pt-5 pb-3 lg:px-6 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Clientes</h1>
+            <p className="text-xs text-gray-500">
+              {isLoading ? 'Carregando…' : `${total} cliente${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
+            </p>
           </div>
-          <button
-            onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2 transition-colors whitespace-nowrap"
-            title="Importar via Excel"
-          >
-            <Upload className="h-4 w-4" />
-            <span className="hidden sm:inline">Importar</span>
-          </button>
-          <button
-            onClick={() => setShowNewCnpj(true)}
-            className="flex items-center gap-1.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg px-3 py-2 transition-colors whitespace-nowrap"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Novo</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2 transition-colors"
+              title="Importar via Excel"
+            >
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Importar</span>
+            </button>
+            <button
+              onClick={() => setShowNewCnpj(true)}
+              className="flex items-center gap-1.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg px-3 py-2 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Novo</span>
+            </button>
+          </div>
         </div>
+
+        {/* Busca */}
+        <Input
+          placeholder="Buscar clientes por nome, CNPJ, cidade..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          leftIcon={<Search className="h-4 w-4" />}
+        />
       </div>
 
-      <div className="px-4 py-5 lg:px-8 max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-bold text-gray-900">Clientes</h1>
-          <span className="text-sm text-gray-500">{list.length} clientes</span>
+      {/* Tabela */}
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <PageSpinner />
         </div>
-
-        {list.length === 0 ? (
-          <EmptyState
-            icon={<Users className="h-8 w-8" />}
-            title="Nenhum cliente encontrado"
-            description={search ? 'Tente ajustar a busca.' : 'Cadastre seu primeiro cliente ou importe via Excel.'}
-            action={
-              !search ? (
-                <div className="flex gap-3">
-                  <Button onClick={() => setShowImport(true)} variant="outline" icon={<Upload className="h-4 w-4" />}>
-                    Importar Excel
-                  </Button>
-                  <Button onClick={() => setShowNewCnpj(true)} icon={<Plus className="h-4 w-4" />}>
-                    Cadastrar Cliente
-                  </Button>
-                </div>
-              ) : undefined
-            }
-          />
-        ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            {/* Cabeçalho da tabela */}
-            <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr_1fr_auto] lg:grid-cols-[2fr_1.2fr_1fr_1fr_auto] gap-0 border-b border-gray-200 bg-gray-50 px-4 py-2">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</span>
-              <span className="hidden sm:block text-xs font-semibold text-gray-500 uppercase tracking-wide">Cidade</span>
-              <span className="hidden sm:block text-xs font-semibold text-gray-500 uppercase tracking-wide">Telefone</span>
-              <span className="hidden lg:block text-xs font-semibold text-gray-500 uppercase tracking-wide">CNPJ</span>
-              <span />
-            </div>
-
-            {/* Linhas */}
-            {list.map((c, idx) => (
-              <div
-                key={c.id}
-                className={`grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr_1fr_auto] lg:grid-cols-[2fr_1.2fr_1fr_1fr_auto] gap-0 items-center px-4 py-3 hover:bg-indigo-50/40 transition-colors ${idx < list.length - 1 ? 'border-b border-gray-100' : ''}`}
+      ) : total === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Users className="h-8 w-8 text-gray-300" />
+          </div>
+          <p className="text-gray-500 font-medium">Nenhum cliente encontrado</p>
+          <p className="text-sm text-gray-400 mt-1">
+            {search ? 'Tente ajustar a busca.' : 'Cadastre seu primeiro cliente ou importe via Excel.'}
+          </p>
+          {!search && (
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowImport(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors"
               >
-                {/* Nome */}
-                <div className="min-w-0 pr-3">
-                  <p className="font-semibold text-gray-900 text-sm truncate leading-tight">{c.name}</p>
-                  {c.trade_name && c.trade_name !== c.name && (
-                    <p className="text-xs text-gray-400 truncate leading-tight mt-0.5">{c.trade_name}</p>
-                  )}
-                  {/* No mobile, mostra cidade e telefone embaixo do nome */}
-                  <div className="flex flex-wrap gap-2 mt-1 sm:hidden text-xs text-gray-400">
-                    {(c.city || c.state) && (
-                      <span className="flex items-center gap-0.5">
-                        <MapPin className="h-3 w-3 flex-shrink-0" />
-                        {[c.city, c.state].filter(Boolean).join(' / ')}
-                      </span>
-                    )}
-                    {c.phone && (
-                      <span className="flex items-center gap-0.5">
-                        <Phone className="h-3 w-3 flex-shrink-0" />
-                        {c.phone}
-                      </span>
-                    )}
-                    {c.cnpj && <span className="text-gray-300">{c.cnpj}</span>}
-                  </div>
-                </div>
-
-                {/* Cidade/UF — sm+ */}
-                <div className="hidden sm:flex items-center gap-1 min-w-0 pr-2">
-                  {(c.city || c.state) ? (
-                    <span className="text-sm text-gray-600 truncate">
-                      {[c.city, c.state].filter(Boolean).join(' / ')}
-                    </span>
-                  ) : (
-                    <span className="text-gray-300 text-sm">—</span>
-                  )}
-                </div>
-
-                {/* Telefone — sm+ */}
-                <div className="hidden sm:flex items-center gap-1 min-w-0 pr-2">
-                  {c.phone ? (
-                    <span className="text-sm text-gray-600 truncate">{c.phone}</span>
-                  ) : (
-                    <span className="text-gray-300 text-sm">—</span>
-                  )}
-                </div>
-
-                {/* Representante — lg+ */}
-                <div className="hidden lg:block min-w-0 pr-2">
-                  {(c as any).rep_name ? (
-                    <span className="text-xs text-indigo-500 font-medium truncate">{(c as any).rep_name}</span>
-                  ) : (
-                    <span className="text-gray-300 text-sm">—</span>
-                  )}
-                </div>
-
-                {/* Editar */}
-                <button
-                  onClick={() => openEdit(c)}
-                  className="p-1.5 text-gray-300 hover:text-indigo-500 hover:bg-indigo-100 rounded-lg transition-colors flex-shrink-0"
+                <Upload className="h-4 w-4" />
+                Importar Excel
+              </button>
+              <button
+                onClick={() => setShowNewCnpj(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Cadastrar Cliente
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto">
+          <table className="w-full min-w-[480px] text-left">
+            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+              <tr>
+                <th className="pl-3 pr-2 py-2.5 text-xs font-semibold text-gray-500">Nome</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden sm:table-cell">Cidade / UF</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden md:table-cell">Telefone</th>
+                {isAdmin && (
+                  <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden lg:table-cell">Rep</th>
+                )}
+                <th className="px-2 pr-3 py-2.5 text-xs font-semibold text-gray-500 w-10" />
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-50">
+              {(clients || []).map(c => (
+                <tr
+                  key={c.id}
+                  className="border-b border-gray-100 hover:bg-indigo-50/40 transition-colors"
                 >
-                  <Edit2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                  {/* Nome */}
+                  <td className="pl-3 pr-2 py-2.5 max-w-[220px]">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
+                    {c.trade_name && c.trade_name !== c.name && (
+                      <p className="text-xs text-gray-400 truncate">{c.trade_name}</p>
+                    )}
+                    {/* Mobile: mostrar cidade e telefone abaixo */}
+                    <div className="flex flex-wrap gap-2 mt-0.5 sm:hidden text-xs text-gray-400">
+                      {(c.city || c.state) && (
+                        <span>{[c.city, c.state].filter(Boolean).join(' / ')}</span>
+                      )}
+                      {c.phone && <span>{c.phone}</span>}
+                    </div>
+                    {c.cnpj && (
+                      <p className="text-[10px] text-gray-300 truncate">{c.cnpj}</p>
+                    )}
+                  </td>
 
+                  {/* Cidade/UF */}
+                  <td className="px-2 py-2.5 hidden sm:table-cell max-w-[150px]">
+                    <span className="text-sm text-gray-600 truncate block">
+                      {[c.city, c.state].filter(Boolean).join(' / ') || '—'}
+                    </span>
+                  </td>
+
+                  {/* Telefone */}
+                  <td className="px-2 py-2.5 hidden md:table-cell whitespace-nowrap">
+                    <span className="text-sm text-gray-600">{c.phone || '—'}</span>
+                  </td>
+
+                  {/* Rep — admin */}
+                  {isAdmin && (
+                    <td className="px-2 py-2.5 hidden lg:table-cell max-w-[120px]">
+                      <span className="text-xs text-indigo-500 font-medium truncate block">
+                        {c.rep_name || '—'}
+                      </span>
+                    </td>
+                  )}
+
+                  {/* Editar */}
+                  <td className="px-2 pr-3 py-2.5 text-right">
+                    <button
+                      onClick={() => openEdit(c)}
+                      className="p-1.5 text-gray-300 hover:text-indigo-500 hover:bg-indigo-100 rounded-lg transition-colors"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Modal editar/criar cliente */}
       <Modal
         open={open}
         onClose={closeModal}

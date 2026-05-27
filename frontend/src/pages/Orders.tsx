@@ -8,15 +8,12 @@ import {
   ChevronDown,
   ChevronUp,
   PlusCircle,
-  Building2,
 } from 'lucide-react'
 import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
-import { Input, Select } from '../components/ui/Input'
+import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
-import { Card } from '../components/ui/Card'
 import { StatusBadge } from '../components/ui/Badge'
-import { EmptyState } from '../components/ui/EmptyState'
 import { PageSpinner } from '../components/ui/Spinner'
 import { formatCurrency, formatDate, formatOrderNumber } from '../utils/format'
 
@@ -75,139 +72,192 @@ export function Orders() {
       }).then((r) => r.data),
   })
 
-  const statusOptions = (statuses || []).map((s) => ({ value: s.id, label: s.name }))
-  const factoryOptions = (factories || []).map((f) => ({ value: f.id, label: f.name }))
+  const total = orders?.length || 0
 
   return (
-    <div className="pb-24 lg:pb-0">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 lg:px-8 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex-1">
-              <Input
-                placeholder="Buscar cliente ou nº pedido..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                leftIcon={<Search className="h-4 w-4" />}
-              />
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 px-3 py-2.5 border border-gray-300 rounded-lg bg-white"
-            >
-              <Filter className="h-4 w-4" />
-              {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            </button>
+      <div className="px-4 pt-5 pb-3 lg:px-6 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Pedidos</h1>
+            <p className="text-xs text-gray-500">
+              {isLoading ? 'Carregando…' : `${total} pedido${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
+            </p>
           </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-2 gap-2 mb-1">
-              <Select
-                options={statusOptions}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                placeholder="Todos os status"
-                label="Status"
-              />
-              <Select
-                options={factoryOptions}
-                value={factoryFilter}
-                onChange={(e) => setFactoryFilter(e.target.value)}
-                placeholder="Todas as fábricas"
-                label="Fábrica"
-              />
-              <Input
-                label="Data início"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-              <Input
-                label="Data fim"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="px-4 py-5 lg:px-8 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-bold text-gray-900">Pedidos</h1>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">{orders?.length || 0} pedidos</span>
-            <Button
-              onClick={() => navigate('/orders/new')}
-              icon={<PlusCircle className="h-4 w-4" />}
-              size="sm"
-            >
-              Novo
-            </Button>
-          </div>
+          <Button
+            onClick={() => navigate('/orders/new')}
+            icon={<PlusCircle className="h-4 w-4" />}
+            size="sm"
+          >
+            Novo
+          </Button>
         </div>
 
-        {isLoading ? (
-          <PageSpinner />
-        ) : !orders?.length ? (
-          <EmptyState
-            icon={<ShoppingCart className="h-8 w-8" />}
-            title="Nenhum pedido encontrado"
-            description={search || statusFilter || factoryFilter ? 'Tente ajustar os filtros.' : 'Crie o primeiro pedido.'}
-            action={
-              <Button onClick={() => navigate('/orders/new')} icon={<PlusCircle className="h-4 w-4" />}>
-                Criar Pedido
-              </Button>
-            }
-          />
-        ) : (
-          <div className="space-y-2">
-            {orders.map((o) => (
-              <Card key={o.id} padding="md" onClick={() => navigate(`/orders/${o.id}`)}>
-                <div className="flex items-start gap-3">
-                  {/* Order number */}
-                  <div className="flex-shrink-0 text-center min-w-[44px]">
-                    <p className="text-xs font-bold text-indigo-600">
-                      {formatOrderNumber(o.order_number)}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{formatDate(o.created_at)}</p>
-                  </div>
+        {/* Filtros */}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Input
+              placeholder="Buscar cliente ou nº pedido..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              leftIcon={<Search className="h-4 w-4" />}
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-1 text-sm px-3 py-2 border rounded-lg transition-colors ${
+              showFilters || statusFilter || factoryFilter || dateFrom || dateTo
+                ? 'text-indigo-600 border-indigo-300 bg-indigo-50'
+                : 'text-gray-500 border-gray-300 bg-white hover:text-gray-700'
+            }`}
+          >
+            <Filter className="h-4 w-4" />
+            {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+        </div>
 
-                  {/* Main info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{o.client_name}</p>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="flex items-center gap-1 text-xs text-gray-500">
-                        <Building2 className="h-3 w-3" />
-                        {o.factory_name}
-                      </span>
-                      {o.client_city && (
-                        <span className="text-xs text-gray-400">{o.client_city}</span>
-                      )}
-                    </div>
-                    {isAdmin && (
-                      <p className="text-xs text-gray-400 mt-0.5">Rep: {o.rep_name}</p>
-                    )}
-                  </div>
-
-                  {/* Right side */}
-                  <div className="flex-shrink-0 text-right space-y-1">
-                    {o.status_name && o.status_color ? (
-                      <StatusBadge name={o.status_name} color={o.status_color} />
-                    ) : (
-                      <span className="text-xs text-gray-400">Sem status</span>
-                    )}
-                    <p className="text-sm font-bold text-gray-900">{formatCurrency(o.total_value)}</p>
-                    <p className="text-xs text-gray-400">{o.total_pieces} pç</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
+        {showFilters && (
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            >
+              <option value="">Todos os status</option>
+              {(statuses || []).map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <select
+              value={factoryFilter}
+              onChange={(e) => setFactoryFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            >
+              <option value="">Todas as fábricas</option>
+              {(factories || []).map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              placeholder="Data início"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              placeholder="Data fim"
+            />
           </div>
         )}
       </div>
+
+      {/* Tabela */}
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <PageSpinner />
+        </div>
+      ) : total === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <ShoppingCart className="h-8 w-8 text-gray-300" />
+          </div>
+          <p className="text-gray-500 font-medium">Nenhum pedido encontrado</p>
+          <p className="text-sm text-gray-400 mt-1">
+            {search || statusFilter || factoryFilter
+              ? 'Tente ajustar os filtros.'
+              : 'Crie o primeiro pedido.'}
+          </p>
+          <button
+            onClick={() => navigate('/orders/new')}
+            className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Criar Pedido
+          </button>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto">
+          <table className="w-full min-w-[600px] text-left">
+            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+              <tr>
+                <th className="pl-3 pr-2 py-2.5 text-xs font-semibold text-gray-500 w-24">Nº / Data</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Cliente</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden md:table-cell">Fábrica</th>
+                {isAdmin && (
+                  <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden lg:table-cell">Rep</th>
+                )}
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Status</th>
+                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 text-right">Valor</th>
+                <th className="px-2 pr-3 py-2.5 text-xs font-semibold text-gray-500 text-center hidden sm:table-cell">Pç</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-50">
+              {(orders || []).map(o => (
+                <tr
+                  key={o.id}
+                  className="border-b border-gray-100 hover:bg-indigo-50/40 cursor-pointer transition-colors"
+                  onClick={() => navigate(`/orders/${o.id}`)}
+                >
+                  {/* Nº / Data */}
+                  <td className="pl-3 pr-2 py-2.5">
+                    <span className="text-xs font-bold text-indigo-600 block">{formatOrderNumber(o.order_number)}</span>
+                    <span className="text-[10px] text-gray-400">{formatDate(o.created_at)}</span>
+                  </td>
+
+                  {/* Cliente */}
+                  <td className="px-2 py-2.5 max-w-[200px]">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{o.client_name}</p>
+                    {o.client_city && (
+                      <p className="text-xs text-gray-400 truncate">{o.client_city}</p>
+                    )}
+                  </td>
+
+                  {/* Fábrica */}
+                  <td className="px-2 py-2.5 hidden md:table-cell max-w-[140px]">
+                    <span className="text-xs text-gray-600 truncate block">{o.factory_name}</span>
+                    <span className="text-[10px] text-gray-400 truncate block">{o.price_table_name}</span>
+                  </td>
+
+                  {/* Rep — admin */}
+                  {isAdmin && (
+                    <td className="px-2 py-2.5 hidden lg:table-cell max-w-[120px]">
+                      <span className="text-xs text-gray-500 truncate block">{o.rep_name || '—'}</span>
+                    </td>
+                  )}
+
+                  {/* Status */}
+                  <td className="px-2 py-2.5">
+                    {o.status_name && o.status_color ? (
+                      <StatusBadge name={o.status_name} color={o.status_color} />
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
+                  </td>
+
+                  {/* Valor */}
+                  <td className="px-2 py-2.5 text-right whitespace-nowrap">
+                    <span className="text-sm font-bold text-gray-900">{formatCurrency(o.total_value)}</span>
+                    {o.discount_pct > 0 && (
+                      <span className="text-[10px] text-green-500 block">-{o.discount_pct}%</span>
+                    )}
+                  </td>
+
+                  {/* Peças */}
+                  <td className="px-2 pr-3 py-2.5 text-center hidden sm:table-cell">
+                    <span className="text-xs text-gray-500">{o.total_pieces > 0 ? `${o.total_pieces}` : '—'}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

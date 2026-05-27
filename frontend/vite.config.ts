@@ -23,21 +23,22 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            urlPattern: /^https?:\/\/.*\/api\/products/,
+            urlPattern: /^https?:\/\/.*\/api\//,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'products-cache',
+              cacheName: 'api-cache-v2',
               networkTimeoutSeconds: 5,
               expiration: { maxEntries: 500, maxAgeSeconds: 1 * 24 * 60 * 60 },
             },
           },
           {
-            urlPattern: /^https?:\/\/.*\/uploads\//,
+            urlPattern: /^https:\/\/pub-.*\.r2\.dev\//,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'images-cache',
+              cacheName: 'r2-images-cache-v1',
               expiration: { maxEntries: 1000, maxAgeSeconds: 30 * 24 * 60 * 60 },
             },
           },
