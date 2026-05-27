@@ -11,6 +11,7 @@ import * as orders from '../controllers/ordersController'
 import * as statuses from '../controllers/statusController'
 import * as clientsImport from '../controllers/clientsImportController'
 import * as company from '../controllers/companyController'
+import * as reports from '../controllers/reportsController'
 
 const router = Router()
 
@@ -79,6 +80,12 @@ router.post('/orders', authenticate, orders.createOrder)
 router.patch('/orders/:id/status', authenticate, orders.updateOrderStatus)
 router.post('/orders/:id/items', authenticate, orders.addOrderItems)
 router.post('/orders/sync', authenticate, orders.syncOfflineOrders)
+
+// Relatórios
+router.get('/reports/orders', authenticate, reports.ordersReport)
+router.get('/reports/commissions', authenticate, reports.commissionsReport)
+router.get('/reports/clients', authenticate, reports.clientsReport)
+router.get('/reports/products', authenticate, reports.productsReport)
 
 // Empresa (Somma)
 router.get('/company', authenticate, company.getSettings)

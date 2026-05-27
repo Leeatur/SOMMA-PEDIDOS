@@ -15,6 +15,7 @@ import { Users } from './pages/Users'
 import { Settings } from './pages/Settings'
 import { OrderPrint } from './pages/OrderPrint'
 import { Products } from './pages/Products'
+import { Reports } from './pages/Reports'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuthStore()
@@ -52,6 +53,7 @@ export function App() {
         <Route path="/clients" element={<Clients />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/products" element={<Products />} />
+        <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
 
         {/* Admin-only routes */}

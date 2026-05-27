@@ -221,6 +221,17 @@ export const ordersApi = {
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),
 }
 
+export const reportsApi = {
+  orders: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/orders', { params }),
+  commissions: (params: { date_from?: string; date_to?: string; rep_id?: string }) =>
+    apiClient.get('/reports/commissions', { params }),
+  clients: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/clients', { params }),
+  products: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/products', { params }),
+}
+
 export const companyApi = {
   get: () => apiClient.get('/company'),
   update: (data: Record<string, string>) => apiClient.put('/company', data),

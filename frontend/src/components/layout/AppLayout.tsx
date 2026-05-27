@@ -18,6 +18,7 @@ import {
   X,
   ChevronRight,
   Shirt,
+  BarChart2,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { to: '/orders', label: 'Pedidos', icon: <ShoppingCart className="h-5 w-5" /> },
   { to: '/clients', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
   { to: '/products', label: 'Produtos', icon: <Shirt className="h-5 w-5" /> },
+  { to: '/reports', label: 'Relatórios', icon: <BarChart2 className="h-5 w-5" /> },
   { to: '/catalog', label: 'Catálogo', icon: <BookOpen className="h-5 w-5" />, adminOnly: true },
   { to: '/price-tables', label: 'Tabelas', icon: <Tags className="h-5 w-5" />, adminOnly: true },
   { to: '/factories', label: 'Fábricas', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
