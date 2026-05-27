@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Users, Plus, Edit2, Search, Phone, MapPin, Upload } from 'lucide-react'
-import { clientsApi } from '../api/client'
+import { clientsApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Button } from '../components/ui/Button'
-import { Input, MaskedInput, Textarea } from '../components/ui/Input'
+import { Input, MaskedInput, Textarea, Select } from '../components/ui/Input'
 import { maskCnpj, maskCpf, maskPhone, maskCep } from '../utils/masks'
 import { Modal } from '../components/ui/Modal'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -21,12 +21,16 @@ interface Client {
   city: string | null
   state: string | null
   phone: string | null
+  whatsapp: string | null
   email: string | null
   address: string | null
   zip: string | null
   notes: string | null
   rep_id: string | null
+  rep_name: string | null
 }
+
+interface User { id: string; name: string; role: string }
 
 interface FormState {
   name: string
@@ -38,19 +42,22 @@ interface FormState {
   state: string
   zip: string
   phone: string
+  whatsapp: string
   email: string
+  rep_id: string
   notes: string
 }
 
 const emptyForm: FormState = {
   name: '', trade_name: '', cnpj: '', cpf: '',
   address: '', city: '', state: '', zip: '',
-  phone: '', email: '', notes: '',
+  phone: '', whatsapp: '', email: '', rep_id: '', notes: '',
 }
 
 export function Clients() {
   const qc = useQueryClient()
-  useAuthStore()
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'admin'
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
   const [showImport, setShowImport] = useState(false)
@@ -62,6 +69,12 @@ export function Clients() {
   const { data: clients, isLoading } = useQuery<Client[]>({
     queryKey: ['clients', search],
     queryFn: () => clientsApi.list(search || undefined).then((r) => r.data),
+  })
+
+  const { data: users } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: () => usersApi.list().then((r) => r.data),
+    enabled: isAdmin,
   })
 
   const createMut = useMutation({
@@ -81,7 +94,8 @@ export function Clients() {
       cnpj: maskCnpj(c.cnpj || ''), cpf: maskCpf(c.cpf || ''),
       address: c.address || '', city: c.city || '',
       state: c.state || '', zip: maskCep(c.zip || ''),
-      phone: maskPhone(c.phone || ''), email: c.email || '', notes: c.notes || '',
+      phone: maskPhone(c.phone || ''), whatsapp: maskPhone(c.whatsapp || ''),
+      email: c.email || '', rep_id: c.rep_id || '', notes: c.notes || '',
     })
     setErrors({})
     setOpen(true)
@@ -231,10 +245,10 @@ export function Clients() {
                   )}
                 </div>
 
-                {/* CNPJ — lg+ */}
+                {/* Representante — lg+ */}
                 <div className="hidden lg:block min-w-0 pr-2">
-                  {c.cnpj ? (
-                    <span className="text-xs text-gray-400 font-mono">{c.cnpj}</span>
+                  {(c as any).rep_name ? (
+                    <span className="text-xs text-blue-600 font-medium truncate">{(c as any).rep_name}</span>
                   ) : (
                     <span className="text-gray-300 text-sm">—</span>
                   )}
@@ -281,6 +295,7 @@ export function Clients() {
             <MaskedInput label="CNPJ" mask="cnpj" value={form.cnpj} onChangeValue={v => setForm(p => ({ ...p, cnpj: v }))} />
             <MaskedInput label="CPF" mask="cpf" value={form.cpf} onChangeValue={v => setForm(p => ({ ...p, cpf: v }))} />
             <MaskedInput label="Telefone" mask="phone" value={form.phone} onChangeValue={v => setForm(p => ({ ...p, phone: v }))} />
+            <MaskedInput label="WhatsApp" mask="phone" value={form.whatsapp} onChangeValue={v => setForm(p => ({ ...p, whatsapp: v }))} />
             <Input label="E-mail" {...f('email')} type="email" />
           </div>
 
@@ -295,6 +310,18 @@ export function Clients() {
               <Input label="Estado" {...f('state')} placeholder="SP" maxLength={2} onChange={e => setForm(p => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }))} />
             </div>
           </div>
+
+          {isAdmin && (
+            <Select
+              label="Representante"
+              value={form.rep_id}
+              onChange={e => setForm(p => ({ ...p, rep_id: e.target.value }))}
+              options={(users || [])
+                .filter(u => u.role === 'representante' || u.role === 'admin')
+                .map(u => ({ value: u.id, label: u.name + (u.role === 'admin' ? ' (admin)' : '') }))}
+              placeholder="Sem representante vinculado"
+            />
+          )}
 
           <Textarea label="Observações" {...f('notes')} rows={2} />
         </div>

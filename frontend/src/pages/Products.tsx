@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, Info, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, Image as ImageIcon, Info, ChevronDown, ChevronUp, X, Package } from 'lucide-react'
 import { productsApi } from '../api/client'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
+import { Modal } from '../components/ui/Modal'
 
 const SIZE_ORDER = [
   'RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG','4XG',
@@ -76,15 +77,110 @@ function GradeRow({ gc, boxCount }: { gc: GradeConfig; boxCount: number }) {
   )
 }
 
-function ProductCard({ p }: { p: Product }) {
+// ─── Product Detail Modal ────────────────────────────────────────────────────
+function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void }) {
+  const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
+  const pricePerBox = p.base_price * totalPieces
+
+  return (
+    <Modal open onClose={onClose} title={p.reference} size="md">
+      <div className="space-y-4">
+        {/* Imagem grande */}
+        {p.image_url ? (
+          <div className="w-full aspect-square max-h-64 overflow-hidden rounded-xl bg-gray-100">
+            <img src={p.image_url} alt={p.reference} className="w-full h-full object-contain" />
+          </div>
+        ) : (
+          <div className="w-full h-40 bg-gray-100 rounded-xl flex items-center justify-center text-gray-300">
+            <ImageIcon className="h-12 w-12" />
+          </div>
+        )}
+
+        {/* Cabeçalho */}
+        <div className="flex items-start gap-2 flex-wrap">
+          <Badge variant={p.type === 'pack' ? 'purple' : 'info'}>
+            {p.type === 'pack' ? 'PACK' : 'Regular'}
+          </Badge>
+          {p.product_name && <span className="text-sm font-semibold text-gray-800">{p.product_name}</span>}
+          {p.model && <span className="text-sm text-gray-500">{p.model}</span>}
+        </div>
+
+        {/* Preços */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-blue-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-blue-500 mb-0.5">Preço por peça</p>
+            <p className="text-lg font-bold text-blue-700">R$ {Number(p.base_price).toFixed(2)}</p>
+          </div>
+          {totalPieces > 0 && (
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <p className="text-xs text-gray-500 mb-0.5">Preço por caixa ({totalPieces} pç)</p>
+              <p className="text-lg font-bold text-gray-800">R$ {pricePerBox.toFixed(2)}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Detalhes */}
+        <div className="space-y-1.5 text-sm">
+          {p.size_range && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Tamanhos</span>
+              <span className="font-medium text-gray-800">{p.size_range}</span>
+            </div>
+          )}
+          {p.category && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Categoria</span>
+              <span className="font-medium text-gray-800">{p.category}</span>
+            </div>
+          )}
+          {p.factory_name && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Fábrica</span>
+              <span className="font-medium text-gray-800">{p.factory_name}</span>
+            </div>
+          )}
+          {p.price_table_name && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Tabela</span>
+              <span className="font-medium text-gray-800 text-right max-w-[60%] truncate">{p.price_table_name}</span>
+            </div>
+          )}
+          {p.observation && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Observação</span>
+              <span className="font-medium text-orange-600 text-right max-w-[60%]">{p.observation}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Grade */}
+        {p.grade_configs && p.grade_configs.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Grade por caixa</p>
+            <div className="space-y-2">
+              {p.grade_configs.map((gc, i) => (
+                <GradeRow key={i} gc={gc} boxCount={1} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
+function ProductCard({ p, onOpenDetail }: { p: Product; onOpenDetail: (p: Product) => void }) {
   const [expanded, setExpanded] = useState(false)
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="flex gap-3 p-3">
-        {/* Imagem */}
-        <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+        {/* Imagem — clicável para abrir detalhe */}
+        <button
+          onClick={() => onOpenDetail(p)}
+          className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden hover:opacity-80 transition-opacity"
+        >
           {p.image_url ? (
             <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
           ) : (
@@ -92,12 +188,18 @@ function ProductCard({ p }: { p: Product }) {
               <ImageIcon className="h-7 w-7" />
             </div>
           )}
-        </div>
+        </button>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-1.5 flex-wrap">
-            <p className="font-bold text-gray-900 text-sm">{p.reference}</p>
+            {/* Referência clicável */}
+            <button
+              onClick={() => onOpenDetail(p)}
+              className="font-bold text-blue-700 text-sm hover:underline"
+            >
+              {p.reference}
+            </button>
             <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-xs">
               {p.type === 'pack' ? 'PACK' : 'REG'}
             </Badge>
@@ -158,6 +260,7 @@ export function Products() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null)
 
   // Debounce search
   const handleSearch = (val: string) => {
@@ -218,7 +321,7 @@ export function Products() {
       ) : (
         <div className="space-y-2">
           {(products || []).map(p => (
-            <ProductCard key={p.id} p={p} />
+            <ProductCard key={p.id} p={p} onOpenDetail={setDetailProduct} />
           ))}
           {!isLoading && (products || []).length === 0 && (
             <div className="text-center py-16">
@@ -234,6 +337,11 @@ export function Products() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Modal de detalhe do produto */}
+      {detailProduct && (
+        <ProductDetailModal p={detailProduct} onClose={() => setDetailProduct(null)} />
       )}
     </div>
   )
