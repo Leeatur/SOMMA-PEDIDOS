@@ -149,14 +149,21 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
           )}
         </div>
 
-        {p.grade_configs && p.grade_configs.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Grade por caixa</p>
-            <div className="space-y-2">
-              {p.grade_configs.map((gc, i) => (
-                <GradeRow key={i} gc={gc} boxCount={1} />
-              ))}
-            </div>
+        {p.grade_configs && p.grade_configs.length > 0 && !p.size_range && (
+          <div className="bg-gray-50 rounded-xl px-4 py-2.5">
+            <p className="text-xs text-gray-500 mb-1 font-medium">Grade disponível</p>
+            {p.grade_configs.map((gc, i) => {
+              const sizes = sortSizes(Object.keys(gc.sizes))
+              const first = sizes[0]
+              const last = sizes[sizes.length - 1]
+              return (
+                <p key={i} className="text-sm font-semibold text-gray-800">
+                  {gc.color && <span className="text-gray-500 font-normal mr-1">{gc.color} —</span>}
+                  {first} ao {last}
+                  <span className="text-xs font-normal text-gray-400 ml-2">({gc.total_pieces} pç/cx)</span>
+                </p>
+              )
+            })}
           </div>
         )}
       </div>

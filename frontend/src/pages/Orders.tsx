@@ -13,7 +13,6 @@ import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
-import { StatusBadge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
 import { formatCurrency, formatDate, formatOrderNumber } from '../utils/format'
 
@@ -36,6 +35,18 @@ interface Order {
 
 interface Status { id: string; name: string; color: string }
 interface Factory { id: string; name: string }
+
+function StatusDot({ name, color }: { name: string; color: string }) {
+  return (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <span
+        className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-white"
+        style={{ backgroundColor: color }}
+      />
+      <span className="text-xs font-medium text-gray-700 truncate">{name}</span>
+    </div>
+  )
+}
 
 export function Orders() {
   const navigate = useNavigate()
@@ -82,39 +93,40 @@ export function Orders() {
           <div>
             <h1 className="text-lg font-bold text-gray-900">Pedidos</h1>
             <p className="text-xs text-gray-500">
-              {isLoading ? 'Carregando…' : `${total} pedido${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
+              {isLoading ? 'Carregando…' : `${total} pedido${total !== 1 ? 's' : ''}`}
             </p>
           </div>
-          <Button
-            onClick={() => navigate('/orders/new')}
-            icon={<PlusCircle className="h-4 w-4" />}
-            size="sm"
-          >
-            Novo
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-1 text-sm px-3 py-2 border rounded-lg transition-colors ${
+                showFilters || statusFilter || factoryFilter || dateFrom || dateTo
+                  ? 'text-indigo-600 border-indigo-300 bg-indigo-50'
+                  : 'text-gray-500 border-gray-300 bg-white hover:text-gray-700'
+              }`}
+            >
+              <Filter className="h-4 w-4" />
+              {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+            <Button
+              onClick={() => navigate('/orders/new')}
+              icon={<PlusCircle className="h-4 w-4" />}
+              size="sm"
+            >
+              Novo
+            </Button>
+          </div>
         </div>
 
-        {/* Filtros */}
         <div className="flex gap-2">
           <div className="flex-1">
             <Input
-              placeholder="Buscar cliente ou nº pedido..."
+              placeholder="Buscar cliente, nº pedido, cidade..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               leftIcon={<Search className="h-4 w-4" />}
             />
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1 text-sm px-3 py-2 border rounded-lg transition-colors ${
-              showFilters || statusFilter || factoryFilter || dateFrom || dateTo
-                ? 'text-indigo-600 border-indigo-300 bg-indigo-50'
-                : 'text-gray-500 border-gray-300 bg-white hover:text-gray-700'
-            }`}
-          >
-            <Filter className="h-4 w-4" />
-            {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </button>
         </div>
 
         {showFilters && (
@@ -144,14 +156,12 @@ export function Orders() {
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-              placeholder="Data início"
             />
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-              placeholder="Data fim"
             />
           </div>
         )}
@@ -183,60 +193,71 @@ export function Orders() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto">
-          <table className="w-full min-w-[600px] text-left">
+          <table className="w-full min-w-[720px] text-left">
             <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>
-                <th className="pl-3 pr-2 py-2.5 text-xs font-semibold text-gray-500 w-24">Nº / Data</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Cliente</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden md:table-cell">Fábrica</th>
+                <th className="pl-3 pr-2 py-2 text-xs font-semibold text-gray-500 w-16">Data</th>
+                <th className="px-2 py-2 text-xs font-semibold text-gray-500 w-20">Nº</th>
+                <th className="px-2 py-2 text-xs font-semibold text-gray-500">Cliente</th>
+                <th className="px-2 py-2 text-xs font-semibold text-gray-500 hidden sm:table-cell">Cidade</th>
+                <th className="px-2 py-2 text-xs font-semibold text-gray-500 hidden md:table-cell">Fábrica</th>
                 {isAdmin && (
-                  <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden lg:table-cell">Rep</th>
+                  <th className="px-2 py-2 text-xs font-semibold text-gray-500 hidden lg:table-cell">Vendedor</th>
                 )}
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Status</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 text-right">Valor</th>
-                <th className="px-2 pr-3 py-2.5 text-xs font-semibold text-gray-500 text-center hidden sm:table-cell">Pç</th>
+                <th className="px-2 py-2 text-xs font-semibold text-gray-500 text-center hidden sm:table-cell w-14">Itens</th>
+                <th className="px-2 py-2 text-xs font-semibold text-gray-500 text-right w-28">Valor</th>
+                <th className="px-2 pr-3 py-2 text-xs font-semibold text-gray-500 w-36">Status</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-50">
+            <tbody className="bg-white">
               {(orders || []).map(o => (
                 <tr
                   key={o.id}
                   className="border-b border-gray-100 hover:bg-indigo-50/40 cursor-pointer transition-colors"
                   onClick={() => navigate(`/orders/${o.id}`)}
                 >
-                  {/* Nº / Data */}
-                  <td className="pl-3 pr-2 py-2.5">
-                    <span className="text-xs font-bold text-indigo-600 block">{formatOrderNumber(o.order_number)}</span>
-                    <span className="text-[10px] text-gray-400">{formatDate(o.created_at)}</span>
+                  {/* Data */}
+                  <td className="pl-3 pr-2 py-2.5 whitespace-nowrap">
+                    <span className="text-xs text-gray-500">{formatDate(o.created_at)}</span>
+                  </td>
+
+                  {/* Nº */}
+                  <td className="px-2 py-2.5 whitespace-nowrap">
+                    <span className="text-xs font-bold text-indigo-600">{formatOrderNumber(o.order_number)}</span>
                   </td>
 
                   {/* Cliente */}
                   <td className="px-2 py-2.5 max-w-[200px]">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{o.client_name}</p>
-                    {o.client_city && (
-                      <p className="text-xs text-gray-400 truncate">{o.client_city}</p>
-                    )}
+                    <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{o.client_name}</p>
+                    {/* Mobile: mostra cidade embaixo */}
+                    <p className="text-xs text-gray-400 truncate sm:hidden">{o.client_city || ''}</p>
+                  </td>
+
+                  {/* Cidade */}
+                  <td className="px-2 py-2.5 hidden sm:table-cell max-w-[120px]">
+                    <span className="text-xs text-gray-600 truncate block">{o.client_city || '—'}</span>
                   </td>
 
                   {/* Fábrica */}
-                  <td className="px-2 py-2.5 hidden md:table-cell max-w-[140px]">
+                  <td className="px-2 py-2.5 hidden md:table-cell max-w-[130px]">
                     <span className="text-xs text-gray-600 truncate block">{o.factory_name}</span>
                     <span className="text-[10px] text-gray-400 truncate block">{o.price_table_name}</span>
                   </td>
 
-                  {/* Rep — admin */}
+                  {/* Vendedor — admin */}
                   {isAdmin && (
                     <td className="px-2 py-2.5 hidden lg:table-cell max-w-[120px]">
                       <span className="text-xs text-gray-500 truncate block">{o.rep_name || '—'}</span>
                     </td>
                   )}
 
-                  {/* Status */}
-                  <td className="px-2 py-2.5">
-                    {o.status_name && o.status_color ? (
-                      <StatusBadge name={o.status_name} color={o.status_color} />
-                    ) : (
-                      <span className="text-xs text-gray-300">—</span>
+                  {/* Itens (peças) */}
+                  <td className="px-2 py-2.5 text-center hidden sm:table-cell">
+                    <span className="text-xs font-medium text-gray-700">
+                      {o.total_pieces > 0 ? o.total_pieces : '—'}
+                    </span>
+                    {o.total_pieces > 0 && (
+                      <span className="text-[10px] text-gray-400 block">pç</span>
                     )}
                   </td>
 
@@ -244,13 +265,17 @@ export function Orders() {
                   <td className="px-2 py-2.5 text-right whitespace-nowrap">
                     <span className="text-sm font-bold text-gray-900">{formatCurrency(o.total_value)}</span>
                     {o.discount_pct > 0 && (
-                      <span className="text-[10px] text-green-500 block">-{o.discount_pct}%</span>
+                      <span className="text-[10px] text-emerald-500 block text-right">-{o.discount_pct}% desc</span>
                     )}
                   </td>
 
-                  {/* Peças */}
-                  <td className="px-2 pr-3 py-2.5 text-center hidden sm:table-cell">
-                    <span className="text-xs text-gray-500">{o.total_pieces > 0 ? `${o.total_pieces}` : '—'}</span>
+                  {/* Status */}
+                  <td className="px-2 pr-3 py-2.5">
+                    {o.status_name && o.status_color ? (
+                      <StatusDot name={o.status_name} color={o.status_color} />
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
