@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, Info, ChevronDown, ChevronUp, X, Package } from 'lucide-react'
+import { Search, Image as ImageIcon, Info, ChevronDown, ChevronUp } from 'lucide-react'
 import { productsApi } from '../api/client'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'

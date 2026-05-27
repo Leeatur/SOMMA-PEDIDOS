@@ -21,7 +21,6 @@ import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { Input, MaskedInput, Textarea } from '../components/ui/Input'
-import { maskCnpj, maskPhone, maskCep } from '../utils/masks'
 
 function useOnlineStatus() {
   const [online, setOnline] = useState(navigator.onLine)
