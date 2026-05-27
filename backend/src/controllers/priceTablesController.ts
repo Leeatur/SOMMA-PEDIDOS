@@ -168,7 +168,22 @@ export async function importCatalog(req: AuthRequest, res: Response) {
   const tableRefs = prods.map(p => p.reference)
 
   const uploadDir = path.join(__dirname, '../../..', 'uploads', 'products')
-  const result = await importCatalogPdf(req.file.path, uploadDir, tableRefs)
+
+  // Garante que o diretório existe
+  const fs = await import('fs')
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true })
+  }
+
+  let result
+  try {
+    result = await importCatalogPdf(req.file.path, uploadDir, tableRefs)
+  } catch (pdfErr: unknown) {
+    console.error('❌ Erro ao processar PDF:', pdfErr)
+    const msg = pdfErr instanceof Error ? pdfErr.message : String(pdfErr)
+    res.status(500).json({ error: `Erro ao processar PDF: ${msg}` })
+    return
+  }
 
   // Atualiza image_url nos produtos encontrados
   const client = await pool.connect()
