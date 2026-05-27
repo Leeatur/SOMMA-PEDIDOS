@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Users, Plus, Edit2, Search, Upload } from 'lucide-react'
+import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
 import { clientsApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Button } from '../components/ui/Button'
@@ -125,6 +126,92 @@ export function Clients() {
       setForm({ ...form, [key]: e.target.value }),
   })
 
+  // Column config — rep only shown for admins
+  const CLIENT_COL_DEFS: ColumnDef[] = [
+    { id: 'name',       label: 'Nome',         alwaysVisible: true },
+    { id: 'trade_name', label: 'Nome Fantasia', defaultVisible: false },
+    { id: 'city',       label: 'Cidade / UF' },
+    { id: 'phone',      label: 'Telefone' },
+    { id: 'whatsapp',   label: 'WhatsApp',      defaultVisible: false },
+    { id: 'email',      label: 'E-mail',        defaultVisible: false },
+    { id: 'cnpj',       label: 'CNPJ',          defaultVisible: false },
+    ...(isAdmin ? [{ id: 'rep', label: 'Representante' } as ColumnDef] : []),
+    { id: '_edit',      label: '',             alwaysVisible: true },
+  ]
+
+  const { orderedDefs, config, save, reset } = useColumnConfig('clients', CLIENT_COL_DEFS)
+  const visibleCols = orderedDefs.filter(c => c.visible)
+
+  const renderClientCell = (id: string, c: Client) => {
+    switch (id) {
+      case 'name':
+        return (
+          <td key={id} className="pl-3 pr-2 py-2.5 max-w-[220px]">
+            <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
+          </td>
+        )
+      case 'trade_name':
+        return (
+          <td key={id} className="px-2 py-2.5 max-w-[180px]">
+            <span className="text-xs text-gray-500 truncate block">
+              {c.trade_name && c.trade_name !== c.name ? c.trade_name : '—'}
+            </span>
+          </td>
+        )
+      case 'city':
+        return (
+          <td key={id} className="px-2 py-2.5 max-w-[150px]">
+            <span className="text-sm text-gray-600 truncate block">
+              {[c.city, c.state].filter(Boolean).join(' / ') || '—'}
+            </span>
+          </td>
+        )
+      case 'phone':
+        return (
+          <td key={id} className="px-2 py-2.5 whitespace-nowrap">
+            <span className="text-sm text-gray-600">{c.phone || '—'}</span>
+          </td>
+        )
+      case 'whatsapp':
+        return (
+          <td key={id} className="px-2 py-2.5 whitespace-nowrap">
+            <span className="text-sm text-gray-600">{c.whatsapp || '—'}</span>
+          </td>
+        )
+      case 'email':
+        return (
+          <td key={id} className="px-2 py-2.5 max-w-[180px]">
+            <span className="text-xs text-gray-500 truncate block">{c.email || '—'}</span>
+          </td>
+        )
+      case 'cnpj':
+        return (
+          <td key={id} className="px-2 py-2.5 whitespace-nowrap">
+            <span className="text-xs text-gray-400">{c.cnpj || '—'}</span>
+          </td>
+        )
+      case 'rep':
+        return (
+          <td key={id} className="px-2 py-2.5 max-w-[120px]">
+            <span className="text-xs text-indigo-500 font-medium truncate block">{c.rep_name || '—'}</span>
+          </td>
+        )
+      case '_edit':
+        return (
+          <td key={id} className="px-2 pr-3 py-2.5 text-right w-10">
+            <button
+              onClick={(e) => { e.stopPropagation(); openEdit(c) }}
+              className="p-1.5 text-gray-300 hover:text-indigo-500 hover:bg-indigo-100 rounded-lg transition-colors"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+          </td>
+        )
+      default:
+        return <td key={id} className="px-2 py-2.5" />
+    }
+  }
+
   const total = clients?.length || 0
 
   return (
@@ -139,6 +226,12 @@ export function Clients() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <ColumnConfigButton
+              defs={CLIENT_COL_DEFS.filter(d => d.id !== '_edit')}
+              config={config}
+              onSave={save}
+              onReset={reset}
+            />
             <button
               onClick={() => setShowImport(true)}
               className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2 transition-colors"
@@ -182,91 +275,36 @@ export function Clients() {
           </p>
           {!search && (
             <div className="flex gap-3 mt-4">
-              <button
-                onClick={() => setShowImport(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <Upload className="h-4 w-4" />
-                Importar Excel
+              <button onClick={() => setShowImport(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+                <Upload className="h-4 w-4" /> Importar Excel
               </button>
-              <button
-                onClick={() => setShowNewCnpj(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                Cadastrar Cliente
+              <button onClick={() => setShowNewCnpj(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                <Plus className="h-4 w-4" /> Cadastrar Cliente
               </button>
             </div>
           )}
         </div>
       ) : (
         <div className="flex-1 overflow-auto">
-          <table className="w-full min-w-[480px] text-left">
+          <table className="w-full min-w-[360px] text-left">
             <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>
-                <th className="pl-3 pr-2 py-2.5 text-xs font-semibold text-gray-500">Nome</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden sm:table-cell">Cidade / UF</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden md:table-cell">Telefone</th>
-                {isAdmin && (
-                  <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 hidden lg:table-cell">Rep</th>
-                )}
-                <th className="px-2 pr-3 py-2.5 text-xs font-semibold text-gray-500 w-10" />
+                {visibleCols.map(col => (
+                  <th
+                    key={col.id}
+                    className={`px-2 py-2.5 text-xs font-semibold text-gray-500 first:pl-3 last:pr-3 ${col.id === '_edit' ? 'w-10' : ''}`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
               {(clients || []).map(c => (
-                <tr
-                  key={c.id}
-                  className="border-b border-gray-100 hover:bg-indigo-50/40 transition-colors"
-                >
-                  {/* Nome */}
-                  <td className="pl-3 pr-2 py-2.5 max-w-[220px]">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
-                    {c.trade_name && c.trade_name !== c.name && (
-                      <p className="text-xs text-gray-400 truncate">{c.trade_name}</p>
-                    )}
-                    {/* Mobile: mostrar cidade e telefone abaixo */}
-                    <div className="flex flex-wrap gap-2 mt-0.5 sm:hidden text-xs text-gray-400">
-                      {(c.city || c.state) && (
-                        <span>{[c.city, c.state].filter(Boolean).join(' / ')}</span>
-                      )}
-                      {c.phone && <span>{c.phone}</span>}
-                    </div>
-                    {c.cnpj && (
-                      <p className="text-[10px] text-gray-300 truncate">{c.cnpj}</p>
-                    )}
-                  </td>
-
-                  {/* Cidade/UF */}
-                  <td className="px-2 py-2.5 hidden sm:table-cell max-w-[150px]">
-                    <span className="text-sm text-gray-600 truncate block">
-                      {[c.city, c.state].filter(Boolean).join(' / ') || '—'}
-                    </span>
-                  </td>
-
-                  {/* Telefone */}
-                  <td className="px-2 py-2.5 hidden md:table-cell whitespace-nowrap">
-                    <span className="text-sm text-gray-600">{c.phone || '—'}</span>
-                  </td>
-
-                  {/* Rep — admin */}
-                  {isAdmin && (
-                    <td className="px-2 py-2.5 hidden lg:table-cell max-w-[120px]">
-                      <span className="text-xs text-indigo-500 font-medium truncate block">
-                        {c.rep_name || '—'}
-                      </span>
-                    </td>
-                  )}
-
-                  {/* Editar */}
-                  <td className="px-2 pr-3 py-2.5 text-right">
-                    <button
-                      onClick={() => openEdit(c)}
-                      className="p-1.5 text-gray-300 hover:text-indigo-500 hover:bg-indigo-100 rounded-lg transition-colors"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
+                <tr key={c.id} className="border-b border-gray-100 hover:bg-indigo-50/40 transition-colors">
+                  {visibleCols.map(col => renderClientCell(col.id, c))}
                 </tr>
               ))}
             </tbody>

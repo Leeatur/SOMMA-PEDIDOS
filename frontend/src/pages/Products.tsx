@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
 import { Modal } from '../components/ui/Modal'
+import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
 
 const SIZE_ORDER = [
   'RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG','4XG',
@@ -171,70 +172,117 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
   )
 }
 
+// ─── Column definitions ───────────────────────────────────────────────────────
+
+const PRODUCT_COL_DEFS: ColumnDef[] = [
+  { id: 'image',       label: 'Foto' },
+  { id: 'reference',   label: 'Referência', alwaysVisible: true },
+  { id: 'name',        label: 'Nome / Modelo' },
+  { id: 'size_range',  label: 'Tamanhos' },
+  { id: 'price',       label: 'Preço' },
+  { id: 'pieces',      label: 'Pç/cx' },
+  { id: 'category',    label: 'Categoria',  defaultVisible: false },
+  { id: 'factory',     label: 'Fábrica' },
+  { id: 'table',       label: 'Tabela' },
+  { id: 'observation', label: 'Observação', defaultVisible: false },
+]
+
 // ─── Table Row ───────────────────────────────────────────────────────────────
-function ProductRow({ p, onOpenDetail }: { p: Product; onOpenDetail: (p: Product) => void }) {
+function ProductRow({
+  p,
+  visibleCols,
+  onOpenDetail,
+}: {
+  p: Product
+  visibleCols: Array<ColumnDef & { visible: boolean }>
+  onOpenDetail: (p: Product) => void
+}) {
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
+
+  const renderCell = (id: string) => {
+    switch (id) {
+      case 'image':
+        return (
+          <td key={id} className="pl-3 pr-2 py-2 w-14">
+            <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+              {p.image_url
+                ? <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
+                : <ImageIcon className="h-4 w-4 text-gray-300" />}
+            </div>
+          </td>
+        )
+      case 'reference':
+        return (
+          <td key={id} className="px-2 py-2">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-indigo-600 text-sm whitespace-nowrap">{p.reference}</span>
+              <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[10px] px-1.5 py-0">
+                {p.type === 'pack' ? 'PK' : 'REG'}
+              </Badge>
+            </div>
+          </td>
+        )
+      case 'name':
+        return (
+          <td key={id} className="px-2 py-2 max-w-[180px]">
+            <p className="text-sm font-medium text-gray-800 truncate">{p.product_name || '—'}</p>
+            {p.model && <p className="text-xs text-gray-400 truncate">{p.model}</p>}
+          </td>
+        )
+      case 'size_range':
+        return (
+          <td key={id} className="px-2 py-2 whitespace-nowrap">
+            <span className="text-xs text-gray-600">{p.size_range || '—'}</span>
+          </td>
+        )
+      case 'price':
+        return (
+          <td key={id} className="px-2 py-2 whitespace-nowrap text-right">
+            <span className="text-sm font-bold text-indigo-600">R$ {Number(p.base_price).toFixed(2)}</span>
+            <span className="text-xs text-gray-400 ml-0.5">/pç</span>
+          </td>
+        )
+      case 'pieces':
+        return (
+          <td key={id} className="px-2 py-2 whitespace-nowrap text-center">
+            <span className="text-xs text-gray-500">{totalPieces > 0 ? `${totalPieces} pç` : '—'}</span>
+          </td>
+        )
+      case 'category':
+        return (
+          <td key={id} className="px-2 py-2 max-w-[120px]">
+            <span className="text-xs text-gray-500 truncate block">{p.category || '—'}</span>
+          </td>
+        )
+      case 'factory':
+        return (
+          <td key={id} className="px-2 py-2 max-w-[120px]">
+            <span className="text-xs text-gray-600 truncate block">{p.factory_name || '—'}</span>
+          </td>
+        )
+      case 'table':
+        return (
+          <td key={id} className="px-2 py-2 max-w-[150px]">
+            <span className="text-xs text-gray-500 truncate block">{p.price_table_name || '—'}</span>
+          </td>
+        )
+      case 'observation':
+        return (
+          <td key={id} className="px-2 pr-3 py-2 max-w-[140px]">
+            <span className="text-[10px] text-orange-500 truncate block">{p.observation || '—'}</span>
+          </td>
+        )
+      default:
+        return <td key={id} className="px-2 py-2" />
+    }
+  }
 
   return (
     <tr
       className="border-b border-gray-100 hover:bg-indigo-50/40 cursor-pointer transition-colors"
       onClick={() => onOpenDetail(p)}
     >
-      {/* Foto */}
-      <td className="pl-3 pr-2 py-2">
-        <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
-          {p.image_url ? (
-            <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
-          ) : (
-            <ImageIcon className="h-4 w-4 text-gray-300" />
-          )}
-        </div>
-      </td>
-
-      {/* Referência */}
-      <td className="px-2 py-2">
-        <div className="flex items-center gap-1.5">
-          <span className="font-bold text-indigo-600 text-sm whitespace-nowrap">{p.reference}</span>
-          <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[10px] px-1.5 py-0">
-            {p.type === 'pack' ? 'PK' : 'REG'}
-          </Badge>
-        </div>
-      </td>
-
-      {/* Nome */}
-      <td className="px-2 py-2 max-w-[180px]">
-        <p className="text-sm font-medium text-gray-800 truncate">{p.product_name || '—'}</p>
-        {p.model && <p className="text-xs text-gray-400 truncate">{p.model}</p>}
-      </td>
-
-      {/* Tamanhos */}
-      <td className="px-2 py-2 whitespace-nowrap">
-        <span className="text-xs text-gray-600">{p.size_range || '—'}</span>
-      </td>
-
-      {/* Preço */}
-      <td className="px-2 py-2 whitespace-nowrap text-right">
-        <span className="text-sm font-bold text-indigo-600">R$ {Number(p.base_price).toFixed(2)}</span>
-        <span className="text-xs text-gray-400 ml-0.5">/pç</span>
-      </td>
-
-      {/* Pç/cx */}
-      <td className="px-2 py-2 whitespace-nowrap text-center">
-        <span className="text-xs text-gray-500">{totalPieces > 0 ? `${totalPieces} pç` : '—'}</span>
-      </td>
-
-      {/* Fábrica */}
-      <td className="px-2 py-2 max-w-[120px]">
-        <span className="text-xs text-gray-600 truncate block">{p.factory_name || '—'}</span>
-      </td>
-
-      {/* Tabela */}
-      <td className="px-2 pr-3 py-2 max-w-[150px]">
-        <span className="text-xs text-gray-500 truncate block">{p.price_table_name || '—'}</span>
-        {p.observation && (
-          <span className="text-[10px] text-orange-500 truncate block">{p.observation}</span>
-        )}
-      </td>
+      {visibleCols.map(col => renderCell(col.id))}
     </tr>
   )
 }
@@ -263,6 +311,13 @@ export function Products() {
       }).then(r => r.data),
   })
 
+  const { orderedDefs, config, save, reset } = useColumnConfig('products', PRODUCT_COL_DEFS)
+  const visibleCols = orderedDefs.filter(c => c.visible)
+
+  const COL_ALIGN: Record<string, string> = {
+    price: 'text-right', pieces: 'text-center',
+  }
+
   const total = products?.length || 0
 
   return (
@@ -276,6 +331,12 @@ export function Products() {
               {isLoading ? 'Carregando…' : `${total} produto${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
             </p>
           </div>
+          <ColumnConfigButton
+            defs={PRODUCT_COL_DEFS}
+            config={config}
+            onSave={save}
+            onReset={reset}
+          />
         </div>
 
         {/* Filtros */}
@@ -319,22 +380,22 @@ export function Products() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto">
-          <table className="w-full min-w-[700px] text-left">
+          <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>
-                <th className="pl-3 pr-2 py-2.5 text-xs font-semibold text-gray-500 w-14">Foto</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Referência</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Nome / Modelo</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Tamanhos</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 text-right">Preço</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500 text-center">Pç/cx</th>
-                <th className="px-2 py-2.5 text-xs font-semibold text-gray-500">Fábrica</th>
-                <th className="px-2 pr-3 py-2.5 text-xs font-semibold text-gray-500">Tabela</th>
+                {visibleCols.map(col => (
+                  <th
+                    key={col.id}
+                    className={`px-2 py-2.5 text-xs font-semibold text-gray-500 first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''}`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
               {(products || []).map(p => (
-                <ProductRow key={p.id} p={p} onOpenDetail={setDetailProduct} />
+                <ProductRow key={p.id} p={p} visibleCols={visibleCols} onOpenDetail={setDetailProduct} />
               ))}
             </tbody>
           </table>
