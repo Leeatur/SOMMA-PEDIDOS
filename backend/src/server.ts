@@ -1,7 +1,8 @@
-import express from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import path from 'path'
 import dotenv from 'dotenv'
+import multer from 'multer'
 import routes from './routes'
 
 dotenv.config()
@@ -35,6 +36,30 @@ if (isProd) {
   // SPA fallback — todas as rotas não-API retornam index.html
   app.get('*', (_, res) => res.sendFile(path.join(frontendDist, 'index.html')))
 }
+
+// Tratador de erros do Multer (arquivo muito grande, tipo inválido, etc.)
+// Deve vir DEPOIS das rotas para capturar erros propagados via next(err)
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({ error: `Arquivo muito grande. Limite: ${process.env.MAX_FILE_SIZE_MB || 50}MB` })
+      return
+    }
+    res.status(400).json({ error: `Erro no upload: ${err.message}` })
+    return
+  }
+  // Erros genéricos
+  console.error('Erro não tratado:', err)
+  res.status(500).json({ error: 'Erro interno do servidor' })
+})
+
+// Proteção contra crashes por exceções não capturadas
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException:', err)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandledRejection:', reason)
+})
 
 app.listen(PORT, () => {
   console.log(`🚀 Somma Pedidos rodando em http://localhost:${PORT}`)
