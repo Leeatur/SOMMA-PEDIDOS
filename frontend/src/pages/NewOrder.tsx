@@ -22,12 +22,13 @@ import { clientsApi, priceTablesApi, productsApi, ordersApi, factoriesApi } from
 import { useAuthStore } from '../stores/authStore'
 import { db } from '../db/db'
 import { Button } from '../components/ui/Button'
-import { Input, Textarea, Select } from '../components/ui/Input'
+import { Input, MaskedInput, Textarea, Select } from '../components/ui/Input'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
 import { NewClientModal, CreatedClient } from '../components/ui/NewClientModal'
 import { formatCurrency, formatPct } from '../utils/format'
+import { maskPercent, parseDecimal } from '../utils/masks'
 
 // ─── Helpers de ordenação de tamanhos ───────────────────────────────────────
 const SIZE_ORDER = [
@@ -309,7 +310,7 @@ export function NewOrder() {
   })
 
   // Calculations
-  const discountNum = parseFloat(discountPct) || 0
+  const discountNum = parseDecimal(discountPct) || 0
   const discountRules = tableDetail?.discount_rules || []
 
   const findMatchingRule = useCallback((discount: number): DiscountRule | null => {
@@ -968,12 +969,12 @@ export function NewOrder() {
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       {discountRules.map((rule) => {
-                        const isSelected = parseFloat(discountPct) === rule.discount_pct
+                        const isSelected = parseDecimal(discountPct) === rule.discount_pct
                         const discountedTotal = totals.grossValue * (1 - rule.discount_pct / 100)
                         return (
                           <button
                             key={rule.id}
-                            onClick={() => setDiscountPct(String(rule.discount_pct))}
+                            onClick={() => setDiscountPct(maskPercent(String(rule.discount_pct)))}
                             className={`text-left p-3 rounded-xl border transition-colors ${
                               isSelected
                                 ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400'
@@ -1009,14 +1010,11 @@ export function NewOrder() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Input
+                    <MaskedInput
                       label="Desconto (%)"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
+                      mask="percent"
                       value={discountPct}
-                      onChange={(e) => setDiscountPct(e.target.value)}
+                      onChangeValue={(v) => setDiscountPct(v)}
                     />
                     {discountRules.length > 0 && (
                       <button

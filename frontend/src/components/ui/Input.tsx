@@ -1,5 +1,6 @@
 import React from 'react'
 import { clsx } from '../../utils/clsx'
+import { maskCnpj, maskCpf, maskPhone, maskCep, maskDecimal, maskPercent } from '../../utils/masks'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -138,3 +139,42 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   }
 )
 Select.displayName = 'Select'
+
+// ─── MaskedInput ───────────────────────────────────────────────────────────
+// Wraps Input and automatically applies a formatting mask on every keystroke.
+// The `value` prop should hold the ALREADY-formatted string.
+// The `onChangeValue` callback receives the newly-formatted string.
+
+const MASK_MAP = {
+  cnpj:    { fn: maskCnpj,    placeholder: '00.000.000/0001-00', maxLength: 18, inputMode: 'numeric' },
+  cpf:     { fn: maskCpf,     placeholder: '000.000.000-00',     maxLength: 14, inputMode: 'numeric' },
+  phone:   { fn: maskPhone,   placeholder: '(00) 00000-0000',    maxLength: 15, inputMode: 'tel'     },
+  cep:     { fn: maskCep,     placeholder: '00000-000',          maxLength:  9, inputMode: 'numeric' },
+  decimal: { fn: (v: string) => maskDecimal(v, 2), placeholder: '0,00', maxLength: 20, inputMode: 'decimal' },
+  percent: { fn: maskPercent, placeholder: '0,00',               maxLength:  7, inputMode: 'decimal' },
+} as const
+
+export type MaskType = keyof typeof MASK_MAP
+
+interface MaskedInputProps extends Omit<InputProps, 'onChange' | 'maxLength' | 'inputMode' | 'placeholder'> {
+  mask: MaskType
+  onChangeValue: (formatted: string) => void
+  placeholder?: string
+}
+
+export const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
+  ({ mask, onChangeValue, ...props }, ref) => {
+    const cfg = MASK_MAP[mask]
+    return (
+      <Input
+        ref={ref}
+        inputMode={cfg.inputMode as React.HTMLAttributes<HTMLInputElement>['inputMode']}
+        placeholder={props.placeholder ?? cfg.placeholder}
+        maxLength={cfg.maxLength}
+        onChange={(e) => onChangeValue(cfg.fn(e.target.value))}
+        {...props}
+      />
+    )
+  }
+)
+MaskedInput.displayName = 'MaskedInput'

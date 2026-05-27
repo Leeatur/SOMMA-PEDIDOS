@@ -4,7 +4,8 @@ import { Users, Plus, Edit2, Search, Phone, MapPin, Upload } from 'lucide-react'
 import { clientsApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Button } from '../components/ui/Button'
-import { Input, Textarea } from '../components/ui/Input'
+import { Input, MaskedInput, Textarea } from '../components/ui/Input'
+import { maskCnpj, maskCpf, maskPhone, maskCep } from '../utils/masks'
 import { Modal } from '../components/ui/Modal'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -76,10 +77,11 @@ export function Clients() {
   function openEdit(c: Client) {
     setEditing(c)
     setForm({
-      name: c.name, trade_name: c.trade_name || '', cnpj: c.cnpj || '',
-      cpf: c.cpf || '', address: c.address || '', city: c.city || '',
-      state: c.state || '', zip: c.zip || '', phone: c.phone || '',
-      email: c.email || '', notes: c.notes || '',
+      name: c.name, trade_name: c.trade_name || '',
+      cnpj: maskCnpj(c.cnpj || ''), cpf: maskCpf(c.cpf || ''),
+      address: c.address || '', city: c.city || '',
+      state: c.state || '', zip: maskCep(c.zip || ''),
+      phone: maskPhone(c.phone || ''), email: c.email || '', notes: c.notes || '',
     })
     setErrors({})
     setOpen(true)
@@ -276,9 +278,9 @@ export function Clients() {
             <div className="col-span-2">
               <Input label="Nome Fantasia" {...f('trade_name')} />
             </div>
-            <Input label="CNPJ" {...f('cnpj')} placeholder="00.000.000/0000-00" />
-            <Input label="CPF" {...f('cpf')} placeholder="000.000.000-00" />
-            <Input label="Telefone" {...f('phone')} type="tel" placeholder="(00) 00000-0000" />
+            <MaskedInput label="CNPJ" mask="cnpj" value={form.cnpj} onChangeValue={v => setForm(p => ({ ...p, cnpj: v }))} />
+            <MaskedInput label="CPF" mask="cpf" value={form.cpf} onChangeValue={v => setForm(p => ({ ...p, cpf: v }))} />
+            <MaskedInput label="Telefone" mask="phone" value={form.phone} onChangeValue={v => setForm(p => ({ ...p, phone: v }))} />
             <Input label="E-mail" {...f('email')} type="email" />
           </div>
 
@@ -288,9 +290,9 @@ export function Clients() {
               <div className="col-span-2">
                 <Input label="Endereço" {...f('address')} />
               </div>
-              <Input label="CEP" {...f('zip')} />
+              <MaskedInput label="CEP" mask="cep" value={form.zip} onChangeValue={v => setForm(p => ({ ...p, zip: v }))} />
               <Input label="Cidade" {...f('city')} />
-              <Input label="Estado" {...f('state')} placeholder="SP" />
+              <Input label="Estado" {...f('state')} placeholder="SP" maxLength={2} onChange={e => setForm(p => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }))} />
             </div>
           </div>
 

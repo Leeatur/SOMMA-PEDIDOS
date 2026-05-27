@@ -13,6 +13,7 @@ import {
   User,
 } from 'lucide-react'
 import { clientsApi } from '../../api/client'
+import { maskCnpj, maskPhone, maskCep } from '../../utils/masks'
 import { Modal } from './Modal'
 import { Button } from './Button'
 
@@ -55,31 +56,9 @@ function ConfirmTag() {
   )
 }
 
-function formatCnpj(v: string) {
-  return v.replace(/\D/g, '')
-    .replace(/^(\d{2})(\d)/, '$1.$2')
-    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1/$2')
-    .replace(/(\d{4})(\d)/, '$1-$2')
-    .slice(0, 18)
-}
-
-function formatPhone(v: string) {
-  const n = v.replace(/\D/g, '').slice(0, 11)
-  if (n.length <= 10)
-    return n.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3')
-  return n.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3')
-}
-
-function formatZip(v: string) {
-  return v.replace(/\D/g, '').replace(/^(\d{5})(\d)/, '$1-$2').slice(0, 9)
-}
-
 // Formata DDD + fone retornados pela Receita (ex: "11 1234-5678")
 function formatReceitaPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 11)
-  if (!digits) return ''
-  return formatPhone(digits)
+  return maskPhone(raw)
 }
 
 export function NewClientModal({ open, onClose, onCreated }: Props) {
@@ -130,13 +109,13 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
       ].filter(Boolean).join(', ')
 
       const newForm: Partial<FormData> = {
-        cnpj: formatCnpj(digits),
+        cnpj: maskCnpj(digits),
         name: data.razao_social || '',
         trade_name: data.nome_fantasia || '',
         address: addressFull,
         city: data.municipio || '',
         state: data.uf || '',
-        zip: formatZip(data.cep || ''),
+        zip: maskCep(data.cep || ''),
       }
 
       if (phone1) newForm.phone = phone1
@@ -209,7 +188,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
             <input
               type="text"
               value={cnpjInput}
-              onChange={e => setCnpjInput(formatCnpj(e.target.value))}
+              onChange={e => setCnpjInput(maskCnpj(e.target.value))}
               onKeyDown={e => e.key === 'Enter' && lookupCnpj()}
               placeholder="00.000.000/0001-00"
               maxLength={18}
@@ -268,7 +247,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               <label className="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
               <input
                 value={form.cnpj}
-                onChange={e => set('cnpj', formatCnpj(e.target.value))}
+                onChange={e => set('cnpj', maskCnpj(e.target.value))}
                 maxLength={18}
                 placeholder="00.000.000/0001-00"
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -292,7 +271,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
             </label>
             <input
               value={form.phone}
-              onChange={e => set('phone', formatPhone(e.target.value))}
+              onChange={e => set('phone', maskPhone(e.target.value))}
               placeholder="(00) 00000-0000"
               className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('phone') ? 'border-amber-300 bg-amber-50' : 'border-gray-300'}`}
             />
@@ -307,7 +286,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
             </label>
             <input
               value={form.whatsapp}
-              onChange={e => set('whatsapp', formatPhone(e.target.value))}
+              onChange={e => set('whatsapp', maskPhone(e.target.value))}
               placeholder="(00) 00000-0000"
               className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('whatsapp') ? 'border-amber-300 bg-amber-50' : 'border-gray-300'}`}
             />
@@ -368,7 +347,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
             <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
             <input
               value={form.zip}
-              onChange={e => set('zip', formatZip(e.target.value))}
+              onChange={e => set('zip', maskCep(e.target.value))}
               placeholder="00000-000"
               maxLength={9}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"

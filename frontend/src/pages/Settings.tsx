@@ -20,7 +20,8 @@ import { companyApi } from '../api/client'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
-import { Input, Textarea } from '../components/ui/Input'
+import { Input, MaskedInput, Textarea } from '../components/ui/Input'
+import { maskCnpj, maskPhone, maskCep } from '../utils/masks'
 
 function useOnlineStatus() {
   const [online, setOnline] = useState(navigator.onLine)
@@ -149,15 +150,15 @@ function CompanySection() {
         <div className="col-span-2">
           <Input label="Nome Fantasia" {...f('trade_name')} placeholder="Somma" />
         </div>
-        <Input label="CNPJ" {...f('cnpj')} placeholder="00.000.000/0000-00" />
-        <Input label="CEP" {...f('zip')} placeholder="00000-000" />
+        <MaskedInput label="CNPJ" mask="cnpj" value={form['cnpj'] || ''} onChangeValue={v => setForm(p => ({ ...p, cnpj: v }))} />
+        <MaskedInput label="CEP" mask="cep" value={form['zip'] || ''} onChangeValue={v => setForm(p => ({ ...p, zip: v }))} />
         <div className="col-span-2">
           <Input label="Endereço" {...f('address')} placeholder="Rua Exemplo, 123" />
         </div>
         <Input label="Cidade" {...f('city')} placeholder="São Paulo" />
         <Input label="UF" {...f('state')} placeholder="SP" />
-        <Input label="Telefone" {...f('phone')} placeholder="(11) 3000-0000" />
-        <Input label="WhatsApp" {...f('whatsapp')} placeholder="(11) 99000-0000" />
+        <MaskedInput label="Telefone" mask="phone" value={form['phone'] || ''} onChangeValue={v => setForm(p => ({ ...p, phone: v }))} />
+        <MaskedInput label="WhatsApp" mask="phone" value={form['whatsapp'] || ''} onChangeValue={v => setForm(p => ({ ...p, whatsapp: v }))} />
         <div className="col-span-2">
           <Input label="E-mail" {...f('email')} placeholder="contato@somma.com.br" type="email" />
         </div>
