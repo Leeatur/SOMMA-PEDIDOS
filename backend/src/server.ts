@@ -29,6 +29,20 @@ app.use('/api', routes)
 // Health check
 app.get('/health', (_, res) => res.json({ status: 'ok', ts: new Date() }))
 
+// ── Limpeza temporária de URLs quebradas (remover após uso) ───────────────────
+app.post('/api/cleanup-broken-images-somma2026', async (_req, res) => {
+  try {
+    const { query } = await import('./config/database')
+    const result = await query(
+      `UPDATE products SET image_url = NULL, updated_at = NOW()
+       WHERE image_url IS NOT NULL AND image_url NOT LIKE 'http%'`
+    )
+    res.json({ ok: true, cleared: result.rowCount })
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
 // Em produção, serve o frontend buildado (arquivo gerado em frontend/dist)
 if (isProd) {
   const frontendDist = path.join(__dirname, '../../frontend/dist')
