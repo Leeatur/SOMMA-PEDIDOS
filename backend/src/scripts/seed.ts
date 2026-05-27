@@ -9,16 +9,21 @@ async function seed() {
   try {
     console.log('🌱 Verificando dados iniciais...')
 
-    // Admin padrão — idempotente via ON CONFLICT (email)
+    // Admin padrão — força reset de senha a cada deploy (DO UPDATE)
     const hash = await bcrypt.hash('somma@2026', 10)
     await client.query(`
       INSERT INTO users (name, email, password_hash, role)
       VALUES
-        ('Administrador', 'admin@somma.com.br', $1, 'admin'),
-        ('Admin 2',       'admin2@somma.com.br', $1, 'admin'),
-        ('Admin 3',       'admin3@somma.com.br', $1, 'admin')
-      ON CONFLICT (email) DO NOTHING
+        ('Uliano',  'somma.uliano@hotmail.com', $1, 'admin'),
+        ('Admin 2', 'admin2@somma.com.br',      $1, 'admin'),
+        ('Admin 3', 'admin3@somma.com.br',      $1, 'admin')
+      ON CONFLICT (email) DO UPDATE
+        SET password_hash = EXCLUDED.password_hash,
+            name          = EXCLUDED.name,
+            role          = EXCLUDED.role,
+            updated_at    = NOW()
     `, [hash])
+    console.log('   ✅ Admins resetados: somma.uliano@hotmail.com / somma@2026')
 
     // Status padrão — só insere se a tabela estiver vazia
     const { rows: [{ count }] } = await client.query(
