@@ -29,28 +29,6 @@ app.use('/api', routes)
 // Health check
 app.get('/health', (_, res) => res.json({ status: 'ok', ts: new Date() }))
 
-// ── Reset temporário de admin (remover após uso) ──────────────────────────────
-app.post('/api/reset-admin-somma2026', async (_req, res) => {
-  try {
-    const bcrypt = await import('bcryptjs')
-    const { query } = await import('./config/database')
-    const hash = await bcrypt.default.hash('somma@2026', 10)
-    await query(`
-      INSERT INTO users (name, email, password_hash, role, active)
-      VALUES ('Uliano', 'somma.uliano@hotmail.com', $1, 'admin', true)
-      ON CONFLICT (email) DO UPDATE
-        SET password_hash = EXCLUDED.password_hash,
-            name          = EXCLUDED.name,
-            role          = 'admin',
-            active        = true,
-            updated_at    = NOW()
-    `, [hash])
-    res.json({ ok: true, msg: 'Admin resetado: somma.uliano@hotmail.com / somma@2026' })
-  } catch (err) {
-    res.status(500).json({ error: String(err) })
-  }
-})
-
 // Em produção, serve o frontend buildado (arquivo gerado em frontend/dist)
 if (isProd) {
   const frontendDist = path.join(__dirname, '../../frontend/dist')
