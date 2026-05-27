@@ -79,11 +79,11 @@ export function Dashboard() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-700 to-blue-800 px-5 py-6 lg:px-8">
+      <div className="bg-gradient-to-r from-amber-700 to-amber-500 px-5 py-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <p className="text-indigo-200 text-sm">{greeting()},</p>
+          <p className="text-amber-100 text-sm">{greeting()},</p>
           <h1 className="text-xl font-bold text-white">{user?.name}</h1>
-          <p className="text-blue-300 text-xs mt-0.5">
+          <p className="text-amber-200 text-xs mt-0.5">
             {isAdmin ? 'Administrador' : 'Representante'} &bull;{' '}
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
