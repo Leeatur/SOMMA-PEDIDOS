@@ -116,6 +116,92 @@ export async function clientsReport(req: AuthRequest, res: Response) {
   res.json(rows)
 }
 
+export async function collectionsReport(req: AuthRequest, res: Response) {
+  const [from, to] = dateRange(req)
+  const factoryId = req.query.factory_id as string | undefined
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+
+  // Constrói parâmetros e cláusulas em um único array sequencial
+  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  let salesCond = ''  // filtros dentro do subquery de vendas
+  let ptWhere   = ''  // filtro na tabela de preços
+
+  if (repId)      { salesCond += ` AND o.rep_id = $${params.length + 1}`;      params.push(repId) }
+  if (factoryId)  { salesCond += ` AND o.factory_id = $${params.length + 1}`;  params.push(factoryId)
+                    ptWhere    =  ` AND pt.factory_id = $${params.length}` }
+
+  const { rows } = await query(`
+    SELECT
+      pt.id                                             AS price_table_id,
+      f.name                                            AS factory_name,
+      pt.name                                           AS table_name,
+      COALESCE(pt.collection, pt.name)                  AS collection,
+      COALESCE(pt.season, '')                           AS season,
+      pt.year,
+      p.id                                              AS product_id,
+      p.reference,
+      p.product_name,
+      p.type,
+      COALESCE(sales.order_count, 0)::int               AS order_count,
+      COALESCE(sales.total_pieces, 0)::int              AS total_pieces,
+      COALESCE(sales.total_value, 0)::numeric           AS total_value
+    FROM price_tables pt
+    JOIN factories f ON f.id = pt.factory_id
+    JOIN products p ON p.price_table_id = pt.id AND p.active = true
+    LEFT JOIN (
+      SELECT oi.product_id,
+        COUNT(DISTINCT o.id)           AS order_count,
+        SUM(oi.total_pieces)           AS total_pieces,
+        SUM(oi.subtotal)               AS total_value
+      FROM order_items oi
+      JOIN orders o ON o.id = oi.order_id
+        AND o.deleted_at IS NULL
+        AND o.created_at BETWEEN $1 AND $2
+        ${salesCond}
+      GROUP BY oi.product_id
+    ) sales ON sales.product_id = p.id
+    WHERE pt.active = true ${ptWhere}
+    ORDER BY f.name, pt.name, COALESCE(sales.total_pieces, 0) DESC, p.reference
+  `, params)
+
+  // Agrupa por tabela de preço
+  const tableMap = new Map<string, {
+    price_table_id: string
+    factory_name: string
+    table_name: string
+    collection: string
+    season: string
+    year: number | null
+    products: typeof rows
+  }>()
+
+  for (const row of rows) {
+    if (!tableMap.has(row.price_table_id)) {
+      tableMap.set(row.price_table_id, {
+        price_table_id: row.price_table_id,
+        factory_name: row.factory_name,
+        table_name: row.table_name,
+        collection: row.collection,
+        season: row.season,
+        year: row.year,
+        products: [],
+      })
+    }
+    tableMap.get(row.price_table_id)!.products.push({
+      product_id: row.product_id,
+      reference: row.reference,
+      product_name: row.product_name,
+      type: row.type,
+      order_count: row.order_count,
+      total_pieces: row.total_pieces,
+      total_value: row.total_value,
+    })
+  }
+
+  res.json(Array.from(tableMap.values()))
+}
+
 export async function productsReport(req: AuthRequest, res: Response) {
   const [from, to] = dateRange(req)
   const isAdmin = req.user?.role === 'admin'

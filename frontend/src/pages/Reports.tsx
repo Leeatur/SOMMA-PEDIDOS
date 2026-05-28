@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { BarChart2 } from 'lucide-react'
+import { BarChart2, ChevronDown, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, usersApi } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -20,7 +20,7 @@ function daysAgoStr(n: number) {
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type Tab = 'orders' | 'commissions' | 'clients' | 'products'
+type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections'
 
 interface OrderSummary {
   order_count: number; total_pieces: number
@@ -39,6 +39,15 @@ interface ClientRow {
 }
 interface ProductRow {
   reference: string; order_count: number; total_pieces: number; total_value: number
+}
+interface CollectionProduct {
+  product_id: string; reference: string; product_name: string; type: string
+  order_count: number; total_pieces: number; total_value: number
+}
+interface CollectionRow {
+  price_table_id: string; factory_name: string; table_name: string
+  collection: string; season: string; year: number | null
+  products: CollectionProduct[]
 }
 interface Factory { id: string; name: string }
 interface User { id: string; name: string; role: string }
@@ -67,6 +76,166 @@ function Td({ children, right, bold }: { children: React.ReactNode; right?: bool
     <td className={`px-4 py-3 text-sm ${right ? 'text-right' : ''} ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
       {children}
     </td>
+  )
+}
+
+// ─── CollectionsTab ───────────────────────────────────────────────────────────
+
+function CollectionsTab({ data }: { data: CollectionRow[] }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [search, setSearch] = useState('')
+
+  function toggle(id: string) {
+    setExpanded(prev => {
+      const s = new Set(prev)
+      s.has(id) ? s.delete(id) : s.add(id)
+      return s
+    })
+  }
+
+  const q = search.toLowerCase().trim()
+
+  return (
+    <div className="space-y-3">
+      {/* busca rápida por referência */}
+      <input
+        type="text"
+        placeholder="Buscar referência..."
+        value={search}
+        onChange={e => {
+          setSearch(e.target.value)
+          // expande todas as coleções quando busca ativa
+          if (e.target.value) setExpanded(new Set(data.map(c => c.price_table_id)))
+          else setExpanded(new Set())
+        }}
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+      />
+
+      {data.map(col => {
+        const products = q
+          ? col.products.filter(p =>
+              p.reference.toLowerCase().includes(q) ||
+              (p.product_name || '').toLowerCase().includes(q)
+            )
+          : col.products
+        if (q && products.length === 0) return null
+
+        const soldCount  = products.filter(p => p.total_pieces > 0).length
+        const totalPcs   = products.reduce((s, p) => s + p.total_pieces, 0)
+        const totalVal   = products.reduce((s, p) => s + Number(p.total_value), 0)
+        const isOpen     = expanded.has(col.price_table_id)
+
+        return (
+          <div key={col.price_table_id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+
+            {/* ── Cabeçalho da coleção ── */}
+            <button
+              onClick={() => toggle(col.price_table_id)}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+            >
+              {isOpen
+                ? <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                : <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />}
+
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-sm font-bold text-gray-900">{col.factory_name}</span>
+                  <span className="text-xs text-gray-400">—</span>
+                  <span className="text-sm text-gray-700 truncate">{col.collection}</span>
+                  {col.season && (
+                    <span className="text-xs text-indigo-500 font-medium">
+                      {col.season}{col.year ? ` ${col.year}` : ''}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* totais resumo */}
+              <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
+                <div className="text-right">
+                  <p className="text-xs text-gray-400">Refs vendidas</p>
+                  <p className="text-sm font-bold text-gray-700">
+                    {soldCount}
+                    <span className="text-xs text-gray-400 font-normal"> / {products.length}</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-400">Peças</p>
+                  <p className="text-sm font-bold text-gray-700">{fmtN(totalPcs)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-400">Valor</p>
+                  <p className="text-sm font-bold text-indigo-700">{fmtR(totalVal)}</p>
+                </div>
+              </div>
+            </button>
+
+            {/* ── Linha de totais mobile ── */}
+            {!isOpen && (
+              <div className="sm:hidden flex items-center gap-4 px-11 pb-2 text-xs text-gray-500">
+                <span>{soldCount}/{products.length} refs</span>
+                <span>{fmtN(totalPcs)} pç</span>
+                <span className="font-semibold text-indigo-600">{fmtR(totalVal)}</span>
+              </div>
+            )}
+
+            {/* ── Tabela de referências (expandida) ── */}
+            {isOpen && (
+              <div className="border-t border-gray-100">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <Th>Referência</Th>
+                        <Th>Produto</Th>
+                        <Th right>Pedidos</Th>
+                        <Th right>Peças</Th>
+                        <Th right>Valor</Th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {products.map(p => (
+                        <tr
+                          key={p.product_id}
+                          className={`hover:bg-gray-50/50 ${p.total_pieces === 0 ? 'opacity-50' : ''}`}
+                        >
+                          <td className="px-4 py-2.5 font-mono text-xs font-bold text-gray-900 whitespace-nowrap">
+                            {p.reference}
+                            {p.type === 'pack' && (
+                              <span className="ml-1 text-[10px] text-amber-600 font-sans font-medium bg-amber-50 px-1 rounded">pack</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-gray-600 max-w-[200px] truncate">
+                            {p.product_name || '—'}
+                          </td>
+                          <Td right>{p.order_count > 0 ? p.order_count : '—'}</Td>
+                          <Td right bold={p.total_pieces > 0}>{p.total_pieces > 0 ? fmtN(p.total_pieces) : '—'}</Td>
+                          <Td right>{p.total_value > 0 ? fmtR(p.total_value) : '—'}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    {totalPcs > 0 && (
+                      <tfoot>
+                        <tr className="bg-gray-50 border-t border-gray-200">
+                          <td colSpan={2} className="px-4 py-2 text-xs font-bold text-gray-700">
+                            {soldCount} ref{soldCount !== 1 ? 's' : ''} vendida{soldCount !== 1 ? 's' : ''} de {products.length}
+                          </td>
+                          <td className="px-4 py-2 text-right text-xs font-bold text-gray-700">
+                            {products.reduce((s, p) => s + p.order_count, 0)}
+                          </td>
+                          <td className="px-4 py-2 text-right text-xs font-bold text-gray-700">{fmtN(totalPcs)}</td>
+                          <td className="px-4 py-2 text-right text-xs font-bold text-indigo-700">{fmtR(totalVal)}</td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -137,6 +306,12 @@ export function Reports() {
     enabled: tab === 'products',
   })
 
+  const collectionsQ = useQuery<CollectionRow[]>({
+    queryKey: ['rpt-collections', dateFrom, dateTo, factoryId, repId],
+    queryFn: () => reportsApi.collections(baseParams).then(r => r.data),
+    enabled: tab === 'collections',
+  })
+
   // ─── tabs config ───────────────────────────────────────────────────────────
 
   const TABS: { id: Tab; label: string }[] = [
@@ -144,6 +319,7 @@ export function Reports() {
     { id: 'commissions', label: 'Comissões' },
     { id: 'clients',     label: 'Clientes' },
     { id: 'products',    label: 'Produtos' },
+    { id: 'collections', label: 'Coleções' },
   ]
 
   // ─── render ────────────────────────────────────────────────────────────────
@@ -412,6 +588,15 @@ export function Reports() {
                 </div>
               </div>
             )
+        )}
+
+        {/* ═══ COLEÇÕES ═════════════════════════════════════════════════════ */}
+        {tab === 'collections' && (
+          collectionsQ.isLoading ? <PageSpinner /> :
+          !collectionsQ.data ? null :
+          collectionsQ.data.length === 0
+            ? <EmptyState label="Nenhuma tabela de preços ativa" />
+            : <CollectionsTab data={collectionsQ.data} />
         )}
 
         {/* ═══ PRODUTOS ═════════════════════════════════════════════════════ */}

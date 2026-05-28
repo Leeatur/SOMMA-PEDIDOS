@@ -258,6 +258,8 @@ export const reportsApi = {
     apiClient.get('/reports/clients', { params }),
   products: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
     apiClient.get('/reports/products', { params }),
+  collections: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/collections', { params }),
 }
 
 export const companyApi = {
