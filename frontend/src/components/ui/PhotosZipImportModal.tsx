@@ -30,6 +30,36 @@ interface Props {
 const REF_REGEX = /((?:TE|PKTE)\d+)/i
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp'])
 
+/**
+ * Redimensiona e comprime uma imagem no browser usando Canvas.
+ * Converte um JPEG de 25-44 MB para ~300 KB antes de enviar ao servidor.
+ * Preserva a proporção; max 1400px no lado maior.
+ */
+async function compressImage(blob: Blob, maxPx = 1400, quality = 0.82): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob)
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight))
+      const w = Math.round(img.naturalWidth * scale)
+      const h = Math.round(img.naturalHeight * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, w, h)
+      canvas.toBlob(
+        b => (b ? resolve(b) : reject(new Error('Canvas toBlob failed'))),
+        'image/jpeg',
+        quality,
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')) }
+    img.src = url
+  })
+}
+
 /** Limita quantas uploads rodam em paralelo */
 async function pLimit<T>(
   tasks: (() => Promise<T>)[],
@@ -114,7 +144,8 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
         return
       }
 
-      // 3. Faz upload de cada imagem individualmente (concorrência 4)
+      // 3. Faz upload de cada imagem individualmente (concorrência 2)
+      // Processa sequencialmente para não explodir a memória com ZIPs grandes
       setPhase('uploading')
       setProgress({ done: 0, total: images.length })
 
@@ -125,8 +156,10 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
 
       const tasks = images.map(({ ref, zipFile }) => async () => {
         try {
-          const blob = await zipFile.async('blob')
-          const res = await priceTablesApi.uploadPhotoByRef(priceTableId, ref, blob, overwrite)
+          const rawBlob = await zipFile.async('blob')
+          // Comprime no browser antes de enviar (25-44 MB → ~300 KB)
+          const compressed = await compressImage(rawBlob)
+          const res = await priceTablesApi.uploadPhotoByRef(priceTableId, ref, compressed, overwrite)
           const data = res.data as { matched?: boolean; skipped?: boolean; reason?: string }
           if (data.matched) matched++
           else if (data.skipped && data.reason === 'not_found') notFound++
@@ -137,7 +170,8 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
         setProgress(p => ({ ...p, done: p.done + 1 }))
       })
 
-      await pLimit(tasks, 4)
+      // Concorrência 2 — ZIPs com fotos grandes precisam de menos paralelo
+      await pLimit(tasks, 2)
 
       setResult({ total: images.length, matched, skipped, notFound, errors })
       onDone?.()
@@ -219,9 +253,17 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
             </p>
           )}
 
+          {result.notFound > 0 && (
+            <p className="text-xs text-amber-600 text-center">
+              ⚠ Verifique se a tabela de preços selecionada está correta
+            </p>
+          )}
+
           {result.errors.length > 0 && (
             <div className="bg-red-50 rounded-lg p-3">
-              <p className="text-xs font-semibold text-red-700 mb-1">Erros ao processar:</p>
+              <p className="text-xs font-semibold text-red-700 mb-1">
+                {result.errors.length} erro{result.errors.length > 1 ? 's' : ''} ao processar:
+              </p>
               <p className="text-xs text-red-600 font-mono">{result.errors.join(', ')}</p>
             </div>
           )}
