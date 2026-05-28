@@ -8,6 +8,8 @@
     "start": "node dist/server.js",
     "migrate": "tsx src/scripts/migrate.ts",
     "migrate:prod": "node dist/scripts/migrate.js",
+    "fix-pkte": "tsx src/scripts/fixPkteGrades.ts",
+    "fix-pkte:prod": "node dist/scripts/fixPkteGrades.js",
     "seed": "tsx src/scripts/seed.ts",
     "seed:prod": "node dist/scripts/seed.js"
   },
