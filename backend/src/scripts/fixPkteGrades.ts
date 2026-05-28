@@ -128,41 +128,57 @@ async function run() {
       }
     }
 
-    // ── Corrige subtotais e total_value dos pedidos com itens PKTE ──────────
-    // unit_price nos order_items é o preço da caixa; subtotal correto = unit_price × boxes_count
-    // (antes era unit_price × total_pieces, inflando os valores)
-    console.log('\n🔧 Corrigindo subtotais dos pedidos PKTE existentes…')
-
-    // 1. Recalcula subtotal de cada order_item PKTE
-    const { rowCount: itemsFixed } = await client.query(`
-      UPDATE order_items oi
-      SET subtotal = oi.unit_price * (1 - o.discount_pct / 100.0) * oi.boxes_count
-      FROM orders o
-      JOIN products p ON oi.product_id = p.id
-      WHERE oi.order_id = o.id
-        AND p.type = 'pack'
-        AND oi.boxes_count > 0
-        AND ABS(oi.subtotal - oi.unit_price * (1 - o.discount_pct / 100.0) * oi.boxes_count) > 0.01
-    `)
-    console.log(`   ${itemsFixed} order_items corrigidos`)
-
-    // 2. Recalcula total_value de cada pedido afetado
-    const { rowCount: ordersFixed } = await client.query(`
-      UPDATE orders o
-      SET total_value = sub.tv,
-          updated_at  = NOW()
-      FROM (
-        SELECT order_id, SUM(subtotal) AS tv
-        FROM order_items
-        GROUP BY order_id
-      ) sub
-      WHERE o.id = sub.order_id
-        AND ABS(o.total_value - sub.tv) > 0.01
-    `)
-    console.log(`   ${ordersFixed} pedidos com total_value corrigido`)
-
     await client.query('COMMIT')
     console.log('\n✅ Concluído com sucesso!')
+
+    // ── Corrige subtotais de pedidos PKTE em transação separada ─────────────
+    // Feito fora do bloco principal para não arriscar o startup se falhar
+    console.log('\n🔧 Corrigindo subtotais dos pedidos PKTE existentes…')
+    try {
+      await client.query('BEGIN')
+
+      // 1. Busca IDs dos produtos com type='pack'
+      const { rows: packProducts } = await client.query(
+        `SELECT id FROM products WHERE type = 'pack'`
+      )
+      if (packProducts.length > 0) {
+        const packIds = packProducts.map((p: { id: string }) => p.id)
+
+        // 2. Atualiza subtotal: unit_price × boxes_count (preço da caixa × qtd caixas)
+        const { rowCount: itemsFixed } = await client.query(
+          `UPDATE order_items oi
+           SET subtotal = oi.unit_price * (1 - o.discount_pct / 100.0) * oi.boxes_count
+           FROM orders o
+           WHERE oi.order_id = o.id
+             AND oi.product_id = ANY($1)
+             AND oi.boxes_count > 0
+             AND ABS(oi.subtotal - oi.unit_price * (1 - o.discount_pct / 100.0) * oi.boxes_count) > 0.01`,
+          [packIds]
+        )
+        console.log(`   ${itemsFixed ?? 0} order_items corrigidos`)
+
+        // 3. Recalcula total_value dos pedidos afetados
+        const { rowCount: ordersFixed } = await client.query(
+          `UPDATE orders o
+           SET total_value = sub.tv, updated_at = NOW()
+           FROM (
+             SELECT order_id, SUM(subtotal) AS tv
+             FROM order_items
+             GROUP BY order_id
+           ) sub
+           WHERE o.id = sub.order_id
+             AND ABS(o.total_value - sub.tv) > 0.01`
+        )
+        console.log(`   ${ordersFixed ?? 0} pedidos com total_value corrigido`)
+      } else {
+        console.log('   Nenhum produto pack encontrado ainda')
+      }
+
+      await client.query('COMMIT')
+    } catch (fixErr) {
+      await client.query('ROLLBACK')
+      console.warn('⚠️  Correção de subtotais falhou (não crítico):', fixErr)
+    }
   } catch (err) {
     await client.query('ROLLBACK')
     console.error('❌ Erro:', err)
