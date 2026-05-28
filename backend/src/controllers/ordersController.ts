@@ -26,20 +26,24 @@ async function computeOrderTotals(
     const sizesMap = item.sizes && typeof item.sizes === 'object' ? item.sizes : {}
     const sizesTotal = Object.values(sizesMap).reduce((s: number, v: unknown) => s + Number(v || 0), 0)
 
+    let subtotal: number
+    const discountedPrice = item.unit_price * (1 - discountPct / 100)
+
     if (sizesTotal > 0) {
-      // Produto regular: usa as quantidades por tamanho definidas pelo rep
+      // Produto regular: qtde de peças = soma dos tamanhos escolhidos
       itemPieces = sizesTotal
+      subtotal = discountedPrice * itemPieces
     } else {
-      // Pack: boxes_count × total_pieces das grade_configs
+      // Pack: unit_price é o preço da CAIXA; subtotal = preço_caixa × qtd_caixas
+      // total_pieces = total de peças físicas (para exibição)
       const { rows: grades } = await client.query(
         'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
       )
       const piecesPerBox = grades.reduce((sum: number, g: { total_pieces: number }) => sum + g.total_pieces, 0) || 1
-      itemPieces = (item.boxes_count || 1) * piecesPerBox
+      const boxCount = item.boxes_count || 1
+      itemPieces = boxCount * piecesPerBox
+      subtotal = discountedPrice * boxCount  // preço da caixa × nº de caixas
     }
-
-    const discountedPrice = item.unit_price * (1 - discountPct / 100)
-    const subtotal = discountedPrice * itemPieces
 
     totalPieces += itemPieces
     totalValue += subtotal
