@@ -36,6 +36,7 @@ interface FormData {
   cnpj: string
   name: string
   trade_name: string
+  state_registration: string
   email: string
   phone: string
   whatsapp: string
@@ -64,7 +65,7 @@ function formatReceitaPhone(raw: string): string {
 export function NewClientModal({ open, onClose, onCreated }: Props) {
   const qc = useQueryClient()
   const [form, setForm] = useState<FormData>({
-    cnpj: '', name: '', trade_name: '', email: '',
+    cnpj: '', name: '', trade_name: '', state_registration: '', email: '',
     phone: '', whatsapp: '', address: '', city: '',
     state: '', zip: '', notes: '',
   })
@@ -137,6 +138,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
       name: form.name,
       trade_name: form.trade_name || undefined,
       cnpj: form.cnpj || undefined,
+      state_registration: form.state_registration || undefined,
       address: form.address || undefined,
       city: form.city || undefined,
       state: form.state || undefined,
@@ -165,7 +167,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
   }
 
   function handleClose() {
-    setForm({ cnpj: '', name: '', trade_name: '', email: '', phone: '', whatsapp: '', address: '', city: '', state: '', zip: '', notes: '' })
+    setForm({ cnpj: '', name: '', trade_name: '', state_registration: '', email: '', phone: '', whatsapp: '', address: '', city: '', state: '', zip: '', notes: '' })
     setCnpjInput('')
     setCnpjError('')
     setCnpjFound(false)
@@ -243,15 +245,26 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
-              <input
-                value={form.cnpj}
-                onChange={e => set('cnpj', maskCnpj(e.target.value))}
-                maxLength={18}
-                placeholder="00.000.000/0001-00"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
+                <input
+                  value={form.cnpj}
+                  onChange={e => set('cnpj', maskCnpj(e.target.value))}
+                  maxLength={18}
+                  placeholder="00.000.000/0001-00"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Insc. Estadual</label>
+                <input
+                  value={form.state_registration}
+                  onChange={e => set('state_registration', e.target.value)}
+                  placeholder="000.000.000.000"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
             </div>
           </div>
         </div>

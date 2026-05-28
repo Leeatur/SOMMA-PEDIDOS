@@ -199,6 +199,7 @@ export interface ClientPayload {
   trade_name: string
   cnpj: string
   cpf: string
+  state_registration: string
   address: string
   city: string
   state: string

@@ -18,6 +18,7 @@ interface Client {
   trade_name: string | null
   cnpj: string | null
   cpf: string | null
+  state_registration: string | null
   city: string | null
   state: string | null
   phone: string | null
@@ -37,6 +38,7 @@ interface FormState {
   trade_name: string
   cnpj: string
   cpf: string
+  state_registration: string
   address: string
   city: string
   state: string
@@ -49,7 +51,7 @@ interface FormState {
 }
 
 const emptyForm: FormState = {
-  name: '', trade_name: '', cnpj: '', cpf: '',
+  name: '', trade_name: '', cnpj: '', cpf: '', state_registration: '',
   address: '', city: '', state: '', zip: '',
   phone: '', whatsapp: '', email: '', rep_id: '', notes: '',
 }
@@ -92,6 +94,7 @@ export function Clients() {
     setForm({
       name: c.name, trade_name: c.trade_name || '',
       cnpj: maskCnpj(c.cnpj || ''), cpf: maskCpf(c.cpf || ''),
+      state_registration: c.state_registration || '',
       address: c.address || '', city: c.city || '',
       state: c.state || '', zip: maskCep(c.zip || ''),
       phone: maskPhone(c.phone || ''), whatsapp: maskPhone(c.whatsapp || ''),
@@ -340,6 +343,7 @@ export function Clients() {
             </div>
             <MaskedInput label="CNPJ" mask="cnpj" value={form.cnpj} onChangeValue={v => setForm(p => ({ ...p, cnpj: v }))} />
             <MaskedInput label="CPF" mask="cpf" value={form.cpf} onChangeValue={v => setForm(p => ({ ...p, cpf: v }))} />
+            <Input label="Insc. Estadual" {...f('state_registration')} placeholder="000.000.000.000" />
             <MaskedInput label="Telefone" mask="phone" value={form.phone} onChangeValue={v => setForm(p => ({ ...p, phone: v }))} />
             <MaskedInput label="WhatsApp" mask="phone" value={form.whatsapp} onChangeValue={v => setForm(p => ({ ...p, whatsapp: v }))} />
             <Input label="E-mail" {...f('email')} type="email" />

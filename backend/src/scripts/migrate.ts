@@ -196,6 +196,9 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS buyer_name VARCHAR(200);
 -- Coluna whatsapp nos clientes (adicionada em v2)
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30);
 
+-- Inscrição Estadual nos clientes (adicionada em v5)
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS state_registration VARCHAR(50);
+
 -- Sizes por item de pedido (v3 — grade livre por referência)
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS sizes JSONB DEFAULT '{}';
 
