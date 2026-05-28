@@ -8,6 +8,20 @@ export async function getSettings(_req: Request, res: Response) {
   const { rows } = await query('SELECT key, value FROM company_settings ORDER BY key')
   const settings: Record<string, string> = {}
   for (const r of rows) settings[r.key] = r.value || ''
+
+  // Auto-migra logo_url local (/uploads/...) para URL R2 se R2 estiver configurado
+  if (settings.logo_url && settings.logo_url.startsWith('/uploads/') && isR2Configured()) {
+    const publicUrl = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, '')
+    const filename = settings.logo_url.split('/').pop() // ex: 'company-logo.png'
+    const r2LogoUrl = `${publicUrl}/logos/${filename}`
+    settings.logo_url = r2LogoUrl
+    // Atualiza o banco para não precisar converter novamente
+    await query(
+      `UPDATE company_settings SET value=$1, updated_at=NOW() WHERE key='logo_url'`,
+      [r2LogoUrl]
+    ).catch(() => { /* ignora erro de atualização */ })
+  }
+
   res.json(settings)
 }
 

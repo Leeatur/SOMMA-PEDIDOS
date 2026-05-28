@@ -309,18 +309,9 @@ export function OrderPrint() {
                 src={logoUrl}
                 alt="Logo"
                 style={{ height: 56, marginBottom: 6, objectFit: 'contain', display: 'block', maxWidth: 200 }}
-                onLoad={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'block' }}
-                onError={(e) => {
-                  const img = e.currentTarget as HTMLImageElement
-                  img.style.display = 'none'
-                  const dbg = img.nextElementSibling as HTMLElement | null
-                  if (dbg) dbg.style.display = 'block'
-                }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
               />
             ) : null}
-            <div style={{ fontSize: 8, color: 'red', marginBottom: 4, wordBreak: 'break-all' }}>
-              ⚠️ URL: {logoUrl || '(campo logo_url vazio no banco)'}
-            </div>
             <div className="company-name">{companyName}</div>
             <div style={{ fontSize: 9 }}>{companyAddress}{companyZip ? ` — CEP ${companyZip}` : ''}</div>
             {(companyPhone || companyWhats) && (
