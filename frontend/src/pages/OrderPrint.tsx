@@ -312,7 +312,7 @@ export function OrderPrint() {
               <img
                 src={logoUrl}
                 alt="Logo"
-                style={{ height: 224, marginBottom: 6, objectFit: 'contain', display: 'block', maxWidth: 500 }}
+                style={{ height: 224, marginBottom: 2, objectFit: 'contain', display: 'block', maxWidth: 500 }}
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
               />
             ) : null}
@@ -327,8 +327,8 @@ export function OrderPrint() {
             )}
             {company.email && <div style={{ fontSize: 9 }}>{company.email}</div>}
           </div>
-          <div className="logo-area" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-            <span style={{ fontSize: 32, fontWeight: 900, color: '#111', lineHeight: 1, letterSpacing: '-0.5px' }}>
+          <div className="logo-area" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'flex-end', alignSelf: 'stretch' }}>
+            <span style={{ fontSize: 48, fontWeight: 900, color: '#111', lineHeight: 1, letterSpacing: '-1px' }}>
               {order.factory_name}
             </span>
           </div>
