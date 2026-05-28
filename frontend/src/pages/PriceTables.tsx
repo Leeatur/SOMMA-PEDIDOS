@@ -79,7 +79,8 @@ export function PriceTables() {
   const [catalogResult, setCatalogResult] = useState<{
     totalPages: number
     pagesWithText: number
-    foundInPdf: number
+    foundInPdf: string[]      // refs extraídas do PDF
+    foundInPdfCount: number
     matched: string[]
     matchedCount: number
     unmatchedCount: number
@@ -628,13 +629,19 @@ export function PriceTables() {
                 <p className="text-xs text-amber-600">Sem foto</p>
               </div>
             </div>
-            <div className="text-xs text-gray-400 space-y-0.5">
-              <p>{catalogResult.totalPages} páginas · {catalogResult.pagesWithText} com texto · {catalogResult.foundInPdf} refs no PDF</p>
+            <div className="text-xs text-gray-400 space-y-1">
+              <p>{catalogResult.totalPages} páginas · {catalogResult.pagesWithText} com texto · {catalogResult.foundInPdfCount} refs no PDF</p>
               {catalogResult.matchedCount === 0 && catalogResult.pagesWithText === 0 && (
                 <p className="text-amber-500 font-medium">PDF escaneado — sem texto extraível. Use um PDF com texto pesquisável.</p>
               )}
-              {catalogResult.matchedCount === 0 && catalogResult.foundInPdf > 0 && (
-                <p className="text-amber-500 font-medium">{catalogResult.foundInPdf} refs encontradas no PDF mas nenhuma bate com esta tabela.</p>
+              {catalogResult.matchedCount === 0 && catalogResult.foundInPdfCount > 0 && (
+                <div className="text-left mt-2">
+                  <p className="text-amber-500 font-semibold mb-1">{catalogResult.foundInPdfCount} refs encontradas no PDF mas nenhuma bate com esta tabela.</p>
+                  <p className="text-gray-500 mb-1">Refs extraídas do PDF (compare com os códigos da tabela):</p>
+                  <div className="bg-gray-50 rounded-lg p-2 font-mono text-gray-700 text-[11px] leading-5 break-all">
+                    {catalogResult.foundInPdf.join(' · ')}
+                  </div>
+                </div>
               )}
             </div>
           </div>

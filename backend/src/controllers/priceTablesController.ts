@@ -226,7 +226,8 @@ export async function importCatalog(req: AuthRequest, res: Response) {
   res.json({
     totalPages: result.totalPages,
     pagesWithText: result.pagesWithText,
-    foundInPdf: result.foundInPdf.length,
+    foundInPdf: result.foundInPdf,          // array completo para diagnóstico
+    foundInPdfCount: result.foundInPdf.length,
     matched: result.matched,
     matchedCount: result.matched.length,
     unmatched: result.unmatched,
