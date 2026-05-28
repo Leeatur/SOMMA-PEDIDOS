@@ -112,10 +112,10 @@ export function Users() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Usuários</h1>
+            <h1 className="font-display text-[22px] font-bold text-on-surface">Usuários</h1>
             <p className="text-xs text-gray-500 mt-0.5">{list.length} usuários</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
@@ -140,8 +140,8 @@ export function Users() {
             {list.map((u) => (
               <Card key={u.id} padding="md">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-indigo-600">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-primary">
                       {u.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -159,14 +159,14 @@ export function Users() {
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       onClick={() => toggleActiveMut.mutate({ id: u.id, active: !u.active })}
-                      className={`p-1.5 rounded-lg transition-colors ${u.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                      className={`p-1.5 rounded-lg transition-colors ${u.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-400 hover:bg-surface-container'}`}
                       title={u.active ? 'Desativar' : 'Ativar'}
                     >
                       {u.active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                     </button>
                     <button
                       onClick={() => openEdit(u)}
-                      className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>

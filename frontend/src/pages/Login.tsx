@@ -17,10 +17,7 @@ export function Login() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email || !password) {
-      setError('Preencha e-mail e senha.')
-      return
-    }
+    if (!email || !password) { setError('Preencha e-mail e senha.'); return }
     setLoading(true)
     setError('')
     try {
@@ -34,45 +31,43 @@ export function Login() {
         'Erro ao fazer login. Verifique suas credenciais.'
       setError(msg)
     } finally {
-      setLoading(false)
-    }
+      setLoading(false) }
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background decoration */}
+    <div className="min-h-screen bg-on-surface flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-900/20 rounded-full blur-3xl" />
+        <div className="absolute -top-48 -right-48 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-48 -left-48 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden relative z-10">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl shadow-black/40 overflow-hidden relative z-10">
         {/* Header */}
-        <div className="bg-gradient-to-br from-slate-900 via-indigo-900 to-indigo-800 px-8 py-9 text-center relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10"
+        <div className="bg-on-surface px-8 py-9 text-center relative overflow-hidden border-b border-white/5">
+          <div className="absolute inset-0 opacity-[0.03]"
             style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}
           />
           <div className="relative">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-xl shadow-indigo-900/50">
-              <ShoppingCart className="h-8 w-8 text-white" />
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-primary rounded-xl mb-4 shadow-xl shadow-primary/30">
+              <ShoppingCart className="h-7 w-7 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-wide">Somma</h1>
-            <p className="text-indigo-300 text-sm mt-1 font-medium">Gestão Comercial</p>
+            <h1 className="font-display text-[22px] font-bold text-white tracking-wide">Somma</h1>
+            <p className="text-surface-variant/50 text-[12px] mt-1 font-medium tracking-widest uppercase">Gestão Comercial</p>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-8 py-8 space-y-5">
+        <form onSubmit={handleSubmit} className="px-8 py-7 space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Bem-vindo de volta</h2>
-            <p className="text-sm text-slate-500 mt-0.5">Acesse sua conta para continuar</p>
+            <h2 className="font-display text-[18px] font-semibold text-on-surface">Bem-vindo de volta</h2>
+            <p className="text-[13px] text-on-surface-variant mt-0.5">Acesse sua conta para continuar</p>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="bg-error-container border border-error/20 rounded-xl px-4 py-3">
+              <p className="text-[13px] text-error">{error}</p>
             </div>
           )}
 
@@ -80,7 +75,7 @@ export function Login() {
             label="E-mail"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             placeholder="seu@email.com"
             autoComplete="email"
             autoFocus
@@ -91,16 +86,12 @@ export function Login() {
             label="Senha"
             type={showPassword ? 'text' : 'password'}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
             placeholder="••••••••"
             autoComplete="current-password"
             leftIcon={<Lock className="h-4 w-4" />}
             rightElement={
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-outline hover:text-on-surface transition-colors">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             }
@@ -111,8 +102,8 @@ export function Login() {
           </Button>
         </form>
 
-        <div className="px-8 pb-6 text-center">
-          <p className="text-xs text-slate-400">Somma Gestão Comercial &copy; {new Date().getFullYear()}</p>
+        <div className="px-8 pb-5 text-center">
+          <p className="text-[11px] text-outline">Somma Gestão Comercial &copy; {new Date().getFullYear()}</p>
         </div>
       </div>
     </div>

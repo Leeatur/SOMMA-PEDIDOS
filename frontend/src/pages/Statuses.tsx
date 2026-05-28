@@ -123,10 +123,10 @@ export function Statuses() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Status de Pedidos</h1>
+            <h1 className="font-display text-[22px] font-bold text-on-surface">Status de Pedidos</h1>
             <p className="text-xs text-gray-500 mt-0.5">{list.length} status configurados</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
@@ -159,10 +159,10 @@ export function Statuses() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mt-0.5">
                       {s.is_initial && (
-                        <span className="text-xs bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded-full">inicial</span>
+                        <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">inicial</span>
                       )}
                       {s.is_final && (
-                        <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">final</span>
+                        <span className="text-xs bg-surface-container text-gray-600 px-1.5 py-0.5 rounded-full">final</span>
                       )}
                       {!s.active && (
                         <span className="text-xs bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full">inativo</span>
@@ -172,14 +172,14 @@ export function Statuses() {
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       onClick={() => toggleActiveMut.mutate({ id: s.id, active: !s.active })}
-                      className={`p-1.5 rounded-lg transition-colors ${s.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                      className={`p-1.5 rounded-lg transition-colors ${s.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-400 hover:bg-surface-container'}`}
                       title={s.active ? 'Desativar' : 'Ativar'}
                     >
                       {s.active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                     </button>
                     <button
                       onClick={() => openEdit(s)}
-                      className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
@@ -245,7 +245,7 @@ export function Statuses() {
                 type="color"
                 value={form.color}
                 onChange={(e) => setForm({ ...form, color: e.target.value })}
-                className="w-8 h-8 rounded-full border border-gray-200 cursor-pointer overflow-hidden"
+                className="w-8 h-8 rounded-full border border-outline-variant cursor-pointer overflow-hidden"
                 title="Cor personalizada"
               />
             </div>
@@ -259,7 +259,7 @@ export function Statuses() {
           <div className="space-y-2">
             <label className="flex items-center gap-3 cursor-pointer">
               <div
-                className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_initial ? 'bg-indigo-500' : 'bg-gray-200'}`}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_initial ? 'bg-primary' : 'bg-gray-200'}`}
                 onClick={() => setForm({ ...form, is_initial: !form.is_initial })}
               >
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_initial ? 'translate-x-4' : 'translate-x-0'}`} />

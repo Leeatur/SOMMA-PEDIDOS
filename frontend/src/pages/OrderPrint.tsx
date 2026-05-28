@@ -64,6 +64,7 @@ interface Order {
   client_whatsapp: string | null
   client_email: string | null
   client_cnpj: string | null
+  client_state_registration: string | null
   client_address: string | null
   client_zip: string | null
   rep_name: string
@@ -341,6 +342,7 @@ export function OrderPrint() {
             <div className="info-row"><span className="info-label">Razão Social:</span> {order.client_name}</div>
             <div className="info-row"><span className="info-label">Nome Fantasia:</span> {order.client_trade_name || '—'}</div>
             <div className="info-row"><span className="info-label">CNPJ/CPF:</span> {order.client_cnpj || '—'}</div>
+            <div className="info-row"><span className="info-label">Inscrição Estadual:</span> {order.client_state_registration || '—'}</div>
             <div className="info-row"><span className="info-label">E-mail:</span> {order.client_email || '—'}</div>
             <div className="info-row"><span className="info-label">WhatsApp:</span> {order.client_whatsapp || '—'}</div>
             <div className="info-row" style={{ marginTop: 2 }}><span className="info-label">Endereço:</span> {clientAddress || '—'}</div>

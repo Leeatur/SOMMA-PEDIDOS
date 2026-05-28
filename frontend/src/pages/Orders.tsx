@@ -103,7 +103,7 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
     case 'number':
       return (
         <td className="px-2 py-2.5 whitespace-nowrap first:pl-3">
-          <span className="text-xs font-bold text-indigo-600">{formatOrderNumber(o.order_number)}</span>
+          <span className="text-xs font-bold text-primary">{formatOrderNumber(o.order_number)}</span>
         </td>
       )
     case 'factory':
@@ -262,11 +262,11 @@ export function Orders() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 pt-5 pb-3 lg:px-6 border-b border-gray-200 bg-white">
+      <div className="px-4 pt-5 pb-3 lg:px-8 border-b border-outline-variant bg-white">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Pedidos</h1>
-            <p className="text-xs text-gray-500">
+            <h1 className="font-display text-[22px] font-bold text-on-surface">Pedidos</h1>
+            <p className="text-[12px] text-on-surface-variant">
               {isLoading ? 'Carregando…' : `${total} pedido${total !== 1 ? 's' : ''}`}
             </p>
           </div>
@@ -281,7 +281,7 @@ export function Orders() {
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-1 text-sm px-3 py-2 border rounded-lg transition-colors ${
                 showFilters || statusFilter || factoryFilter || dateFrom || dateTo
-                  ? 'text-indigo-600 border-indigo-300 bg-indigo-50'
+                  ? 'text-primary border-primary/40 bg-primary/10'
                   : 'text-gray-500 border-gray-300 bg-white hover:text-gray-700'
               }`}
             >
@@ -314,7 +314,7 @@ export function Orders() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             >
               <option value="">Todos os status</option>
               {(statuses || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -322,15 +322,15 @@ export function Orders() {
             <select
               value={factoryFilter}
               onChange={(e) => setFactoryFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             >
               <option value="">Todas as fábricas</option>
               {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
             <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
             <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
           </div>
         )}
       </div>
@@ -340,7 +340,7 @@ export function Orders() {
         <div className="flex-1 flex items-center justify-center"><PageSpinner /></div>
       ) : total === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mx-auto mb-4">
             <ShoppingCart className="h-8 w-8 text-gray-300" />
           </div>
           <p className="text-gray-500 font-medium">Nenhum pedido encontrado</p>
@@ -349,7 +349,7 @@ export function Orders() {
           </p>
           <button
             onClick={() => navigate('/orders/new')}
-            className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+            className="mt-4 flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
           >
             <PlusCircle className="h-4 w-4" /> Criar Pedido
           </button>
@@ -357,7 +357,7 @@ export function Orders() {
       ) : (
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+            <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
               <tr>
                 {visibleCols.map(col => (
                   <OrderHeader key={col.id} id={col.id} label={col.label} />
@@ -368,7 +368,7 @@ export function Orders() {
               {(orders || []).map(o => (
                 <tr
                   key={o.id}
-                  className="border-b border-gray-100 hover:bg-indigo-50/40 cursor-pointer transition-colors"
+                  className="border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors"
                   onClick={() => navigate(`/orders/${o.id}`)}
                 >
                   {visibleCols.map(col => (

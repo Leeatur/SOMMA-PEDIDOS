@@ -16,10 +16,11 @@ import {
   WifiOff,
   Menu,
   X,
-  ChevronRight,
-  Shirt,
   BarChart2,
   Trash2,
+  Bell,
+  HelpCircle,
+  ChevronDown,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -33,26 +34,25 @@ interface NavItem {
   adminOnly?: boolean
 }
 
-const navItems: NavItem[] = [
-  { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { to: '/orders', label: 'Pedidos', icon: <ShoppingCart className="h-5 w-5" /> },
-  { to: '/clients', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
-  { to: '/products', label: 'Produtos', icon: <Shirt className="h-5 w-5" /> },
-  { to: '/reports', label: 'Relatórios', icon: <BarChart2 className="h-5 w-5" /> },
-  { to: '/catalog', label: 'Catálogo', icon: <BookOpen className="h-5 w-5" />, adminOnly: true },
-  { to: '/price-tables', label: 'Tabelas', icon: <Tags className="h-5 w-5" />, adminOnly: true },
-  { to: '/factories', label: 'Fábricas', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
-  { to: '/statuses', label: 'Status', icon: <Package className="h-5 w-5" />, adminOnly: true },
-  { to: '/users', label: 'Usuários', icon: <UserCog className="h-5 w-5" />, adminOnly: true },
-  { to: '/orders/trash', label: 'Lixeira', icon: <Trash2 className="h-5 w-5" />, adminOnly: true },
-  { to: '/settings', label: 'Ajustes', icon: <Settings className="h-5 w-5" /> },
+const navMain: NavItem[] = [
+  { to: '/dashboard',    label: 'Dashboard',  icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
+  { to: '/orders',       label: 'Pedidos',    icon: <ShoppingCart className="h-[18px] w-[18px]" /> },
+  { to: '/clients',      label: 'Clientes',   icon: <Users className="h-[18px] w-[18px]" /> },
+  { to: '/products',     label: 'Produtos',   icon: <Package className="h-[18px] w-[18px]" /> },
+  { to: '/reports',      label: 'Relatórios', icon: <BarChart2 className="h-[18px] w-[18px]" /> },
+  { to: '/catalog',      label: 'Catálogo',   icon: <BookOpen className="h-[18px] w-[18px]" />, adminOnly: true },
+  { to: '/price-tables', label: 'Tabelas',    icon: <Tags className="h-[18px] w-[18px]" />, adminOnly: true },
+  { to: '/factories',    label: 'Fábricas',   icon: <Building2 className="h-[18px] w-[18px]" />, adminOnly: true },
+  { to: '/statuses',     label: 'Status',     icon: <Package className="h-[18px] w-[18px]" />, adminOnly: true },
+  { to: '/users',        label: 'Usuários',   icon: <UserCog className="h-[18px] w-[18px]" />, adminOnly: true },
+  { to: '/orders/trash', label: 'Lixeira',    icon: <Trash2 className="h-[18px] w-[18px]" />, adminOnly: true },
 ]
 
 const mobileNav: NavItem[] = [
-  { to: '/dashboard', label: 'Início', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { to: '/orders', label: 'Pedidos', icon: <ShoppingCart className="h-5 w-5" /> },
-  { to: '/clients', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
-  { to: '/products', label: 'Produtos', icon: <Shirt className="h-5 w-5" /> },
+  { to: '/dashboard', label: 'Início',   icon: <LayoutDashboard className="h-5 w-5" /> },
+  { to: '/orders',    label: 'Pedidos',  icon: <ShoppingCart className="h-5 w-5" /> },
+  { to: '/products',  label: 'Produtos', icon: <Package className="h-5 w-5" /> },
+  { to: '/clients',   label: 'Clientes', icon: <Users className="h-5 w-5" /> },
 ]
 
 function useOnlineStatus() {
@@ -62,10 +62,7 @@ function useOnlineStatus() {
     const off = () => setOnline(false)
     window.addEventListener('online', on)
     window.addEventListener('offline', off)
-    return () => {
-      window.removeEventListener('online', on)
-      window.removeEventListener('offline', off)
-    }
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
   return online
 }
@@ -77,212 +74,218 @@ async function syncPendingOrders() {
     const res = await ordersApi.sync(pending)
     const results: Array<{ offline_id: string; synced: boolean }> = res.data.results
     for (const r of results) {
-      if (r.synced) {
-        await db.pendingOrders.delete(r.offline_id)
-      } else {
-        await db.pendingOrders.update(r.offline_id, { status: 'error', errorMessage: 'Erro ao sincronizar' })
-      }
+      if (r.synced) await db.pendingOrders.delete(r.offline_id)
+      else await db.pendingOrders.update(r.offline_id, { status: 'error', errorMessage: 'Erro ao sincronizar' })
     }
-  } catch {
-    // Will retry next time online
-  }
+  } catch { /* retry next time */ }
 }
 
 export function AppLayout() {
-  const { user, logout, refreshToken } = useAuthStore()
+  const { user, logout, refreshToken, accessToken } = useAuthStore()
   const navigate = useNavigate()
   const online = useOnlineStatus()
   const isAdmin = user?.role === 'admin'
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { accessToken } = useAuthStore()
 
-  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin)
+  const visibleNav = navMain.filter(item => !item.adminOnly || isAdmin)
 
-  useEffect(() => {
-    if (online) syncPendingOrders()
-  }, [online])
+  useEffect(() => { if (online) syncPendingOrders() }, [online])
 
   async function handleLogout() {
-    try {
-      if (refreshToken) await authApi.logout(refreshToken)
-    } catch { /* ignore */ }
+    try { if (refreshToken) await authApi.logout(refreshToken) } catch { /* ignore */ }
     logout()
     navigate('/login')
   }
 
-  if (!accessToken) {
-    navigate('/login')
-    return null
-  }
+  if (!accessToken) { navigate('/login'); return null }
+
+  const initials = user?.name?.slice(0, 2).toUpperCase() || 'US'
 
   return (
-    <div className="min-h-screen bg-slate-100 flex">
-      {/* Offline Banner */}
+    <div className="min-h-screen bg-background flex">
+
+      {/* ── Offline banner ── */}
       {!online && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white text-center text-xs py-1.5 flex items-center justify-center gap-1.5 safe-top">
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500 text-white text-center text-xs py-1.5 flex items-center justify-center gap-1.5 safe-top">
           <WifiOff className="h-3.5 w-3.5" />
           Sem conexão — pedidos serão sincronizados quando voltar online
         </div>
       )}
 
-      {/* Sidebar overlay (mobile) */}
+      {/* ── Mobile overlay ── */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* ── Sidebar ── */}
+      {/* ════════════════════════════════════════
+          SIDEBAR
+      ════════════════════════════════════════ */}
       <aside
         className={`
-          fixed top-0 bottom-0 left-0 z-40 w-64 bg-slate-900 flex flex-col
+          fixed top-0 bottom-0 left-0 z-50 w-sidebar bg-on-surface flex flex-col
           transform transition-transform duration-200 ease-in-out
-          lg:translate-x-0 lg:static lg:flex
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        {/* Logo / Brand */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-slate-800">
+        {/* Brand */}
+        <div className="flex items-center justify-between px-5 py-5 mb-2">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/50">
-              <ShoppingCart className="h-4.5 w-4.5 text-white" />
+            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/40">
+              <ShoppingCart className="h-4 w-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white leading-none tracking-wide">Somma</p>
-              <p className="text-xs text-slate-400 mt-0.5">Gestão Comercial</p>
+              <p className="font-display text-[15px] font-bold text-white leading-none tracking-wide">Somma</p>
+              <p className="text-[9px] text-surface-variant/50 font-medium tracking-widest uppercase mt-0.5">Gestão Comercial</p>
             </div>
           </div>
-          <button
-            className="lg:hidden p-1 text-slate-400 hover:text-white transition-colors"
-            onClick={() => setSidebarOpen(false)}
-          >
+          <button className="lg:hidden p-1 text-surface-variant/50 hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {visibleNavItems.map((item) => (
+        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
+          {visibleNav.map(item => (
             <NavLink
               key={item.to}
               to={item.to}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 ${
                   isActive
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/40'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                    ? 'sidebar-active'
+                    : 'text-surface-variant/60 hover:bg-white/5 hover:text-white'
                 }`
               }
             >
               {item.icon}
               {item.label}
-              {item.to === '/orders' && (
-                <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
-              )}
             </NavLink>
           ))}
         </nav>
 
-        {/* New Order CTA */}
-        <div className="px-3 py-3 border-t border-slate-800">
-          <button
-            onClick={() => { navigate('/orders/new'); setSidebarOpen(false) }}
-            className="flex items-center gap-2 w-full px-3 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-xl text-sm font-bold transition-colors shadow-md shadow-amber-900/20"
+        {/* Bottom */}
+        <div className="px-3 pb-4 pt-3 border-t border-white/5 space-y-1">
+          <NavLink
+            to="/settings"
+            onClick={() => setSidebarOpen(false)}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 ${
+                isActive ? 'sidebar-active' : 'text-surface-variant/60 hover:bg-white/5 hover:text-white'
+              }`
+            }
           >
-            <PlusCircle className="h-4 w-4" />
-            Novo Pedido
-          </button>
-        </div>
+            <Settings className="h-[18px] w-[18px]" />
+            Ajustes
+          </NavLink>
 
-        {/* User info */}
-        <div className="px-3 py-3 border-t border-slate-800">
-          <div className="flex items-center gap-3 px-2 py-1">
-            <div className="w-8 h-8 bg-indigo-600/30 rounded-full flex items-center justify-center flex-shrink-0 border border-indigo-500/40">
-              <span className="text-xs font-bold text-indigo-300">
-                {user?.name?.charAt(0).toUpperCase()}
-              </span>
+          {/* User card */}
+          <div className="mt-2 px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary/30 border border-primary/50 flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-bold text-primary-fixed-dim">{initials}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-200 truncate">{user?.name}</p>
-              <p className="text-xs text-slate-500">
-                {user?.role === 'admin' ? 'Administrador' : 'Representante'}
-              </p>
+              <p className="text-[13px] font-semibold text-white truncate">{user?.name}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <p className="text-[10px] text-surface-variant/40">
+                  {user?.role === 'admin' ? 'Administrador' : 'Representante'}
+                </p>
+                {online
+                  ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                  : <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                }
+              </div>
             </div>
-            <div className="flex-shrink-0">
-              {online ? (
-                <Wifi className="h-4 w-4 text-emerald-400" />
-              ) : (
-                <WifiOff className="h-4 w-4 text-amber-400" />
-              )}
-            </div>
+            <button onClick={handleLogout} className="p-1.5 text-surface-variant/40 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5" title="Sair">
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 w-full mt-2 px-3 py-2 text-sm text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar (mobile) */}
-        <header className="lg:hidden sticky top-0 z-30 bg-slate-900 border-b border-slate-800 flex items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-indigo-600 rounded-md flex items-center justify-center">
-              <ShoppingCart className="h-3.5 w-3.5 text-white" />
-            </div>
-            <span className="text-sm font-bold text-white">Somma</span>
-            <span className="text-sm text-slate-400">Pedidos</span>
+      {/* ════════════════════════════════════════
+          MAIN AREA
+      ════════════════════════════════════════ */}
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
+
+        {/* ── Desktop TopBar ── */}
+        <header className="hidden lg:flex h-topbar sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-outline-variant items-center justify-between px-8">
+          <div className="flex-1 max-w-md">
+            {/* placeholder — search is per-page */}
           </div>
-          <div className="ml-auto">
-            {online ? (
-              <Wifi className="h-4 w-4 text-emerald-400" />
-            ) : (
-              <WifiOff className="h-4 w-4 text-amber-400" />
-            )}
+          <div className="flex items-center gap-4">
+            <button className="p-2 rounded-full hover:bg-surface-container transition-colors relative">
+              <Bell className="h-5 w-5 text-on-surface-variant" />
+            </button>
+            <button className="p-2 rounded-full hover:bg-surface-container transition-colors">
+              <HelpCircle className="h-5 w-5 text-on-surface-variant" />
+            </button>
+            <div className="h-6 w-px bg-outline-variant" />
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2.5 hover:bg-surface-container px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <span className="text-[13px] font-medium text-on-surface-variant">{user?.name}</span>
+              <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-[10px] font-bold text-primary">{initials}</span>
+              </div>
+              <ChevronDown className="h-3.5 w-3.5 text-on-surface-variant" />
+            </button>
           </div>
         </header>
 
-        {/* Page content */}
-        <main className={`flex-1 overflow-auto ${!online ? 'mt-7' : ''}`}>
+        {/* ── Mobile TopBar ── */}
+        <header className="lg:hidden sticky top-0 z-30 bg-on-surface border-b border-white/5 flex items-center gap-3 px-4 py-3">
+          <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg text-surface-variant/60 hover:text-white hover:bg-white/5 transition-colors">
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
+              <ShoppingCart className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-sm font-bold text-white font-display">Somma</span>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            {online
+              ? <Wifi className="h-4 w-4 text-emerald-400" />
+              : <WifiOff className="h-4 w-4 text-amber-400" />
+            }
+          </div>
+        </header>
+
+        {/* ── Page Content ── */}
+        <main className={`flex-1 overflow-auto main-content ${!online ? 'mt-7' : ''}`}>
           <Outlet />
         </main>
 
-        {/* Mobile bottom nav */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex safe-bottom z-30">
-          {mobileNav.map((item) => (
+        {/* ── Mobile Bottom Nav ── */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest border-t border-outline-variant rounded-t-2xl shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.08)] flex items-center justify-around px-2 h-16 safe-bottom z-30">
+          {mobileNav.map(item => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
-                  isActive ? 'text-indigo-400' : 'text-slate-500'
+                `flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-xl transition-all duration-200 ${
+                  isActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-on-surface-variant'
                 }`
               }
             >
               {item.icon}
-              {item.label}
+              <span className="text-[9px] font-semibold uppercase tracking-wider">{item.label}</span>
             </NavLink>
           ))}
-          <button
-            onClick={() => navigate('/orders/new')}
-            className="flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-bold text-amber-400"
-          >
-            <PlusCircle className="h-5 w-5" />
-            Novo
-          </button>
         </nav>
+
+        {/* ── FAB (mobile) ── */}
+        <button
+          onClick={() => navigate('/orders/new')}
+          className="lg:hidden fixed bottom-20 right-4 w-14 h-14 bg-primary text-white rounded-2xl shadow-lg shadow-primary/30 flex items-center justify-center active:scale-90 transition-transform duration-100 z-40"
+        >
+          <PlusCircle className="h-6 w-6" />
+        </button>
       </div>
     </div>
   )

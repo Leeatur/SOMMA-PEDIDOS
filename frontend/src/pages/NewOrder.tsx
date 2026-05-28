@@ -127,13 +127,13 @@ function GradePreview({ configs, boxCount }: { configs: GradeConfig[]; boxCount:
           <div key={i}>
             {gc.color && <p className="text-xs font-medium text-gray-600">{gc.color}</p>}
             <div className="overflow-x-auto scrollbar-hide">
-              <table className="min-w-max text-xs border border-gray-200 rounded-lg overflow-hidden">
-                <thead className="bg-gray-50">
+              <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
+                <thead className="bg-surface-container-low">
                   <tr>
                     {sizes.map((s) => (
                       <th key={s} className="px-2 py-1 text-gray-600 text-center font-medium min-w-[28px]">{s}</th>
                     ))}
-                    <th className="px-2 py-1 text-gray-500 border-l border-gray-200 text-center">Total/cx</th>
+                    <th className="px-2 py-1 text-gray-500 border-l border-outline-variant text-center">Total/cx</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -141,7 +141,7 @@ function GradePreview({ configs, boxCount }: { configs: GradeConfig[]; boxCount:
                     {sizes.map((s) => (
                       <td key={s} className="px-2 py-1 text-center">{gc.sizes[s] * boxCount}</td>
                     ))}
-                    <td className="px-2 py-1 text-center font-bold border-l border-gray-200">{gc.total_pieces * boxCount}</td>
+                    <td className="px-2 py-1 text-center font-bold border-l border-outline-variant">{gc.total_pieces * boxCount}</td>
                   </tr>
                 </tbody>
               </table>
@@ -184,7 +184,7 @@ function SizeGrid({
               {sizeKeys.map(s => (
                 <th key={s} className="px-1 pb-0.5 text-center text-gray-500 font-medium min-w-[36px]">{s}</th>
               ))}
-              <th className="px-1 pb-0.5 text-center text-indigo-500 font-bold pl-2">Total</th>
+              <th className="px-1 pb-0.5 text-center text-primary font-bold pl-2">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -209,11 +209,11 @@ function SizeGrid({
                         if (next) { e.preventDefault(); next.focus() }
                       }
                     }}
-                    className="w-9 h-7 text-center border border-gray-200 rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-400 bg-white"
+                    className="w-9 h-7 text-center border border-outline-variant rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary focus:border-indigo-400 bg-white"
                   />
                 </td>
               ))}
-              <td className="px-1 pl-2 text-center font-bold text-indigo-600 text-sm">{total}</td>
+              <td className="px-1 pl-2 text-center font-bold text-primary text-sm">{total}</td>
             </tr>
           </tbody>
         </table>
@@ -230,13 +230,13 @@ function SizeDisplay({ sizes }: { sizes: Record<string, number> }) {
 
   return (
     <div className="overflow-x-auto scrollbar-hide">
-      <table className="min-w-max text-xs border border-gray-200 rounded-lg overflow-hidden">
-        <thead className="bg-gray-50">
+      <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
+        <thead className="bg-surface-container-low">
           <tr>
             {sizeKeys.map(s => (
               <th key={s} className="px-2 py-1 text-center text-gray-600 font-medium min-w-[28px]">{s}</th>
             ))}
-            <th className="px-2 py-1 text-center text-gray-500 border-l border-gray-200 font-bold">Total</th>
+            <th className="px-2 py-1 text-center text-gray-500 border-l border-outline-variant font-bold">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -244,7 +244,7 @@ function SizeDisplay({ sizes }: { sizes: Record<string, number> }) {
             {sizeKeys.map(s => (
               <td key={s} className="px-2 py-1 text-center">{sizes[s]}</td>
             ))}
-            <td className="px-2 py-1 text-center font-bold border-l border-gray-200 text-indigo-600">{total}</td>
+            <td className="px-2 py-1 text-center font-bold border-l border-outline-variant text-primary">{total}</td>
           </tr>
         </tbody>
       </table>
@@ -445,9 +445,9 @@ export function NewOrder() {
   }))
 
   return (
-    <div className="pb-24 lg:pb-0 min-h-screen bg-gray-50">
+    <div className="pb-24 lg:pb-0 min-h-screen bg-surface-container-low">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 lg:px-8 sticky top-0 z-10">
+      <div className="bg-white border-b border-outline-variant px-4 py-3 lg:px-8 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-3">
             <button
@@ -455,7 +455,7 @@ export function NewOrder() {
                 if (step === 0) navigate('/orders')
                 else setStep(step - 1)
               }}
-              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-surface-container"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -466,18 +466,18 @@ export function NewOrder() {
           <div className="flex items-center gap-0">
             {STEPS.map((s, i) => (
               <div key={i} className="flex items-center flex-1">
-                <div className={`flex-1 flex flex-col items-center gap-1 ${i <= step ? 'text-indigo-500' : 'text-gray-300'}`}>
+                <div className={`flex-1 flex flex-col items-center gap-1 ${i <= step ? 'text-primary' : 'text-gray-300'}`}>
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                    i < step ? 'bg-indigo-600 text-white' :
-                    i === step ? 'bg-indigo-100 text-indigo-600 ring-2 ring-blue-300' :
-                    'bg-gray-100 text-gray-400'
+                    i < step ? 'bg-primary text-white' :
+                    i === step ? 'bg-primary/10 text-primary ring-2 ring-blue-300' :
+                    'bg-surface-container text-gray-400'
                   }`}>
                     {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
                   </div>
                   <span className="text-xs font-medium hidden sm:block">{s.label}</span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`h-0.5 flex-1 transition-colors ${i < step ? 'bg-indigo-500' : 'bg-gray-200'}`} />
+                  <div className={`h-0.5 flex-1 transition-colors ${i < step ? 'bg-primary' : 'bg-gray-200'}`} />
                 )}
               </div>
             ))}
@@ -496,7 +496,7 @@ export function NewOrder() {
               </div>
               <button
                 onClick={() => setShowNewClient(true)}
-                className="flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg px-3 py-1.5 transition-colors"
+                className="flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-3 py-1.5 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Novo Cliente
@@ -523,7 +523,7 @@ export function NewOrder() {
                       setSelectedClient(c)
                       setStep(1)
                     }}
-                    className={selectedClient?.id === c.id ? 'ring-2 ring-indigo-500' : ''}
+                    className={selectedClient?.id === c.id ? 'ring-2 ring-primary' : ''}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -544,7 +544,7 @@ export function NewOrder() {
                     <p className="text-sm text-gray-500">Nenhum cliente encontrado</p>
                     <button
                       onClick={() => setShowNewClient(true)}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg px-4 py-2 transition-colors"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-4 py-2 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                       Cadastrar novo cliente
@@ -597,11 +597,11 @@ export function NewOrder() {
                       setCart([])
                       setStep(2)
                     }}
-                    className={selectedTable?.id === t.id ? 'ring-2 ring-indigo-500' : ''}
+                    className={selectedTable?.id === t.id ? 'ring-2 ring-primary' : ''}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Tags className="h-4 w-4 text-indigo-500" />
+                      <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Tags className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 truncate">{t.name}</p>
@@ -655,7 +655,7 @@ export function NewOrder() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos</option>
                 <option value="regular">Regular</option>
@@ -679,10 +679,10 @@ export function NewOrder() {
                     : 0
 
                   return (
-                    <div key={p.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div key={p.id} className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden">
                       <div className="flex gap-3 p-3">
                         {/* Image */}
-                        <div className="w-14 h-14 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+                        <div className="w-14 h-14 bg-surface-container rounded-lg flex-shrink-0 overflow-hidden">
                           {p.image_url ? (
                             <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
                           ) : (
@@ -701,7 +701,7 @@ export function NewOrder() {
                             </Badge>
                           </div>
                           {p.product_name && <p className="text-xs text-gray-500 truncate">{p.product_name}</p>}
-                          <p className="text-sm font-semibold text-indigo-600">
+                          <p className="text-sm font-semibold text-primary">
                             R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-gray-400 font-normal">/pç</span>
                           </p>
                           {/* Para packs: exibe pç/cx com toggle de grade */}
@@ -728,7 +728,7 @@ export function NewOrder() {
                             isRegular ? (
                               /* Regular: mostra total de peças + botão remover */
                               <div className="flex flex-col items-end gap-1">
-                                <span className="text-xs font-bold text-indigo-600">{cartTotal} pç</span>
+                                <span className="text-xs font-bold text-primary">{cartTotal} pç</span>
                                 <button
                                   onClick={() => removeFromCart(p.id)}
                                   className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center"
@@ -741,7 +741,7 @@ export function NewOrder() {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => updateBoxCount(p.id, -1)}
-                                  className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200"
+                                  className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center text-gray-600 hover:bg-gray-200"
                                 >
                                   <Minus className="h-3.5 w-3.5" />
                                 </button>
@@ -750,11 +750,11 @@ export function NewOrder() {
                                   min="1"
                                   value={cartItem.boxes_count}
                                   onChange={(e) => setBoxCountDirect(p.id, parseInt(e.target.value) || 1)}
-                                  className="w-10 h-7 text-center border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                  className="w-10 h-7 text-center border border-outline-variant rounded-lg text-sm font-bold focus:outline-none focus:ring-1 focus:ring-primary"
                                 />
                                 <button
                                   onClick={() => updateBoxCount(p.id, 1)}
-                                  className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-500 hover:bg-indigo-200"
+                                  className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary hover:bg-indigo-200"
                                 >
                                   <Plus className="h-3.5 w-3.5" />
                                 </button>
@@ -769,7 +769,7 @@ export function NewOrder() {
                           ) : (
                             <button
                               onClick={() => addToCart(p)}
-                              className="flex items-center gap-1 bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700"
+                              className="flex items-center gap-1 bg-primary text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90"
                             >
                               <Plus className="h-3.5 w-3.5" /> Adicionar
                             </button>
@@ -787,7 +787,7 @@ export function NewOrder() {
                           - Regular em carrinho: SizeGrid (sempre visível)
                           - Pack: grade preview (toggle) */}
                       {cartItem && isRegular && (
-                        <div className="px-3 pb-3 border-t border-gray-100 pt-2 bg-indigo-50/40">
+                        <div className="px-3 pb-3 border-t border-outline-variant/50 pt-2 bg-primary/5">
                           <SizeGrid
                             sizes={cartItem.sizes}
                             onChange={(size, val) => updateSize(p.id, size, val)}
@@ -796,7 +796,7 @@ export function NewOrder() {
                         </div>
                       )}
                       {isExpanded && !isRegular && p.grade_configs && (
-                        <div className="px-3 pb-3 border-t border-gray-100 pt-2">
+                        <div className="px-3 pb-3 border-t border-outline-variant/50 pt-2">
                           <p className="text-xs font-medium text-gray-600 mb-1.5">Composição da grade:</p>
                           <GradePreview
                             configs={p.grade_configs}
@@ -816,11 +816,11 @@ export function NewOrder() {
             {/* Floating cart summary */}
             {cart.length > 0 && (
               <div className="fixed bottom-20 lg:bottom-6 left-4 right-4 lg:left-auto lg:right-8 lg:max-w-sm">
-                <Card padding="md" className="shadow-lg border-indigo-200 bg-indigo-50">
+                <Card padding="md" className="shadow-lg border-primary/30 bg-primary/10">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-blue-900">{cart.length} produto{cart.length > 1 ? 's' : ''} no carrinho</p>
-                      <p className="text-xs text-indigo-600">{totals.totalPieces} peças</p>
+                      <p className="text-xs text-primary">{totals.totalPieces} peças</p>
                     </div>
                     <Button onClick={() => setStep(3)} size="sm">
                       Revisar <ChevronRight className="h-4 w-4" />
@@ -874,7 +874,7 @@ export function NewOrder() {
                 <h3 className="text-sm font-semibold text-gray-700">Itens ({cart.length})</h3>
                 <button
                   onClick={() => setStep(2)}
-                  className="text-xs text-indigo-500 hover:text-indigo-600"
+                  className="text-xs text-primary hover:text-primary"
                 >
                   Editar
                 </button>
@@ -888,7 +888,7 @@ export function NewOrder() {
                     : item.boxes_count * piecesPerBox
                   const subtotal = item.unit_price * totalPieces * (1 - discountNum / 100)
                   return (
-                    <div key={item.product.id} className="bg-white rounded-xl border border-gray-200 p-3">
+                    <div key={item.product.id} className="bg-white rounded-xl border border-outline-variant p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm text-gray-900">{item.product.reference}</p>
@@ -907,7 +907,7 @@ export function NewOrder() {
                         </div>
                       </div>
                       {/* Grade display */}
-                      <div className="mt-2 pt-2 border-t border-gray-100">
+                      <div className="mt-2 pt-2 border-t border-outline-variant/50">
                         {isRegular ? (
                           <SizeDisplay sizes={item.sizes} />
                         ) : (
@@ -935,7 +935,7 @@ export function NewOrder() {
                 <select
                   value={freightType}
                   onChange={(e) => setFreightType(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="CIF">CIF</option>
                   <option value="FOB">FOB</option>
@@ -973,10 +973,10 @@ export function NewOrder() {
             />
 
             {/* ── Bloco de fechamento: desconto + totais + confirmar ── */}
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-white border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
 
               {/* Desconto */}
-              <div className="p-4 border-b border-gray-100">
+              <div className="p-4 border-b border-outline-variant/50">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">Desconto</h3>
                 {discountRules.length > 0 && !customDiscount ? (
                   <div className="space-y-2">
@@ -990,8 +990,8 @@ export function NewOrder() {
                             onClick={() => setDiscountPct(maskPercent(String(rule.discount_pct)))}
                             className={`text-left p-3 rounded-xl border transition-colors ${
                               isSelected
-                                ? 'border-indigo-500 bg-indigo-50 ring-1 ring-blue-400'
-                                : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'
+                                ? 'border-primary bg-primary/10 ring-1 ring-blue-400'
+                                : 'border-outline-variant bg-surface-container-low hover:border-gray-300 hover:bg-white'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-1">
@@ -1008,7 +1008,7 @@ export function NewOrder() {
                                   </p>
                                 )}
                               </div>
-                              {isSelected && <Check className="h-4 w-4 text-indigo-500 flex-shrink-0 mt-0.5" />}
+                              {isSelected && <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />}
                             </div>
                           </button>
                         )
@@ -1016,7 +1016,7 @@ export function NewOrder() {
                     </div>
                     <button
                       onClick={() => setCustomDiscount(true)}
-                      className="text-xs text-indigo-500 hover:text-indigo-600"
+                      className="text-xs text-primary hover:text-primary"
                     >
                       Digitar desconto personalizado
                     </button>
@@ -1032,7 +1032,7 @@ export function NewOrder() {
                     {discountRules.length > 0 && (
                       <button
                         onClick={() => setCustomDiscount(false)}
-                        className="text-xs text-indigo-500 hover:text-indigo-600"
+                        className="text-xs text-primary hover:text-primary"
                       >
                         Ver descontos configurados
                       </button>
@@ -1042,7 +1042,7 @@ export function NewOrder() {
               </div>
 
               {/* Resumo financeiro */}
-              <div className="p-4 space-y-2 text-sm bg-gray-50">
+              <div className="p-4 space-y-2 text-sm bg-surface-container-low">
                 <div className="flex justify-between text-gray-500">
                   <span>Subtotal:</span>
                   <span>{formatCurrency(totals.grossValue)}</span>
@@ -1053,7 +1053,7 @@ export function NewOrder() {
                     <span>−{formatCurrency(totals.grossValue * discountNum / 100)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-gray-900 text-base pt-1.5 border-t border-gray-200">
+                <div className="flex justify-between font-bold text-gray-900 text-base pt-1.5 border-t border-outline-variant">
                   <span>Total do pedido:</span>
                   <span>{formatCurrency(totals.totalValue)}</span>
                 </div>
@@ -1062,7 +1062,7 @@ export function NewOrder() {
                   <span>{totals.totalPieces} pç</span>
                 </div>
                 {isAdmin && totals.rule && (
-                  <div className="flex justify-between text-emerald-600 pt-1 border-t border-gray-200">
+                  <div className="flex justify-between text-emerald-600 pt-1 border-t border-outline-variant">
                     <span>Comissão rep ({formatPct(totals.rule.rep_commission_pct)}):</span>
                     <span className="font-semibold">{formatCurrency(totals.repCommission)}</span>
                   </div>
@@ -1070,7 +1070,7 @@ export function NewOrder() {
               </div>
 
               {/* Botão confirmar */}
-              <div className="p-4 pt-0 bg-gray-50">
+              <div className="p-4 pt-0 bg-surface-container-low">
                 {createMut.isError && (
                   <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 mb-3">
                     <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />

@@ -196,7 +196,7 @@ export function Clients() {
       case 'rep':
         return (
           <td key={id} className="px-2 py-2.5 max-w-[120px]">
-            <span className="text-xs text-indigo-500 font-medium truncate block">{c.rep_name || '—'}</span>
+            <span className="text-xs text-primary font-medium truncate block">{c.rep_name || '—'}</span>
           </td>
         )
       case '_edit':
@@ -204,7 +204,7 @@ export function Clients() {
           <td key={id} className="px-2 pr-3 py-2.5 text-right w-10">
             <button
               onClick={(e) => { e.stopPropagation(); openEdit(c) }}
-              className="p-1.5 text-gray-300 hover:text-indigo-500 hover:bg-indigo-100 rounded-lg transition-colors"
+              className="p-1.5 text-gray-300 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
             >
               <Edit2 className="h-3.5 w-3.5" />
             </button>
@@ -220,10 +220,10 @@ export function Clients() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 pt-5 pb-3 lg:px-6 border-b border-gray-200 bg-white">
+      <div className="px-4 pt-5 pb-3 lg:px-8 border-b border-outline-variant bg-white">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Clientes</h1>
+            <h1 className="font-display text-[22px] font-bold text-on-surface">Clientes</h1>
             <p className="text-xs text-gray-500">
               {isLoading ? 'Carregando…' : `${total} cliente${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
             </p>
@@ -237,7 +237,7 @@ export function Clients() {
             />
             <button
               onClick={() => setShowImport(true)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 bg-surface-container hover:bg-gray-200 border border-outline-variant rounded-lg px-3 py-2 transition-colors"
               title="Importar via Excel"
             >
               <Upload className="h-4 w-4" />
@@ -245,7 +245,7 @@ export function Clients() {
             </button>
             <button
               onClick={() => setShowNewCnpj(true)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg px-3 py-2 transition-colors"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Novo</span>
@@ -269,7 +269,7 @@ export function Clients() {
         </div>
       ) : total === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Users className="h-8 w-8 text-gray-300" />
           </div>
           <p className="text-gray-500 font-medium">Nenhum cliente encontrado</p>
@@ -279,11 +279,11 @@ export function Clients() {
           {!search && (
             <div className="flex gap-3 mt-4">
               <button onClick={() => setShowImport(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-surface-container text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
                 <Upload className="h-4 w-4" /> Importar Excel
               </button>
               <button onClick={() => setShowNewCnpj(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors">
                 <Plus className="h-4 w-4" /> Cadastrar Cliente
               </button>
             </div>
@@ -292,7 +292,7 @@ export function Clients() {
       ) : (
         <div className="flex-1 overflow-auto">
           <table className="w-full min-w-[360px] text-left">
-            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+            <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
               <tr>
                 {visibleCols.map(col => (
                   <th
@@ -306,7 +306,7 @@ export function Clients() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
               {(clients || []).map(c => (
-                <tr key={c.id} className="border-b border-gray-100 hover:bg-indigo-50/40 transition-colors">
+                <tr key={c.id} className="border-b border-outline-variant/50 hover:bg-primary/5 transition-colors">
                   {visibleCols.map(col => renderClientCell(col.id, c))}
                 </tr>
               ))}

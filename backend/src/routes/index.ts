@@ -92,6 +92,7 @@ router.get('/reports/commissions', authenticate, reports.commissionsReport)
 router.get('/reports/clients', authenticate, reports.clientsReport)
 router.get('/reports/products', authenticate, reports.productsReport)
 router.get('/reports/collections', authenticate, reports.collectionsReport)
+router.get('/reports/catalog', authenticate, reports.catalogReport)
 
 // Empresa (Somma)
 router.get('/company', authenticate, company.getSettings)

@@ -13,7 +13,7 @@ const isProd = process.env.NODE_ENV === 'production'
 
 // CORS — em produção o frontend está no mesmo servidor
 app.use(cors({
-  origin: isProd ? false : (process.env.FRONTEND_URL || 'http://localhost:5174'),
+  origin: isProd ? false : true, // em dev aceita qualquer origem (localhost e IPs de rede local)
   credentials: true,
 }))
 

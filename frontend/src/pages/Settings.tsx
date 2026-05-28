@@ -104,7 +104,7 @@ function CompanySection() {
       <div className="flex items-center gap-4">
         <div
           onClick={() => logoRef.current?.click()}
-          className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-indigo-50 flex items-center justify-center cursor-pointer transition-colors overflow-hidden flex-shrink-0"
+          className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-400 bg-surface-container-low hover:bg-primary/10 flex items-center justify-center cursor-pointer transition-colors overflow-hidden flex-shrink-0"
         >
           {logoPreview ? (
             <img
@@ -227,9 +227,9 @@ export function Settings() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-lg font-bold text-gray-900">Configurações</h1>
+          <h1 className="font-display text-[22px] font-bold text-on-surface">Configurações</h1>
           <p className="text-xs text-gray-500 mt-0.5">Ajustes do aplicativo</p>
         </div>
       </div>
@@ -254,8 +254,8 @@ export function Settings() {
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Conta</h2>
           <Card padding="md">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <span className="text-xl font-bold text-indigo-600">
+              <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <span className="text-xl font-bold text-primary">
                   {user?.name?.charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -298,7 +298,7 @@ export function Settings() {
             </div>
 
             {pendingCount > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="mt-3 pt-3 border-t border-outline-variant/50">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-orange-600">{pendingCount} pedido{pendingCount > 1 ? 's' : ''} pendente{pendingCount > 1 ? 's' : ''}</p>
@@ -320,8 +320,8 @@ export function Settings() {
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Cache Offline</h2>
           <Card padding="md">
             <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Database className="h-5 w-5 text-indigo-500" />
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Database className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="font-medium text-gray-900">Dados em cache</p>
@@ -330,11 +330,11 @@ export function Settings() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <div className="bg-surface-container-low rounded-xl p-3 text-center">
                 <p className="text-xl font-bold text-gray-900">{cachedProductsCount}</p>
                 <p className="text-xs text-gray-500">Produtos</p>
               </div>
-              <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <div className="bg-surface-container-low rounded-xl p-3 text-center">
                 <p className="text-xl font-bold text-gray-900">{cachedClientsCount}</p>
                 <p className="text-xs text-gray-500">Clientes</p>
               </div>
@@ -359,7 +359,7 @@ export function Settings() {
           <Card padding="md">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
                   <ShieldCheck className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -367,7 +367,7 @@ export function Settings() {
                   <p className="text-xs text-gray-500">Versão 1.0.0</p>
                 </div>
               </div>
-              <div className="pt-3 border-t border-gray-100 text-sm text-gray-500">
+              <div className="pt-3 border-t border-outline-variant/50 text-sm text-gray-500">
                 <p>Sistema de Gestão de Pedidos</p>
                 <p className="text-xs mt-1">Somma Gestão Comercial &copy; {new Date().getFullYear()}</p>
               </div>
@@ -376,14 +376,14 @@ export function Settings() {
         </div>
 
         {/* PWA install hint */}
-        <Card padding="md" className="bg-indigo-50 border-indigo-200">
+        <Card padding="md" className="bg-primary/10 border-primary/30">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
               <Smartphone className="h-5 w-5 text-white" />
             </div>
             <div>
               <p className="font-semibold text-blue-900">Instalar no celular</p>
-              <p className="text-sm text-indigo-600 mt-0.5">
+              <p className="text-sm text-primary mt-0.5">
                 Adicione este app à tela inicial para acesso rápido e uso offline completo.
                 No Safari/Chrome, toque em Compartilhar → "Adicionar à Tela Inicial".
               </p>

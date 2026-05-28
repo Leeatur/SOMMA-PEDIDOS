@@ -191,10 +191,10 @@ export function PriceTables() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Tabelas de Preço</h1>
+            <h1 className="font-display text-[22px] font-bold text-on-surface">Tabelas de Preço</h1>
             <p className="text-xs text-gray-500 mt-0.5">{tables.length} tabelas</p>
           </div>
           <Button onClick={() => { resetImport(); setImportOpen(true) }} icon={<Upload className="h-4 w-4" />} size="sm">
@@ -248,7 +248,7 @@ export function PriceTables() {
                   <div className="flex flex-col gap-1.5">
                     <button
                       onClick={() => openCatalogImport(t)}
-                      className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1.5 rounded-lg transition-colors"
+                      className="flex items-center gap-1 text-xs text-primary hover:text-primary bg-primary/10 hover:bg-primary/10 px-2 py-1.5 rounded-lg transition-colors"
                     >
                       <FileImage className="h-3.5 w-3.5" />
                       Catálogo
@@ -293,7 +293,7 @@ export function PriceTables() {
                 <div
                   key={s}
                   className={`h-2 w-8 rounded-full transition-colors ${
-                    importStep >= s ? 'bg-indigo-500' : 'bg-gray-200'
+                    importStep >= s ? 'bg-primary' : 'bg-gray-200'
                   }`}
                 />
               ))}
@@ -335,7 +335,7 @@ export function PriceTables() {
               </div>
             )}
             <div
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-indigo-50 transition-colors"
+              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-primary/10 transition-colors"
               onClick={() => fileRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
@@ -379,8 +379,8 @@ export function PriceTables() {
                   <p className="text-xs text-emerald-600">Total</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold text-indigo-600">{preview.regularCount}</p>
-                  <p className="text-xs text-indigo-500">Regular (TE)</p>
+                  <p className="text-xl font-bold text-primary">{preview.regularCount}</p>
+                  <p className="text-xs text-primary">Regular (TE)</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xl font-bold text-purple-700">{preview.packCount}</p>
@@ -431,7 +431,7 @@ export function PriceTables() {
                 <p className="text-sm font-medium text-gray-700">Tabela Desconto × Comissão</p>
                 <button
                   onClick={addDiscountRule}
-                  className="text-xs text-indigo-500 flex items-center gap-1 hover:text-indigo-600"
+                  className="text-xs text-primary flex items-center gap-1 hover:text-primary"
                 >
                   <Plus className="h-3.5 w-3.5" /> Adicionar linha
                 </button>
@@ -455,7 +455,7 @@ export function PriceTables() {
                         max="100"
                         value={rule[field]}
                         onChange={(e) => updateRule(i, field, e.target.value)}
-                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="border border-outline-variant rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                     ))}
                     <button
@@ -475,7 +475,7 @@ export function PriceTables() {
         {/* Step 3: Confirm */}
         {importStep === 3 && preview && (
           <div className="space-y-4">
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-2">
+            <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 space-y-2">
               <p className="font-semibold text-blue-900">Resumo da Importação</p>
               <div className="text-sm text-blue-800 space-y-1">
                 <p><span className="font-medium">Tabela:</span> {importForm.name}</p>
@@ -489,8 +489,8 @@ export function PriceTables() {
             <div>
               <p className="text-sm font-medium text-gray-700 mb-2">Regras de comissão configuradas:</p>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full text-xs border border-outline-variant rounded-lg overflow-hidden">
+                  <thead className="bg-surface-container-low">
                     <tr>
                       <th className="px-3 py-2 text-left text-gray-600">Desconto</th>
                       <th className="px-3 py-2 text-left text-gray-600">Com. Total</th>
@@ -587,7 +587,7 @@ export function PriceTables() {
         {!catalogResult ? (
           <div className="space-y-4">
             {selectedTable && (
-              <div className="bg-gray-50 rounded-lg p-3">
+              <div className="bg-surface-container-low rounded-lg p-3">
                 <p className="text-xs text-gray-500">Tabela de preços:</p>
                 <p className="font-medium text-gray-900">{selectedTable.name}</p>
                 <p className="text-xs text-gray-500">{selectedTable.product_count} produtos</p>
@@ -597,14 +597,14 @@ export function PriceTables() {
               O sistema irá extrair as fotos do catálogo PDF e associar automaticamente às referências da tabela de preços.
             </p>
             <div
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-indigo-50 transition-colors"
+              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-primary/10 transition-colors"
               onClick={() => catalogFileRef.current?.click()}
             >
               {catalogMut.isPending ? (
                 <Spinner label="Processando PDF..." />
               ) : catalogFile ? (
                 <div>
-                  <FileImage className="h-8 w-8 text-indigo-400 mx-auto mb-2" />
+                  <FileImage className="h-8 w-8 text-primary/80 mx-auto mb-2" />
                   <p className="text-sm font-medium text-gray-700">{catalogFile.name}</p>
                   <p className="text-xs text-gray-400">Clique para trocar</p>
                 </div>
@@ -655,7 +655,7 @@ export function PriceTables() {
                 <div className="text-left mt-2">
                   <p className="text-amber-500 font-semibold mb-1">{catalogResult.foundInPdfCount} refs encontradas no PDF mas nenhuma bate com esta tabela.</p>
                   <p className="text-gray-500 mb-1">Refs extraídas do PDF (compare com os códigos da tabela):</p>
-                  <div className="bg-gray-50 rounded-lg p-2 font-mono text-gray-700 text-[11px] leading-5 break-all">
+                  <div className="bg-surface-container-low rounded-lg p-2 font-mono text-gray-700 text-[11px] leading-5 break-all">
                     {catalogResult.foundInPdf.join(' · ')}
                   </div>
                 </div>

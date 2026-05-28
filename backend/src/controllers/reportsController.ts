@@ -227,3 +227,82 @@ export async function productsReport(req: AuthRequest, res: Response) {
 
   res.json(rows)
 }
+
+export async function catalogReport(req: AuthRequest, res: Response) {
+  const priceTableId = req.query.price_table_id as string | undefined
+  const factoryId    = req.query.factory_id    as string | undefined
+
+  // Busca tabelas de preço disponíveis para montar o select
+  const ptParams: unknown[] = []
+  let ptWhere = ''
+  if (priceTableId) { ptWhere += ` AND pt.id = $${ptParams.length + 1}`; ptParams.push(priceTableId) }
+  else if (factoryId) { ptWhere += ` AND f.id = $${ptParams.length + 1}`; ptParams.push(factoryId) }
+
+  const { rows } = await query(`
+    SELECT
+      p.id            AS product_id,
+      p.reference,
+      p.product_name,
+      p.model,
+      p.size_range,
+      p.base_price,
+      p.type,
+      p.observation,
+      pt.id           AS price_table_id,
+      pt.name         AS table_name,
+      pt.collection,
+      pt.season,
+      pt.year,
+      f.name          AS factory_name,
+      (
+        SELECT json_agg(
+          json_build_object('color', gc.color, 'sizes', gc.sizes, 'total_pieces', gc.total_pieces)
+          ORDER BY gc.sort_order
+        )
+        FROM grade_configs gc WHERE gc.product_id = p.id
+      ) AS grade_configs
+    FROM price_tables pt
+    JOIN factories f ON f.id = pt.factory_id
+    JOIN products p ON p.price_table_id = pt.id AND p.active = true
+    WHERE pt.active = true ${ptWhere}
+    ORDER BY f.name, pt.name, p.reference
+  `, ptParams)
+
+  // Agrupa por tabela de preço
+  const tableMap = new Map<string, {
+    price_table_id: string
+    factory_name: string
+    table_name: string
+    collection: string
+    season: string
+    year: number | null
+    products: unknown[]
+  }>()
+
+  for (const row of rows) {
+    if (!tableMap.has(row.price_table_id)) {
+      tableMap.set(row.price_table_id, {
+        price_table_id: row.price_table_id,
+        factory_name: row.factory_name,
+        table_name: row.table_name,
+        collection: row.collection,
+        season: row.season,
+        year: row.year,
+        products: [],
+      })
+    }
+    tableMap.get(row.price_table_id)!.products.push({
+      product_id: row.product_id,
+      reference: row.reference,
+      product_name: row.product_name,
+      model: row.model,
+      size_range: row.size_range,
+      base_price: row.base_price,
+      type: row.type,
+      observation: row.observation,
+      grade_configs: row.grade_configs || [],
+    })
+  }
+
+  res.json(Array.from(tableMap.values()))
+}

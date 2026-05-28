@@ -90,10 +90,10 @@ export function Factories() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Fábricas / Marcas</h1>
+            <h1 className="font-display text-[22px] font-bold text-on-surface">Fábricas / Marcas</h1>
             <p className="text-xs text-gray-500 mt-0.5">{list.length} cadastradas</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
@@ -120,8 +120,8 @@ export function Factories() {
               <Card key={f.id} padding="md">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Building2 className="h-5 w-5 text-indigo-500" />
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">{f.name}</p>
@@ -135,7 +135,7 @@ export function Factories() {
                   </div>
                   <button
                     onClick={() => openEdit(f)}
-                    className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>

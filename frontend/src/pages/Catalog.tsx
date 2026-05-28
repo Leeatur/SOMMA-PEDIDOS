@@ -46,14 +46,51 @@ interface Product {
 interface PriceTable { id: string; name: string; factory_name: string }
 interface Factory { id: string; name: string }
 
+const SIZE_ORDER = [
+  'RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG','4XG',
+  '34','36','38','40','42','44','46','48','50','52','54','56','58','60',
+  '1','2','4','6','8','10','12','14','16','18','U',
+]
+
+function sortSizes(sizes: string[]) {
+  return [...sizes].sort((a, b) => {
+    const ai = SIZE_ORDER.indexOf(a.toUpperCase())
+    const bi = SIZE_ORDER.indexOf(b.toUpperCase())
+    if (ai === -1 && bi === -1) return a.localeCompare(b)
+    if (ai === -1) return 1
+    if (bi === -1) return -1
+    return ai - bi
+  })
+}
+
+function expandSizeKey(key: string): string[] {
+  const m = key.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/)
+  if (m) {
+    const s = SIZE_ORDER.indexOf(m[1].toUpperCase())
+    const e = SIZE_ORDER.indexOf(m[2].toUpperCase())
+    if (s >= 0 && e >= s) return SIZE_ORDER.slice(s, e + 1)
+  }
+  return [key]
+}
+
+function expandGradeSizes(sizes: Record<string, number>): Record<string, number> {
+  const result: Record<string, number> = {}
+  for (const [key, val] of Object.entries(sizes)) {
+    for (const expanded of expandSizeKey(key)) {
+      result[expanded] = val
+    }
+  }
+  return result
+}
+
 function GradeTable({ configs, type }: { configs: GradeConfig[]; type: 'regular' | 'pack' }) {
   if (type === 'regular') {
     // Regular: apenas mostra os tamanhos disponíveis (sem linha de qtd — o rep digita as suas)
-    const allSizes = Array.from(new Set(configs.flatMap(gc => Object.keys(gc.sizes)))).sort()
+    const allSizes = sortSizes(Array.from(new Set(configs.flatMap(gc => Object.keys(gc.sizes)).flatMap(expandSizeKey))))
     return (
       <div className="flex flex-wrap gap-1">
         {allSizes.map(s => (
-          <span key={s} className="px-2 py-0.5 text-xs font-semibold bg-indigo-50 text-indigo-700 rounded-md border border-indigo-100">
+          <span key={s} className="px-2 py-0.5 text-xs font-semibold bg-primary/10 text-primary rounded-md border border-indigo-100">
             {s}
           </span>
         ))}
@@ -65,26 +102,27 @@ function GradeTable({ configs, type }: { configs: GradeConfig[]; type: 'regular'
   return (
     <div className="space-y-2">
       {configs.map((gc, i) => {
-        const sizes = Object.keys(gc.sizes).sort()
+        const expandedSizes = expandGradeSizes(gc.sizes)
+        const sizes = sortSizes(Object.keys(expandedSizes))
         return (
           <div key={i}>
             {gc.color && <p className="text-xs font-medium text-gray-600 mb-1">{gc.color}</p>}
             <div className="overflow-x-auto">
-              <table className="min-w-max text-xs border border-gray-200 rounded-lg overflow-hidden">
-                <thead className="bg-gray-50">
+              <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
+                <thead className="bg-surface-container-low">
                   <tr>
                     {sizes.map((s) => (
                       <th key={s} className="px-2 py-1 text-gray-600 font-medium text-center min-w-[32px]">{s}</th>
                     ))}
-                    <th className="px-2 py-1 text-gray-500 font-medium text-center border-l border-gray-200">Tot</th>
+                    <th className="px-2 py-1 text-gray-500 font-medium text-center border-l border-outline-variant">Tot</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="bg-white">
                     {sizes.map((s) => (
-                      <td key={s} className="px-2 py-1.5 text-center font-mono">{gc.sizes[s]}</td>
+                      <td key={s} className="px-2 py-1.5 text-center font-mono">{expandedSizes[s]}</td>
                     ))}
-                    <td className="px-2 py-1.5 text-center font-bold border-l border-gray-200">{gc.total_pieces}</td>
+                    <td className="px-2 py-1.5 text-center font-bold border-l border-outline-variant">{gc.total_pieces}</td>
                   </tr>
                 </tbody>
               </table>
@@ -139,14 +177,14 @@ function GradeEditor({
       {configs.map((gc, i) => {
         const sizes = Object.keys(gc.sizes).sort()
         return (
-          <div key={i} className="border border-gray-200 rounded-xl p-3">
+          <div key={i} className="border border-outline-variant rounded-xl p-3">
             <div className="flex items-center justify-between mb-3">
               <input
                 type="text"
                 value={gc.color || ''}
                 onChange={(e) => updateColor(i, e.target.value)}
                 placeholder="Cor (opcional)"
-                className="text-sm font-medium border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="text-sm font-medium border border-outline-variant rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {configs.length > 1 && (
                 <button onClick={() => removeColor(i)} className="text-red-400 hover:text-red-600 p-1">
@@ -172,7 +210,7 @@ function GradeEditor({
                           min="0"
                           value={gc.sizes[s] || 0}
                           onChange={(e) => updateSize(i, s, e.target.value)}
-                          className="w-10 text-center border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-10 text-center border border-outline-variant rounded px-1 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </td>
                     ))}
@@ -186,7 +224,7 @@ function GradeEditor({
       })}
       <button
         onClick={addColor}
-        className="flex items-center gap-1.5 text-sm text-indigo-500 hover:text-indigo-600"
+        className="flex items-center gap-1.5 text-sm text-primary hover:text-primary"
       >
         <Plus className="h-4 w-4" /> Adicionar cor
       </button>
@@ -280,7 +318,7 @@ export function Catalog() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 lg:px-8 sticky top-0 z-10">
+      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold text-gray-900">Catálogo de Produtos</h1>
@@ -363,9 +401,9 @@ export function Catalog() {
               const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
               const isExpanded = expandedProduct === p.id
               return (
-                <div key={p.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div key={p.id} className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden">
                   {/* Product image */}
-                  <div className="relative aspect-square bg-gray-100">
+                  <div className="relative aspect-square bg-surface-container">
                     {p.image_url ? (
                       <img
                         src={p.image_url}
@@ -388,7 +426,7 @@ export function Catalog() {
                     {/* Upload photo button */}
                     <button
                       onClick={() => { setImageModal(p); imageFileRef.current?.click() }}
-                      className="absolute bottom-1.5 right-1.5 p-1.5 bg-white/90 backdrop-blur rounded-lg shadow text-gray-600 hover:text-indigo-500"
+                      className="absolute bottom-1.5 right-1.5 p-1.5 bg-white/90 backdrop-blur rounded-lg shadow text-gray-600 hover:text-primary"
                     >
                       <Camera className="h-3.5 w-3.5" />
                     </button>
@@ -400,7 +438,7 @@ export function Catalog() {
                     {p.product_name && (
                       <p className="text-xs text-gray-500 truncate">{p.product_name}</p>
                     )}
-                    <p className="text-sm font-semibold text-indigo-600 mt-1">
+                    <p className="text-sm font-semibold text-primary mt-1">
                       R$ {Number(p.base_price).toFixed(2)}
                     </p>
                     <p className="text-xs text-gray-400">{totalPieces} pç/cx</p>
@@ -409,14 +447,14 @@ export function Catalog() {
                     <div className="flex gap-1 mt-2">
                       <button
                         onClick={() => setExpandedProduct(isExpanded ? null : p.id)}
-                        className="flex-1 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg py-1 flex items-center justify-center gap-1"
+                        className="flex-1 text-xs text-gray-500 hover:text-gray-700 border border-outline-variant rounded-lg py-1 flex items-center justify-center gap-1"
                       >
                         Grade
                         {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                       </button>
                       <button
                         onClick={() => openGradeEdit(p)}
-                        className="p-1 border border-gray-200 rounded-lg text-gray-400 hover:text-indigo-500 hover:border-blue-300"
+                        className="p-1 border border-outline-variant rounded-lg text-gray-400 hover:text-primary hover:border-blue-300"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
@@ -424,7 +462,7 @@ export function Catalog() {
 
                     {/* Grade expand */}
                     {isExpanded && p.grade_configs && (
-                      <div className="mt-2 pt-2 border-t border-gray-100">
+                      <div className="mt-2 pt-2 border-t border-outline-variant/50">
                         <GradeTable configs={p.grade_configs} type={p.type} />
                       </div>
                     )}
@@ -497,18 +535,18 @@ export function Catalog() {
               Selecione um PDF de catálogo. O sistema irá extrair as fotos e associar automaticamente
               às referências da tabela de preços selecionada.
             </p>
-            <p className="text-xs text-indigo-600 bg-indigo-50 border border-blue-100 rounded-lg px-3 py-2">
+            <p className="text-xs text-primary bg-primary/10 border border-blue-100 rounded-lg px-3 py-2">
               💡 Você pode importar múltiplos catálogos para a mesma tabela — cada um completa as fotos restantes.
             </p>
             <div
               onClick={() => catalogFileRef.current?.click()}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-indigo-50 transition-colors"
+              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-primary/10 transition-colors"
             >
               {catalogMut.isPending ? (
                 <Spinner label="Processando PDF..." />
               ) : catalogFile ? (
                 <div>
-                  <FileImage className="h-10 w-10 text-indigo-400 mx-auto mb-2" />
+                  <FileImage className="h-10 w-10 text-primary/80 mx-auto mb-2" />
                   <p className="text-sm font-medium text-gray-900">{catalogFile.name}</p>
                   <p className="text-xs text-gray-400 mt-1">{(catalogFile.size / 1024 / 1024).toFixed(1)} MB — clique para trocar</p>
                 </div>
@@ -531,7 +569,7 @@ export function Catalog() {
                 type="checkbox"
                 checked={catalogOverwrite}
                 onChange={(e) => setCatalogOverwrite(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-indigo-500"
+                className="w-4 h-4 rounded border-gray-300 text-primary"
               />
               <span className="text-sm text-gray-600">
                 Substituir fotos já existentes
@@ -544,7 +582,7 @@ export function Catalog() {
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <div className="bg-surface-container-low rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold text-gray-900">{catalogResult.totalPages}</p>
                 <p className="text-xs text-gray-500 mt-0.5">páginas</p>
               </div>

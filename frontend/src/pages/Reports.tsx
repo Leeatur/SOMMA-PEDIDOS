@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
-import { reportsApi, factoriesApi, usersApi } from '../api/client'
+import { reportsApi, factoriesApi, priceTablesApi, usersApi } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
 
 // ─── formatters ──────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ function daysAgoStr(n: number) {
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections'
+type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog'
 
 interface OrderSummary {
   order_count: number; total_pieces: number
@@ -50,7 +50,20 @@ interface CollectionRow {
   products: CollectionProduct[]
 }
 interface Factory { id: string; name: string }
+interface PriceTableMeta { id: string; name: string; collection: string; season: string; year: number | null; factory_name: string }
 interface User { id: string; name: string; role: string }
+
+interface CatalogGradeConfig { color: string | null; sizes: Record<string, number>; total_pieces: number }
+interface CatalogProduct {
+  product_id: string; reference: string; product_name: string | null; model: string | null
+  size_range: string | null; base_price: number; type: 'regular' | 'pack'
+  observation: string | null; grade_configs: CatalogGradeConfig[]
+}
+interface CatalogRow {
+  price_table_id: string; factory_name: string; table_name: string
+  collection: string; season: string; year: number | null
+  products: CatalogProduct[]
+}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -76,6 +89,177 @@ function Td({ children, right, bold }: { children: React.ReactNode; right?: bool
     <td className={`px-4 py-3 text-sm ${right ? 'text-right' : ''} ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
       {children}
     </td>
+  )
+}
+
+// ─── Size helpers ─────────────────────────────────────────────────────────────
+
+const CAT_SIZE_ORDER = [
+  'RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG','4XG',
+  '34','36','38','40','42','44','46','48','50','52','54','56','58','60',
+  '1','2','4','6','8','10','12','14','16','18','U',
+]
+
+function catExpandSize(key: string): string[] {
+  const m = key.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/)
+  if (m) {
+    const s = CAT_SIZE_ORDER.indexOf(m[1].toUpperCase())
+    const e = CAT_SIZE_ORDER.indexOf(m[2].toUpperCase())
+    if (s >= 0 && e >= s) return CAT_SIZE_ORDER.slice(s, e + 1)
+  }
+  return [key]
+}
+
+function catSortSizes(sizes: string[]) {
+  return [...sizes].sort((a, b) => {
+    const ai = CAT_SIZE_ORDER.indexOf(a.toUpperCase())
+    const bi = CAT_SIZE_ORDER.indexOf(b.toUpperCase())
+    if (ai === -1 && bi === -1) return a.localeCompare(b)
+    if (ai === -1) return 1; if (bi === -1) return -1
+    return ai - bi
+  })
+}
+
+function catGetSizes(p: CatalogProduct): string[] {
+  if (p.size_range) {
+    const expanded = catExpandSize(p.size_range)
+    if (expanded.length > 1) return expanded
+  }
+  const keys = p.grade_configs.flatMap(gc => Object.keys(gc.sizes)).flatMap(catExpandSize)
+  return catSortSizes(Array.from(new Set(keys)))
+}
+
+// ─── CatalogTab ───────────────────────────────────────────────────────────────
+
+function CatalogTab({ data }: { data: CatalogRow[] }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [search, setSearch] = useState('')
+
+  function toggle(id: string) {
+    setExpanded(prev => {
+      const s = new Set(prev)
+      s.has(id) ? s.delete(id) : s.add(id)
+      return s
+    })
+  }
+
+  const q = search.toLowerCase().trim()
+
+  const filtered = data.map(row => ({
+    ...row,
+    products: q
+      ? row.products.filter(p =>
+          p.reference.toLowerCase().includes(q) ||
+          (p.product_name || '').toLowerCase().includes(q) ||
+          (p.model || '').toLowerCase().includes(q))
+      : row.products,
+  })).filter(row => !q || row.products.length > 0)
+
+  const allIds = filtered.map(r => r.price_table_id)
+  const allExpanded = allIds.every(id => expanded.has(id))
+
+  function toggleAll() {
+    if (allExpanded) setExpanded(new Set())
+    else setExpanded(new Set(allIds))
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Search + expand all */}
+      <div className="flex gap-2 items-center">
+        <input
+          value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar referência, nome..."
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+        <button
+          onClick={toggleAll}
+          className="text-xs text-primary underline whitespace-nowrap"
+        >
+          {allExpanded ? 'Recolher tudo' : 'Expandir tudo'}
+        </button>
+      </div>
+
+      {filtered.length === 0 && <EmptyState label="Nenhum produto encontrado" />}
+
+      {filtered.map(row => {
+        const isOpen = expanded.has(row.price_table_id) || !!q
+        const label = [row.collection, row.season, row.year].filter(Boolean).join(' · ')
+        return (
+          <div key={row.price_table_id} className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+            {/* Header */}
+            <button
+              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-container-low transition-colors"
+              onClick={() => toggle(row.price_table_id)}
+            >
+              {isOpen
+                ? <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                : <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              }
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-gray-900 text-sm">{row.table_name}</span>
+                  <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">{row.factory_name}</span>
+                  {label && <span className="text-xs text-gray-500">{label}</span>}
+                </div>
+              </div>
+              <span className="text-xs text-gray-400 flex-shrink-0">{row.products.length} ref.</span>
+            </button>
+
+            {/* Table */}
+            {isOpen && (
+              <div className="border-t border-outline-variant/50 overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-surface-container-low">
+                    <tr>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-left w-24">Referência</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-left">Nome / Modelo</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-left">Tamanhos</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right w-28">Preço</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-left w-32">Tipo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {row.products.map(p => {
+                      const sizes = catGetSizes(p)
+                      return (
+                        <tr key={p.product_id} className="hover:bg-primary/10/30">
+                          <td className="px-3 py-2.5">
+                            <span className="font-mono text-xs font-bold text-gray-900">{p.reference}</span>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <p className="text-sm text-gray-800 leading-tight">{p.product_name || '—'}</p>
+                            {p.model && <p className="text-xs text-gray-400">{p.model}</p>}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex flex-wrap gap-1">
+                              {sizes.map(s => (
+                                <span key={s} className="px-1.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary rounded border border-indigo-100">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-right">
+                            <span className="text-sm font-bold text-gray-900">{fmtR(p.base_price)}</span>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            {p.type === 'pack'
+                              ? <span className="px-2 py-0.5 text-xs font-semibold bg-orange-100 text-orange-700 rounded-full">Pack</span>
+                              : <span className="px-2 py-0.5 text-xs font-semibold bg-blue-50 text-blue-600 rounded-full">Regular</span>
+                            }
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -108,7 +292,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
           if (e.target.value) setExpanded(new Set(data.map(c => c.price_table_id)))
           else setExpanded(new Set())
         }}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
       />
 
       {data.map(col => {
@@ -126,12 +310,12 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
         const isOpen     = expanded.has(col.price_table_id)
 
         return (
-          <div key={col.price_table_id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div key={col.price_table_id} className="bg-white rounded-xl border border-outline-variant overflow-hidden">
 
             {/* ── Cabeçalho da coleção ── */}
             <button
               onClick={() => toggle(col.price_table_id)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors text-left"
             >
               {isOpen
                 ? <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -143,7 +327,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                   <span className="text-xs text-gray-400">—</span>
                   <span className="text-sm text-gray-700 truncate">{col.collection}</span>
                   {col.season && (
-                    <span className="text-xs text-indigo-500 font-medium">
+                    <span className="text-xs text-primary font-medium">
                       {col.season}{col.year ? ` ${col.year}` : ''}
                     </span>
                   )}
@@ -165,7 +349,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-400">Valor</p>
-                  <p className="text-sm font-bold text-indigo-700">{fmtR(totalVal)}</p>
+                  <p className="text-sm font-bold text-primary">{fmtR(totalVal)}</p>
                 </div>
               </div>
             </button>
@@ -175,16 +359,16 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
               <div className="sm:hidden flex items-center gap-4 px-11 pb-2 text-xs text-gray-500">
                 <span>{soldCount}/{products.length} refs</span>
                 <span>{fmtN(totalPcs)} pç</span>
-                <span className="font-semibold text-indigo-600">{fmtR(totalVal)}</span>
+                <span className="font-semibold text-primary">{fmtR(totalVal)}</span>
               </div>
             )}
 
             {/* ── Tabela de referências (expandida) ── */}
             {isOpen && (
-              <div className="border-t border-gray-100">
+              <div className="border-t border-outline-variant/50">
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-surface-container-low">
                       <tr>
                         <Th>Referência</Th>
                         <Th>Produto</Th>
@@ -197,7 +381,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                       {products.map(p => (
                         <tr
                           key={p.product_id}
-                          className={`hover:bg-gray-50/50 ${p.total_pieces === 0 ? 'opacity-50' : ''}`}
+                          className={`hover:bg-surface-container-low/50 ${p.total_pieces === 0 ? 'opacity-50' : ''}`}
                         >
                           <td className="px-4 py-2.5 font-mono text-xs font-bold text-gray-900 whitespace-nowrap">
                             {p.reference}
@@ -216,7 +400,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                     </tbody>
                     {totalPcs > 0 && (
                       <tfoot>
-                        <tr className="bg-gray-50 border-t border-gray-200">
+                        <tr className="bg-surface-container-low border-t border-outline-variant">
                           <td colSpan={2} className="px-4 py-2 text-xs font-bold text-gray-700">
                             {soldCount} ref{soldCount !== 1 ? 's' : ''} vendida{soldCount !== 1 ? 's' : ''} de {products.length}
                           </td>
@@ -224,7 +408,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                             {products.reduce((s, p) => s + p.order_count, 0)}
                           </td>
                           <td className="px-4 py-2 text-right text-xs font-bold text-gray-700">{fmtN(totalPcs)}</td>
-                          <td className="px-4 py-2 text-right text-xs font-bold text-indigo-700">{fmtR(totalVal)}</td>
+                          <td className="px-4 py-2 text-right text-xs font-bold text-primary">{fmtR(totalVal)}</td>
                         </tr>
                       </tfoot>
                     )}
@@ -250,6 +434,10 @@ export function Reports() {
   const [dateTo, setDateTo] = useState(todayStr())
   const [factoryId, setFactoryId] = useState('')
   const [repId, setRepId] = useState('')
+
+  // Catalog-specific filters
+  const [catalogFactoryId, setCatalogFactoryId] = useState('')
+  const [catalogPriceTableId, setCatalogPriceTableId] = useState('')
 
   function setRange(days: number) {
     setDateFrom(daysAgoStr(days - 1))
@@ -312,6 +500,21 @@ export function Reports() {
     enabled: tab === 'collections',
   })
 
+  const { data: catalogPriceTables } = useQuery<PriceTableMeta[]>({
+    queryKey: ['price-tables', catalogFactoryId],
+    queryFn: () => priceTablesApi.list(catalogFactoryId || undefined).then(r => r.data),
+    enabled: tab === 'catalog',
+  })
+
+  const catalogQ = useQuery<CatalogRow[]>({
+    queryKey: ['rpt-catalog', catalogFactoryId, catalogPriceTableId],
+    queryFn: () => reportsApi.catalog({
+      price_table_id: catalogPriceTableId || undefined,
+      factory_id: catalogPriceTableId ? undefined : (catalogFactoryId || undefined),
+    }).then(r => r.data),
+    enabled: tab === 'catalog',
+  })
+
   // ─── tabs config ───────────────────────────────────────────────────────────
 
   const TABS: { id: Tab; label: string }[] = [
@@ -319,7 +522,8 @@ export function Reports() {
     { id: 'commissions', label: 'Comissões' },
     { id: 'clients',     label: 'Clientes' },
     { id: 'products',    label: 'Produtos' },
-    { id: 'collections', label: 'Coleções' },
+    { id: 'collections', label: 'Curva ABC de Produtos' },
+    { id: 'catalog',     label: 'Catálogo de Coleção' },
   ]
 
   // ─── render ────────────────────────────────────────────────────────────────
@@ -328,11 +532,11 @@ export function Reports() {
     <div className="pb-24 lg:pb-0">
 
       {/* ── sticky header ── */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4 lg:px-8 space-y-3">
+      <div className="bg-white border-b border-outline-variant px-4 py-4 lg:px-8 space-y-3">
         <div className="max-w-5xl mx-auto space-y-3">
 
           <div className="flex items-center gap-2">
-            <BarChart2 className="h-5 w-5 text-indigo-500" />
+            <BarChart2 className="h-5 w-5 text-primary" />
             <h1 className="text-lg font-bold text-gray-900">Relatórios</h1>
           </div>
 
@@ -341,12 +545,12 @@ export function Reports() {
             {/* date inputs */}
             <input
               type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <span className="text-gray-400 text-sm">–</span>
             <input
               type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
 
             {/* quick range buttons */}
@@ -354,7 +558,7 @@ export function Reports() {
               {[{ label: '7d', d: 7 }, { label: '30d', d: 30 }, { label: '90d', d: 90 }].map(r => (
                 <button
                   key={r.label} onClick={() => setRange(r.d)}
-                  className="px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-surface-container hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   {r.label}
                 </button>
@@ -365,7 +569,7 @@ export function Reports() {
             {tab !== 'commissions' && (
               <select
                 value={factoryId} onChange={e => setFactoryId(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as fábricas</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -376,7 +580,7 @@ export function Reports() {
             {isAdmin && tab !== 'products' && (
               <select
                 value={repId} onChange={e => setRepId(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos os representantes</option>
                 {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -385,13 +589,13 @@ export function Reports() {
           </div>
 
           {/* ── tab bar ── */}
-          <div className="flex gap-0 border-b border-gray-200">
+          <div className="flex gap-0 border-b border-outline-variant">
             {TABS.map(t => (
               <button
                 key={t.id} onClick={() => setTab(t.id)}
                 className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
                   tab === t.id
-                    ? 'border-blue-600 text-indigo-600'
+                    ? 'border-blue-600 text-primary'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -414,12 +618,12 @@ export function Reports() {
             {/* KPI cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                { label: 'Pedidos',     value: fmtN(ordersQ.data.summary.order_count),       color: 'bg-indigo-50',    text: 'text-indigo-600' },
+                { label: 'Pedidos',     value: fmtN(ordersQ.data.summary.order_count),       color: 'bg-primary/10',    text: 'text-primary' },
                 { label: 'Peças',       value: fmtN(ordersQ.data.summary.total_pieces),       color: 'bg-purple-50',  text: 'text-purple-700' },
-                { label: 'Valor Total', value: fmtR(ordersQ.data.summary.total_value),         color: 'bg-gray-50',    text: 'text-gray-900' },
+                { label: 'Valor Total', value: fmtR(ordersQ.data.summary.total_value),         color: 'bg-surface-container-low',    text: 'text-gray-900' },
                 { label: 'Com. Rep',    value: fmtR(ordersQ.data.summary.rep_commission_value), color: 'bg-emerald-50', text: 'text-emerald-700' },
               ].map(c => (
-                <div key={c.label} className={`${c.color} rounded-xl border border-gray-100 p-4`}>
+                <div key={c.label} className={`${c.color} rounded-xl border border-outline-variant/50 p-4`}>
                   <p className="text-xs text-gray-500 mb-1">{c.label}</p>
                   <p className={`text-xl font-bold ${c.text}`}>{c.value}</p>
                   {c.label === 'Com. Rep' && isAdmin && (
@@ -435,11 +639,11 @@ export function Reports() {
             {ordersQ.data.byDay.length === 0
               ? <EmptyState label="Nenhum pedido no período" />
               : (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <p className="px-4 py-3 text-sm font-semibold text-gray-800 border-b border-gray-100">Por dia</p>
+                <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                  <p className="px-4 py-3 text-sm font-semibold text-gray-800 border-b border-outline-variant/50">Por dia</p>
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-surface-container-low">
                         <tr>
                           <Th>Data</Th>
                           <Th right>Pedidos</Th>
@@ -449,7 +653,7 @@ export function Reports() {
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {ordersQ.data.byDay.map(d => (
-                          <tr key={d.date} className="hover:bg-gray-50/50">
+                          <tr key={d.date} className="hover:bg-surface-container-low/50">
                             <Td>{new Date(d.date + 'T12:00:00').toLocaleDateString('pt-BR')}</Td>
                             <Td right>{d.order_count}</Td>
                             <Td right>{fmtN(d.total_pieces)}</Td>
@@ -458,7 +662,7 @@ export function Reports() {
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="bg-gray-50 border-t border-gray-200">
+                        <tr className="bg-surface-container-low border-t border-outline-variant">
                           <td className="px-4 py-2.5 text-xs font-bold text-gray-700">Total</td>
                           <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-700">
                             {ordersQ.data.byDay.reduce((s, d) => s + d.order_count, 0)}
@@ -486,10 +690,10 @@ export function Reports() {
           commissionsQ.data.length === 0
             ? <EmptyState label="Nenhum dado de comissão no período" />
             : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-surface-container-low">
                       <tr>
                         <Th>Representante</Th>
                         <Th right>Pedidos</Th>
@@ -501,7 +705,7 @@ export function Reports() {
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {commissionsQ.data.map(r => (
-                        <tr key={r.rep_id} className="hover:bg-gray-50/50">
+                        <tr key={r.rep_id} className="hover:bg-surface-container-low/50">
                           <td className="px-4 py-3 text-sm font-semibold text-gray-900">{r.rep_name}</td>
                           <Td right>{r.order_count}</Td>
                           <Td right>{fmtN(r.total_pieces)}</Td>
@@ -517,7 +721,7 @@ export function Reports() {
                     </tbody>
                     {commissionsQ.data.length > 1 && (
                       <tfoot>
-                        <tr className="bg-gray-50 border-t border-gray-200">
+                        <tr className="bg-surface-container-low border-t border-outline-variant">
                           <td className="px-4 py-2.5 text-xs font-bold text-gray-700">Total</td>
                           <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-700">
                             {commissionsQ.data.reduce((s, r) => s + r.order_count, 0)}
@@ -552,10 +756,10 @@ export function Reports() {
           clientsQ.data.length === 0
             ? <EmptyState label="Nenhum cliente no período" />
             : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-surface-container-low">
                       <tr>
                         <Th>#</Th>
                         <Th>Cliente</Th>
@@ -566,7 +770,7 @@ export function Reports() {
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {clientsQ.data.map((c, i) => (
-                        <tr key={c.id} className="hover:bg-gray-50/50">
+                        <tr key={c.id} className="hover:bg-surface-container-low/50">
                           <td className="px-4 py-3 text-xs text-gray-400 w-8">{i + 1}</td>
                           <td className="px-4 py-3">
                             <p className="text-sm font-semibold text-gray-900 truncate max-w-[220px]">
@@ -606,10 +810,10 @@ export function Reports() {
           productsQ.data.length === 0
             ? <EmptyState label="Nenhuma referência no período" />
             : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-surface-container-low">
                       <tr>
                         <Th>#</Th>
                         <Th>Referência</Th>
@@ -620,7 +824,7 @@ export function Reports() {
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {productsQ.data.map((p, i) => (
-                        <tr key={p.reference} className="hover:bg-gray-50/50">
+                        <tr key={p.reference} className="hover:bg-surface-container-low/50">
                           <td className="px-4 py-3 text-xs text-gray-400 w-8">{i + 1}</td>
                           <td className="px-4 py-3 font-mono text-sm font-bold text-gray-900">
                             {p.reference}
@@ -635,6 +839,42 @@ export function Reports() {
                 </div>
               </div>
             )
+        )}
+
+        {/* ═══ CATÁLOGO ═════════════════════════════════════════════════════ */}
+        {tab === 'catalog' && (
+          <div className="space-y-4">
+            {/* Catalog-specific filters */}
+            <div className="bg-white rounded-xl border border-outline-variant px-4 py-3 flex flex-wrap gap-3 items-center">
+              <select
+                value={catalogFactoryId}
+                onChange={e => { setCatalogFactoryId(e.target.value); setCatalogPriceTableId('') }}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              >
+                <option value="">Todas as indústrias</option>
+                {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+              <select
+                value={catalogPriceTableId}
+                onChange={e => setCatalogPriceTableId(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              >
+                <option value="">Todas as coleções</option>
+                {(catalogPriceTables || []).map(pt => (
+                  <option key={pt.id} value={pt.id}>
+                    {pt.name}{pt.collection ? ` — ${pt.collection}` : ''}{pt.season ? ` ${pt.season}` : ''}{pt.year ? ` ${pt.year}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {catalogQ.isLoading ? <PageSpinner /> :
+             !catalogQ.data ? null :
+             catalogQ.data.length === 0
+               ? <EmptyState label="Nenhum produto encontrado" />
+               : <CatalogTab data={catalogQ.data} />
+            }
+          </div>
         )}
 
       </div>

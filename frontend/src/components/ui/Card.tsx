@@ -9,19 +9,14 @@ interface CardProps {
 }
 
 export function Card({ children, className, onClick, padding = 'md' }: CardProps) {
-  const paddings = {
-    none: '',
-    sm: 'p-3',
-    md: 'p-4',
-    lg: 'p-6',
-  }
+  const paddings = { none: '', sm: 'p-3', md: 'p-5', lg: 'p-6' }
 
   return (
     <div
       className={clsx(
-        'bg-white rounded-xl border border-gray-200 shadow-sm',
+        'bg-white rounded-xl border border-outline-variant shadow-sm',
         paddings[padding],
-        onClick && 'cursor-pointer hover:shadow-md hover:border-gray-300 transition-all duration-150',
+        onClick && 'cursor-pointer hover:border-primary/30 hover:shadow-md transition-all duration-150',
         className
       )}
       onClick={onClick}

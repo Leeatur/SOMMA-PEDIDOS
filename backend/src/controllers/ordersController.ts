@@ -122,6 +122,7 @@ export async function getOrder(req: AuthRequest, res: Response) {
       c.phone as client_phone, c.whatsapp as client_whatsapp,
       c.email as client_email, c.cnpj as client_cnpj,
       c.address as client_address, c.zip as client_zip,
+      c.state_registration as client_state_registration,
       u.name as rep_name,
       f.name as factory_name, f.contact as factory_contact,
       pt.name as price_table_name,
