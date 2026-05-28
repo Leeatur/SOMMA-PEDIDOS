@@ -174,7 +174,11 @@ export function OrderPrint() {
         total: item.unit_price * (1 - actualDiscPct / 100) * qtde,
       })
     } else if (item.grade_configs && item.grade_configs.length > 0) {
-      // Pack: uma linha por cor
+      // Pack: preço armazenado é por CAIXA; calcular preço por PEÇA
+      const totalPiecesPerBox = item.grade_configs.reduce((s, gc) => s + gc.total_pieces, 0)
+      const pricePerPiece = totalPiecesPerBox > 0 ? item.unit_price / totalPiecesPerBox : item.unit_price
+
+      // Uma linha por cor
       for (const gc of item.grade_configs) {
         seq++
         const qtde = gc.total_pieces * item.boxes_count
@@ -191,10 +195,10 @@ export function OrderPrint() {
           gradeLabel,
           sizeCols,
           qtde,
-          unitPriceBase: item.unit_price,
-          unitPriceDisc: item.unit_price * (1 - actualDiscPct / 100),
+          unitPriceBase: pricePerPiece,
+          unitPriceDisc: pricePerPiece * (1 - actualDiscPct / 100),
           discPct: actualDiscPct,
-          total: item.unit_price * (1 - actualDiscPct / 100) * qtde,
+          total: pricePerPiece * (1 - actualDiscPct / 100) * qtde,
         })
       }
     } else {
