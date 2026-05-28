@@ -4,7 +4,6 @@ import { AuthRequest } from '../middleware/auth'
 
 export async function listClients(req: AuthRequest, res: Response) {
   const { search } = req.query
-  const isAdmin = req.user!.role === 'admin'
 
   let sql = `
     SELECT c.*, u.name as rep_name
@@ -13,7 +12,6 @@ export async function listClients(req: AuthRequest, res: Response) {
     WHERE c.active = true
   `
   const params: unknown[] = []
-  if (!isAdmin) { sql += ` AND c.rep_id = $1`; params.push(req.user!.id) }
   if (search) {
     const idx = params.length + 1
     sql += ` AND (c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR c.cnpj ILIKE $${idx} OR c.city ILIKE $${idx})`
@@ -31,10 +29,6 @@ export async function getClient(req: AuthRequest, res: Response) {
     [req.params.id]
   )
   if (!rows[0]) { res.status(404).json({ error: 'Cliente não encontrado' }); return }
-  const isAdmin = req.user!.role === 'admin'
-  if (!isAdmin && rows[0].rep_id !== req.user!.id) {
-    res.status(403).json({ error: 'Acesso negado' }); return
-  }
   res.json(rows[0])
 }
 
