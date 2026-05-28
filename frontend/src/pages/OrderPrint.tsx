@@ -101,7 +101,6 @@ export function OrderPrint() {
   useEffect(() => {
     if (order && company) {
       document.title = `Pedido #${order.order_number} - ${order.client_name}`
-      setTimeout(() => window.print(), 600)
     }
   }, [order, company])
 
@@ -319,8 +318,8 @@ export function OrderPrint() {
                 }}
               />
             ) : null}
-            <div style={{ display: 'none', fontSize: 8, color: 'red', marginBottom: 4, wordBreak: 'break-all' }}>
-              ⚠️ Logo URL: {logoUrl || '(vazio)'}
+            <div style={{ fontSize: 8, color: 'red', marginBottom: 4, wordBreak: 'break-all' }}>
+              ⚠️ URL: {logoUrl || '(campo logo_url vazio no banco)'}
             </div>
             <div className="company-name">{companyName}</div>
             <div style={{ fontSize: 9 }}>{companyAddress}{companyZip ? ` — CEP ${companyZip}` : ''}</div>
