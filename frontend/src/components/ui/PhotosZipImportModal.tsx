@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Archive, Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import JSZip from 'jszip'
 import { priceTablesApi } from '../../api/client'
 import { Modal } from './Modal'
 import { Button } from './Button'
@@ -16,9 +17,8 @@ interface ZipResult {
   total: number
   matched: number
   skipped: number
-  notInTable: string[]
-  notInTableCount: number
-  errors?: string[]
+  notFound: number
+  errors: string[]
 }
 
 interface Props {
@@ -27,13 +27,36 @@ interface Props {
   onDone?: () => void
 }
 
+const REF_REGEX = /((?:TE|PKTE)\d+)/i
+const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp'])
+
+/** Limita quantas uploads rodam em paralelo */
+async function pLimit<T>(
+  tasks: (() => Promise<T>)[],
+  concurrency: number,
+  onDone?: () => void,
+): Promise<T[]> {
+  const results: T[] = []
+  let i = 0
+  async function run(): Promise<void> {
+    while (i < tasks.length) {
+      const idx = i++
+      results[idx] = await tasks[idx]()
+      onDone?.()
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, run))
+  return results
+}
+
 export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [priceTableId, setPriceTableId] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [overwrite, setOverwrite] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [uploading, setUploading] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [phase, setPhase] = useState<'idle' | 'reading' | 'uploading'>('idle')
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [result, setResult] = useState<ZipResult | null>(null)
   const [error, setError] = useState('')
 
@@ -47,41 +70,87 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
     setFile(null)
     setPriceTableId('')
     setOverwrite(false)
-    setProgress(0)
+    setProcessing(false)
+    setPhase('idle')
+    setProgress({ done: 0, total: 0 })
     setResult(null)
     setError('')
-    setUploading(false)
     if (fileRef.current) fileRef.current.value = ''
   }
 
   function handleClose() {
-    if (uploading) return
+    if (processing) return
     reset()
     onClose()
   }
 
   async function handleSubmit() {
     if (!file || !priceTableId) return
-    setUploading(true)
-    setProgress(0)
-    setResult(null)
+    setProcessing(true)
     setError('')
+    setResult(null)
+
     try {
-      const res = await priceTablesApi.importPhotosZip(file, priceTableId, overwrite, (pct) => {
-        // pct = upload progress (0-100); processing happens after upload
-        setProgress(Math.min(pct, 99))
+      // 1. Lê o ZIP no browser (sem enviar para o servidor)
+      setPhase('reading')
+      const zip = await JSZip.loadAsync(file)
+
+      // 2. Coleta arquivos de imagem com referência válida
+      const images: Array<{ ref: string; zipFile: JSZip.JSZipObject }> = []
+      zip.forEach((relativePath, zipFile) => {
+        if (zipFile.dir) return
+        const base = relativePath.split('/').pop() || ''
+        const ext = base.split('.').pop()?.toLowerCase() || ''
+        if (!IMAGE_EXTS.has(ext)) return
+        const m = base.match(REF_REGEX)
+        if (!m) return
+        images.push({ ref: m[1].toUpperCase(), zipFile })
       })
-      setProgress(100)
-      setResult(res.data as ZipResult)
+
+      if (images.length === 0) {
+        setError('Nenhuma imagem com referência TE/PKTE encontrada no ZIP.')
+        setProcessing(false)
+        setPhase('idle')
+        return
+      }
+
+      // 3. Faz upload de cada imagem individualmente (concorrência 4)
+      setPhase('uploading')
+      setProgress({ done: 0, total: images.length })
+
+      let matched = 0
+      let skipped = 0
+      let notFound = 0
+      const errors: string[] = []
+
+      const tasks = images.map(({ ref, zipFile }) => async () => {
+        try {
+          const blob = await zipFile.async('blob')
+          const res = await priceTablesApi.uploadPhotoByRef(priceTableId, ref, blob, overwrite)
+          const data = res.data as { matched?: boolean; skipped?: boolean; reason?: string }
+          if (data.matched) matched++
+          else if (data.skipped && data.reason === 'not_found') notFound++
+          else skipped++
+        } catch {
+          errors.push(ref)
+        }
+        setProgress(p => ({ ...p, done: p.done + 1 }))
+      })
+
+      await pLimit(tasks, 4)
+
+      setResult({ total: images.length, matched, skipped, notFound, errors })
       onDone?.()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-        || 'Erro ao processar o arquivo. Tente novamente.'
+      const msg = err instanceof Error ? err.message : 'Erro ao processar o arquivo ZIP.'
       setError(msg)
     } finally {
-      setUploading(false)
+      setProcessing(false)
+      setPhase('idle')
     }
   }
+
+  const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0
 
   return (
     <Modal
@@ -96,13 +165,17 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
           </div>
         ) : (
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleClose} disabled={uploading}>Cancelar</Button>
+            <Button variant="outline" onClick={handleClose} disabled={processing}>Cancelar</Button>
             <Button
               onClick={handleSubmit}
-              disabled={!file || !priceTableId || uploading}
-              loading={uploading}
+              disabled={!file || !priceTableId || processing}
+              loading={processing}
             >
-              {uploading ? `Enviando ${progress}%` : 'Importar Fotos'}
+              {processing
+                ? phase === 'reading'
+                  ? 'Lendo ZIP…'
+                  : `Enviando ${progress.done}/${progress.total}`
+                : 'Importar Fotos'}
             </Button>
           </div>
         )
@@ -115,35 +188,41 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
             <CheckCircle className="h-8 w-8 text-emerald-500 flex-shrink-0" />
             <div>
               <p className="font-semibold text-gray-900">Importação concluída!</p>
-              <p className="text-sm text-gray-500">{result.total} foto{result.total !== 1 ? 's' : ''} encontrada{result.total !== 1 ? 's' : ''} no ZIP</p>
+              <p className="text-sm text-gray-500">
+                {result.total} foto{result.total !== 1 ? 's' : ''} encontrada{result.total !== 1 ? 's' : ''} no ZIP
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="bg-emerald-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-emerald-600">{result.matched}</p>
-              <p className="text-xs text-emerald-700">Fotos vinculadas</p>
+              <p className="text-xs text-emerald-700">Vinculadas</p>
             </div>
-            <div className={`rounded-xl p-3 text-center ${result.notInTableCount > 0 ? 'bg-amber-50' : 'bg-gray-50'}`}>
-              <p className={`text-2xl font-bold ${result.notInTableCount > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                {result.notInTableCount}
+            <div className={`rounded-xl p-3 text-center ${result.skipped > 0 ? 'bg-gray-50' : 'bg-gray-50'}`}>
+              <p className="text-2xl font-bold text-gray-400">{result.skipped}</p>
+              <p className="text-xs text-gray-500">Ignoradas*</p>
+            </div>
+            <div className={`rounded-xl p-3 text-center ${result.notFound > 0 ? 'bg-amber-50' : 'bg-gray-50'}`}>
+              <p className={`text-2xl font-bold ${result.notFound > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                {result.notFound}
               </p>
-              <p className={`text-xs ${result.notInTableCount > 0 ? 'text-amber-700' : 'text-gray-500'}`}>
-                Refs não encontradas
+              <p className={`text-xs ${result.notFound > 0 ? 'text-amber-700' : 'text-gray-500'}`}>
+                Ref. não encontrada
               </p>
             </div>
           </div>
 
           {result.skipped > 0 && (
             <p className="text-xs text-gray-400 text-center">
-              {result.skipped} foto{result.skipped !== 1 ? 's' : ''} ignorada{result.skipped !== 1 ? 's' : ''} (já tinha foto e "sobreescrever" estava desativado)
+              * Ignoradas = já tinham foto e "sobreescrever" estava desativado
             </p>
           )}
 
-          {result.notInTable.length > 0 && (
-            <div className="bg-amber-50 rounded-lg p-3">
-              <p className="text-xs font-semibold text-amber-700 mb-1">Refs do ZIP não encontradas na tabela:</p>
-              <p className="text-xs text-amber-600 font-mono">{result.notInTable.join(', ')}</p>
+          {result.errors.length > 0 && (
+            <div className="bg-red-50 rounded-lg p-3">
+              <p className="text-xs font-semibold text-red-700 mb-1">Erros ao processar:</p>
+              <p className="text-xs text-red-600 font-mono">{result.errors.join(', ')}</p>
             </div>
           )}
         </div>
@@ -190,7 +269,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
             </label>
             <div
               className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors"
-              onClick={() => fileRef.current?.click()}
+              onClick={() => !processing && fileRef.current?.click()}
             >
               {file ? (
                 <div className="flex items-center justify-center gap-2 text-indigo-600">
@@ -202,7 +281,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
                 <div className="text-gray-400">
                   <Upload className="h-8 w-8 mx-auto mb-2" />
                   <p className="text-sm">Clique para selecionar o arquivo .zip</p>
-                  <p className="text-xs mt-0.5">Suporta até 2 GB</p>
+                  <p className="text-xs mt-0.5 text-gray-300">Qualquer tamanho — processado localmente</p>
                 </div>
               )}
             </div>
@@ -227,18 +306,24 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
           </label>
 
           {/* Progresso */}
-          {uploading && (
+          {processing && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-indigo-600">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>{progress < 100 ? `Enviando arquivo… ${progress}%` : 'Processando fotos…'}</span>
+                <span>
+                  {phase === 'reading'
+                    ? 'Lendo arquivo ZIP…'
+                    : `Enviando fotos: ${progress.done} de ${progress.total} (${pct}%)`}
+                </span>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-1.5">
-                <div
-                  className="bg-indigo-500 h-1.5 rounded-full transition-all"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+              {phase === 'uploading' && (
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className="bg-indigo-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              )}
             </div>
           )}
 

@@ -139,22 +139,19 @@ export const priceTablesApi = {
       timeout: 600000, // 10 min — PDFs grandes podem demorar
     })
   },
-  importPhotosZip: (
-    file: File,
-    price_table_id: string,
+  uploadPhotoByRef: (
+    priceTableId: string,
+    reference: string,
+    imageBlob: Blob,
     overwrite = false,
-    onProgress?: (pct: number) => void,
   ) => {
     const fd = new FormData()
-    fd.append('file', file)
-    fd.append('price_table_id', price_table_id)
-    if (overwrite) fd.append('overwrite', 'true')
-    return apiClient.post('/price-tables/import-photos-zip', fd, {
-      timeout: 900_000, // 15 min — ZIPs grandes podem demorar
-      onUploadProgress: (e) => {
-        if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100))
-      },
-    })
+    fd.append('file', imageBlob, `${reference}.jpg`)
+    return apiClient.post(
+      `/price-tables/${priceTableId}/photo-by-ref?reference=${encodeURIComponent(reference)}&overwrite=${overwrite}`,
+      fd,
+      { timeout: 60_000 },
+    )
   },
   clearProductImages: (id: string) => apiClient.delete(`/price-tables/${id}/images`),
   delete: (id: string) => apiClient.delete(`/price-tables/${id}`),

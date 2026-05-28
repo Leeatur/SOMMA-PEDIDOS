@@ -434,6 +434,60 @@ export async function importPhotosZip(req: AuthRequest, res: Response) {
   res.json({ total: extracted.length, matched, skipped, notInTable, notInTableCount: notInTable.length, errors })
 }
 
+// Upload de foto por referência (usado pelo cliente JSZip para uploads individuais)
+// POST /price-tables/:id/photo-by-ref?reference=TE10308&overwrite=true
+export async function uploadPhotoByRef(req: AuthRequest, res: Response) {
+  if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
+  const priceTableId = req.params.id
+  const reference = (req.query.reference as string || '').toUpperCase().trim()
+  const overwrite = req.query.overwrite === 'true'
+  if (!reference) { res.status(400).json({ error: 'reference obrigatório' }); return }
+
+  // Verifica se referência existe na tabela
+  const { rows: prods } = await query(
+    'SELECT id FROM products WHERE price_table_id=$1 AND UPPER(reference)=$2',
+    [priceTableId, reference]
+  )
+  if (prods.length === 0) { res.json({ skipped: true, reason: 'not_found' }); return }
+
+  // Verifica se já tem foto (quando overwrite=false)
+  if (!overwrite) {
+    const { rows: existing } = await query(
+      'SELECT image_url FROM products WHERE price_table_id=$1 AND UPPER(reference)=$2 AND image_url IS NOT NULL',
+      [priceTableId, reference]
+    )
+    if (existing.length > 0) { res.json({ skipped: true, reason: 'already_exists' }); return }
+  }
+
+  try {
+    const sharpLib = (await import('sharp')).default
+    const resized = await sharpLib(req.file.buffer)
+      .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer()
+
+    let finalUrl: string
+    if (isR2Configured()) {
+      finalUrl = await uploadToR2(resized, `${reference}.jpg`, 'products')
+    } else {
+      const fs = await import('fs')
+      const localDest = path.join(__dirname, '../../..', 'uploads', 'products', `${reference}.jpg`)
+      fs.writeFileSync(localDest, resized)
+      finalUrl = `/uploads/products/${reference}.jpg`
+    }
+
+    await query(
+      `UPDATE products SET image_url=$1, updated_at=NOW()
+       WHERE price_table_id=$2 AND UPPER(reference)=$3`,
+      [finalUrl, priceTableId, reference]
+    )
+    res.json({ matched: true, reference, url: finalUrl })
+  } catch (err) {
+    console.error(`Erro upload foto ${reference}:`, err)
+    res.status(500).json({ error: `Erro ao processar ${reference}` })
+  }
+}
+
 export async function updateGradeConfig(req: AuthRequest, res: Response) {
   const { product_id } = req.params
   const { grade_configs } = req.body
