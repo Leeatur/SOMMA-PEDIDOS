@@ -151,21 +151,53 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
           )}
         </div>
 
-        {p.grade_configs && p.grade_configs.length > 0 && !p.size_range && (
+        {p.grade_configs && p.grade_configs.length > 0 && (
           <div className="bg-gray-50 rounded-xl px-4 py-2.5">
-            <p className="text-xs text-gray-500 mb-1 font-medium">Grade disponível</p>
-            {p.grade_configs.map((gc, i) => {
-              const sizes = sortSizes(Object.keys(gc.sizes))
-              const first = sizes[0]
-              const last = sizes[sizes.length - 1]
-              return (
-                <p key={i} className="text-sm font-semibold text-gray-800">
-                  {gc.color && <span className="text-gray-500 font-normal mr-1">{gc.color} —</span>}
-                  {first} ao {last}
-                  <span className="text-xs font-normal text-gray-400 ml-2">({gc.total_pieces} pç/cx)</span>
-                </p>
-              )
-            })}
+            <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">
+              {p.type === 'regular' ? 'Tamanhos disponíveis' : 'Grade por caixa'}
+            </p>
+            {p.type === 'regular' ? (
+              /* Regular: só os tamanhos — o rep digita as quantidades na hora */
+              <div className="flex flex-wrap gap-1.5">
+                {sortSizes(Array.from(new Set(p.grade_configs.flatMap(gc => Object.keys(gc.sizes))))).map(s => (
+                  <span key={s} className="px-2.5 py-1 text-sm font-semibold bg-white text-indigo-700 rounded-lg border border-indigo-200 shadow-sm">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              /* Pack: tabela com quantidade por cor/tamanho */
+              <div className="space-y-2">
+                {p.grade_configs.map((gc, i) => {
+                  const sizes = sortSizes(Object.keys(gc.sizes))
+                  return (
+                    <div key={i}>
+                      {gc.color && <p className="text-xs font-medium text-gray-600 mb-1">{gc.color}</p>}
+                      <div className="overflow-x-auto scrollbar-hide">
+                        <table className="min-w-max text-xs border border-gray-200 rounded-lg overflow-hidden">
+                          <thead className="bg-white">
+                            <tr>
+                              {sizes.map(s => (
+                                <th key={s} className="px-2 py-1 text-gray-600 font-medium text-center min-w-[28px]">{s}</th>
+                              ))}
+                              <th className="px-2 py-1 text-gray-500 text-center border-l border-gray-200">Tot</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="bg-gray-50">
+                              {sizes.map(s => (
+                                <td key={s} className="px-2 py-1.5 text-center font-mono">{gc.sizes[s]}</td>
+                              ))}
+                              <td className="px-2 py-1.5 text-center font-bold border-l border-gray-200">{gc.total_pieces}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

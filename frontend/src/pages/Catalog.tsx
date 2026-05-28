@@ -46,7 +46,22 @@ interface Product {
 interface PriceTable { id: string; name: string; factory_name: string }
 interface Factory { id: string; name: string }
 
-function GradeTable({ configs }: { configs: GradeConfig[] }) {
+function GradeTable({ configs, type }: { configs: GradeConfig[]; type: 'regular' | 'pack' }) {
+  if (type === 'regular') {
+    // Regular: apenas mostra os tamanhos disponíveis (sem linha de qtd — o rep digita as suas)
+    const allSizes = Array.from(new Set(configs.flatMap(gc => Object.keys(gc.sizes)))).sort()
+    return (
+      <div className="flex flex-wrap gap-1">
+        {allSizes.map(s => (
+          <span key={s} className="px-2 py-0.5 text-xs font-semibold bg-indigo-50 text-indigo-700 rounded-md border border-indigo-100">
+            {s}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  // Pack: tabela completa com quantidade por tamanho
   return (
     <div className="space-y-2">
       {configs.map((gc, i) => {
@@ -61,7 +76,7 @@ function GradeTable({ configs }: { configs: GradeConfig[] }) {
                     {sizes.map((s) => (
                       <th key={s} className="px-2 py-1 text-gray-600 font-medium text-center min-w-[32px]">{s}</th>
                     ))}
-                    <th className="px-2 py-1 text-gray-500 font-medium text-center border-l border-gray-200">Total</th>
+                    <th className="px-2 py-1 text-gray-500 font-medium text-center border-l border-gray-200">Tot</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -410,7 +425,7 @@ export function Catalog() {
                     {/* Grade expand */}
                     {isExpanded && p.grade_configs && (
                       <div className="mt-2 pt-2 border-t border-gray-100">
-                        <GradeTable configs={p.grade_configs} />
+                        <GradeTable configs={p.grade_configs} type={p.type} />
                       </div>
                     )}
                   </div>
