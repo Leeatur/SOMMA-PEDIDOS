@@ -1,7 +1,6 @@
 import { Response } from 'express'
 import path from 'path'
 import { execSync } from 'child_process'
-import sharp from 'sharp'
 import { query, pool } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 import { importExcel, buildDefaultGrade, ImportedProduct } from '../services/import/excelImporter'
@@ -414,7 +413,8 @@ print(json.dumps(results))
       let finalUrl: string
       try {
         // Redimensiona para max 1200px preservando proporção, JPEG 85%
-        const resized = await sharp(item.path)
+        const sharpLib = (await import('sharp')).default
+        const resized = await sharpLib(item.path)
           .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
           .jpeg({ quality: 85 })
           .toBuffer()
