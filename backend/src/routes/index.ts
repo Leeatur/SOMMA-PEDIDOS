@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import multer from 'multer'
+import os from 'os'
 import { authenticate, requireAdmin } from '../middleware/auth'
 import * as auth from '../controllers/authController'
 import * as users from '../controllers/usersController'
@@ -21,7 +22,6 @@ const upload = multer({
 })
 
 // Multer para ZIP de fotos — usa disco para suportar arquivos grandes (1GB+)
-import os from 'os'
 const uploadZip = multer({
   storage: multer.diskStorage({
     destination: os.tmpdir(),

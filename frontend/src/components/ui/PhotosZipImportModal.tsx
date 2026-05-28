@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Archive, Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
-import { priceTablesApi, factoriesApi } from '../../api/client'
+import { priceTablesApi } from '../../api/client'
 import { Modal } from './Modal'
 import { Button } from './Button'
 
