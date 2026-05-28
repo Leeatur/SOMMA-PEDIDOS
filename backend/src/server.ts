@@ -29,26 +29,6 @@ app.use('/api', routes)
 // Health check
 app.get('/health', (_, res) => res.json({ status: 'ok', ts: new Date() }))
 
-// Storage diagnostic (sem autenticação para diagnóstico rápido)
-app.get('/api/debug/storage', async (_, res) => {
-  const { isR2Configured } = await import('./utils/r2')
-  const { query } = await import('./config/database')
-  const r2ok = isR2Configured()
-  const logoRow = await query("SELECT value FROM company_settings WHERE key='logo_url'")
-  const imgRow  = await query("SELECT image_url FROM products WHERE image_url IS NOT NULL LIMIT 3")
-  res.json({
-    r2_configured: r2ok,
-    env: {
-      R2_ACCOUNT_ID:     process.env.R2_ACCOUNT_ID     ? '✅ set' : '❌ missing',
-      R2_ACCESS_KEY_ID:  process.env.R2_ACCESS_KEY_ID  ? '✅ set' : '❌ missing',
-      R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY ? '✅ set' : '❌ missing',
-      R2_BUCKET_NAME:    process.env.R2_BUCKET_NAME    ? '✅ set' : '❌ missing',
-      R2_PUBLIC_URL:     process.env.R2_PUBLIC_URL     || '❌ missing',
-    },
-    logo_url: logoRow.rows[0]?.value || null,
-    sample_image_urls: imgRow.rows.map((r: { image_url: string }) => r.image_url),
-  })
-})
 
 // Em produção, serve o frontend buildado (arquivo gerado em frontend/dist)
 if (isProd) {
