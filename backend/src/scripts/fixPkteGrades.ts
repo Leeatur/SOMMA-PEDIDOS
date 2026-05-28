@@ -180,13 +180,17 @@ async function run() {
       console.warn('⚠️  Correção de subtotais falhou (não crítico):', fixErr)
     }
   } catch (err) {
-    await client.query('ROLLBACK')
-    console.error('❌ Erro:', err)
-    process.exit(1)
+    try { await client.query('ROLLBACK') } catch (_) { /* ignora */ }
+    console.error('❌ Erro no fixPkteGrades (não crítico para o servidor):', err)
+    // NÃO chama process.exit(1) — erro aqui não deve impedir o servidor de subir
   } finally {
-    client.release()
-    await pool.end()
+    try { client.release() } catch (_) { /* ignora */ }
+    try { await pool.end() } catch (_) { /* ignora */ }
   }
 }
 
-run()
+run().catch(err => {
+  console.error('❌ fixPkteGrades falhou:', err)
+  // Sai normalmente (código 0) para não bloquear o startup do servidor
+  process.exit(0)
+})
