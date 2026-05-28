@@ -23,7 +23,7 @@ import {
   CreditCard,
   Truck,
 } from 'lucide-react'
-import { ordersApi, statusesApi, productsApi } from '../api/client'
+import { ordersApi, statusesApi, productsApi, clientsApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { StatusBadge } from '../components/ui/Badge'
 import { Card } from '../components/ui/Card'
@@ -105,7 +105,10 @@ interface EditInfoForm {
   buyer_name: string
   industry_order_number: string
   notes: string
+  client_id: string
+  client_search: string
 }
+interface ClientOption { id: string; name: string; trade_name: string | null; city: string | null }
 
 interface Status { id: string; name: string; color: string }
 
@@ -203,7 +206,10 @@ export function OrderDetail() {
     buyer_name: '',
     industry_order_number: '',
     notes: '',
+    client_id: '',
+    client_search: '',
   })
+  const [removeItemId, setRemoveItemId] = useState<string | null>(null)
 
   const { data: order, isLoading } = useQuery<OrderDetail>({
     queryKey: ['order', id],
@@ -259,10 +265,21 @@ export function OrderDetail() {
       buyer_name: editInfoForm.buyer_name || null,
       industry_order_number: editInfoForm.industry_order_number || null,
       notes: editInfoForm.notes || null,
+      client_id: editInfoForm.client_id || null,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['order', id] })
+      qc.invalidateQueries({ queryKey: ['orders'] })
       setEditInfoModal(false)
+    },
+  })
+
+  const removeItemMut = useMutation({
+    mutationFn: (item_id: string) => ordersApi.removeItem(id!, item_id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order', id] })
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      setRemoveItemId(null)
     },
   })
 
@@ -275,9 +292,18 @@ export function OrderDetail() {
       buyer_name: order.buyer_name || '',
       industry_order_number: order.industry_order_number || '',
       notes: order.notes || '',
+      client_id: '',
+      client_search: '',
     })
     setEditInfoModal(true)
   }
+
+  // Busca de clientes para trocar no pedido
+  const { data: clientResults } = useQuery<ClientOption[]>({
+    queryKey: ['clients-search-order', editInfoForm.client_search],
+    queryFn: () => clientsApi.list(editInfoForm.client_search).then(r => r.data),
+    enabled: editInfoModal && editInfoForm.client_search.length >= 2,
+  })
 
   const { data: addProducts, isLoading: loadingAddProducts } = useQuery<Product[]>({
     queryKey: ['products-add', order?.price_table_id, productSearch],
@@ -559,6 +585,15 @@ export function OrderDetail() {
 
                   {isExpanded && (
                     <div className="px-3 pb-3 border-t border-gray-100 pt-2">
+                      {/* Botão remover item */}
+                      <div className="flex justify-end mb-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setRemoveItemId(item.id) }}
+                          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" /> Remover item
+                        </button>
+                      </div>
                       {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
                         <>
                           <p className="text-xs font-medium text-gray-600 mb-1.5">Quantidades por tamanho:</p>
@@ -842,32 +877,79 @@ export function OrderDetail() {
       <Modal
         open={editInfoModal}
         onClose={() => setEditInfoModal(false)}
-        title="Editar Informações do Pedido"
+        title="Editar Pedido"
         size="md"
         footer={
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setEditInfoModal(false)} disabled={updateInfoMut.isPending}>
               Cancelar
             </Button>
-            <Button
-              onClick={() => updateInfoMut.mutate()}
-              loading={updateInfoMut.isPending}
-            >
+            <Button onClick={() => updateInfoMut.mutate()} loading={updateInfoMut.isPending}>
               Salvar
             </Button>
           </div>
         }
       >
         <div className="space-y-4">
+
+          {/* ── Trocar cliente ── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Data de Entrega</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+            <div className="text-xs text-gray-500 mb-1.5 bg-gray-50 rounded-lg px-2 py-1">
+              Atual: <span className="font-semibold text-gray-700">{order.client_name}</span>
+            </div>
             <input
-              type="date"
-              value={editInfoForm.delivery_date}
-              onChange={e => setEditInfoForm(f => ({ ...f, delivery_date: e.target.value }))}
+              type="text"
+              value={editInfoForm.client_search}
+              onChange={e => setEditInfoForm(f => ({ ...f, client_search: e.target.value, client_id: '' }))}
+              placeholder="Digite para buscar e trocar cliente..."
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             />
+            {editInfoForm.client_id && (
+              <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Novo cliente selecionado: {clientResults?.find(c => c.id === editInfoForm.client_id)?.name}
+              </p>
+            )}
+            {editInfoForm.client_search.length >= 2 && (clientResults || []).length > 0 && !editInfoForm.client_id && (
+              <div className="border border-gray-200 rounded-lg mt-1 max-h-36 overflow-y-auto shadow-sm">
+                {(clientResults || []).slice(0, 8).map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setEditInfoForm(f => ({ ...f, client_id: c.id, client_search: c.name }))}
+                    className="w-full text-left px-3 py-2 hover:bg-indigo-50 text-sm border-b border-gray-50 last:border-0"
+                  >
+                    <p className="font-medium text-gray-900 truncate">{c.name}</p>
+                    {c.trade_name && <p className="text-xs text-gray-500 truncate">{c.trade_name} · {c.city}</p>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          <div className="border-t border-gray-100 pt-3 grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data de Entrega</label>
+              <input
+                type="date"
+                value={editInfoForm.delivery_date}
+                onChange={e => setEditInfoForm(f => ({ ...f, delivery_date: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Frete</label>
+              <select
+                value={editInfoForm.freight_type}
+                onChange={e => setEditInfoForm(f => ({ ...f, freight_type: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              >
+                <option value="CIF">CIF</option>
+                <option value="FOB">FOB</option>
+              </select>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Cond. de Pagamento</label>
             <input
@@ -878,36 +960,27 @@ export function OrderDetail() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Frete</label>
-            <select
-              value={editInfoForm.freight_type}
-              onChange={e => setEditInfoForm(f => ({ ...f, freight_type: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-            >
-              <option value="CIF">CIF (por conta da fábrica)</option>
-              <option value="FOB">FOB (por conta do cliente)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Comprador</label>
-            <input
-              type="text"
-              value={editInfoForm.buyer_name}
-              onChange={e => setEditInfoForm(f => ({ ...f, buyer_name: e.target.value }))}
-              placeholder="Nome do comprador..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">N° Pedido Indústria</label>
-            <input
-              type="text"
-              value={editInfoForm.industry_order_number}
-              onChange={e => setEditInfoForm(f => ({ ...f, industry_order_number: e.target.value }))}
-              placeholder="Número do pedido na indústria..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Comprador</label>
+              <input
+                type="text"
+                value={editInfoForm.buyer_name}
+                onChange={e => setEditInfoForm(f => ({ ...f, buyer_name: e.target.value }))}
+                placeholder="Nome do comprador..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nº na Representada</label>
+              <input
+                type="text"
+                value={editInfoForm.industry_order_number}
+                onChange={e => setEditInfoForm(f => ({ ...f, industry_order_number: e.target.value }))}
+                placeholder="Número da indústria..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
@@ -920,6 +993,31 @@ export function OrderDetail() {
             />
           </div>
         </div>
+      </Modal>
+
+      {/* ── Modal Confirmar Remoção de Item ── */}
+      <Modal
+        open={!!removeItemId}
+        onClose={() => setRemoveItemId(null)}
+        title="Remover item"
+        size="sm"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setRemoveItemId(null)}>Cancelar</Button>
+            <Button
+              variant="danger"
+              loading={removeItemMut.isPending}
+              onClick={() => removeItemId && removeItemMut.mutate(removeItemId)}
+            >
+              Remover
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-gray-600">
+          Tem certeza que deseja remover este item do pedido?
+          Os totais serão recalculados automaticamente.
+        </p>
       </Modal>
 
       {/* ── Modal Excluir Pedido ── */}

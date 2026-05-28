@@ -240,9 +240,11 @@ export const ordersApi = {
     notes?: string | null
     buyer_name?: string | null
     industry_order_number?: string | null
+    client_id?: string | null
   }) => apiClient.patch(`/orders/${id}/info`, data),
   addItems: (id: string, items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number; sizes?: Record<string, number> }>) =>
     apiClient.post(`/orders/${id}/items`, { items }),
+  removeItem: (id: string, item_id: string) => apiClient.delete(`/orders/${id}/items/${item_id}`),
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),
   delete: (id: string) => apiClient.delete(`/orders/${id}`),
   listTrash: () => apiClient.get('/orders/trash'),

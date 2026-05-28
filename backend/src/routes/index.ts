@@ -83,6 +83,7 @@ router.patch('/orders/:id/info', authenticate, orders.updateOrderInfo)
 router.patch('/orders/:id/restore', authenticate, requireAdmin, orders.restoreOrder)
 router.delete('/orders/:id', authenticate, orders.deleteOrder)
 router.post('/orders/:id/items', authenticate, orders.addOrderItems)
+router.delete('/orders/:id/items/:item_id', authenticate, orders.removeOrderItem)
 router.post('/orders/sync', authenticate, orders.syncOfflineOrders)
 
 // Relatórios

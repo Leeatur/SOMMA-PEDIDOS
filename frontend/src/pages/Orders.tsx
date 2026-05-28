@@ -25,6 +25,7 @@ interface Order {
   id: string
   order_number: number
   client_name: string
+  client_trade_name: string | null
   client_city: string | null
   factory_name: string
   price_table_name: string
@@ -32,10 +33,14 @@ interface Order {
   total_value: number
   total_pieces: number
   discount_pct: number
+  rep_commission_value: number
   status_id: string | null
   status_name: string | null
   status_color: string | null
   created_at: string
+  industry_order_number: string | null
+  delivery_date: string | null
+  payment_terms: string | null
 }
 
 interface Status { id: string; name: string; color: string }
@@ -44,27 +49,36 @@ interface Factory { id: string; name: string }
 // ─── Column definitions ───────────────────────────────────────────────────────
 
 const ALL_COL_DEFS: ColumnDef[] = [
-  { id: 'date',     label: 'Data' },
-  { id: 'number',   label: 'Nº Pedido',   alwaysVisible: true },
-  { id: 'client',   label: 'Cliente',     alwaysVisible: true },
-  { id: 'city',     label: 'Cidade' },
-  { id: 'factory',  label: 'Fábrica' },
-  { id: 'table',    label: 'Tabela',      defaultVisible: false },
-  { id: 'rep',      label: 'Vendedor' },
-  { id: 'items',    label: 'Itens (pç)' },
-  { id: 'value',    label: 'Valor' },
-  { id: 'discount', label: 'Desconto',    defaultVisible: false },
-  { id: 'status',   label: 'Status' },
+  { id: 'date',           label: 'Data' },
+  { id: 'number',         label: 'Nº Pedido',         alwaysVisible: true },
+  { id: 'factory',        label: 'Indústria' },
+  { id: 'rep',            label: 'Vendedor' },
+  { id: 'nr_rep',         label: 'Nº na Representada', defaultVisible: true },
+  { id: 'razao_social',   label: 'Razão Social',       alwaysVisible: true },
+  { id: 'client',         label: 'Cliente' },
+  { id: 'city',           label: 'Cidade' },
+  { id: 'items',          label: 'Itens (pç)' },
+  { id: 'value',          label: 'Valor' },
+  { id: 'delivery',       label: 'Prev. Entrega',      defaultVisible: true },
+  { id: 'payment',        label: 'Cond. Pagamento',    defaultVisible: true },
+  { id: 'commission',     label: 'Comissão',           defaultVisible: false },
+  { id: 'discount',       label: 'Desconto',           defaultVisible: false },
+  { id: 'table',          label: 'Tabela',             defaultVisible: false },
+  { id: 'status',         label: 'Status' },
 ]
 
 // Column header meta (alignment / width)
 const COL_META: Record<string, { align?: string; width?: string }> = {
-  date:     { width: 'w-16' },
-  number:   { width: 'w-20' },
-  items:    { align: 'text-center', width: 'w-16' },
-  value:    { align: 'text-right',  width: 'w-28' },
-  discount: { align: 'text-right',  width: 'w-20' },
-  status:   { width: 'w-36' },
+  date:        { width: 'w-16' },
+  number:      { width: 'w-20' },
+  nr_rep:      { width: 'w-24' },
+  items:       { align: 'text-center', width: 'w-16' },
+  value:       { align: 'text-right',  width: 'w-28' },
+  commission:  { align: 'text-right',  width: 'w-24' },
+  discount:    { align: 'text-right',  width: 'w-20' },
+  delivery:    { width: 'w-24' },
+  payment:     { width: 'w-32' },
+  status:      { width: 'w-36' },
 }
 
 function OrderHeader({ id, label }: { id: string; label: string }) {
@@ -92,34 +106,40 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
           <span className="text-xs font-bold text-indigo-600">{formatOrderNumber(o.order_number)}</span>
         </td>
       )
-    case 'client':
-      return (
-        <td className="px-2 py-2.5 max-w-[200px]">
-          <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{o.client_name}</p>
-        </td>
-      )
-    case 'city':
-      return (
-        <td className="px-2 py-2.5 max-w-[130px]">
-          <span className="text-xs text-gray-600 truncate block">{o.client_city || '—'}</span>
-        </td>
-      )
     case 'factory':
       return (
-        <td className="px-2 py-2.5 max-w-[140px]">
-          <span className="text-xs text-gray-600 truncate block">{o.factory_name}</span>
-        </td>
-      )
-    case 'table':
-      return (
-        <td className="px-2 py-2.5 max-w-[150px]">
-          <span className="text-xs text-gray-400 truncate block">{o.price_table_name}</span>
+        <td className="px-2 py-2.5 max-w-[110px]">
+          <span className="text-xs font-semibold text-gray-700 truncate block">{o.factory_name}</span>
         </td>
       )
     case 'rep':
       return (
         <td className="px-2 py-2.5 max-w-[120px]">
           <span className="text-xs text-gray-500 truncate block">{o.rep_name || '—'}</span>
+        </td>
+      )
+    case 'nr_rep':
+      return (
+        <td className="px-2 py-2.5 whitespace-nowrap">
+          <span className="text-xs text-gray-500 font-mono">{o.industry_order_number || '—'}</span>
+        </td>
+      )
+    case 'razao_social':
+      return (
+        <td className="px-2 py-2.5 max-w-[200px]">
+          <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{o.client_name}</p>
+        </td>
+      )
+    case 'client':
+      return (
+        <td className="px-2 py-2.5 max-w-[160px]">
+          <span className="text-xs text-gray-600 truncate block">{o.client_trade_name || '—'}</span>
+        </td>
+      )
+    case 'city':
+      return (
+        <td className="px-2 py-2.5 max-w-[120px]">
+          <span className="text-xs text-gray-600 truncate block">{o.client_city || '—'}</span>
         </td>
       )
     case 'items':
@@ -136,12 +156,42 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
           <span className="text-sm font-bold text-gray-900">{formatCurrency(o.total_value)}</span>
         </td>
       )
+    case 'delivery':
+      return (
+        <td className="px-2 py-2.5 whitespace-nowrap">
+          {o.delivery_date
+            ? <span className="text-xs text-gray-600">
+                {new Date(o.delivery_date + 'T12:00:00').toLocaleDateString('pt-BR')}
+              </span>
+            : <span className="text-xs text-gray-300">—</span>}
+        </td>
+      )
+    case 'payment':
+      return (
+        <td className="px-2 py-2.5 max-w-[130px]">
+          <span className="text-xs text-gray-600 truncate block">{o.payment_terms || '—'}</span>
+        </td>
+      )
+    case 'commission':
+      return (
+        <td className="px-2 py-2.5 text-right whitespace-nowrap">
+          {o.rep_commission_value > 0
+            ? <span className="text-xs font-semibold text-emerald-600">{formatCurrency(o.rep_commission_value)}</span>
+            : <span className="text-xs text-gray-300">—</span>}
+        </td>
+      )
     case 'discount':
       return (
         <td className="px-2 py-2.5 text-right whitespace-nowrap last:pr-3">
           {o.discount_pct > 0
             ? <span className="text-xs font-semibold text-emerald-600">-{o.discount_pct}%</span>
             : <span className="text-xs text-gray-300">—</span>}
+        </td>
+      )
+    case 'table':
+      return (
+        <td className="px-2 py-2.5 max-w-[150px]">
+          <span className="text-xs text-gray-400 truncate block">{o.price_table_name}</span>
         </td>
       )
     case 'status':

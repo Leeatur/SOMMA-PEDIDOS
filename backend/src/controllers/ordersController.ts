@@ -83,7 +83,7 @@ export async function listOrders(req: AuthRequest, res: Response) {
 
   let sql = `
     SELECT o.*,
-      c.name as client_name, c.city as client_city,
+      c.name as client_name, c.trade_name as client_trade_name, c.city as client_city,
       u.name as rep_name,
       f.name as factory_name,
       pt.name as price_table_name,
@@ -324,17 +324,23 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
 
 // Atualiza campos de informação do pedido
 export async function updateOrderInfo(req: AuthRequest, res: Response) {
-  const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number } = req.body
+  const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id } = req.body
   const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1', [req.params.id])
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
   const isAdmin = req.user!.role === 'admin'
   if (!isAdmin && order.rep_id !== req.user!.id) {
     res.status(403).json({ error: 'Acesso negado' }); return
   }
+  // Valida client_id se informado
+  if (client_id) {
+    const { rows: [cli] } = await query('SELECT id FROM clients WHERE id=$1 AND active=true', [client_id])
+    if (!cli) { res.status(400).json({ error: 'Cliente não encontrado' }); return }
+  }
   await query(
     `UPDATE orders SET
        payment_terms=$1, delivery_date=$2, freight_type=$3,
        notes=$4, buyer_name=$5, industry_order_number=$6,
+       ${client_id ? 'client_id=$8,' : ''}
        updated_at=NOW()
      WHERE id=$7`,
     [
@@ -345,6 +351,44 @@ export async function updateOrderInfo(req: AuthRequest, res: Response) {
       buyer_name ?? null,
       industry_order_number ?? null,
       req.params.id,
+      ...(client_id ? [client_id] : []),
+    ]
+  )
+  res.json({ ok: true })
+}
+
+// Remove um item específico de um pedido e recalcula totais
+export async function removeOrderItem(req: AuthRequest, res: Response) {
+  const { id, item_id } = req.params
+  const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1 AND deleted_at IS NULL', [id])
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  const isAdmin = req.user!.role === 'admin'
+  if (!isAdmin && order.rep_id !== req.user!.id) {
+    res.status(403).json({ error: 'Acesso negado' }); return
+  }
+  const { rows: [item] } = await query('SELECT id FROM order_items WHERE id=$1 AND order_id=$2', [item_id, id])
+  if (!item) { res.status(404).json({ error: 'Item não encontrado' }); return }
+
+  await query('DELETE FROM order_items WHERE id=$1', [item_id])
+
+  // Recalcula totais do pedido
+  const { rows: [totals] } = await query(
+    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
+     FROM order_items WHERE order_id=$1`,
+    [id]
+  )
+  const { rows: [o] } = await query('SELECT rep_commission_pct, office_commission_pct FROM orders WHERE id=$1', [id])
+  const newValue = Number(totals.val)
+  await query(
+    `UPDATE orders SET total_pieces=$1, total_value=$2,
+       rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
+     WHERE id=$5`,
+    [
+      Number(totals.pcs),
+      newValue,
+      Math.round(newValue * o.rep_commission_pct / 100 * 100) / 100,
+      Math.round(newValue * o.office_commission_pct / 100 * 100) / 100,
+      id,
     ]
   )
   res.json({ ok: true })
