@@ -234,8 +234,13 @@ export function OrderPrint() {
   const companyZip     = company.zip || ''
   const companyPhone   = company.phone || ''
   const companyWhats   = company.whatsapp || ''
-  // Usa a URL diretamente: se for R2 já é https://..., se for local é /uploads/...
-  const logoUrl = company.logo_url || null
+  // Normaliza a URL do logo: se for relativa (/uploads/...), torna absoluta
+  const rawLogoUrl = company.logo_url || ''
+  const logoUrl = rawLogoUrl
+    ? rawLogoUrl.startsWith('http')
+      ? rawLogoUrl
+      : `${window.location.origin}${rawLogoUrl}`
+    : null
 
   const clientAddress  = [
     order.client_address,
@@ -300,14 +305,23 @@ export function OrderPrint() {
         {/* ── CABEÇALHO ── */}
         <div className="header-box">
           <div className="company-info">
-            {logoUrl && (
+            {logoUrl ? (
               <img
                 src={logoUrl}
-                alt=""
-                style={{ height: 56, marginBottom: 6, objectFit: 'contain', display: 'block' }}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                alt="Logo"
+                style={{ height: 56, marginBottom: 6, objectFit: 'contain', display: 'block', maxWidth: 200 }}
+                onLoad={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'block' }}
+                onError={(e) => {
+                  const img = e.currentTarget as HTMLImageElement
+                  img.style.display = 'none'
+                  const dbg = img.nextElementSibling as HTMLElement | null
+                  if (dbg) dbg.style.display = 'block'
+                }}
               />
-            )}
+            ) : null}
+            <div style={{ display: 'none', fontSize: 8, color: 'red', marginBottom: 4, wordBreak: 'break-all' }}>
+              ⚠️ Logo URL: {logoUrl || '(vazio)'}
+            </div>
             <div className="company-name">{companyName}</div>
             <div style={{ fontSize: 9 }}>{companyAddress}{companyZip ? ` — CEP ${companyZip}` : ''}</div>
             {(companyPhone || companyWhats) && (
