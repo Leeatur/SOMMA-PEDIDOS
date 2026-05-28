@@ -1,5 +1,7 @@
 import { Response } from 'express'
 import path from 'path'
+import { execSync } from 'child_process'
+import sharp from 'sharp'
 import { query, pool } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 import { importExcel, buildDefaultGrade, ImportedProduct } from '../services/import/excelImporter'
@@ -301,6 +303,127 @@ export async function deletePriceTable(req: AuthRequest, res: Response) {
     return
   }
   res.json({ deleted: true })
+}
+
+// Importa fotos em massa via arquivo ZIP
+// Extrai imagens do ZIP, lê a referência do nome do arquivo (ex: "001 TE10308-791.jpg" → TE10308)
+// redimensiona com sharp e sobe para R2 (ou local como fallback)
+export async function importPhotosZip(req: AuthRequest, res: Response) {
+  const hasFile = req.file && (req.file.buffer?.length || req.file.path)
+  if (!hasFile) { res.status(400).json({ error: 'Arquivo ZIP não enviado' }); return }
+  const { price_table_id, overwrite } = req.body
+  if (!price_table_id) { res.status(400).json({ error: 'price_table_id obrigatório' }); return }
+  const shouldOverwrite = overwrite === 'true' || overwrite === true
+
+  // Referências da tabela alvo
+  const { rows: prods } = await query(
+    'SELECT reference FROM products WHERE price_table_id=$1', [price_table_id]
+  )
+  if (prods.length === 0) { res.status(404).json({ error: 'Tabela não encontrada ou sem produtos' }); return }
+  const tableSet = new Set(prods.map((p: { reference: string }) => p.reference.toUpperCase()))
+
+  const os = await import('os')
+  const fs = await import('fs')
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'somma-zip-'))
+  const zipPath = path.join(tmpDir, 'photos.zip')
+  const extractDir = path.join(tmpDir, 'images')
+  fs.mkdirSync(extractDir, { recursive: true })
+
+  // Grava ZIP no disco (pode vir de memory ou disk multer)
+  if (req.file!.path) {
+    fs.copyFileSync(req.file!.path, zipPath)
+    try { fs.unlinkSync(req.file!.path) } catch {}
+  } else {
+    fs.writeFileSync(zipPath, req.file!.buffer!)
+  }
+
+  // Script Python: extrai imagens do ZIP e infere referência do nome do arquivo
+  const pyScript = `
+import zipfile, sys, os, json, re
+zip_path, out_dir = sys.argv[1], sys.argv[2]
+IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
+results = []
+with zipfile.ZipFile(zip_path, 'r') as z:
+    for name in z.namelist():
+        base = os.path.basename(name)
+        root, ext = os.path.splitext(base)
+        ext = ext.lower()
+        if ext not in IMAGE_EXTS or not base:
+            continue
+        m = re.search(r'((?:TE|PKTE)\\d+)', base, re.IGNORECASE)
+        if not m:
+            continue
+        ref = m.group(1).upper()
+        out_path = os.path.join(out_dir, ref + ext)
+        with z.open(name) as src:
+            data = src.read()
+        with open(out_path, 'wb') as dst:
+            dst.write(data)
+        results.append({"ref": ref, "path": out_path, "ext": ext})
+print(json.dumps(results))
+`
+  const pyPath = path.join(tmpDir, 'extract.py')
+
+  let extracted: Array<{ ref: string; path: string; ext: string }> = []
+  try {
+    fs.writeFileSync(pyPath, pyScript)
+    const out = execSync(`python3 "${pyPath}" "${zipPath}" "${extractDir}"`, {
+      maxBuffer: 10 * 1024 * 1024,
+      timeout: 300_000,
+    })
+    extracted = JSON.parse(out.toString())
+  } catch (err) {
+    console.error('Erro ao extrair ZIP:', err)
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch {}
+    res.status(500).json({ error: 'Erro ao processar ZIP. Verifique se é um arquivo .zip válido.' })
+    return
+  }
+
+  let matched = 0
+  let skipped = 0
+  const notInTable: string[] = []
+  const errors: string[] = []
+
+  const client = await pool.connect()
+  try {
+    for (const item of extracted) {
+      if (!tableSet.has(item.ref)) { notInTable.push(item.ref); continue }
+
+      let finalUrl: string
+      try {
+        // Redimensiona para max 1200px preservando proporção, JPEG 85%
+        const resized = await sharp(item.path)
+          .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 85 })
+          .toBuffer()
+
+        if (isR2Configured()) {
+          finalUrl = await uploadToR2(resized, `${item.ref}.jpg`, 'products')
+        } else {
+          const localDest = path.join(__dirname, '../../..', 'uploads', 'products', `${item.ref}.jpg`)
+          fs.writeFileSync(localDest, resized)
+          finalUrl = `/uploads/products/${item.ref}.jpg`
+        }
+      } catch (uploadErr) {
+        console.error(`Erro ao processar ${item.ref}:`, uploadErr)
+        errors.push(item.ref)
+        continue
+      }
+
+      const condition = shouldOverwrite ? '' : 'AND image_url IS NULL'
+      const r = await client.query(
+        `UPDATE products SET image_url=$1, updated_at=NOW()
+         WHERE price_table_id=$2 AND UPPER(reference)=$3 ${condition} RETURNING id`,
+        [finalUrl, price_table_id, item.ref]
+      )
+      if ((r.rowCount ?? 0) > 0) matched++; else skipped++
+    }
+  } finally {
+    client.release()
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch {}
+  }
+
+  res.json({ total: extracted.length, matched, skipped, notInTable, notInTableCount: notInTable.length, errors })
 }
 
 export async function updateGradeConfig(req: AuthRequest, res: Response) {

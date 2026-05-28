@@ -139,6 +139,23 @@ export const priceTablesApi = {
       timeout: 600000, // 10 min — PDFs grandes podem demorar
     })
   },
+  importPhotosZip: (
+    file: File,
+    price_table_id: string,
+    overwrite = false,
+    onProgress?: (pct: number) => void,
+  ) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('price_table_id', price_table_id)
+    if (overwrite) fd.append('overwrite', 'true')
+    return apiClient.post('/price-tables/import-photos-zip', fd, {
+      timeout: 900_000, // 15 min — ZIPs grandes podem demorar
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100))
+      },
+    })
+  },
   delete: (id: string) => apiClient.delete(`/price-tables/${id}`),
 }
 

@@ -20,6 +20,16 @@ const upload = multer({
   limits: { fileSize: (parseInt(process.env.MAX_FILE_SIZE_MB || '300')) * 1024 * 1024 },
 })
 
+// Multer para ZIP de fotos — usa disco para suportar arquivos grandes (1GB+)
+import os from 'os'
+const uploadZip = multer({
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, _file, cb) => cb(null, `zip-${Date.now()}.zip`),
+  }),
+  limits: { fileSize: 2 * 1024 * 1024 * 1024 }, // 2 GB
+})
+
 // Auth
 router.post('/auth/login', auth.login)
 router.post('/auth/refresh', auth.refresh)
@@ -45,6 +55,7 @@ router.get('/price-tables/:id', authenticate, priceTables.getPriceTable)
 router.post('/price-tables/preview', authenticate, requireAdmin, upload.single('file'), priceTables.previewExcelImport)
 router.post('/price-tables/import', authenticate, requireAdmin, upload.single('file'), priceTables.confirmExcelImport)
 router.post('/price-tables/import-catalog', authenticate, requireAdmin, upload.single('file'), priceTables.importCatalog)
+router.post('/price-tables/import-photos-zip', authenticate, requireAdmin, uploadZip.single('file'), priceTables.importPhotosZip)
 router.delete('/price-tables/:id', authenticate, requireAdmin, priceTables.deletePriceTable)
 
 // Produtos

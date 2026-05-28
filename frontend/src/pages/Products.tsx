@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, ChevronDown } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Search, Image as ImageIcon, ChevronDown, Archive } from 'lucide-react'
 import { productsApi } from '../api/client'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
 import { Modal } from '../components/ui/Modal'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
+import { PhotosZipImportModal } from '../components/ui/PhotosZipImportModal'
 
 const SIZE_ORDER = [
   'RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG','4XG',
@@ -289,10 +290,12 @@ function ProductRow({
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export function Products() {
+  const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
+  const [showZipImport, setShowZipImport] = useState(false)
 
   const handleSearch = (val: string) => {
     setSearch(val)
@@ -331,12 +334,22 @@ export function Products() {
               {isLoading ? 'Carregando…' : `${total} produto${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
             </p>
           </div>
-          <ColumnConfigButton
-            defs={PRODUCT_COL_DEFS}
-            config={config}
-            onSave={save}
-            onReset={reset}
-          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowZipImport(true)}
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg px-3 py-2 transition-colors"
+              title="Importar fotos via ZIP"
+            >
+              <Archive className="h-4 w-4" />
+              <span className="hidden sm:inline">Fotos ZIP</span>
+            </button>
+            <ColumnConfigButton
+              defs={PRODUCT_COL_DEFS}
+              config={config}
+              onSave={save}
+              onReset={reset}
+            />
+          </div>
         </div>
 
         {/* Filtros */}
@@ -402,10 +415,17 @@ export function Products() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal detalhe produto */}
       {detailProduct && (
         <ProductDetailModal p={detailProduct} onClose={() => setDetailProduct(null)} />
       )}
+
+      {/* Modal importar fotos ZIP */}
+      <PhotosZipImportModal
+        open={showZipImport}
+        onClose={() => setShowZipImport(false)}
+        onDone={() => qc.invalidateQueries({ queryKey: ['all-products'] })}
+      />
     </div>
   )
 }
