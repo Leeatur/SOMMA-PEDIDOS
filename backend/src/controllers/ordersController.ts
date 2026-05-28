@@ -94,7 +94,7 @@ export async function listOrders(req: AuthRequest, res: Response) {
     JOIN factories f ON f.id = o.factory_id
     JOIN price_tables pt ON pt.id = o.price_table_id
     LEFT JOIN order_statuses s ON s.id = o.status_id
-    WHERE 1=1
+    WHERE o.deleted_at IS NULL
   `
   const params: unknown[] = []
   let idx = 1
@@ -353,12 +353,41 @@ export async function updateOrderInfo(req: AuthRequest, res: Response) {
 // Exclui um pedido (admin ou rep dono do pedido)
 export async function deleteOrder(req: AuthRequest, res: Response) {
   const isAdmin = req.user!.role === 'admin'
-  const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1', [req.params.id])
+  const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id])
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
   if (!isAdmin && order.rep_id !== req.user!.id) {
     res.status(403).json({ error: 'Acesso negado' }); return
   }
-  await query('DELETE FROM orders WHERE id=$1', [req.params.id])
+  // Soft delete — move para a lixeira em vez de apagar
+  await query('UPDATE orders SET deleted_at=NOW(), updated_at=NOW() WHERE id=$1', [req.params.id])
+  res.json({ ok: true })
+}
+
+// Lista pedidos na lixeira (admin only)
+export async function listTrashedOrders(req: AuthRequest, res: Response) {
+  const { rows } = await query(
+    `SELECT o.id, o.order_number, o.total_value, o.total_pieces, o.deleted_at, o.created_at,
+       c.name as client_name, c.city as client_city,
+       u.name as rep_name,
+       f.name as factory_name
+     FROM orders o
+     JOIN clients c ON c.id = o.client_id
+     JOIN users u ON u.id = o.rep_id
+     JOIN factories f ON f.id = o.factory_id
+     WHERE o.deleted_at IS NOT NULL
+     ORDER BY o.deleted_at DESC`,
+    []
+  )
+  res.json(rows)
+}
+
+// Restaura um pedido da lixeira (admin only)
+export async function restoreOrder(req: AuthRequest, res: Response) {
+  const { rows: [order] } = await query(
+    'SELECT id FROM orders WHERE id=$1 AND deleted_at IS NOT NULL', [req.params.id]
+  )
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado na lixeira' }); return }
+  await query('UPDATE orders SET deleted_at=NULL, updated_at=NOW() WHERE id=$1', [req.params.id])
   res.json({ ok: true })
 }
 

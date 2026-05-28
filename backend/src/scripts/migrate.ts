@@ -199,6 +199,10 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30);
 -- Inscrição Estadual nos clientes (adicionada em v5)
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS state_registration VARCHAR(50);
 
+-- Soft delete de pedidos (lixeira) — v6
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_orders_deleted ON orders(deleted_at) WHERE deleted_at IS NOT NULL;
+
 -- Sizes por item de pedido (v3 — grade livre por referência)
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS sizes JSONB DEFAULT '{}';
 

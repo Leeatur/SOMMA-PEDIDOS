@@ -74,10 +74,12 @@ router.post('/clients/import/confirm', authenticate, upload.single('file'), clie
 
 // Pedidos
 router.get('/orders', authenticate, orders.listOrders)
+router.get('/orders/trash', authenticate, requireAdmin, orders.listTrashedOrders)
 router.get('/orders/:id', authenticate, orders.getOrder)
 router.post('/orders', authenticate, orders.createOrder)
 router.patch('/orders/:id/status', authenticate, orders.updateOrderStatus)
 router.patch('/orders/:id/info', authenticate, orders.updateOrderInfo)
+router.patch('/orders/:id/restore', authenticate, requireAdmin, orders.restoreOrder)
 router.delete('/orders/:id', authenticate, orders.deleteOrder)
 router.post('/orders/:id/items', authenticate, orders.addOrderItems)
 router.post('/orders/sync', authenticate, orders.syncOfflineOrders)

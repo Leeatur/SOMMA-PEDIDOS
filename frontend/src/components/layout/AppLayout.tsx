@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Shirt,
   BarChart2,
+  Trash2,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -43,6 +44,7 @@ const navItems: NavItem[] = [
   { to: '/factories', label: 'Fábricas', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
   { to: '/statuses', label: 'Status', icon: <Package className="h-5 w-5" />, adminOnly: true },
   { to: '/users', label: 'Usuários', icon: <UserCog className="h-5 w-5" />, adminOnly: true },
+  { to: '/orders/trash', label: 'Lixeira', icon: <Trash2 className="h-5 w-5" />, adminOnly: true },
   { to: '/settings', label: 'Ajustes', icon: <Settings className="h-5 w-5" /> },
 ]
 

@@ -248,6 +248,8 @@ export const ordersApi = {
     apiClient.post(`/orders/${id}/items`, { items }),
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),
   delete: (id: string) => apiClient.delete(`/orders/${id}`),
+  listTrash: () => apiClient.get('/orders/trash'),
+  restore: (id: string) => apiClient.patch(`/orders/${id}/restore`, {}),
 }
 
 export const reportsApi = {
