@@ -45,21 +45,39 @@ export async function confirmImport(req: AuthRequest, res: Response) {
 
     for (const c of clients) {
       try {
-        // Evita duplicar pelo CNPJ se já existir
+        // Se já existir pelo CNPJ: atualiza os dados (inclusive state_registration)
         if (c.cnpj) {
           const { rows } = await dbClient.query(
             'SELECT id FROM clients WHERE cnpj=$1 AND active=true LIMIT 1',
             [c.cnpj]
           )
-          if (rows[0]) { skipped++; continue }
+          if (rows[0]) {
+            await dbClient.query(
+              `UPDATE clients SET
+                 name=$1, trade_name=$2, state_registration=$3,
+                 phone=$4, whatsapp=$5, email=$6,
+                 address=$7, city=$8, state=$9, zip=$10,
+                 updated_at=NOW()
+               WHERE id=$11`,
+              [
+                c.name, c.trade_name||null, c.state_registration||null,
+                c.phone||null, c.whatsapp||null, c.email||null,
+                c.address||null, c.city||null, c.state||null, c.zip||null,
+                rows[0].id,
+              ]
+            )
+            skipped++  // conta como "atualizado" — não duplicou
+            continue
+          }
         }
 
         await dbClient.query(
           `INSERT INTO clients
-           (name, trade_name, cnpj, cpf, phone, whatsapp, email, address, city, state, zip, notes, rep_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+           (name, trade_name, cnpj, cpf, state_registration, phone, whatsapp, email, address, city, state, zip, notes, rep_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
           [
             c.name, c.trade_name||null, c.cnpj||null, c.cpf||null,
+            c.state_registration||null,
             c.phone||null, c.whatsapp||null, c.email||null,
             c.address||null, c.city||null, c.state||null,
             c.zip||null, c.notes||null, rep_id,
@@ -72,7 +90,7 @@ export async function confirmImport(req: AuthRequest, res: Response) {
     }
 
     await dbClient.query('COMMIT')
-    res.json({ imported, skipped, errors: errors.slice(0, 20), total: clients.length })
+    res.json({ imported, updated: skipped, skipped: 0, errors: errors.slice(0, 20), total: clients.length })
   } catch (err) {
     await dbClient.query('ROLLBACK')
     console.error(err)

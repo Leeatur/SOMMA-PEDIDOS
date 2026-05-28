@@ -5,6 +5,7 @@ export interface ImportedClient {
   trade_name: string
   cnpj: string
   cpf: string
+  state_registration: string
   phone: string
   whatsapp: string
   email: string
@@ -35,6 +36,10 @@ const COLUMN_MAP: Record<string, string[]> = {
   ],
   cnpj: ['cnpj', 'cnpj/cpf', 'cpf/cnpj', 'documento', 'doc'],
   cpf:  ['cpf'],
+  state_registration: [
+    'insc. estadual', 'inscricao estadual', 'inscrição estadual',
+    'ie', 'i.e.', 'insc estadual', 'rg', 'inscr. estadual',
+  ],
   phone: [
     'telefone', 'fone', 'tel', 'phone', 'telefone fixo', 'tel. fixo',
     'telefone 1', 'tel1', 'fone 1', 'contato',
@@ -156,18 +161,19 @@ function rowToClient(
   const isCpf     = cnpjDigits.length === 11
 
   return {
-    name:       get('name'),
-    trade_name: get('trade_name'),
-    cnpj:       isCpf ? '' : formatCnpjDisplay(cnpjRaw),
-    cpf:        isCpf ? formatCnpjDisplay(cnpjRaw) : (cpfRaw ? formatCnpjDisplay(cpfRaw) : ''),
-    phone:      formatPhoneDisplay(get('phone')),
-    whatsapp:   formatPhoneDisplay(get('whatsapp')),
-    email:      get('email').toLowerCase(),
-    address:    fullAddress,
-    city:       get('city'),
-    state:      get('state').toUpperCase().slice(0, 2),
-    zip:        get('zip').replace(/\D/g, '').replace(/^(\d{5})(\d{3})$/, '$1-$2'),
-    notes:      get('notes'),
+    name:               get('name'),
+    trade_name:         get('trade_name'),
+    cnpj:               isCpf ? '' : formatCnpjDisplay(cnpjRaw),
+    cpf:                isCpf ? formatCnpjDisplay(cnpjRaw) : (cpfRaw ? formatCnpjDisplay(cpfRaw) : ''),
+    state_registration: get('state_registration'),
+    phone:              formatPhoneDisplay(get('phone')),
+    whatsapp:           formatPhoneDisplay(get('whatsapp')),
+    email:              get('email').toLowerCase(),
+    address:            fullAddress,
+    city:               get('city'),
+    state:              get('state').toUpperCase().slice(0, 2),
+    zip:                get('zip').replace(/\D/g, '').replace(/^(\d{5})(\d{3})$/, '$1-$2'),
+    notes:              get('notes'),
   }
 }
 
