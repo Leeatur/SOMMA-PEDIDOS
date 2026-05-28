@@ -50,35 +50,6 @@ interface Product {
   grade_configs: GradeConfig[] | null
 }
 
-function GradeRow({ gc, boxCount }: { gc: GradeConfig; boxCount: number }) {
-  const sizes = sortSizes(Object.keys(gc.sizes))
-  return (
-    <div>
-      {gc.color && <p className="text-xs font-medium text-gray-500 mb-0.5">{gc.color}</p>}
-      <div className="overflow-x-auto scrollbar-hide">
-        <table className="min-w-max text-xs border border-gray-100 rounded overflow-hidden">
-          <thead className="bg-gray-50">
-            <tr>
-              {sizes.map(s => (
-                <th key={s} className="px-1.5 py-0.5 text-center text-gray-500 font-medium min-w-[26px]">{s}</th>
-              ))}
-              <th className="px-1.5 py-0.5 text-center text-gray-400 border-l border-gray-200">Tot</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="bg-white">
-              {sizes.map(s => (
-                <td key={s} className="px-1.5 py-0.5 text-center text-gray-700">{gc.sizes[s] * boxCount}</td>
-              ))}
-              <td className="px-1.5 py-0.5 text-center font-bold text-gray-800 border-l border-gray-200">{gc.total_pieces * boxCount}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
 // ─── Product Detail Modal ────────────────────────────────────────────────────
 function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void }) {
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
