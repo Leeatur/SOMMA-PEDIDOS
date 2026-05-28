@@ -189,23 +189,33 @@ export async function importCatalog(req: AuthRequest, res: Response) {
     return
   }
 
-  // Faz upload das imagens extraídas para R2 (ou mantém local)
+  // Faz upload das imagens extraídas para R2 (ou copia para uploads local)
+  // ATENÇÃO: page.imagePath é uma URL "/uploads/products/ref.jpg"
+  // O arquivo REAL está em uploadDir (pasta temp), não nesse caminho!
   const client = await pool.connect()
   try {
     for (const page of result.pages) {
       if (!page.imagePath) continue
-      let finalUrl = page.imagePath
 
-      // Se R2 configurado, faz upload do arquivo extraído para a nuvem
-      if (isR2Configured() && fs.existsSync(page.imagePath)) {
+      // Caminho real do arquivo no diretório temporário
+      const tempFilePath = path.join(uploadDir, path.basename(page.imagePath))
+      if (!fs.existsSync(tempFilePath)) continue
+
+      let finalUrl = page.imagePath  // fallback (URL relativa)
+
+      if (isR2Configured()) {
         try {
-          const imgBuffer = fs.readFileSync(page.imagePath)
-          const imgName = path.basename(page.imagePath)
+          const imgBuffer = fs.readFileSync(tempFilePath)
+          const imgName = path.basename(tempFilePath)
           finalUrl = await uploadToR2(imgBuffer, imgName, 'products')
         } catch (r2Err) {
           console.error('Erro upload R2:', r2Err)
-          // mantém caminho local como fallback
         }
+      } else {
+        // Sem R2: copia para a pasta de uploads estática (persiste até próximo restart)
+        const uploadsProductsDir = path.join(__dirname, '../../..', 'uploads', 'products')
+        fs.mkdirSync(uploadsProductsDir, { recursive: true })
+        fs.copyFileSync(tempFilePath, path.join(uploadsProductsDir, path.basename(tempFilePath)))
       }
 
       for (const ref of page.references) {
@@ -304,6 +314,17 @@ export async function deletePriceTable(req: AuthRequest, res: Response) {
     return
   }
   res.json({ deleted: true })
+}
+
+// Limpa todas as image_url de uma tabela (para re-importar após bugfix)
+export async function clearProductImages(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { rows } = await query(
+    `UPDATE products SET image_url=NULL, updated_at=NOW()
+     WHERE price_table_id=$1 RETURNING id`,
+    [id]
+  )
+  res.json({ cleared: rows.length })
 }
 
 // Importa fotos em massa via arquivo ZIP

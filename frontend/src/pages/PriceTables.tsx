@@ -127,6 +127,11 @@ export function PriceTables() {
     },
   })
 
+  const clearImagesMut = useMutation({
+    mutationFn: (id: string) => priceTablesApi.clearProductImages(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['all-products'] }) },
+  })
+
   function resetImport() {
     setImportStep(1)
     setImportFile(null)
@@ -247,6 +252,18 @@ export function PriceTables() {
                     >
                       <FileImage className="h-3.5 w-3.5" />
                       Catálogo
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Limpar todas as fotos da tabela "${t.name}"?\nVocê precisará reimportar o catálogo PDF.`)) {
+                          clearImagesMut.mutate(t.id)
+                        }
+                      }}
+                      disabled={clearImagesMut.isPending}
+                      className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <FileImage className="h-3.5 w-3.5" />
+                      {clearImagesMut.isPending ? 'Limpando…' : 'Limpar Fotos'}
                     </button>
                     <button
                       onClick={() => setDeleteTable(t)}
