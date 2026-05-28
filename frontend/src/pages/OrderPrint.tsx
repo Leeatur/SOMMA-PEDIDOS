@@ -308,7 +308,7 @@ export function OrderPrint() {
               <img
                 src={logoUrl}
                 alt="Logo"
-                style={{ height: 56, marginBottom: 6, objectFit: 'contain', display: 'block', maxWidth: 200 }}
+                style={{ height: 112, marginBottom: 6, objectFit: 'contain', display: 'block', maxWidth: 400 }}
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
               />
             ) : null}
