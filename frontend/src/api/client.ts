@@ -235,6 +235,14 @@ export const ordersApi = {
   }) => apiClient.post('/orders', data),
   updateStatus: (id: string, status_id: string, notes?: string) =>
     apiClient.patch(`/orders/${id}/status`, { status_id, notes }),
+  updateInfo: (id: string, data: {
+    payment_terms?: string | null
+    delivery_date?: string | null
+    freight_type?: string | null
+    notes?: string | null
+    buyer_name?: string | null
+    industry_order_number?: string | null
+  }) => apiClient.patch(`/orders/${id}/info`, data),
   addItems: (id: string, items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number; sizes?: Record<string, number> }>) =>
     apiClient.post(`/orders/${id}/items`, { items }),
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),

@@ -318,6 +318,34 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
   }
 }
 
+// Atualiza campos de informação do pedido
+export async function updateOrderInfo(req: AuthRequest, res: Response) {
+  const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number } = req.body
+  const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1', [req.params.id])
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  const isAdmin = req.user!.role === 'admin'
+  if (!isAdmin && order.rep_id !== req.user!.id) {
+    res.status(403).json({ error: 'Acesso negado' }); return
+  }
+  await query(
+    `UPDATE orders SET
+       payment_terms=$1, delivery_date=$2, freight_type=$3,
+       notes=$4, buyer_name=$5, industry_order_number=$6,
+       updated_at=NOW()
+     WHERE id=$7`,
+    [
+      payment_terms ?? null,
+      delivery_date || null,
+      freight_type || 'CIF',
+      notes ?? null,
+      buyer_name ?? null,
+      industry_order_number ?? null,
+      req.params.id,
+    ]
+  )
+  res.json({ ok: true })
+}
+
 // Exclui um pedido (admin ou rep dono do pedido)
 export async function deleteOrder(req: AuthRequest, res: Response) {
   const isAdmin = req.user!.role === 'admin'

@@ -18,6 +18,10 @@ import {
   Trash2,
   Search,
   Info,
+  Pencil,
+  CalendarDays,
+  CreditCard,
+  Truck,
 } from 'lucide-react'
 import { ordersApi, statusesApi, productsApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -81,12 +85,26 @@ interface OrderDetail {
   rep_commission_value: number
   office_commission_value: number
   notes: string | null
+  payment_terms: string | null
+  delivery_date: string | null
+  freight_type: string | null
+  buyer_name: string | null
+  industry_order_number: string | null
   status_name: string | null
   status_color: string | null
   status_id: string | null
   created_at: string
   items: OrderItem[]
   history: StatusHistory[]
+}
+
+interface EditInfoForm {
+  payment_terms: string
+  delivery_date: string
+  freight_type: string
+  buyer_name: string
+  industry_order_number: string
+  notes: string
 }
 
 interface Status { id: string; name: string; color: string }
@@ -177,6 +195,15 @@ export function OrderDetail() {
   const [addCart, setAddCart] = useState<AddCartItem[]>([])
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
   const [deleteModal, setDeleteModal] = useState(false)
+  const [editInfoModal, setEditInfoModal] = useState(false)
+  const [editInfoForm, setEditInfoForm] = useState<EditInfoForm>({
+    payment_terms: '',
+    delivery_date: '',
+    freight_type: 'CIF',
+    buyer_name: '',
+    industry_order_number: '',
+    notes: '',
+  })
 
   const { data: order, isLoading } = useQuery<OrderDetail>({
     queryKey: ['order', id],
@@ -223,6 +250,34 @@ export function OrderDetail() {
       navigate('/orders', { replace: true })
     },
   })
+
+  const updateInfoMut = useMutation({
+    mutationFn: () => ordersApi.updateInfo(id!, {
+      payment_terms: editInfoForm.payment_terms || null,
+      delivery_date: editInfoForm.delivery_date || null,
+      freight_type: editInfoForm.freight_type || 'CIF',
+      buyer_name: editInfoForm.buyer_name || null,
+      industry_order_number: editInfoForm.industry_order_number || null,
+      notes: editInfoForm.notes || null,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order', id] })
+      setEditInfoModal(false)
+    },
+  })
+
+  function openEditInfo() {
+    if (!order) return
+    setEditInfoForm({
+      payment_terms: order.payment_terms || '',
+      delivery_date: order.delivery_date ? order.delivery_date.substring(0, 10) : '',
+      freight_type: order.freight_type || 'CIF',
+      buyer_name: order.buyer_name || '',
+      industry_order_number: order.industry_order_number || '',
+      notes: order.notes || '',
+    })
+    setEditInfoModal(true)
+  }
 
   const { data: addProducts, isLoading: loadingAddProducts } = useQuery<Product[]>({
     queryKey: ['products-add', order?.price_table_id, productSearch],
@@ -330,6 +385,16 @@ export function OrderDetail() {
       <div className="px-4 py-5 lg:px-8 max-w-3xl mx-auto space-y-5">
         {/* Client + Meta */}
         <Card padding="md">
+          <div className="flex items-start justify-between mb-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Informações do Pedido</p>
+            <button
+              onClick={openEditInfo}
+              className="p-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-indigo-500 transition-colors"
+              title="Editar informações"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="col-span-2">
               <p className="text-xs text-gray-500 mb-0.5">Cliente</p>
@@ -366,10 +431,54 @@ export function OrderDetail() {
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Data
+                <Clock className="h-3 w-3" /> Emissão
               </p>
               <p className="font-medium text-gray-800">{formatDateTime(order.created_at)}</p>
             </div>
+
+            {/* Campos de realização do pedido */}
+            {order.delivery_date && (
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                  <CalendarDays className="h-3 w-3" /> Data de Entrega
+                </p>
+                <p className="font-medium text-gray-800">
+                  {new Date(order.delivery_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+            )}
+            {order.payment_terms && (
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                  <CreditCard className="h-3 w-3" /> Cond. de Pagamento
+                </p>
+                <p className="font-medium text-gray-800">{order.payment_terms}</p>
+              </div>
+            )}
+            {order.freight_type && (
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                  <Truck className="h-3 w-3" /> Frete
+                </p>
+                <p className="font-medium text-gray-800">{order.freight_type}</p>
+              </div>
+            )}
+            {order.buyer_name && (
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                  <User className="h-3 w-3" /> Comprador
+                </p>
+                <p className="font-medium text-gray-800">{order.buyer_name}</p>
+              </div>
+            )}
+            {order.industry_order_number && (
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                  <Tag className="h-3 w-3" /> N° Pedido Indústria
+                </p>
+                <p className="font-medium text-gray-800">{order.industry_order_number}</p>
+              </div>
+            )}
           </div>
           {order.notes && (
             <div className="mt-3 pt-3 border-t border-gray-100">
@@ -726,6 +835,90 @@ export function OrderDetail() {
             placeholder="Motivo da alteração..."
             rows={2}
           />
+        </div>
+      </Modal>
+
+      {/* ── Modal Editar Informações ── */}
+      <Modal
+        open={editInfoModal}
+        onClose={() => setEditInfoModal(false)}
+        title="Editar Informações do Pedido"
+        size="md"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setEditInfoModal(false)} disabled={updateInfoMut.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => updateInfoMut.mutate()}
+              loading={updateInfoMut.isPending}
+            >
+              Salvar
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Data de Entrega</label>
+            <input
+              type="date"
+              value={editInfoForm.delivery_date}
+              onChange={e => setEditInfoForm(f => ({ ...f, delivery_date: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cond. de Pagamento</label>
+            <input
+              type="text"
+              value={editInfoForm.payment_terms}
+              onChange={e => setEditInfoForm(f => ({ ...f, payment_terms: e.target.value }))}
+              placeholder="Ex: 30/60/90 DDL, À vista, 28 DDL..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Frete</label>
+            <select
+              value={editInfoForm.freight_type}
+              onChange={e => setEditInfoForm(f => ({ ...f, freight_type: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            >
+              <option value="CIF">CIF (por conta da fábrica)</option>
+              <option value="FOB">FOB (por conta do cliente)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Comprador</label>
+            <input
+              type="text"
+              value={editInfoForm.buyer_name}
+              onChange={e => setEditInfoForm(f => ({ ...f, buyer_name: e.target.value }))}
+              placeholder="Nome do comprador..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">N° Pedido Indústria</label>
+            <input
+              type="text"
+              value={editInfoForm.industry_order_number}
+              onChange={e => setEditInfoForm(f => ({ ...f, industry_order_number: e.target.value }))}
+              placeholder="Número do pedido na indústria..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+            <textarea
+              value={editInfoForm.notes}
+              onChange={e => setEditInfoForm(f => ({ ...f, notes: e.target.value }))}
+              rows={3}
+              placeholder="Observações do pedido..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white resize-none"
+            />
+          </div>
         </div>
       </Modal>
 
