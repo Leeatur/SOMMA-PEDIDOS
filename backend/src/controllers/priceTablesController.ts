@@ -1,6 +1,5 @@
 import { Response } from 'express'
 import path from 'path'
-import { execSync } from 'child_process'
 import { query, pool } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 import { importExcel, buildDefaultGrade, ImportedProduct } from '../services/import/excelImporter'
@@ -358,41 +357,28 @@ export async function importPhotosZip(req: AuthRequest, res: Response) {
     fs.writeFileSync(zipPath, req.file!.buffer!)
   }
 
-  // Script Python: extrai imagens do ZIP e infere referência do nome do arquivo
-  const pyScript = `
-import zipfile, sys, os, json, re
-zip_path, out_dir = sys.argv[1], sys.argv[2]
-IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
-results = []
-with zipfile.ZipFile(zip_path, 'r') as z:
-    for name in z.namelist():
-        base = os.path.basename(name)
-        root, ext = os.path.splitext(base)
-        ext = ext.lower()
-        if ext not in IMAGE_EXTS or not base:
-            continue
-        m = re.search(r'((?:TE|PKTE)\\d+)', base, re.IGNORECASE)
-        if not m:
-            continue
-        ref = m.group(1).upper()
-        out_path = os.path.join(out_dir, ref + ext)
-        with z.open(name) as src:
-            data = src.read()
-        with open(out_path, 'wb') as dst:
-            dst.write(data)
-        results.append({"ref": ref, "path": out_path, "ext": ext})
-print(json.dumps(results))
-`
-  const pyPath = path.join(tmpDir, 'extract.py')
+  // Extrai imagens do ZIP usando unzipper (Node.js puro — sem dependência de Python)
+  const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp'])
+  const REF_REGEX = /((?:TE|PKTE)\d+)/i
 
   let extracted: Array<{ ref: string; path: string; ext: string }> = []
   try {
-    fs.writeFileSync(pyPath, pyScript)
-    const out = execSync(`python3 "${pyPath}" "${zipPath}" "${extractDir}"`, {
-      maxBuffer: 10 * 1024 * 1024,
-      timeout: 300_000,
-    })
-    extracted = JSON.parse(out.toString())
+    const unzipper = await import('unzipper')
+    const directory = await unzipper.Open.file(zipPath)
+
+    for (const file of directory.files) {
+      if (file.type === 'Directory') continue
+      const base = path.basename(file.path)
+      const ext = path.extname(base).toLowerCase()
+      if (!IMAGE_EXTS.has(ext)) continue
+      const m = base.match(REF_REGEX)
+      if (!m) continue
+      const ref = m[1].toUpperCase()
+      const outPath = path.join(extractDir, ref + ext)
+      const buffer = await file.buffer()
+      fs.writeFileSync(outPath, buffer)
+      extracted.push({ ref, path: outPath, ext })
+    }
   } catch (err) {
     console.error('Erro ao extrair ZIP:', err)
     try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch {}
