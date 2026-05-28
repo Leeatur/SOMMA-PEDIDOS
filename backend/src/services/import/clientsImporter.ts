@@ -183,8 +183,10 @@ function rowToClient(
  * - Mapeamento automático de colunas por sinônimos em PT/EN
  * - Combinação de Endereço + Número + Bairro
  */
-export function previewClientsExcel(filePath: string): ClientImportPreview {
-  const wb    = XLSX.readFile(filePath)
+export function previewClientsExcel(fileInput: string | Buffer): ClientImportPreview {
+  const wb = Buffer.isBuffer(fileInput)
+    ? XLSX.read(fileInput, { type: 'buffer' })
+    : XLSX.readFile(fileInput)
   const ws    = wb.Sheets[wb.SheetNames[0]]
   const rawMatrix = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' }) as string[][]
 
@@ -222,10 +224,12 @@ export function previewClientsExcel(filePath: string): ClientImportPreview {
  * Importa todos os clientes da planilha usando o mapeamento confirmado pelo usuário.
  */
 export function importClientsExcel(
-  filePath: string,
+  fileInput: string | Buffer,
   mapping: Record<string, string>
 ): ImportedClient[] {
-  const wb    = XLSX.readFile(filePath)
+  const wb = Buffer.isBuffer(fileInput)
+    ? XLSX.read(fileInput, { type: 'buffer' })
+    : XLSX.readFile(fileInput)
   const ws    = wb.Sheets[wb.SheetNames[0]]
   const rawMatrix = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' }) as string[][]
   const headerRowIdx = detectHeaderRow(rawMatrix)

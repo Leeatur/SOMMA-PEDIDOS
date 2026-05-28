@@ -7,7 +7,7 @@ import { previewClientsExcel, importClientsExcel } from '../services/import/clie
 export async function previewImport(req: AuthRequest, res: Response) {
   if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
   try {
-    const preview = previewClientsExcel(req.file.path)
+    const preview = previewClientsExcel(req.file.buffer ?? req.file.path)
     res.json(preview)
   } catch (err) {
     console.error(err)
@@ -29,7 +29,7 @@ export async function confirmImport(req: AuthRequest, res: Response) {
   }
 
   const rep_id = req.user!.id
-  const clients = importClientsExcel(req.file.path, mapping)
+  const clients = importClientsExcel(req.file.buffer ?? req.file.path, mapping)
 
   if (!clients.length) {
     res.status(400).json({ error: 'Nenhum cliente encontrado no arquivo' }); return
