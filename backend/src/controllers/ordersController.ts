@@ -325,36 +325,38 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
 
 // Atualiza campos de informação do pedido
 export async function updateOrderInfo(req: AuthRequest, res: Response) {
-  const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id } = req.body
+  const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id, rep_id } = req.body
   const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1', [req.params.id])
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
   const isAdmin = req.user!.role === 'admin'
   if (!isAdmin && order.rep_id !== req.user!.id) {
     res.status(403).json({ error: 'Acesso negado' }); return
   }
-  // Valida client_id se informado
   if (client_id) {
     const { rows: [cli] } = await query('SELECT id FROM clients WHERE id=$1 AND active=true', [client_id])
     if (!cli) { res.status(400).json({ error: 'Cliente não encontrado' }); return }
   }
-  await query(
-    `UPDATE orders SET
-       payment_terms=$1, delivery_date=$2, freight_type=$3,
-       notes=$4, buyer_name=$5, industry_order_number=$6,
-       ${client_id ? 'client_id=$8,' : ''}
-       updated_at=NOW()
-     WHERE id=$7`,
-    [
-      payment_terms ?? null,
-      delivery_date || null,
-      freight_type || 'CIF',
-      notes ?? null,
-      buyer_name ?? null,
-      industry_order_number ?? null,
-      req.params.id,
-      ...(client_id ? [client_id] : []),
-    ]
-  )
+  if (rep_id && isAdmin) {
+    const { rows: [rep] } = await query('SELECT id FROM users WHERE id=$1 AND active=true', [rep_id])
+    if (!rep) { res.status(400).json({ error: 'Representante não encontrado' }); return }
+  }
+
+  const sets: string[] = []
+  const params: unknown[] = []
+  let idx = 1
+
+  sets.push(`payment_terms=$${idx++}`);         params.push(payment_terms ?? null)
+  sets.push(`delivery_date=$${idx++}`);          params.push(delivery_date || null)
+  sets.push(`freight_type=$${idx++}`);           params.push(freight_type || 'CIF')
+  sets.push(`notes=$${idx++}`);                  params.push(notes ?? null)
+  sets.push(`buyer_name=$${idx++}`);             params.push(buyer_name ?? null)
+  sets.push(`industry_order_number=$${idx++}`);  params.push(industry_order_number ?? null)
+  if (client_id) { sets.push(`client_id=$${idx++}`);  params.push(client_id) }
+  if (rep_id && isAdmin) { sets.push(`rep_id=$${idx++}`); params.push(rep_id) }
+  sets.push('updated_at=NOW()')
+
+  params.push(req.params.id)
+  await query(`UPDATE orders SET ${sets.join(', ')} WHERE id=$${idx}`, params)
   res.json({ ok: true })
 }
 
@@ -514,6 +516,94 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
   } finally {
     dbClient.release()
   }
+}
+
+// Atualiza quantidades de um item (tamanhos para regular, caixas para pack) e recalcula totais
+export async function updateOrderItem(req: AuthRequest, res: Response) {
+  const { id, item_id } = req.params
+  const { sizes, boxes_count } = req.body
+
+  const { rows: [order] } = await query(
+    'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
+  )
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+
+  const isAdmin = req.user!.role === 'admin'
+  if (!isAdmin && order.rep_id !== req.user!.id) {
+    res.status(403).json({ error: 'Acesso negado' }); return
+  }
+
+  const { rows: [item] } = await query(
+    `SELECT oi.*, p.type AS product_type
+     FROM order_items oi
+     JOIN products p ON p.id = oi.product_id
+     WHERE oi.id=$1 AND oi.order_id=$2`,
+    [item_id, id]
+  )
+  if (!item) { res.status(404).json({ error: 'Item não encontrado' }); return }
+
+  const disc = parseFloat(order.discount_pct) || 0
+  const discountedPrice = Number(item.unit_price) * (1 - disc / 100)
+
+  let newTotalPieces: number
+  let newSubtotal: number
+  let newSizes: Record<string, number> | null = null
+  let newBoxesCount: number = Number(item.boxes_count)
+
+  if (item.product_type === 'regular' && sizes && typeof sizes === 'object') {
+    const sizesMap = sizes as Record<string, number>
+    const sizesTotal = Object.values(sizesMap).reduce((s, v) => s + Number(v || 0), 0)
+    if (sizesTotal === 0) {
+      res.status(400).json({ error: 'Total de peças não pode ser zero' }); return
+    }
+    newTotalPieces = sizesTotal
+    newSubtotal = Math.round(discountedPrice * newTotalPieces * 100) / 100
+    newSizes = sizesMap
+    newBoxesCount = 1
+  } else if (item.product_type === 'pack') {
+    const newBoxes = parseInt(boxes_count) || 1
+    if (newBoxes <= 0) {
+      res.status(400).json({ error: 'Quantidade de caixas deve ser maior que zero' }); return
+    }
+    const { rows: grades } = await query(
+      'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
+    )
+    const piecesPerBox = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0) || 1
+    newTotalPieces = newBoxes * piecesPerBox
+    newSubtotal = Math.round(discountedPrice * newBoxes * 100) / 100
+    newBoxesCount = newBoxes
+  } else {
+    res.status(400).json({ error: 'Dados inválidos' }); return
+  }
+
+  await query(
+    `UPDATE order_items SET
+       sizes=$1, boxes_count=$2, total_pieces=$3, subtotal=$4
+     WHERE id=$5`,
+    [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, item_id]
+  )
+
+  // Recalcula totais do pedido
+  const { rows: [totals] } = await query(
+    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
+     FROM order_items WHERE order_id=$1`,
+    [id]
+  )
+  const newValue = Math.round(Number(totals.val) * 100) / 100
+  await query(
+    `UPDATE orders SET total_pieces=$1, total_value=$2,
+       rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
+     WHERE id=$5`,
+    [
+      Number(totals.pcs),
+      newValue,
+      Math.round(newValue * order.rep_commission_pct / 100 * 100) / 100,
+      Math.round(newValue * order.office_commission_pct / 100 * 100) / 100,
+      id,
+    ]
+  )
+
+  res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
 }
 
 // Exclui um pedido (admin ou rep dono do pedido)

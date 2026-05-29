@@ -24,8 +24,10 @@ import {
   Truck,
   RefreshCw,
   AlertTriangle,
+  Save,
+  X,
 } from 'lucide-react'
-import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi } from '../api/client'
+import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { StatusBadge } from '../components/ui/Badge'
 import { Card } from '../components/ui/Card'
@@ -75,6 +77,7 @@ interface OrderDetail {
   client_name: string
   client_city: string | null
   client_phone: string | null
+  rep_id: string
   rep_name: string
   factory_id: string
   factory_name: string
@@ -110,8 +113,11 @@ interface EditInfoForm {
   notes: string
   client_id: string
   client_search: string
+  rep_id: string
+  discount_pct: string
 }
 interface ClientOption { id: string; name: string; trade_name: string | null; city: string | null }
+interface UserOption { id: string; name: string; role: string }
 
 interface Status { id: string; name: string; color: string }
 
@@ -211,11 +217,18 @@ export function OrderDetail() {
     notes: '',
     client_id: '',
     client_search: '',
+    rep_id: '',
+    discount_pct: '0',
   })
   const [removeItemId, setRemoveItemId] = useState<string | null>(null)
   const [changePtModal, setChangePtModal] = useState(false)
   const [newPriceTableId, setNewPriceTableId] = useState('')
   const [newDiscountPct, setNewDiscountPct] = useState('')
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [draftSizes, setDraftSizes] = useState<Record<string, number>>({})
+  const [draftBoxes, setDraftBoxes] = useState<number>(1)
+  const [editDiscountModal, setEditDiscountModal] = useState(false)
+  const [editDiscountValue, setEditDiscountValue] = useState('')
 
   const { data: order, isLoading } = useQuery<OrderDetail>({
     queryKey: ['order', id],
@@ -264,15 +277,23 @@ export function OrderDetail() {
   })
 
   const updateInfoMut = useMutation({
-    mutationFn: () => ordersApi.updateInfo(id!, {
-      payment_terms: editInfoForm.payment_terms || null,
-      delivery_date: editInfoForm.delivery_date || null,
-      freight_type: editInfoForm.freight_type || 'CIF',
-      buyer_name: editInfoForm.buyer_name || null,
-      industry_order_number: editInfoForm.industry_order_number || null,
-      notes: editInfoForm.notes || null,
-      client_id: editInfoForm.client_id || null,
-    }),
+    mutationFn: async () => {
+      const newDiscount = parseFloat(editInfoForm.discount_pct.replace(',', '.')) || 0
+      // Se desconto mudou, chama changePriceTable para recalcular itens
+      if (Math.abs(newDiscount - (order?.discount_pct || 0)) > 0.0001) {
+        await ordersApi.changePriceTable(id!, order!.price_table_id, newDiscount)
+      }
+      return ordersApi.updateInfo(id!, {
+        payment_terms: editInfoForm.payment_terms || null,
+        delivery_date: editInfoForm.delivery_date || null,
+        freight_type: editInfoForm.freight_type || 'CIF',
+        buyer_name: editInfoForm.buyer_name || null,
+        industry_order_number: editInfoForm.industry_order_number || null,
+        notes: editInfoForm.notes || null,
+        client_id: editInfoForm.client_id || null,
+        rep_id: (editInfoForm.rep_id && editInfoForm.rep_id !== order?.rep_id) ? editInfoForm.rep_id : null,
+      })
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['order', id] })
       qc.invalidateQueries({ queryKey: ['orders'] })
@@ -311,6 +332,52 @@ export function OrderDetail() {
     },
   })
 
+  const editDiscountMut = useMutation({
+    mutationFn: () => ordersApi.changePriceTable(
+      id!,
+      order!.price_table_id,
+      parseFloat(editDiscountValue.replace(',', '.')) || 0,
+    ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order', id] })
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      setEditDiscountModal(false)
+    },
+  })
+
+  const updateItemMut = useMutation({
+    mutationFn: ({ item_id, data }: { item_id: string; data: { sizes?: Record<string, number>; boxes_count?: number } }) =>
+      ordersApi.updateItem(id!, item_id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order', id] })
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      setEditingItemId(null)
+    },
+  })
+
+  function startEditItem(item: OrderItem) {
+    if (item.type === 'regular' && item.sizes) {
+      setDraftSizes({ ...item.sizes })
+    } else {
+      setDraftBoxes(item.boxes_count)
+    }
+    setEditingItemId(item.id)
+  }
+
+  function cancelEditItem() {
+    setEditingItemId(null)
+    setDraftSizes({})
+    setDraftBoxes(1)
+  }
+
+  function saveEditItem(item: OrderItem) {
+    if (item.type === 'regular') {
+      updateItemMut.mutate({ item_id: item.id, data: { sizes: draftSizes } })
+    } else {
+      updateItemMut.mutate({ item_id: item.id, data: { boxes_count: draftBoxes } })
+    }
+  }
+
   function openEditInfo() {
     if (!order) return
     setEditInfoForm({
@@ -322,6 +389,8 @@ export function OrderDetail() {
       notes: order.notes || '',
       client_id: '',
       client_search: '',
+      rep_id: order.rep_id || '',
+      discount_pct: String(order.discount_pct ?? 0).replace('.', ','),
     })
     setEditInfoModal(true)
   }
@@ -331,6 +400,13 @@ export function OrderDetail() {
     queryKey: ['clients-search-order', editInfoForm.client_search],
     queryFn: () => clientsApi.list(editInfoForm.client_search).then(r => r.data),
     enabled: editInfoModal && editInfoForm.client_search.length >= 2,
+  })
+
+  // Lista de usuários para trocar representante (admin only)
+  const { data: usersList } = useQuery<UserOption[]>({
+    queryKey: ['users-list'],
+    queryFn: () => usersApi.list().then(r => r.data),
+    enabled: editInfoModal && isAdmin,
   })
 
   const { data: addProducts, isLoading: loadingAddProducts } = useQuery<Product[]>({
@@ -449,7 +525,7 @@ export function OrderDetail() {
               <Pencil className="h-3.5 w-3.5" />
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-2 gap-3 text-sm select-text">
             <div className="col-span-2">
               <p className="text-xs text-outline mb-0.5">Cliente</p>
               <p className="font-semibold text-on-surface">{order.client_name}</p>
@@ -566,9 +642,23 @@ export function OrderDetail() {
             <h2 className="text-sm font-semibold text-on-surface">Resumo Financeiro</h2>
           </div>
           <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-on-surface-variant">
+            <div className="flex justify-between items-center text-on-surface-variant">
               <span>Desconto aplicado:</span>
-              <span className="font-medium">{formatPct(order.discount_pct)}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{formatPct(order.discount_pct)}</span>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setEditDiscountValue(String(order.discount_pct).replace('.', ','))
+                      setEditDiscountModal(true)
+                    }}
+                    className="p-0.5 rounded text-outline/60 hover:text-primary hover:bg-primary/10 transition-colors"
+                    title="Alterar desconto"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex justify-between font-bold text-on-surface text-base">
               <span>Total do Pedido:</span>
@@ -580,6 +670,47 @@ export function OrderDetail() {
             </div>
           </div>
         </Card>
+
+        {/* Modal: Editar desconto */}
+        <Modal
+          open={editDiscountModal}
+          onClose={() => setEditDiscountModal(false)}
+          title="Alterar Desconto"
+          size="sm"
+          footer={
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setEditDiscountModal(false)}>Cancelar</Button>
+              <Button
+                onClick={() => editDiscountMut.mutate()}
+                disabled={editDiscountMut.isPending}
+                loading={editDiscountMut.isPending}
+              >
+                Aplicar
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-on-surface-variant">
+              O novo desconto será aplicado a todos os itens do pedido recalculando os valores.
+              A tabela de preços permanece a mesma (<span className="font-medium text-on-surface">{order.price_table_name}</span>).
+            </p>
+            <Input
+              label="Desconto (%)"
+              type="text"
+              inputMode="decimal"
+              value={editDiscountValue}
+              onChange={e => setEditDiscountValue(e.target.value)}
+              placeholder="0,00"
+              hint="Use vírgula ou ponto. Ex: 4,61"
+            />
+            {editDiscountMut.isError && (
+              <p className="text-sm text-red-500">
+                {(editDiscountMut.error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao alterar desconto'}
+              </p>
+            )}
+          </div>
+        </Modal>
 
         {/* Items */}
         <div>
@@ -606,9 +737,9 @@ export function OrderDetail() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-on-surface text-sm">{item.reference}</p>
+                        <p className="font-semibold text-on-surface text-sm select-text">{item.reference}</p>
                         {item.product_name && (
-                          <p className="text-xs text-outline truncate">{item.product_name}</p>
+                          <p className="text-xs text-outline truncate select-text">{item.product_name}</p>
                         )}
                         {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
                           <p className="text-xs text-outline mt-0.5">{item.total_pieces} peças</p>
@@ -628,8 +759,35 @@ export function OrderDetail() {
 
                   {isExpanded && (
                     <div className="px-3 pb-3 border-t border-outline-variant/50 pt-2">
-                      {/* Botão remover item */}
-                      <div className="flex justify-end mb-2">
+                      {/* Botões de ação do item */}
+                      <div className="flex justify-between items-center mb-2">
+                        {editingItemId === item.id ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                saveEditItem(item)
+                              }}
+                              disabled={updateItemMut.isPending}
+                              className="flex items-center gap-1 text-xs text-white bg-primary hover:bg-primary/90 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              <Save className="h-3 w-3" /> Salvar
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); cancelEditItem() }}
+                              className="flex items-center gap-1 text-xs text-outline hover:text-on-surface hover:bg-surface-container px-2 py-1 rounded-lg transition-colors"
+                            >
+                              <X className="h-3 w-3" /> Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); startEditItem(item) }}
+                            className="flex items-center gap-1 text-xs text-primary hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors"
+                          >
+                            <Pencil className="h-3 w-3" /> Editar quantidades
+                          </button>
+                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); setRemoveItemId(item.id) }}
                           className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
@@ -637,28 +795,80 @@ export function OrderDetail() {
                           <Trash2 className="h-3 w-3" /> Remover item
                         </button>
                       </div>
+
+                      {/* Regular product sizes */}
                       {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
                         <>
                           <p className="text-xs font-medium text-on-surface-variant mb-1.5">Quantidades por tamanho:</p>
                           <div className="overflow-x-auto scrollbar-hide">
-                            <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
-                              <thead className="bg-surface-container-low">
-                                <tr>{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
-                                  <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
-                                ))}<th className="px-2 py-1 text-center text-outline border-l border-outline-variant">Total</th></tr>
-                              </thead>
-                              <tbody>
-                                <tr className="bg-white">{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
-                                  <td key={s} className="px-2 py-1 text-center">{item.sizes![s]}</td>
-                                ))}<td className="px-2 py-1 text-center font-bold border-l border-outline-variant">{item.total_pieces}</td></tr>
-                              </tbody>
-                            </table>
+                            {editingItemId === item.id ? (
+                              <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
+                                <thead className="bg-surface-container-low">
+                                  <tr>
+                                    {sortSizesDetail(Object.keys(draftSizes)).map(s => (
+                                      <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[44px]">{s}</th>
+                                    ))}
+                                    <th className="px-2 py-1 text-center text-outline border-l border-outline-variant min-w-[44px]">Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr className="bg-white">
+                                    {sortSizesDetail(Object.keys(draftSizes)).map(s => (
+                                      <td key={s} className="px-1 py-1 text-center">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={draftSizes[s] ?? 0}
+                                          onClick={e => e.stopPropagation()}
+                                          onChange={e => {
+                                            const v = parseInt(e.target.value) || 0
+                                            setDraftSizes(prev => ({ ...prev, [s]: Math.max(0, v) }))
+                                          }}
+                                          className="w-10 text-center border border-outline-variant rounded px-1 py-0.5 text-xs focus:outline-none focus:border-primary"
+                                        />
+                                      </td>
+                                    ))}
+                                    <td className="px-2 py-1 text-center font-bold border-l border-outline-variant">
+                                      {Object.values(draftSizes).reduce((s, v) => s + (v || 0), 0)}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            ) : (
+                              <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
+                                <thead className="bg-surface-container-low">
+                                  <tr>{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
+                                    <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
+                                  ))}<th className="px-2 py-1 text-center text-outline border-l border-outline-variant">Total</th></tr>
+                                </thead>
+                                <tbody>
+                                  <tr className="bg-white">{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
+                                    <td key={s} className="px-2 py-1 text-center">{item.sizes![s]}</td>
+                                  ))}<td className="px-2 py-1 text-center font-bold border-l border-outline-variant">{item.total_pieces}</td></tr>
+                                </tbody>
+                              </table>
+                            )}
                           </div>
                         </>
                       ) : item.grade_configs && item.grade_configs.length > 0 ? (
                         <>
                           <p className="text-xs font-medium text-on-surface-variant mb-1.5">Composição da grade:</p>
-                          <GradeDisplay configs={item.grade_configs} boxCount={item.boxes_count} />
+                          {editingItemId === item.id ? (
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-xs text-on-surface-variant">Número de caixas:</span>
+                              <input
+                                type="number"
+                                min={1}
+                                value={draftBoxes}
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => setDraftBoxes(Math.max(1, parseInt(e.target.value) || 1))}
+                                className="w-16 text-center border border-outline-variant rounded px-2 py-1 text-sm focus:outline-none focus:border-primary"
+                              />
+                              <span className="text-xs text-outline">caixas</span>
+                            </div>
+                          ) : (
+                            <GradeDisplay configs={item.grade_configs} boxCount={item.boxes_count} />
+                          )}
                         </>
                       ) : null}
                     </div>
@@ -953,7 +1163,7 @@ export function OrderDetail() {
             {editInfoForm.client_id && (
               <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
                 <Check className="h-3 w-3" />
-                Novo cliente selecionado: {clientResults?.find(c => c.id === editInfoForm.client_id)?.name}
+                Novo cliente: {clientResults?.find(c => c.id === editInfoForm.client_id)?.name}
               </p>
             )}
             {editInfoForm.client_search.length >= 2 && (clientResults || []).length > 0 && !editInfoForm.client_id && (
@@ -972,16 +1182,38 @@ export function OrderDetail() {
             )}
           </div>
 
-          <div className="border-t border-outline-variant/50 pt-3 grid grid-cols-2 gap-3">
+          {/* ── Representante (admin only) ── */}
+          {isAdmin && (
             <div>
-              <label className="block text-sm font-medium text-on-surface-variant mb-1">Data de Entrega</label>
-              <input
-                type="date"
-                value={editInfoForm.delivery_date}
-                onChange={e => setEditInfoForm(f => ({ ...f, delivery_date: e.target.value }))}
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">Representante</label>
+              <select
+                value={editInfoForm.rep_id}
+                onChange={e => setEditInfoForm(f => ({ ...f, rep_id: e.target.value }))}
                 className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-              />
+              >
+                {(usersList || []).filter(u => u.role === 'rep' || u.role === 'admin').map(u => (
+                  <option key={u.id} value={u.id}>{u.name} {u.role === 'admin' ? '(Admin)' : ''}</option>
+                ))}
+              </select>
             </div>
+          )}
+
+          <div className="border-t border-outline-variant/50 pt-3 grid grid-cols-2 gap-3">
+            {/* ── Desconto (admin only) ── */}
+            {isAdmin && (
+              <div>
+                <label className="block text-sm font-medium text-on-surface-variant mb-1">Desconto (%)</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={editInfoForm.discount_pct}
+                  onChange={e => setEditInfoForm(f => ({ ...f, discount_pct: e.target.value }))}
+                  placeholder="0,00"
+                  className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                />
+                <p className="text-xs text-outline mt-0.5">Recalcula todos os itens</p>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-on-surface-variant mb-1">Frete</label>
               <select
@@ -992,6 +1224,15 @@ export function OrderDetail() {
                 <option value="CIF">CIF</option>
                 <option value="FOB">FOB</option>
               </select>
+            </div>
+            <div className={isAdmin ? 'col-span-2' : ''}>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">Data de Entrega</label>
+              <input
+                type="date"
+                value={editInfoForm.delivery_date}
+                onChange={e => setEditInfoForm(f => ({ ...f, delivery_date: e.target.value }))}
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              />
             </div>
           </div>
 
@@ -1037,6 +1278,11 @@ export function OrderDetail() {
               className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white resize-none"
             />
           </div>
+          {updateInfoMut.isError && (
+            <p className="text-sm text-red-500">
+              {(updateInfoMut.error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao salvar'}
+            </p>
+          )}
         </div>
       </Modal>
 
