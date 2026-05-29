@@ -8,3 +8,7 @@ uploads/products/*
 !uploads/logos/.gitkeep
 !uploads/products/.gitkeep
 *.log
+
+# Tools — arquivos gerados e credenciais sensíveis
+tools/migration_*.sql
+tools/__pycache__/
