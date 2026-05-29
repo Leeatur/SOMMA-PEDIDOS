@@ -275,8 +275,8 @@ export function OrderPrint() {
         .logo-area { width: 160px; text-align: right; flex-shrink: 0; }
         .logo-area img { max-width: 80px; max-height: 60px; object-fit: contain; }
         .items-table { table-layout: fixed; }
-        .items-table th { font-size: 5px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
-        .items-table td { font-size: 5px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
+        .items-table th { font-size: 10px; padding: 2px 3px; white-space: nowrap; overflow: hidden; }
+        .items-table td { font-size: 10px; padding: 2px 3px; white-space: nowrap; overflow: hidden; }
         .items-table .ref { font-weight: bold; }
         .items-table .num { text-align: right; }
         .items-table .ctr { text-align: center; }
