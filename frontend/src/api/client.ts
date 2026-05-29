@@ -242,6 +242,7 @@ export const ordersApi = {
     industry_order_number?: string | null
     client_id?: string | null
     rep_id?: string | null
+    transportadora?: string | null
   }) => apiClient.patch(`/orders/${id}/info`, data),
   addItems: (id: string, items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number; sizes?: Record<string, number> }>) =>
     apiClient.post(`/orders/${id}/items`, { items }),

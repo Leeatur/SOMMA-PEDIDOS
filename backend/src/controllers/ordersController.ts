@@ -325,7 +325,7 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
 
 // Atualiza campos de informação do pedido
 export async function updateOrderInfo(req: AuthRequest, res: Response) {
-  const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id, rep_id } = req.body
+  const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id, rep_id, transportadora } = req.body
   const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1', [req.params.id])
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
   const isAdmin = req.user!.role === 'admin'
@@ -351,6 +351,7 @@ export async function updateOrderInfo(req: AuthRequest, res: Response) {
   sets.push(`notes=$${idx++}`);                  params.push(notes ?? null)
   sets.push(`buyer_name=$${idx++}`);             params.push(buyer_name ?? null)
   sets.push(`industry_order_number=$${idx++}`);  params.push(industry_order_number ?? null)
+  sets.push(`transportadora=$${idx++}`);         params.push(transportadora ?? null)
   if (client_id) { sets.push(`client_id=$${idx++}`);  params.push(client_id) }
   if (rep_id && isAdmin) { sets.push(`rep_id=$${idx++}`); params.push(rep_id) }
   sets.push('updated_at=NOW()')

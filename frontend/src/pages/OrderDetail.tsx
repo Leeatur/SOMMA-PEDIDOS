@@ -486,6 +486,14 @@ export function OrderDetail() {
           </button>
           <Button
             size="sm"
+            variant="primary"
+            onClick={() => navigate(`/orders/${id}/edit`)}
+            icon={<Pencil className="h-3.5 w-3.5" />}
+          >
+            Editar
+          </Button>
+          <Button
+            size="sm"
             variant="outline"
             onClick={() => setAddItemsModal(true)}
             icon={<Plus className="h-3.5 w-3.5" />}
