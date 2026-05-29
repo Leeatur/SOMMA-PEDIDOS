@@ -271,12 +271,12 @@ export function OrderPrint() {
         .info-label { font-weight: bold; white-space: nowrap; }
         .header-box { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 8px; }
         .company-info { flex: 1; }
-        .company-name { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+        .company-name { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
         .logo-area { width: 160px; text-align: right; flex-shrink: 0; }
         .logo-area img { max-width: 80px; max-height: 60px; object-fit: contain; }
         .items-table { table-layout: fixed; }
-        .items-table th { font-size: 5.5px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
-        .items-table td { font-size: 5.5px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
+        .items-table th { font-size: 5px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
+        .items-table td { font-size: 5px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
         .items-table .ref { font-weight: bold; }
         .items-table .num { text-align: right; }
         .items-table .ctr { text-align: center; }
@@ -319,15 +319,15 @@ export function OrderPrint() {
               />
             ) : null}
             <div className="company-name">{companyName}</div>
-            <div style={{ fontSize: 9 }}>{companyAddress}{companyZip ? ` — CEP ${companyZip}` : ''}</div>
+            <div style={{ fontSize: 12 }}>{companyAddress}{companyZip ? ` — CEP ${companyZip}` : ''}</div>
             {(companyPhone || companyWhats) && (
-              <div style={{ fontSize: 9, marginTop: 2 }}>
+              <div style={{ fontSize: 12, marginTop: 2 }}>
                 {companyPhone && <span>Tel: {companyPhone}</span>}
                 {companyPhone && companyWhats && ' · '}
                 {companyWhats && <span>WhatsApp: {companyWhats}</span>}
               </div>
             )}
-            {company.email && <div style={{ fontSize: 9 }}>{company.email}</div>}
+            {company.email && <div style={{ fontSize: 12 }}>{company.email}</div>}
           </div>
           <div className="logo-area" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'flex-end', alignSelf: 'stretch' }}>
             <span style={{ fontSize: 48, fontWeight: 900, color: '#111', lineHeight: 1, letterSpacing: '-1px' }}>
