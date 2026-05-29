@@ -22,6 +22,13 @@ interface GradeConfig {
   sort_order: number
 }
 
+interface DraftGradeEntry {
+  color: string | null
+  sizes: Record<string, number>
+  total_pieces: number
+  sort_order: number
+}
+
 interface OrderItemRaw {
   id: string
   product_id: string
@@ -35,11 +42,13 @@ interface OrderItemRaw {
   subtotal: number
   sizes: Record<string, number> | null
   grade_configs: GradeConfig[] | null
+  custom_grade: DraftGradeEntry[] | null
 }
 
 interface EditableItem extends OrderItemRaw {
   draftSizes: Record<string, number>
   draftBoxes: number
+  draftGrade: DraftGradeEntry[]
   removed: boolean
 }
 
@@ -54,6 +63,7 @@ interface NewItem {
   grade_configs: GradeConfig[] | null
   draftSizes: Record<string, number>
   draftBoxes: number
+  draftGrade: DraftGradeEntry[]
 }
 
 interface Product {
@@ -101,12 +111,37 @@ function initSizes(product: Product | OrderItemRaw): Record<string, number> {
   return {}
 }
 
+function initDraftGrade(item: OrderItemRaw): DraftGradeEntry[] {
+  // Se já tem custom_grade salvo, usa ele diretamente
+  if (item.custom_grade && item.custom_grade.length > 0) {
+    return item.custom_grade.map(gc => ({ ...gc, sizes: { ...gc.sizes } }))
+  }
+  // Senão, inicializa a partir da grade do produto × caixas
+  const boxes = item.boxes_count || 1
+  return (item.grade_configs || []).map(gc => ({
+    color: gc.color,
+    sort_order: gc.sort_order,
+    sizes: Object.fromEntries(
+      Object.entries(gc.sizes).map(([s, q]) => [s, (q || 0) * boxes])
+    ),
+    total_pieces: gc.total_pieces * boxes,
+  }))
+}
+
+function initDraftGradeFromProduct(prod: Product): DraftGradeEntry[] {
+  return (prod.grade_configs || []).map(gc => ({
+    color: gc.color,
+    sort_order: gc.sort_order,
+    sizes: { ...gc.sizes },  // quantidades por caixa (padrão = 1 cx)
+    total_pieces: gc.total_pieces,
+  }))
+}
+
 function calcPieces(item: EditableItem | NewItem): number {
   if (item.type === 'regular') {
     return Object.values(item.draftSizes).reduce((s, v) => s + (v || 0), 0)
   }
-  const piecesPerBox = (item.grade_configs || []).reduce((s, gc) => s + gc.total_pieces, 0) || 1
-  return item.draftBoxes * piecesPerBox
+  return item.draftGrade.reduce((s, gc) => s + gc.total_pieces, 0)
 }
 
 function calcSubtotal(item: EditableItem | NewItem): number {
@@ -114,7 +149,9 @@ function calcSubtotal(item: EditableItem | NewItem): number {
   if (item.type === 'regular') {
     return price * calcPieces(item)
   }
-  return price * item.draftBoxes
+  // Pack: preço por caixa → derivar preço por peça
+  const standardPPB = (item.grade_configs || []).reduce((s, gc) => s + gc.total_pieces, 0) || 1
+  return (price / standardPPB) * calcPieces(item)
 }
 
 // ── componente principal ───────────────────────────────────────────────────────
@@ -224,6 +261,7 @@ export default function OrderEdit() {
       ...it,
       draftSizes: initSizes(it),
       draftBoxes: it.boxes_count || 1,
+      draftGrade: initDraftGrade(it),
       removed: false,
     })))
   }, [order])
@@ -262,6 +300,32 @@ export default function OrderEdit() {
     setNewItems(prev => prev.filter(it => it.tempId !== tempId))
   }
 
+  const updateGrade = (itemId: string, colorIdx: number, size: string, val: number) => {
+    setItems(prev => prev.map(it => {
+      if (it.id !== itemId) return it
+      const newGrade = it.draftGrade.map((gc, i) => {
+        if (i !== colorIdx) return gc
+        const newSizes = { ...gc.sizes, [size]: val }
+        const total_pieces = Object.values(newSizes).reduce((s, v) => s + (v || 0), 0)
+        return { ...gc, sizes: newSizes, total_pieces }
+      })
+      return { ...it, draftGrade: newGrade }
+    }))
+  }
+
+  const updateNewGrade = (tempId: string, colorIdx: number, size: string, val: number) => {
+    setNewItems(prev => prev.map(it => {
+      if (it.tempId !== tempId) return it
+      const newGrade = it.draftGrade.map((gc, i) => {
+        if (i !== colorIdx) return gc
+        const newSizes = { ...gc.sizes, [size]: val }
+        const total_pieces = Object.values(newSizes).reduce((s, v) => s + (v || 0), 0)
+        return { ...gc, sizes: newSizes, total_pieces }
+      })
+      return { ...it, draftGrade: newGrade }
+    }))
+  }
+
   const addProduct = (prod: Product) => {
     // Verifica se já existe (não removido)
     const existsActive = items.some(it => it.product_id === prod.id && !it.removed)
@@ -282,6 +346,7 @@ export default function OrderEdit() {
       grade_configs: prod.grade_configs || null,
       draftSizes: initSizes(prod),
       draftBoxes: 1,
+      draftGrade: initDraftGradeFromProduct(prod),
     }
     setNewItems(prev => [...prev, newItem])
     setShowProdDropdown(false)
@@ -339,13 +404,18 @@ export default function OrderEdit() {
       for (const it of activeItems) {
         const origItem = order.items?.find((o: OrderItemRaw) => o.id === it.id)
         if (!origItem) continue
-        const sizesChanged = JSON.stringify(it.draftSizes) !== JSON.stringify(origItem.sizes || {})
-        const boxesChanged = it.draftBoxes !== origItem.boxes_count
-        if (sizesChanged || boxesChanged) {
-          await ordersApi.updateItem(id!, it.id, {
-            sizes: it.type === 'regular' ? it.draftSizes : undefined,
-            boxes_count: it.type === 'pack' ? it.draftBoxes : undefined,
-          })
+        if (it.type === 'regular') {
+          const sizesChanged = JSON.stringify(it.draftSizes) !== JSON.stringify(origItem.sizes || {})
+          if (sizesChanged) {
+            await ordersApi.updateItem(id!, it.id, { sizes: it.draftSizes })
+          }
+        } else {
+          // Pack: compara draftGrade com o estado inicial (custom_grade ou grade_configs × boxes)
+          const origGrade = initDraftGrade(origItem)
+          const gradeChanged = JSON.stringify(it.draftGrade) !== JSON.stringify(origGrade)
+          if (gradeChanged) {
+            await ordersApi.updateItem(id!, it.id, { custom_grade: it.draftGrade })
+          }
         }
       }
 
@@ -354,9 +424,10 @@ export default function OrderEdit() {
         const toAdd = newItems.map(it => ({
           product_id: it.product_id,
           reference: it.reference,
-          boxes_count: it.type === 'pack' ? it.draftBoxes : 1,
+          boxes_count: 1,
           unit_price: it.unit_price,
           sizes: it.type === 'regular' ? it.draftSizes : undefined,
+          custom_grade: it.type === 'pack' ? it.draftGrade : undefined,
         }))
         await ordersApi.addItems(id!, toAdd)
       }
@@ -630,8 +701,10 @@ export default function OrderEdit() {
                     gradeConfigs={it.grade_configs}
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
+                    draftGrade={it.draftGrade}
                     onSizeChange={(size, val) => updateSize(it.id, size, val)}
                     onBoxesChange={val => updateBoxes(it.id, val)}
+                    onGradeChange={(colorIdx, size, val) => updateGrade(it.id, colorIdx, size, val)}
                     onRemove={() => removeItem(it.id)}
                   />
                 ))}
@@ -649,8 +722,10 @@ export default function OrderEdit() {
                     gradeConfigs={it.grade_configs}
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
+                    draftGrade={it.draftGrade}
                     onSizeChange={(size, val) => updateNewSize(it.tempId, size, val)}
                     onBoxesChange={val => updateNewBoxes(it.tempId, val)}
+                    onGradeChange={(colorIdx, size, val) => updateNewGrade(it.tempId, colorIdx, size, val)}
                     onRemove={() => removeNewItem(it.tempId)}
                     isNew
                   />
@@ -715,26 +790,37 @@ interface ItemRowProps {
   gradeConfigs: GradeConfig[] | null
   draftSizes: Record<string, number>
   draftBoxes: number
+  draftGrade: DraftGradeEntry[]
   onSizeChange: (size: string, val: number) => void
   onBoxesChange: (val: number) => void
+  onGradeChange: (colorIdx: number, size: string, val: number) => void
   onRemove: () => void
   isNew?: boolean
 }
 
 function ItemRow({
   index, reference, productName, imageUrl, type, unitPrice,
-  gradeConfigs, draftSizes, draftBoxes,
-  onSizeChange, onBoxesChange, onRemove, isNew,
+  gradeConfigs, draftSizes, draftGrade,
+  onSizeChange, onGradeChange, onRemove, isNew,
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
 
+  // Tamanhos únicos de toda a grade pack
+  const gradeSizes = sortSizes(
+    [...new Set((draftGrade || []).flatMap(gc => Object.keys(gc.sizes)))]
+  )
+
   const pieces = type === 'regular'
     ? Object.values(draftSizes).reduce((s, v) => s + (v || 0), 0)
-    : draftBoxes * ((gradeConfigs || []).reduce((s, gc) => s + gc.total_pieces, 0) || 1)
+    : (draftGrade || []).reduce((s, gc) => s + gc.total_pieces, 0)
 
-  const subtotal = type === 'regular' ? unitPrice * pieces : unitPrice * draftBoxes
+  const standardPPB = (gradeConfigs || []).reduce((s, gc) => s + gc.total_pieces, 0) || 1
+  const subtotal = type === 'regular'
+    ? unitPrice * pieces
+    : (unitPrice / standardPPB) * pieces
 
-  const inputNum = 'w-12 text-center border border-outline-variant rounded px-1 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
+  const inputNum = 'w-10 text-center border border-outline-variant rounded px-0.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
+  const inputNumReg = 'w-12 text-center border border-outline-variant rounded px-1 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
 
   return (
     <tr className={`align-top hover:bg-surface-container/40 transition-colors ${isNew ? 'bg-primary/3' : ''}`}>
@@ -770,7 +856,7 @@ function ItemRow({
                 <span className="text-xs text-on-surface-variant font-medium">{size}</span>
                 <input
                   type="number" min={0} max={999}
-                  className={inputNum}
+                  className={inputNumReg}
                   value={draftSizes[size] || 0}
                   onChange={e => onSizeChange(size, parseInt(e.target.value) || 0)}
                 />
@@ -778,23 +864,48 @@ function ItemRow({
             ))}
           </div>
         )}
-        {type === 'pack' && (
-          <div className="flex flex-col gap-1">
-            {(gradeConfigs || []).map((gc, i) => (
-              <div key={i} className="text-xs text-on-surface-variant">
-                {gc.color && <span className="font-medium mr-1">{gc.color}</span>}
-                {Object.entries(gc.sizes).map(([s, q]) => `${s}×${q}`).join(' ')}
-              </div>
-            ))}
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-on-surface-variant">Caixas:</span>
-              <input
-                type="number" min={1} max={999}
-                className={inputNum}
-                value={draftBoxes}
-                onChange={e => onBoxesChange(parseInt(e.target.value) || 1)}
-              />
-            </div>
+        {type === 'pack' && draftGrade.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="text-xs border-collapse w-full">
+              <thead>
+                <tr>
+                  <th className="text-left pr-3 pb-1 text-on-surface-variant font-medium whitespace-nowrap">Cor</th>
+                  {gradeSizes.map(s => (
+                    <th key={s} className="w-9 text-center pb-1 text-on-surface-variant font-medium">{s}</th>
+                  ))}
+                  <th className="pl-2 pb-1 text-center text-on-surface-variant font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {draftGrade.map((gc, colorIdx) => (
+                  <tr key={colorIdx}>
+                    <td className="pr-3 py-0.5 font-semibold text-on-surface whitespace-nowrap">{gc.color || '—'}</td>
+                    {gradeSizes.map(size => (
+                      <td key={size} className="px-0.5 py-0.5">
+                        <input
+                          type="number" min={0} max={999}
+                          className={inputNum}
+                          value={gc.sizes[size] || 0}
+                          onChange={e => onGradeChange(colorIdx, size, parseInt(e.target.value) || 0)}
+                        />
+                      </td>
+                    ))}
+                    <td className="pl-2 py-0.5 text-center font-bold text-on-surface">{gc.total_pieces}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-outline-variant/40">
+                  <td className="pr-3 pt-1 text-xs text-outline font-medium">Total</td>
+                  {gradeSizes.map(size => (
+                    <td key={size} className="px-0.5 pt-1 text-center text-xs font-semibold text-on-surface-variant">
+                      {draftGrade.reduce((s, gc) => s + (gc.sizes[size] || 0), 0) || ''}
+                    </td>
+                  ))}
+                  <td className="pl-2 pt-1 text-center font-bold text-primary">{pieces}</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
         {type === 'regular' && sizes.length === 0 && (

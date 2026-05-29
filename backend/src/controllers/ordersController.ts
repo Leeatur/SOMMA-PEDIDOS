@@ -3,12 +3,15 @@ import { query, pool } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 import { PoolClient } from 'pg'
 
+interface CustomGradeEntry { color: string | null; sizes: Record<string, number>; total_pieces: number }
+
 interface OrderItem {
   product_id: string
   reference: string
   boxes_count: number
   unit_price: number
   sizes?: Record<string, number> | null
+  custom_grade?: CustomGradeEntry[] | null
 }
 
 async function computeOrderTotals(
@@ -23,26 +26,44 @@ async function computeOrderTotals(
 
   for (const item of items) {
     let itemPieces: number
+    let subtotal: number
+    let finalBoxesCount: number
+    let finalSizes: Record<string, number> | null
+
     const sizesMap = item.sizes && typeof item.sizes === 'object' ? item.sizes : {}
     const sizesTotal = Object.values(sizesMap).reduce((s: number, v: unknown) => s + Number(v || 0), 0)
-
-    let subtotal: number
     const discountedPrice = item.unit_price * (1 - discountPct / 100)
 
     if (sizesTotal > 0) {
-      // Produto regular: qtde de peças = soma dos tamanhos escolhidos
+      // Produto regular: peças = soma dos tamanhos
       itemPieces = sizesTotal
       subtotal = discountedPrice * itemPieces
+      finalBoxesCount = 1
+      finalSizes = sizesMap
+    } else if (item.custom_grade && Array.isArray(item.custom_grade) && item.custom_grade.length > 0) {
+      // Pack com grade personalizada: peças = soma de todas as quantidades
+      itemPieces = item.custom_grade.reduce((s, gc) =>
+        s + Object.values(gc.sizes || {}).reduce((ss, v) => ss + Number(v || 0), 0), 0
+      )
+      const { rows: grades } = await client.query(
+        'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
+      )
+      const standardPPB = grades.reduce((sum: number, g: { total_pieces: number }) => sum + g.total_pieces, 0) || 1
+      const pricePerPiece = item.unit_price / standardPPB
+      subtotal = Math.round(pricePerPiece * (1 - discountPct / 100) * itemPieces * 100) / 100
+      finalBoxesCount = 1
+      finalSizes = null
     } else {
-      // Pack: unit_price é o preço da CAIXA; subtotal = preço_caixa × qtd_caixas
-      // total_pieces = total de peças físicas (para exibição)
+      // Pack padrão: preço por CAIXA
       const { rows: grades } = await client.query(
         'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
       )
       const piecesPerBox = grades.reduce((sum: number, g: { total_pieces: number }) => sum + g.total_pieces, 0) || 1
       const boxCount = item.boxes_count || 1
       itemPieces = boxCount * piecesPerBox
-      subtotal = discountedPrice * boxCount  // preço da caixa × nº de caixas
+      subtotal = discountedPrice * boxCount
+      finalBoxesCount = boxCount
+      finalSizes = null
     }
 
     totalPieces += itemPieces
@@ -52,8 +73,8 @@ async function computeOrderTotals(
       total_pieces: itemPieces,
       subtotal,
       unit_price: item.unit_price,
-      sizes: sizesTotal > 0 ? sizesMap : null,
-      boxes_count: sizesTotal > 0 ? 1 : (item.boxes_count || 1),
+      sizes: finalSizes,
+      boxes_count: finalBoxesCount,
     })
   }
 
@@ -286,12 +307,16 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
     // Insere os novos itens
     const disc = parseFloat(order.discount_pct) || 0
     const newTotals = await computeOrderTotals(items, disc, order.price_table_id, dbClient as any)
-    for (const item of newTotals.enrichedItems) {
+    for (let i = 0; i < newTotals.enrichedItems.length; i++) {
+      const item = newTotals.enrichedItems[i]
+      const origItem = items[i]
+      const customGradeJson = origItem.custom_grade && Array.isArray(origItem.custom_grade) && origItem.custom_grade.length > 0
+        ? JSON.stringify(origItem.custom_grade) : null
       await dbClient.query(
-        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, sizes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, sizes, custom_grade)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
         [orderId, item.product_id, item.reference, item.boxes_count, item.unit_price, item.total_pieces, item.subtotal,
-         item.sizes ? JSON.stringify(item.sizes) : null]
+         item.sizes ? JSON.stringify(item.sizes) : null, customGradeJson]
       )
     }
 
@@ -522,7 +547,7 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
 // Atualiza quantidades de um item (tamanhos para regular, caixas para pack) e recalcula totais
 export async function updateOrderItem(req: AuthRequest, res: Response) {
   const { id, item_id } = req.params
-  const { sizes, boxes_count } = req.body
+  const { sizes, boxes_count, custom_grade } = req.body
 
   const { rows: [order] } = await query(
     'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
@@ -550,6 +575,7 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
   let newSubtotal: number
   let newSizes: Record<string, number> | null = null
   let newBoxesCount: number = Number(item.boxes_count)
+  let newCustomGrade: string | null = null
 
   if (item.product_type === 'regular' && sizes && typeof sizes === 'object') {
     const sizesMap = sizes as Record<string, number>
@@ -562,26 +588,50 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     newSizes = sizesMap
     newBoxesCount = 1
   } else if (item.product_type === 'pack') {
-    const newBoxes = parseInt(boxes_count) || 1
-    if (newBoxes <= 0) {
-      res.status(400).json({ error: 'Quantidade de caixas deve ser maior que zero' }); return
+    if (custom_grade && Array.isArray(custom_grade) && custom_grade.length > 0) {
+      // Grade personalizada por cor
+      const customArr = custom_grade as CustomGradeEntry[]
+      newTotalPieces = customArr.reduce((s, gc) =>
+        s + Object.values(gc.sizes || {}).reduce((ss, v) => ss + Number(v || 0), 0), 0
+      )
+      if (newTotalPieces <= 0) {
+        res.status(400).json({ error: 'Total de peças não pode ser zero' }); return
+      }
+      const { rows: grades } = await query(
+        'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
+      )
+      const standardPPB = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0) || 1
+      const pricePerPiece = Number(item.unit_price) / standardPPB
+      newSubtotal = Math.round(pricePerPiece * (1 - disc / 100) * newTotalPieces * 100) / 100
+      newBoxesCount = 1
+      newCustomGrade = JSON.stringify(customArr.map(gc => ({
+        color: gc.color,
+        sizes: gc.sizes,
+        total_pieces: Object.values(gc.sizes || {}).reduce((s, v) => s + Number(v || 0), 0)
+      })))
+    } else {
+      // Número de caixas padrão
+      const newBoxes = parseInt(boxes_count) || 1
+      if (newBoxes <= 0) {
+        res.status(400).json({ error: 'Quantidade de caixas deve ser maior que zero' }); return
+      }
+      const { rows: grades } = await query(
+        'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
+      )
+      const piecesPerBox = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0) || 1
+      newTotalPieces = newBoxes * piecesPerBox
+      newSubtotal = Math.round(discountedPrice * newBoxes * 100) / 100
+      newBoxesCount = newBoxes
     }
-    const { rows: grades } = await query(
-      'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
-    )
-    const piecesPerBox = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0) || 1
-    newTotalPieces = newBoxes * piecesPerBox
-    newSubtotal = Math.round(discountedPrice * newBoxes * 100) / 100
-    newBoxesCount = newBoxes
   } else {
     res.status(400).json({ error: 'Dados inválidos' }); return
   }
 
   await query(
     `UPDATE order_items SET
-       sizes=$1, boxes_count=$2, total_pieces=$3, subtotal=$4
-     WHERE id=$5`,
-    [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, item_id]
+       sizes=$1, boxes_count=$2, total_pieces=$3, subtotal=$4, custom_grade=$5
+     WHERE id=$6`,
+    [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, newCustomGrade, item_id]
   )
 
   // Recalcula totais do pedido
