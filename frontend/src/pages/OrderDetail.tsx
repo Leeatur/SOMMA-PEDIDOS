@@ -76,6 +76,7 @@ interface OrderDetail {
   client_city: string | null
   client_phone: string | null
   rep_name: string
+  factory_id: string
   factory_name: string
   price_table_name: string
   discount_pct: number
