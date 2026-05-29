@@ -13,6 +13,7 @@ import {
   Save,
   CheckCircle2,
   Image as ImageIcon,
+  X,
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { db } from '../db/db'
@@ -76,6 +77,15 @@ function CompanySection() {
     },
   })
 
+  const deleteLogoMut = useMutation({
+    mutationFn: () => companyApi.deleteLogo(),
+    onSuccess: () => {
+      setLogoPreview(null)
+      setForm(prev => ({ ...prev, logo_url: '' }))
+      qc.invalidateQueries({ queryKey: ['company'] })
+    },
+  })
+
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -102,35 +112,64 @@ function CompanySection() {
     <div className="space-y-4">
       {/* Logo */}
       <div className="flex items-center gap-4">
-        <div
-          onClick={() => logoRef.current?.click()}
-          className="w-20 h-20 rounded-2xl border-2 border-dashed border-outline-variant hover:border-blue-400 bg-surface-container-low hover:bg-primary/10 flex items-center justify-center cursor-pointer transition-colors overflow-hidden flex-shrink-0"
-        >
-          {logoPreview ? (
-            <img
-              src={logoPreview}
-              alt="Logo"
-              className="w-full h-full object-contain p-1"
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-1 text-outline/70">
-              <ImageIcon className="h-6 w-6" />
-              <span className="text-[10px] font-medium">Logo</span>
-            </div>
+        {/* Thumbnail com botão de remover sobreposto */}
+        <div className="relative flex-shrink-0">
+          <div
+            onClick={() => logoRef.current?.click()}
+            className="w-20 h-20 rounded-2xl border-2 border-dashed border-outline-variant hover:border-primary/50 bg-surface-container-low hover:bg-primary/10 flex items-center justify-center cursor-pointer transition-colors overflow-hidden"
+          >
+            {logoPreview ? (
+              <img
+                src={logoPreview}
+                alt="Logo"
+                className="w-full h-full object-contain p-1"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-1 text-outline/70">
+                <ImageIcon className="h-6 w-6" />
+                <span className="text-[10px] font-medium">Logo</span>
+              </div>
+            )}
+          </div>
+          {/* Botão remover — só aparece quando há logo */}
+          {logoPreview && (
+            <button
+              onClick={() => deleteLogoMut.mutate()}
+              disabled={deleteLogoMut.isPending}
+              title="Remover logo"
+              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors disabled:opacity-50"
+            >
+              <X className="h-3 w-3" />
+            </button>
           )}
         </div>
+
         <div>
           <p className="text-sm font-medium text-on-surface-variant">Logo da empresa</p>
           <p className="text-xs text-outline/70 mb-2">PNG ou JPG · aparece no cabeçalho dos pedidos</p>
-          <Button
-            size="sm"
-            variant="outline"
-            loading={logoMut.isPending}
-            onClick={() => logoRef.current?.click()}
-            icon={<Upload className="h-3.5 w-3.5" />}
-          >
-            {logoPreview ? 'Trocar logo' : 'Enviar logo'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              loading={logoMut.isPending}
+              onClick={() => logoRef.current?.click()}
+              icon={<Upload className="h-3.5 w-3.5" />}
+            >
+              {logoPreview ? 'Trocar logo' : 'Enviar logo'}
+            </Button>
+            {logoPreview && (
+              <Button
+                size="sm"
+                variant="outline"
+                loading={deleteLogoMut.isPending}
+                onClick={() => deleteLogoMut.mutate()}
+                icon={<Trash2 className="h-3.5 w-3.5" />}
+                className="text-red-500 border-red-200 hover:bg-red-50"
+              >
+                Remover
+              </Button>
+            )}
+          </div>
         </div>
         <input
           ref={logoRef}

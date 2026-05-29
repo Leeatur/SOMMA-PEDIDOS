@@ -274,6 +274,7 @@ export const companyApi = {
     fd.append('logo', file)
     return apiClient.post('/company/logo', fd)
   },
+  deleteLogo: () => apiClient.delete('/company/logo'),
 }
 
 export const statusesApi = {

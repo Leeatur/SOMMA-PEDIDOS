@@ -51,6 +51,17 @@ export async function updateSettings(req: AuthRequest, res: Response) {
   }
 }
 
+// Remove o logo da empresa
+export async function deleteLogo(_req: AuthRequest, res: Response) {
+  try {
+    await query(`DELETE FROM company_settings WHERE key = 'logo_url'`)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('Erro ao remover logo:', err)
+    res.status(500).json({ error: 'Erro ao remover logo' })
+  }
+}
+
 // Upload do logo da empresa
 export async function uploadLogo(req: AuthRequest, res: Response) {
   if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }

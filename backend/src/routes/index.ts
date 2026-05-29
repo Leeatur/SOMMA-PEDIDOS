@@ -98,6 +98,7 @@ router.get('/reports/catalog', authenticate, reports.catalogReport)
 router.get('/company', authenticate, company.getSettings)
 router.put('/company', authenticate, requireAdmin, company.updateSettings)
 router.post('/company/logo', authenticate, requireAdmin, upload.single('logo'), company.uploadLogo)
+router.delete('/company/logo', authenticate, requireAdmin, company.deleteLogo)
 
 // Status
 router.get('/statuses', authenticate, statuses.listStatuses)
