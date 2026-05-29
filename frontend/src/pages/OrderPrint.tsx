@@ -274,8 +274,9 @@ export function OrderPrint() {
         .company-name { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
         .logo-area { width: 160px; text-align: right; flex-shrink: 0; }
         .logo-area img { max-width: 80px; max-height: 60px; object-fit: contain; }
-        .items-table th { font-size: 8.5px; padding: 2px 3px; }
-        .items-table td { font-size: 8.5px; padding: 2px 3px; }
+        .items-table { table-layout: fixed; }
+        .items-table th { font-size: 7px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
+        .items-table td { font-size: 7px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
         .items-table .ref { font-weight: bold; }
         .items-table .num { text-align: right; }
         .items-table .ctr { text-align: center; }
@@ -375,16 +376,16 @@ export function OrderPrint() {
         <table className="items-table" style={{ marginTop: 6 }}>
           <thead>
             <tr>
-              <th style={{ width: 20 }}>#</th>
-              <th style={{ width: 70 }}>Cód. Produto</th>
-              <th>Produto</th>
-              <th style={{ width: 70 }}>Cor</th>
-              {sizes.map(s => <th key={s} style={{ width: 24 }}>{s}</th>)}
-              <th style={{ width: 32 }}>Qtde</th>
-              <th style={{ width: 50 }}>R$ Tabela</th>
-              <th style={{ width: 55 }}>R$ Unit c/<br/>Desconto</th>
-              <th style={{ width: 40 }}>Desc.%</th>
-              <th style={{ width: 55 }}>R$ Total</th>
+              <th style={{ width: 14 }}>#</th>
+              <th style={{ width: 58 }}>Cód.</th>
+              <th style={{ width: 100 }}>Produto</th>
+              <th style={{ width: 78 }}>Cor</th>
+              {sizes.map(s => <th key={s} style={{ width: 20 }}>{s}</th>)}
+              <th style={{ width: 24 }}>Qtde</th>
+              <th style={{ width: 44 }}>R$ Tab.</th>
+              <th style={{ width: 48 }}>R$ c/Desc.</th>
+              <th style={{ width: 30 }}>Desc%</th>
+              <th style={{ width: 50 }}>R$ Total</th>
             </tr>
           </thead>
           <tbody>
