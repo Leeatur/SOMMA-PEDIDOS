@@ -275,8 +275,8 @@ export function OrderPrint() {
         .logo-area { width: 160px; text-align: right; flex-shrink: 0; }
         .logo-area img { max-width: 80px; max-height: 60px; object-fit: contain; }
         .items-table { table-layout: fixed; }
-        .items-table th { font-size: 6px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
-        .items-table td { font-size: 6px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
+        .items-table th { font-size: 5.5px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
+        .items-table td { font-size: 5.5px; padding: 2px 2px; white-space: nowrap; overflow: hidden; }
         .items-table .ref { font-weight: bold; }
         .items-table .num { text-align: right; }
         .items-table .ctr { text-align: center; }
@@ -376,8 +376,8 @@ export function OrderPrint() {
         <table className="items-table" style={{ marginTop: 6 }}>
           <thead>
             <tr>
-              <th style={{ width: 12 }}>#</th>
-              <th style={{ width: 55 }}>Cód.</th>
+              <th style={{ width: 18 }}>#</th>
+              <th style={{ width: 68 }}>Cód.</th>
               <th style={{ width: 130 }}>Produto</th>
               <th style={{ width: 105 }}>Cor</th>
               {sizes.map(s => <th key={s} style={{ width: 18 }}>{s}</th>)}
