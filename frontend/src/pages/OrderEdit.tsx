@@ -400,7 +400,7 @@ export default function OrderEdit() {
             <p className="text-xs text-on-surface-variant truncate">{order.client_trade_name || order.client_name}</p>
           </div>
           {/* Visualizar */}
-          <button onClick={() => navigate(`/orders/${id}`)}
+          <button onClick={() => window.open(`/orders/${id}`, '_blank')}
             title="Visualizar pedido (somente leitura)"
             className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container shrink-0">
             <Eye size={15} /> Visualizar
@@ -687,7 +687,7 @@ export default function OrderEdit() {
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container">
             <X size={16} /> Cancelar
           </button>
-          <button onClick={() => navigate(`/orders/${id}`)}
+          <button onClick={() => window.open(`/orders/${id}`, '_blank')}
             className="hidden sm:flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container">
             <Eye size={16} /> Visualizar
           </button>
