@@ -259,7 +259,7 @@ export function OrderPrint() {
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #000; background: #fff; }
-        .page { width: 210mm; min-height: 297mm; padding: 10mm 12mm; margin: 0 auto; background: #fff; }
+        .page { width: 210mm; min-height: 297mm; padding: 8mm 8mm; margin: 0 auto; background: #fff; }
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid #ccc; padding: 2px 4px; }
         th { background: #f0f0f0; font-weight: bold; text-align: center; }
