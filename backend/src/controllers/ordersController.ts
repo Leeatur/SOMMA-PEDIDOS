@@ -395,6 +395,127 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
   res.json({ ok: true })
 }
 
+// Troca a tabela de preços do pedido e recalcula todos os valores
+export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
+  const { price_table_id, discount_pct } = req.body
+  const orderId = req.params.id
+  if (!price_table_id) { res.status(400).json({ error: 'price_table_id obrigatório' }); return }
+
+  const { rows: [order] } = await query(
+    'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [orderId]
+  )
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+
+  const isAdmin = req.user!.role === 'admin'
+  if (!isAdmin && order.rep_id !== req.user!.id) {
+    res.status(403).json({ error: 'Acesso negado' }); return
+  }
+
+  // Valida que a nova tabela pertence à mesma fábrica
+  const { rows: [pt] } = await query(
+    'SELECT id, factory_id FROM price_tables WHERE id=$1 AND active=true', [price_table_id]
+  )
+  if (!pt) { res.status(400).json({ error: 'Tabela de preços não encontrada' }); return }
+  if (pt.factory_id !== order.factory_id) {
+    res.status(400).json({ error: 'A tabela deve ser da mesma fábrica do pedido' }); return
+  }
+
+  const disc = parseFloat(discount_pct) !== undefined && !isNaN(parseFloat(discount_pct))
+    ? parseFloat(discount_pct)
+    : parseFloat(order.discount_pct) || 0
+
+  const dbClient = await pool.connect()
+  try {
+    await dbClient.query('BEGIN')
+
+    // Busca itens atuais
+    const { rows: currentItems } = await dbClient.query(
+      'SELECT id, reference, boxes_count, sizes, product_id FROM order_items WHERE order_id=$1',
+      [orderId]
+    )
+
+    // Para cada item, busca o preço base na nova tabela (pela referência)
+    const notFound: string[] = []
+    for (const item of currentItems) {
+      const { rows: [newProduct] } = await dbClient.query(
+        'SELECT id, base_price FROM products WHERE price_table_id=$1 AND reference=$2',
+        [price_table_id, item.reference]
+      )
+      if (!newProduct) {
+        notFound.push(item.reference)
+        continue
+      }
+      const newUnitPrice = Number(newProduct.base_price)
+      const discountedPrice = newUnitPrice * (1 - disc / 100)
+      const sizesMap = item.sizes && typeof item.sizes === 'object' ? item.sizes as Record<string,number> : {}
+      const sizesTotal = Object.values(sizesMap).reduce((s, v) => s + Number(v || 0), 0)
+
+      let itemPieces: number
+      let subtotal: number
+      if (sizesTotal > 0) {
+        itemPieces = sizesTotal
+        subtotal = discountedPrice * itemPieces
+      } else {
+        const { rows: grades } = await dbClient.query(
+          'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [newProduct.id]
+        )
+        const piecesPerBox = grades.reduce((s: number, g: {total_pieces:number}) => s + g.total_pieces, 0) || 1
+        itemPieces = (item.boxes_count || 1) * piecesPerBox
+        subtotal = discountedPrice * (item.boxes_count || 1)
+      }
+
+      await dbClient.query(
+        `UPDATE order_items SET
+           product_id=$1, unit_price=$2, subtotal=$3, total_pieces=$4
+         WHERE id=$5`,
+        [newProduct.id, newUnitPrice, Math.round(subtotal * 100) / 100, itemPieces, item.id]
+      )
+    }
+
+    if (notFound.length > 0) {
+      await dbClient.query('ROLLBACK')
+      res.status(422).json({
+        error: 'Alguns produtos não existem na nova tabela',
+        missing: notFound,
+      })
+      return
+    }
+
+    // Recalcula totais do pedido com os novos preços
+    const { rows: updatedItems } = await dbClient.query(
+      'SELECT product_id, reference, boxes_count, unit_price, sizes FROM order_items WHERE order_id=$1',
+      [orderId]
+    )
+    const totals = await computeOrderTotals(updatedItems, disc, price_table_id, dbClient as any)
+
+    await dbClient.query(
+      `UPDATE orders SET
+         price_table_id=$1, discount_pct=$2,
+         total_commission_pct=$3, rep_commission_pct=$4, office_commission_pct=$5,
+         total_pieces=$6, total_value=$7,
+         rep_commission_value=$8, office_commission_value=$9,
+         updated_at=NOW()
+       WHERE id=$10`,
+      [
+        price_table_id, disc,
+        totals.totalCommissionPct, totals.repCommissionPct, totals.officeCommissionPct,
+        totals.totalPieces, totals.totalValue,
+        totals.repCommissionValue, totals.officeCommissionValue,
+        orderId,
+      ]
+    )
+
+    await dbClient.query('COMMIT')
+    res.json({ ok: true, total_value: totals.totalValue, total_pieces: totals.totalPieces })
+  } catch (err) {
+    await dbClient.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao trocar tabela de preços' })
+  } finally {
+    dbClient.release()
+  }
+}
+
 // Exclui um pedido (admin ou rep dono do pedido)
 export async function deleteOrder(req: AuthRequest, res: Response) {
   const isAdmin = req.user!.role === 'admin'

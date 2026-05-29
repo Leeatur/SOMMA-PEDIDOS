@@ -22,8 +22,10 @@ import {
   CalendarDays,
   CreditCard,
   Truck,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react'
-import { ordersApi, statusesApi, productsApi, clientsApi } from '../api/client'
+import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { StatusBadge } from '../components/ui/Badge'
 import { Card } from '../components/ui/Card'
@@ -210,6 +212,9 @@ export function OrderDetail() {
     client_search: '',
   })
   const [removeItemId, setRemoveItemId] = useState<string | null>(null)
+  const [changePtModal, setChangePtModal] = useState(false)
+  const [newPriceTableId, setNewPriceTableId] = useState('')
+  const [newDiscountPct, setNewDiscountPct] = useState('')
 
   const { data: order, isLoading } = useQuery<OrderDetail>({
     queryKey: ['order', id],
@@ -280,6 +285,28 @@ export function OrderDetail() {
       qc.invalidateQueries({ queryKey: ['order', id] })
       qc.invalidateQueries({ queryKey: ['orders'] })
       setRemoveItemId(null)
+    },
+  })
+
+  // Tabelas disponíveis para trocar (mesma fábrica)
+  const { data: factoryPriceTables } = useQuery<Array<{ id: string; name: string; collection: string | null }>>({
+    queryKey: ['price-tables-factory', order?.factory_id],
+    queryFn: () => priceTablesApi.list(order!.factory_id).then(r => r.data),
+    enabled: changePtModal && !!order?.factory_id,
+  })
+
+  const changePtMut = useMutation({
+    mutationFn: () => ordersApi.changePriceTable(
+      id!,
+      newPriceTableId,
+      parseFloat(newDiscountPct) || 0,
+    ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order', id] })
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      setChangePtModal(false)
+      setNewPriceTableId('')
+      setNewDiscountPct('')
     },
   })
 
@@ -453,7 +480,22 @@ export function OrderDetail() {
               <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                 <Tag className="h-3 w-3" /> Tabela
               </p>
-              <p className="font-medium text-on-surface truncate">{order.price_table_name}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-on-surface truncate">{order.price_table_name}</p>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setNewPriceTableId(order.price_table_id)
+                      setNewDiscountPct(String(order.discount_pct))
+                      setChangePtModal(true)
+                    }}
+                    className="p-1 rounded-lg text-outline hover:text-primary hover:bg-primary/10 transition-colors flex-shrink-0"
+                    title="Trocar tabela de preços"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
             <div>
               <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
@@ -1049,6 +1091,93 @@ export function OrderDetail() {
             Tem certeza que deseja excluir o pedido <span className="font-bold">{order && formatOrderNumber(order.order_number)}</span>?
           </p>
           <p className="text-sm text-outline/70 mt-1">Esta ação não pode ser desfeita.</p>
+        </div>
+      </Modal>
+
+      {/* ── Modal: Trocar Tabela de Preços ── */}
+      <Modal
+        open={changePtModal}
+        onClose={() => { setChangePtModal(false); setNewPriceTableId(''); setNewDiscountPct('') }}
+        title="Trocar Tabela de Preços"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => { setChangePtModal(false); setNewPriceTableId(''); setNewDiscountPct('') }}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => changePtMut.mutate()}
+              loading={changePtMut.isPending}
+              disabled={!newPriceTableId || newPriceTableId === order?.price_table_id}
+            >
+              Recalcular e Salvar
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* Aviso */}
+          <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+            <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 leading-relaxed">
+              Todos os preços dos itens serão recalculados com base na nova tabela.
+              O desconto pode ser ajustado abaixo.
+            </p>
+          </div>
+
+          {/* Seleção da nova tabela */}
+          <div>
+            <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
+              Nova Tabela de Preços
+            </label>
+            <select
+              value={newPriceTableId}
+              onChange={e => setNewPriceTableId(e.target.value)}
+              className="w-full border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            >
+              <option value="">Selecione uma tabela…</option>
+              {(factoryPriceTables || []).map(pt => (
+                <option key={pt.id} value={pt.id}>
+                  {pt.name}{pt.collection ? ` — ${pt.collection}` : ''}
+                  {pt.id === order?.price_table_id ? ' (atual)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Desconto */}
+          <div>
+            <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
+              Desconto (%)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={newDiscountPct}
+              onChange={e => setNewDiscountPct(e.target.value)}
+              placeholder="0"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </div>
+
+          {/* Erro de produtos não encontrados */}
+          {changePtMut.isError && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
+              <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-medium text-red-700">
+                  {(changePtMut.error as { response?: { data?: { error?: string; missing?: string[] } } })?.response?.data?.error || 'Erro ao trocar tabela'}
+                </p>
+                {(changePtMut.error as { response?: { data?: { missing?: string[] } } })?.response?.data?.missing && (
+                  <p className="text-xs text-red-600 mt-0.5">
+                    Referências não encontradas:{' '}
+                    {((changePtMut.error as { response?: { data?: { missing?: string[] } } })?.response?.data?.missing || []).join(', ')}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

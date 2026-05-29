@@ -245,6 +245,8 @@ export const ordersApi = {
   addItems: (id: string, items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number; sizes?: Record<string, number> }>) =>
     apiClient.post(`/orders/${id}/items`, { items }),
   removeItem: (id: string, item_id: string) => apiClient.delete(`/orders/${id}/items/${item_id}`),
+  changePriceTable: (id: string, price_table_id: string, discount_pct: number) =>
+    apiClient.put(`/orders/${id}/price-table`, { price_table_id, discount_pct }),
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),
   delete: (id: string) => apiClient.delete(`/orders/${id}`),
   listTrash: () => apiClient.get('/orders/trash'),
