@@ -492,14 +492,6 @@ export function OrderDetail() {
           >
             Editar
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setAddItemsModal(true)}
-            icon={<Plus className="h-3.5 w-3.5" />}
-          >
-            Itens
-          </Button>
           {isAdmin && (
             <Button
               size="sm"
@@ -525,13 +517,6 @@ export function OrderDetail() {
         <Card padding="md">
           <div className="flex items-start justify-between mb-3">
             <p className="text-xs font-semibold text-outline uppercase tracking-wide">Informações do Pedido</p>
-            <button
-              onClick={openEditInfo}
-              className="p-1 rounded-md text-outline/70 hover:bg-surface-container hover:text-primary transition-colors"
-              title="Editar informações"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm select-text">
             <div className="col-span-2">
@@ -654,18 +639,6 @@ export function OrderDetail() {
               <span>Desconto aplicado:</span>
               <div className="flex items-center gap-2">
                 <span className="font-medium">{formatPct(order.discount_pct)}</span>
-                {isAdmin && (
-                  <button
-                    onClick={() => {
-                      setEditDiscountValue(String(order.discount_pct).replace('.', ','))
-                      setEditDiscountModal(true)
-                    }}
-                    className="p-0.5 rounded text-outline/60 hover:text-primary hover:bg-primary/10 transition-colors"
-                    title="Alterar desconto"
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </button>
-                )}
               </div>
             </div>
             <div className="flex justify-between font-bold text-on-surface text-base">
@@ -768,34 +741,7 @@ export function OrderDetail() {
                   {isExpanded && (
                     <div className="px-3 pb-3 border-t border-outline-variant/50 pt-2">
                       {/* Botões de ação do item */}
-                      <div className="flex justify-between items-center mb-2">
-                        {editingItemId === item.id ? (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                saveEditItem(item)
-                              }}
-                              disabled={updateItemMut.isPending}
-                              className="flex items-center gap-1 text-xs text-white bg-primary hover:bg-primary/90 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
-                            >
-                              <Save className="h-3 w-3" /> Salvar
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); cancelEditItem() }}
-                              className="flex items-center gap-1 text-xs text-outline hover:text-on-surface hover:bg-surface-container px-2 py-1 rounded-lg transition-colors"
-                            >
-                              <X className="h-3 w-3" /> Cancelar
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); startEditItem(item) }}
-                            className="flex items-center gap-1 text-xs text-primary hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors"
-                          >
-                            <Pencil className="h-3 w-3" /> Editar quantidades
-                          </button>
-                        )}
+                      <div className="flex justify-end items-center mb-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); setRemoveItemId(item.id) }}
                           className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
@@ -809,40 +755,6 @@ export function OrderDetail() {
                         <>
                           <p className="text-xs font-medium text-on-surface-variant mb-1.5">Quantidades por tamanho:</p>
                           <div className="overflow-x-auto scrollbar-hide">
-                            {editingItemId === item.id ? (
-                              <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
-                                <thead className="bg-surface-container-low">
-                                  <tr>
-                                    {sortSizesDetail(Object.keys(draftSizes)).map(s => (
-                                      <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[44px]">{s}</th>
-                                    ))}
-                                    <th className="px-2 py-1 text-center text-outline border-l border-outline-variant min-w-[44px]">Total</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  <tr className="bg-white">
-                                    {sortSizesDetail(Object.keys(draftSizes)).map(s => (
-                                      <td key={s} className="px-1 py-1 text-center">
-                                        <input
-                                          type="number"
-                                          min={0}
-                                          value={draftSizes[s] ?? 0}
-                                          onClick={e => e.stopPropagation()}
-                                          onChange={e => {
-                                            const v = parseInt(e.target.value) || 0
-                                            setDraftSizes(prev => ({ ...prev, [s]: Math.max(0, v) }))
-                                          }}
-                                          className="w-10 text-center border border-outline-variant rounded px-1 py-0.5 text-xs focus:outline-none focus:border-primary"
-                                        />
-                                      </td>
-                                    ))}
-                                    <td className="px-2 py-1 text-center font-bold border-l border-outline-variant">
-                                      {Object.values(draftSizes).reduce((s, v) => s + (v || 0), 0)}
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            ) : (
                               <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
                                 <thead className="bg-surface-container-low">
                                   <tr>{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
@@ -855,28 +767,12 @@ export function OrderDetail() {
                                   ))}<td className="px-2 py-1 text-center font-bold border-l border-outline-variant">{item.total_pieces}</td></tr>
                                 </tbody>
                               </table>
-                            )}
                           </div>
                         </>
                       ) : item.grade_configs && item.grade_configs.length > 0 ? (
                         <>
                           <p className="text-xs font-medium text-on-surface-variant mb-1.5">Composição da grade:</p>
-                          {editingItemId === item.id ? (
-                            <div className="flex items-center gap-3 mt-1">
-                              <span className="text-xs text-on-surface-variant">Número de caixas:</span>
-                              <input
-                                type="number"
-                                min={1}
-                                value={draftBoxes}
-                                onClick={e => e.stopPropagation()}
-                                onChange={e => setDraftBoxes(Math.max(1, parseInt(e.target.value) || 1))}
-                                className="w-16 text-center border border-outline-variant rounded px-2 py-1 text-sm focus:outline-none focus:border-primary"
-                              />
-                              <span className="text-xs text-outline">caixas</span>
-                            </div>
-                          ) : (
-                            <GradeDisplay configs={item.grade_configs} boxCount={item.boxes_count} />
-                          )}
+                          <GradeDisplay configs={item.grade_configs} boxCount={item.boxes_count} />
                         </>
                       ) : null}
                     </div>
