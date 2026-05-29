@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Save, X, Search, Trash2, AlertTriangle,
   Loader2, Eye, Printer,
@@ -168,18 +168,10 @@ export default function OrderEdit() {
 
   // ── busca de clientes ────────────────────────────────────────────────────────
 
-  const [clientSearch, setClientSearch] = useState('')
   const [clientResults, setClientResults] = useState<ClientOption[]>([])
   const [showClientDropdown, setShowClientDropdown] = useState(false)
 
-  const { refetch: searchClients } = useQuery<ClientOption[]>({
-    queryKey: ['clients-search', clientSearch],
-    queryFn: () => clientsApi.list(clientSearch).then(r => r.data),
-    enabled: false,
-  })
-
   const handleClientSearch = useCallback(async (val: string) => {
-    setClientSearch(val)
     setForm(f => ({ ...f, client_display: val, client_id: '' }))
     if (val.length >= 2) {
       const res = await clientsApi.list(val)

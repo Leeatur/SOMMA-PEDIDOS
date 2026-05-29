@@ -24,8 +24,6 @@ import {
   Truck,
   RefreshCw,
   AlertTriangle,
-  Save,
-  X,
 } from 'lucide-react'
 import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -224,9 +222,6 @@ export function OrderDetail() {
   const [changePtModal, setChangePtModal] = useState(false)
   const [newPriceTableId, setNewPriceTableId] = useState('')
   const [newDiscountPct, setNewDiscountPct] = useState('')
-  const [editingItemId, setEditingItemId] = useState<string | null>(null)
-  const [draftSizes, setDraftSizes] = useState<Record<string, number>>({})
-  const [draftBoxes, setDraftBoxes] = useState<number>(1)
   const [editDiscountModal, setEditDiscountModal] = useState(false)
   const [editDiscountValue, setEditDiscountValue] = useState('')
 
@@ -344,56 +339,6 @@ export function OrderDetail() {
       setEditDiscountModal(false)
     },
   })
-
-  const updateItemMut = useMutation({
-    mutationFn: ({ item_id, data }: { item_id: string; data: { sizes?: Record<string, number>; boxes_count?: number } }) =>
-      ordersApi.updateItem(id!, item_id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['order', id] })
-      qc.invalidateQueries({ queryKey: ['orders'] })
-      setEditingItemId(null)
-    },
-  })
-
-  function startEditItem(item: OrderItem) {
-    if (item.type === 'regular' && item.sizes) {
-      setDraftSizes({ ...item.sizes })
-    } else {
-      setDraftBoxes(item.boxes_count)
-    }
-    setEditingItemId(item.id)
-  }
-
-  function cancelEditItem() {
-    setEditingItemId(null)
-    setDraftSizes({})
-    setDraftBoxes(1)
-  }
-
-  function saveEditItem(item: OrderItem) {
-    if (item.type === 'regular') {
-      updateItemMut.mutate({ item_id: item.id, data: { sizes: draftSizes } })
-    } else {
-      updateItemMut.mutate({ item_id: item.id, data: { boxes_count: draftBoxes } })
-    }
-  }
-
-  function openEditInfo() {
-    if (!order) return
-    setEditInfoForm({
-      payment_terms: order.payment_terms || '',
-      delivery_date: order.delivery_date ? order.delivery_date.substring(0, 10) : '',
-      freight_type: order.freight_type || 'CIF',
-      buyer_name: order.buyer_name || '',
-      industry_order_number: order.industry_order_number || '',
-      notes: order.notes || '',
-      client_id: '',
-      client_search: '',
-      rep_id: order.rep_id || '',
-      discount_pct: String(order.discount_pct ?? 0).replace('.', ','),
-    })
-    setEditInfoModal(true)
-  }
 
   // Busca de clientes para trocar no pedido
   const { data: clientResults } = useQuery<ClientOption[]>({
