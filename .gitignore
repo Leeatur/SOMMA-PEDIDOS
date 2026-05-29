@@ -12,3 +12,4 @@ uploads/products/*
 # Tools — arquivos gerados e credenciais sensíveis
 tools/migration_*.sql
 tools/__pycache__/
+tools/config.py
