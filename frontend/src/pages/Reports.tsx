@@ -30,8 +30,28 @@ interface OrderDay {
   date: string; order_count: number; total_pieces: number; total_value: number
 }
 interface CommissionRow {
-  rep_id: string; rep_name: string; order_count: number; total_pieces: number
-  total_value: number; rep_commission_value: number; office_commission_value: number
+  id: string
+  order_number: number
+  data_venda: string
+  industria: string
+  vendedor: string
+  nr_ped_fabrica: string | null
+  razao_social: string
+  cliente: string | null
+  cidade: string | null
+  items_refs: string | null
+  items_count: number
+  total_pieces: number
+  total_value: number
+  discount_pct: number
+  rep_commission_value: number
+  rep_commission_pct: number
+  office_commission_value: number
+  office_commission_pct: number
+  valor_faturado: number
+  falta_faturar: number
+  status_name: string | null
+  status_color: string | null
 }
 interface ClientRow {
   id: string; name: string; trade_name: string; city: string; state: string
@@ -477,8 +497,8 @@ export function Reports() {
   })
 
   const commissionsQ = useQuery<CommissionRow[]>({
-    queryKey: ['rpt-commissions', dateFrom, dateTo, repId],
-    queryFn: () => reportsApi.commissions({ date_from: dateFrom, date_to: dateTo, rep_id: repId || undefined }).then(r => r.data),
+    queryKey: ['rpt-commissions', dateFrom, dateTo, repId, factoryId],
+    queryFn: () => reportsApi.commissions({ date_from: dateFrom, date_to: dateTo, rep_id: repId || undefined, factory_id: factoryId || undefined }).then(r => r.data),
     enabled: tab === 'commissions',
   })
 
@@ -565,8 +585,8 @@ export function Reports() {
               ))}
             </div>
 
-            {/* factory filter (hidden on commissions tab) */}
-            {tab !== 'commissions' && (
+            {/* factory filter */}
+            {(
               <select
                 value={factoryId} onChange={e => setFactoryId(e.target.value)}
                 className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
@@ -689,64 +709,90 @@ export function Reports() {
           !commissionsQ.data ? null :
           commissionsQ.data.length === 0
             ? <EmptyState label="Nenhum dado de comissão no período" />
-            : (
-              <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead className="bg-surface-container-low">
-                      <tr>
-                        <Th>Representante</Th>
-                        <Th right>Pedidos</Th>
-                        <Th right>Peças</Th>
-                        <Th right>Valor Total</Th>
-                        <Th right>Com. Rep</Th>
-                        {isAdmin && <Th right>Com. Escritório</Th>}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {commissionsQ.data.map(r => (
-                        <tr key={r.rep_id} className="hover:bg-surface-container-low/50">
-                          <td className="px-4 py-3 text-sm font-semibold text-on-surface">{r.rep_name}</td>
-                          <Td right>{r.order_count}</Td>
-                          <Td right>{fmtN(r.total_pieces)}</Td>
-                          <Td right bold>{fmtR(r.total_value)}</Td>
-                          <td className="px-4 py-3 text-right text-sm font-bold text-emerald-700">
-                            {fmtR(r.rep_commission_value)}
-                          </td>
-                          {isAdmin && (
-                            <Td right>{fmtR(r.office_commission_value)}</Td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                    {commissionsQ.data.length > 1 && (
-                      <tfoot>
-                        <tr className="bg-surface-container-low border-t border-outline-variant">
-                          <td className="px-4 py-2.5 text-xs font-bold text-on-surface-variant">Total</td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface-variant">
-                            {commissionsQ.data.reduce((s, r) => s + r.order_count, 0)}
-                          </td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface-variant">
-                            {fmtN(commissionsQ.data.reduce((s, r) => s + r.total_pieces, 0))}
-                          </td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface">
-                            {fmtR(commissionsQ.data.reduce((s, r) => s + Number(r.total_value), 0))}
-                          </td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-emerald-700">
-                            {fmtR(commissionsQ.data.reduce((s, r) => s + Number(r.rep_commission_value), 0))}
-                          </td>
-                          {isAdmin && (
-                            <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface-variant">
-                              {fmtR(commissionsQ.data.reduce((s, r) => s + Number(r.office_commission_value), 0))}
-                            </td>
-                          )}
-                        </tr>
-                      </tfoot>
-                    )}
-                  </table>
-                </div>
-              </div>
-            )
+            : (() => {
+                const rows = commissionsQ.data
+                const sum = (key: keyof CommissionRow) =>
+                  rows.reduce((s, r) => s + Number(r[key] || 0), 0)
+                const fmtDate = (d: string) =>
+                  new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
+                const fmtPct = (v: number) => `${Number(v || 0).toFixed(2).replace('.', ',')}%`
+                return (
+                  <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-surface-container-low">
+                          <tr>
+                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Dt. Venda</th>
+                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Indústria</th>
+                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Vendedor</th>
+                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nr. Ped. Fábrica</th>
+                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Razão Social</th>
+                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nome Fantasia</th>
+                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Cidade</th>
+                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Ítens</th>
+                            <th className="px-3 py-2.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Valor</th>
+                            <th className="px-3 py-2.5 text-right font-semibold text-emerald-700 whitespace-nowrap">Com. Vendedor</th>
+                            {isAdmin && <th className="px-3 py-2.5 text-right font-semibold text-blue-700 whitespace-nowrap">Com. Escrit.</th>}
+                            <th className="px-3 py-2.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Vlr. Faturado</th>
+                            <th className="px-3 py-2.5 text-right font-semibold text-orange-600 whitespace-nowrap">Falta Faturar</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {rows.map(r => (
+                            <tr key={r.id} className="hover:bg-surface-container-low/50">
+                              <td className="px-3 py-2 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>
+                              <td className="px-3 py-2 whitespace-nowrap font-medium text-on-surface">{r.industria}</td>
+                              <td className="px-3 py-2 whitespace-nowrap text-on-surface-variant">{r.vendedor}</td>
+                              <td className="px-3 py-2 whitespace-nowrap text-on-surface-variant">{r.nr_ped_fabrica || '—'}</td>
+                              <td className="px-3 py-2 max-w-[160px]">
+                                <span className="block truncate text-on-surface font-medium" title={r.razao_social}>{r.razao_social}</span>
+                              </td>
+                              <td className="px-3 py-2 max-w-[140px]">
+                                <span className="block truncate text-on-surface-variant" title={r.cliente || ''}>{r.cliente || '—'}</span>
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>
+                              <td className="px-3 py-2 max-w-[180px]">
+                                <span className="block truncate text-on-surface-variant" title={r.items_refs || ''}>{r.items_refs || '—'}</span>
+                              </td>
+                              <td className="px-3 py-2 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>
+                              <td className="px-3 py-2 text-right whitespace-nowrap">
+                                <span className="font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</span>
+                                <span className="text-emerald-600/70 ml-1">({fmtPct(r.rep_commission_pct)})</span>
+                              </td>
+                              {isAdmin && (
+                                <td className="px-3 py-2 text-right whitespace-nowrap">
+                                  <span className="font-bold text-blue-700">{fmtR(r.office_commission_value)}</span>
+                                  <span className="text-blue-600/70 ml-1">({fmtPct(r.office_commission_pct)})</span>
+                                </td>
+                              )}
+                              <td className="px-3 py-2 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
+                              <td className="px-3 py-2 text-right whitespace-nowrap">
+                                {Number(r.falta_faturar) > 0
+                                  ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span>
+                                  : <span className="text-on-surface-variant/50">—</span>
+                                }
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
+                            <td className="px-3 py-2.5 text-on-surface-variant" colSpan={8}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
+                            <td className="px-3 py-2.5 text-right text-on-surface">{fmtR(sum('total_value'))}</td>
+                            <td className="px-3 py-2.5 text-right text-emerald-700">{fmtR(sum('rep_commission_value'))}</td>
+                            {isAdmin && <td className="px-3 py-2.5 text-right text-blue-700">{fmtR(sum('office_commission_value'))}</td>}
+                            <td className="px-3 py-2.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
+                            <td className="px-3 py-2.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                    <div className="px-4 py-2.5 bg-surface-container-lowest border-t border-outline-variant/50 text-[11px] text-outline/70">
+                      * Valor Faturado = pedidos com status <strong>final</strong>. Falta Faturar = demais pedidos.
+                    </div>
+                  </div>
+                )
+              })()
         )}
 
         {/* ═══ CLIENTES ═════════════════════════════════════════════════════ */}

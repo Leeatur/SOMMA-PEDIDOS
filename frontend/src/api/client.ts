@@ -259,7 +259,7 @@ export const ordersApi = {
 export const reportsApi = {
   orders: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
     apiClient.get('/reports/orders', { params }),
-  commissions: (params: { date_from?: string; date_to?: string; rep_id?: string }) =>
+  commissions: (params: { date_from?: string; date_to?: string; rep_id?: string; factory_id?: string }) =>
     apiClient.get('/reports/commissions', { params }),
   clients: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
     apiClient.get('/reports/clients', { params }),

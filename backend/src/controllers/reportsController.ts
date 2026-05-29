@@ -64,24 +64,48 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
   const [from, to] = dateRange(req)
   const isAdmin = req.user?.role === 'admin'
   const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
 
   const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
-  const { cond } = buildCond(params, repId || undefined, undefined, 3)
+  const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
 
   const { rows } = await query(`
     SELECT
-      u.id                                                      AS rep_id,
-      u.name                                                    AS rep_name,
-      COUNT(o.id)::int                                          AS order_count,
-      COALESCE(SUM(o.total_pieces), 0)::int                    AS total_pieces,
-      COALESCE(SUM(o.total_value), 0)::numeric                 AS total_value,
-      COALESCE(SUM(o.rep_commission_value), 0)::numeric        AS rep_commission_value,
-      COALESCE(SUM(o.office_commission_value), 0)::numeric     AS office_commission_value
+      o.id,
+      o.order_number,
+      DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo')          AS data_venda,
+      f.name                                                         AS industria,
+      u.name                                                         AS vendedor,
+      o.industry_order_number                                        AS nr_ped_fabrica,
+      c.name                                                         AS razao_social,
+      c.trade_name                                                   AS cliente,
+      c.city                                                         AS cidade,
+      (SELECT STRING_AGG(DISTINCT oi.reference, ', '
+         ORDER BY oi.reference)
+       FROM order_items oi WHERE oi.order_id = o.id)                AS items_refs,
+      (SELECT COUNT(*)::int
+       FROM order_items oi WHERE oi.order_id = o.id)                AS items_count,
+      o.total_pieces,
+      o.total_value::numeric,
+      o.discount_pct::numeric,
+      o.rep_commission_value::numeric,
+      o.rep_commission_pct::numeric,
+      o.office_commission_value::numeric,
+      o.office_commission_pct::numeric,
+      CASE WHEN COALESCE(s.is_final, false) = true
+           THEN o.total_value ELSE 0 END::numeric                   AS valor_faturado,
+      CASE WHEN COALESCE(s.is_final, false) = false
+           THEN o.total_value ELSE 0 END::numeric                   AS falta_faturar,
+      s.name                                                         AS status_name,
+      s.color                                                        AS status_color
     FROM orders o
-    JOIN users u ON u.id = o.rep_id
-    WHERE o.created_at BETWEEN $1 AND $2 ${cond}
-    GROUP BY u.id, u.name
-    ORDER BY total_value DESC
+    JOIN clients c   ON c.id = o.client_id
+    JOIN users u     ON u.id = o.rep_id
+    JOIN factories f ON f.id = o.factory_id
+    LEFT JOIN order_statuses s ON s.id = o.status_id
+    WHERE o.deleted_at IS NULL
+      AND o.created_at BETWEEN $1 AND $2 ${cond}
+    ORDER BY o.created_at DESC
   `, params)
 
   res.json(rows)
