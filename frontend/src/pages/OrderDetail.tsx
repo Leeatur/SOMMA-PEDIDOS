@@ -581,7 +581,7 @@ export function OrderDetail() {
                   <CalendarDays className="h-3 w-3" /> Data de Entrega
                 </p>
                 <p className="font-medium text-on-surface">
-                  {new Date(order.delivery_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                  {new Date(order.delivery_date.substring(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR')}
                 </p>
               </div>
             )}
