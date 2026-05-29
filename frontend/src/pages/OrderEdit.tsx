@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  ChevronLeft, Save, X, Search, Trash2, Plus, AlertTriangle,
-  Loader2,
+  ChevronLeft, Save, X, Search, Trash2, AlertTriangle,
+  Loader2, Eye, Printer,
 } from 'lucide-react'
 import {
   ordersApi, clientsApi, usersApi, statusesApi, productsApi,
@@ -371,7 +371,7 @@ export default function OrderEdit() {
 
       qc.invalidateQueries({ queryKey: ['order', id] })
       qc.invalidateQueries({ queryKey: ['orders'] })
-      navigate(`/orders/${id}`)
+      navigate('/orders')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
       setSaveError(msg || 'Erro ao salvar. Tente novamente.')
@@ -396,23 +396,37 @@ export default function OrderEdit() {
 
       {/* Topbar */}
       <div className="sticky top-0 z-30 bg-white border-b border-outline-variant shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={() => navigate(`/orders/${id}`)}
-            className="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2">
+          <button onClick={() => navigate('/orders')}
+            className="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant shrink-0">
             <ChevronLeft size={20} />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="font-semibold text-on-surface text-base leading-tight">
-              Editando Pedido {formatOrderNumber(order.order_number)}
+              {formatOrderNumber(order.order_number)}
             </h1>
             <p className="text-xs text-on-surface-variant truncate">{order.client_trade_name || order.client_name}</p>
           </div>
+          {/* Visualizar */}
           <button onClick={() => navigate(`/orders/${id}`)}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container">
+            title="Visualizar pedido (somente leitura)"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container shrink-0">
+            <Eye size={15} /> Visualizar
+          </button>
+          {/* Imprimir */}
+          <button onClick={() => window.open(`/orders/${id}/print`, '_blank')}
+            title="Imprimir"
+            className="hidden sm:flex p-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container shrink-0">
+            <Printer size={15} />
+          </button>
+          {/* Cancelar */}
+          <button onClick={() => navigate('/orders')}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container shrink-0">
             <X size={15} /> Cancelar
           </button>
+          {/* Salvar */}
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-60">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 shrink-0">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             {saving ? 'Salvando...' : 'Salvar'}
           </button>
@@ -677,9 +691,13 @@ export default function OrderEdit() {
 
         {/* Botões de ação no final (mobile-friendly) */}
         <div className="flex gap-3 pb-8">
-          <button onClick={() => navigate(`/orders/${id}`)}
+          <button onClick={() => navigate('/orders')}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container">
             <X size={16} /> Cancelar
+          </button>
+          <button onClick={() => navigate(`/orders/${id}`)}
+            className="hidden sm:flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container">
+            <Eye size={16} /> Visualizar
           </button>
           <button onClick={handleSave} disabled={saving}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-60">
