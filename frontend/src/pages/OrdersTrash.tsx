@@ -51,14 +51,14 @@ export function OrdersTrash() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
           <div className="w-9 h-9 bg-red-100 rounded-xl flex items-center justify-center">
             <Trash2 className="h-5 w-5 text-red-500" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Lixeira de Pedidos</h1>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h1 className="text-lg font-bold text-on-surface">Lixeira de Pedidos</h1>
+            <p className="text-xs text-outline mt-0.5">
               {orders.length === 0
                 ? 'Nenhum pedido excluído'
                 : `${orders.length} pedido${orders.length > 1 ? 's' : ''} na lixeira`}
@@ -71,11 +71,11 @@ export function OrdersTrash() {
         {orders.length === 0 ? (
           <Card padding="md">
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mb-3">
-                <Trash2 className="h-7 w-7 text-gray-300" />
+              <div className="w-14 h-14 bg-surface-container rounded-2xl flex items-center justify-center mb-3">
+                <Trash2 className="h-7 w-7 text-outline/50" />
               </div>
-              <p className="text-gray-500 font-medium">Lixeira vazia</p>
-              <p className="text-sm text-gray-400 mt-1">Pedidos excluídos aparecerão aqui</p>
+              <p className="text-outline font-medium">Lixeira vazia</p>
+              <p className="text-sm text-outline/70 mt-1">Pedidos excluídos aparecerão aqui</p>
             </div>
           </Card>
         ) : (
@@ -91,21 +91,21 @@ export function OrdersTrash() {
                   <div className="flex-1 min-w-0">
                     {/* Número e cliente */}
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-gray-400">#{order.order_number}</span>
-                      <span className="text-sm font-semibold text-gray-900 truncate">{order.client_name}</span>
+                      <span className="text-xs font-bold text-outline/70">#{order.order_number}</span>
+                      <span className="text-sm font-semibold text-on-surface truncate">{order.client_name}</span>
                       {order.client_city && (
-                        <span className="text-xs text-gray-400">— {order.client_city}</span>
+                        <span className="text-xs text-outline/70">— {order.client_city}</span>
                       )}
                     </div>
                     {/* Detalhes */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500">
+                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-outline">
                       <span>{order.factory_name}</span>
                       <span>Rep: {order.rep_name}</span>
                       <span>{order.total_pieces} peças</span>
-                      <span className="font-medium text-gray-700">R$ {fmt(order.total_value)}</span>
+                      <span className="font-medium text-on-surface-variant">R$ {fmt(order.total_value)}</span>
                     </div>
                     {/* Datas */}
-                    <div className="flex gap-4 mt-1.5 text-xs text-gray-400">
+                    <div className="flex gap-4 mt-1.5 text-xs text-outline/70">
                       <span>Criado em {fmtDate(order.created_at)}</span>
                       <span className="text-red-400">Excluído em {fmtDate(order.deleted_at)}</span>
                     </div>

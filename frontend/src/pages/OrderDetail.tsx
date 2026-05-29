@@ -153,15 +153,15 @@ function GradeDisplay({ configs, boxCount }: { configs: GradeConfig[]; boxCount:
         const sizes = Object.keys(gc.sizes).sort()
         return (
           <div key={i}>
-            {gc.color && <p className="text-xs font-medium text-gray-600 mb-1">{gc.color}</p>}
+            {gc.color && <p className="text-xs font-medium text-on-surface-variant mb-1">{gc.color}</p>}
             <div className="overflow-x-auto scrollbar-hide">
               <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
                 <thead className="bg-surface-container-low">
                   <tr>
                     {sizes.map((s) => (
-                      <th key={s} className="px-2 py-1 text-center text-gray-600 font-medium min-w-[28px]">{s}</th>
+                      <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
                     ))}
-                    <th className="px-2 py-1 text-center text-gray-500 border-l border-outline-variant">Total</th>
+                    <th className="px-2 py-1 text-center text-outline border-l border-outline-variant">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -347,7 +347,7 @@ export function OrderDetail() {
 
   if (isLoading) return <PageSpinner />
   if (!order) return (
-    <div className="p-8 text-center text-gray-500">Pedido não encontrado</div>
+    <div className="p-8 text-center text-outline">Pedido não encontrado</div>
   )
 
   const statusOptions = (statuses || []).map((s) => ({ value: s.id, label: s.name }))
@@ -359,13 +359,13 @@ export function OrderDetail() {
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-surface-container"
+            className="p-1.5 rounded-lg text-outline hover:bg-surface-container"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base font-bold text-gray-900">
+              <h1 className="text-base font-bold text-on-surface">
                 {formatOrderNumber(order.order_number)}
               </h1>
               {order.status_name && order.status_color && (
@@ -375,7 +375,7 @@ export function OrderDetail() {
           </div>
           <button
             onClick={() => window.open(`/orders/${id}/print`, '_blank')}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-surface-container hover:text-primary transition-colors"
+            className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors"
             title="Imprimir pedido"
           >
             <Printer className="h-4.5 w-4.5" />
@@ -412,10 +412,10 @@ export function OrderDetail() {
         {/* Client + Meta */}
         <Card padding="md">
           <div className="flex items-start justify-between mb-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Informações do Pedido</p>
+            <p className="text-xs font-semibold text-outline uppercase tracking-wide">Informações do Pedido</p>
             <button
               onClick={openEditInfo}
-              className="p-1 rounded-md text-gray-400 hover:bg-surface-container hover:text-primary transition-colors"
+              className="p-1 rounded-md text-outline/70 hover:bg-surface-container hover:text-primary transition-colors"
               title="Editar informações"
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -423,10 +423,10 @@ export function OrderDetail() {
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="col-span-2">
-              <p className="text-xs text-gray-500 mb-0.5">Cliente</p>
-              <p className="font-semibold text-gray-900">{order.client_name}</p>
+              <p className="text-xs text-outline mb-0.5">Cliente</p>
+              <p className="font-semibold text-on-surface">{order.client_name}</p>
               {order.client_city && (
-                <p className="text-xs text-gray-500">{order.client_city}</p>
+                <p className="text-xs text-outline">{order.client_city}</p>
               )}
               {order.client_phone && (
                 <a
@@ -438,80 +438,80 @@ export function OrderDetail() {
               )}
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+              <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                 <User className="h-3 w-3" /> Representante
               </p>
-              <p className="font-medium text-gray-800">{order.rep_name}</p>
+              <p className="font-medium text-on-surface">{order.rep_name}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+              <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                 <Building2 className="h-3 w-3" /> Fábrica
               </p>
-              <p className="font-medium text-gray-800">{order.factory_name}</p>
+              <p className="font-medium text-on-surface">{order.factory_name}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+              <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                 <Tag className="h-3 w-3" /> Tabela
               </p>
-              <p className="font-medium text-gray-800 truncate">{order.price_table_name}</p>
+              <p className="font-medium text-on-surface truncate">{order.price_table_name}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+              <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                 <Clock className="h-3 w-3" /> Emissão
               </p>
-              <p className="font-medium text-gray-800">{formatDateTime(order.created_at)}</p>
+              <p className="font-medium text-on-surface">{formatDateTime(order.created_at)}</p>
             </div>
 
             {/* Campos de realização do pedido */}
             {order.delivery_date && (
               <div>
-                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                   <CalendarDays className="h-3 w-3" /> Data de Entrega
                 </p>
-                <p className="font-medium text-gray-800">
+                <p className="font-medium text-on-surface">
                   {new Date(order.delivery_date + 'T00:00:00').toLocaleDateString('pt-BR')}
                 </p>
               </div>
             )}
             {order.payment_terms && (
               <div>
-                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                   <CreditCard className="h-3 w-3" /> Cond. de Pagamento
                 </p>
-                <p className="font-medium text-gray-800">{order.payment_terms}</p>
+                <p className="font-medium text-on-surface">{order.payment_terms}</p>
               </div>
             )}
             {order.freight_type && (
               <div>
-                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                   <Truck className="h-3 w-3" /> Frete
                 </p>
-                <p className="font-medium text-gray-800">{order.freight_type}</p>
+                <p className="font-medium text-on-surface">{order.freight_type}</p>
               </div>
             )}
             {order.buyer_name && (
               <div>
-                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                   <User className="h-3 w-3" /> Comprador
                 </p>
-                <p className="font-medium text-gray-800">{order.buyer_name}</p>
+                <p className="font-medium text-on-surface">{order.buyer_name}</p>
               </div>
             )}
             {order.industry_order_number && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                <p className="text-xs text-outline mb-0.5 flex items-center gap-1">
                   <Tag className="h-3 w-3" /> N° Pedido Indústria
                 </p>
-                <p className="font-medium text-gray-800">{order.industry_order_number}</p>
+                <p className="font-medium text-on-surface">{order.industry_order_number}</p>
               </div>
             )}
           </div>
           {order.notes && (
             <div className="mt-3 pt-3 border-t border-outline-variant/50">
-              <p className="text-xs text-gray-500 flex items-center gap-1 mb-1">
+              <p className="text-xs text-outline flex items-center gap-1 mb-1">
                 <MessageSquare className="h-3 w-3" /> Observações
               </p>
-              <p className="text-sm text-gray-700">{order.notes}</p>
+              <p className="text-sm text-on-surface-variant">{order.notes}</p>
             </div>
           )}
         </Card>
@@ -520,18 +520,18 @@ export function OrderDetail() {
         <Card padding="md">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-4 w-4 text-emerald-600" />
-            <h2 className="text-sm font-semibold text-gray-900">Resumo Financeiro</h2>
+            <h2 className="text-sm font-semibold text-on-surface">Resumo Financeiro</h2>
           </div>
           <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-on-surface-variant">
               <span>Desconto aplicado:</span>
               <span className="font-medium">{formatPct(order.discount_pct)}</span>
             </div>
-            <div className="flex justify-between font-bold text-gray-900 text-base">
+            <div className="flex justify-between font-bold text-on-surface text-base">
               <span>Total do Pedido:</span>
               <span>{formatCurrency(order.total_value)}</span>
             </div>
-            <div className="flex justify-between text-gray-500">
+            <div className="flex justify-between text-outline">
               <span>Total de Peças:</span>
               <span>{order.total_pieces} pç</span>
             </div>
@@ -540,7 +540,7 @@ export function OrderDetail() {
 
         {/* Items */}
         <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+          <h2 className="text-sm font-semibold text-on-surface-variant mb-3">
             Itens do Pedido ({order.items.length})
           </h2>
           <div className="space-y-2">
@@ -557,28 +557,28 @@ export function OrderDetail() {
                         {item.image_url ? (
                           <img src={item.image_url} alt={item.reference} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <div className="w-full h-full flex items-center justify-center text-outline/50">
                             <ImageIcon className="h-5 w-5" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm">{item.reference}</p>
+                        <p className="font-semibold text-on-surface text-sm">{item.reference}</p>
                         {item.product_name && (
-                          <p className="text-xs text-gray-500 truncate">{item.product_name}</p>
+                          <p className="text-xs text-outline truncate">{item.product_name}</p>
                         )}
                         {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
-                          <p className="text-xs text-gray-500 mt-0.5">{item.total_pieces} peças</p>
+                          <p className="text-xs text-outline mt-0.5">{item.total_pieces} peças</p>
                         ) : (
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className="text-xs text-outline mt-0.5">
                             {item.boxes_count} cx × {Math.round(item.total_pieces / Math.max(item.boxes_count,1))} pç/cx = {item.total_pieces} peças
                           </p>
                         )}
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold text-gray-900">{formatCurrency(item.subtotal)}</p>
-                        <p className="text-xs text-gray-400">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
-                        <ChevronDown className={`h-3.5 w-3.5 text-gray-400 ml-auto mt-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        <p className="text-sm font-bold text-on-surface">{formatCurrency(item.subtotal)}</p>
+                        <p className="text-xs text-outline/70">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
+                        <ChevronDown className={`h-3.5 w-3.5 text-outline/70 ml-auto mt-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </div>
                     </div>
                   </button>
@@ -596,13 +596,13 @@ export function OrderDetail() {
                       </div>
                       {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
                         <>
-                          <p className="text-xs font-medium text-gray-600 mb-1.5">Quantidades por tamanho:</p>
+                          <p className="text-xs font-medium text-on-surface-variant mb-1.5">Quantidades por tamanho:</p>
                           <div className="overflow-x-auto scrollbar-hide">
                             <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
                               <thead className="bg-surface-container-low">
                                 <tr>{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
-                                  <th key={s} className="px-2 py-1 text-center text-gray-600 font-medium min-w-[28px]">{s}</th>
-                                ))}<th className="px-2 py-1 text-center text-gray-500 border-l border-outline-variant">Total</th></tr>
+                                  <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
+                                ))}<th className="px-2 py-1 text-center text-outline border-l border-outline-variant">Total</th></tr>
                               </thead>
                               <tbody>
                                 <tr className="bg-white">{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
@@ -614,7 +614,7 @@ export function OrderDetail() {
                         </>
                       ) : item.grade_configs && item.grade_configs.length > 0 ? (
                         <>
-                          <p className="text-xs font-medium text-gray-600 mb-1.5">Composição da grade:</p>
+                          <p className="text-xs font-medium text-on-surface-variant mb-1.5">Composição da grade:</p>
                           <GradeDisplay configs={item.grade_configs} boxCount={item.boxes_count} />
                         </>
                       ) : null}
@@ -629,7 +629,7 @@ export function OrderDetail() {
         {/* Status History */}
         {order.history.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Histórico de Status</h2>
+            <h2 className="text-sm font-semibold text-on-surface-variant mb-3">Histórico de Status</h2>
             <div className="space-y-2">
               {order.history.map((h) => (
                 <div key={h.id} className="flex items-start gap-3">
@@ -645,14 +645,14 @@ export function OrderDetail() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <StatusBadge name={h.to_status_name} color={h.to_status_color} />
                       {h.from_status_name && (
-                        <span className="text-xs text-gray-400">← {h.from_status_name}</span>
+                        <span className="text-xs text-outline/70">← {h.from_status_name}</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-outline mt-0.5">
                       {h.changed_by_name} &bull; {formatDateTime(h.created_at)}
                     </p>
                     {h.notes && (
-                      <p className="text-xs text-gray-600 mt-0.5 italic">"{h.notes}"</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5 italic">"{h.notes}"</p>
                     )}
                   </div>
                 </div>
@@ -670,7 +670,7 @@ export function OrderDetail() {
         size="lg"
         footer={
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-outline">
               {addCart.length > 0 ? `${addCart.length} produto${addCart.length > 1 ? 's' : ''} selecionado${addCart.length > 1 ? 's' : ''}` : 'Selecione os produtos'}
             </span>
             <div className="flex gap-2">
@@ -710,12 +710,12 @@ export function OrderDetail() {
                   <div key={c.product.id} className="bg-white rounded-lg px-3 py-2 space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">{c.product.reference}</p>
-                        <p className="text-xs text-gray-500">{totalPieces} pç</p>
+                        <p className="text-sm font-semibold text-on-surface">{c.product.reference}</p>
+                        <p className="text-xs text-outline">{totalPieces} pç</p>
                       </div>
                       {!isRegular && (
                         <div className="flex items-center gap-1">
-                          <button onClick={() => updateAddCount(c.product.id, -1)} className="w-6 h-6 rounded bg-surface-container flex items-center justify-center hover:bg-gray-200">
+                          <button onClick={() => updateAddCount(c.product.id, -1)} className="w-6 h-6 rounded bg-surface-container flex items-center justify-center hover:bg-surface-container-high">
                             <Minus className="h-3 w-3" />
                           </button>
                           <span className="w-8 text-center text-sm font-bold">{c.boxes_count}</span>
@@ -733,7 +733,7 @@ export function OrderDetail() {
                         <table className="text-xs">
                           <thead>
                             <tr>{sortSizesDetail(Object.keys(c.sizes)).map(s => (
-                              <th key={s} className="px-1 pb-0.5 text-center text-gray-500 font-medium min-w-[34px]">{s}</th>
+                              <th key={s} className="px-1 pb-0.5 text-center text-outline font-medium min-w-[34px]">{s}</th>
                             ))}<th className="px-1 pb-0.5 text-center text-primary font-bold pl-1">Tot</th></tr>
                           </thead>
                           <tbody>
@@ -757,7 +757,7 @@ export function OrderDetail() {
           {/* Catálogo */}
           <div className="max-h-96 overflow-y-auto space-y-2 pr-1">
             {loadingAddProducts ? (
-              <div className="text-center py-6 text-sm text-gray-400">Carregando produtos…</div>
+              <div className="text-center py-6 text-sm text-outline/70">Carregando produtos…</div>
             ) : (addProducts || []).map(p => {
               const inCart = addCart.find(c => c.product.id === p.id)
               const piecesPerBox = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
@@ -769,18 +769,18 @@ export function OrderDetail() {
                       {p.image_url ? (
                         <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <div className="w-full h-full flex items-center justify-center text-outline/50">
                           <ImageIcon className="h-5 w-5" />
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-gray-900">{p.reference}</p>
-                      {p.product_name && <p className="text-xs text-gray-500 truncate">{p.product_name}</p>}
+                      <p className="font-bold text-sm text-on-surface">{p.reference}</p>
+                      {p.product_name && <p className="text-xs text-outline truncate">{p.product_name}</p>}
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-primary">R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-gray-400 font-normal">/pç</span></p>
+                        <p className="text-sm font-semibold text-primary">R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-outline/70 font-normal">/pç</span></p>
                         {piecesPerBox > 0 && (
-                          <button onClick={() => setExpandedGrade(isExpanded ? null : p.id)} className="text-xs text-gray-400 flex items-center gap-0.5 hover:text-gray-600">
+                          <button onClick={() => setExpandedGrade(isExpanded ? null : p.id)} className="text-xs text-outline/70 flex items-center gap-0.5 hover:text-on-surface-variant">
                             <Info className="h-3 w-3" />{piecesPerBox} pç/cx
                           </button>
                         )}
@@ -793,7 +793,7 @@ export function OrderDetail() {
                         </button>
                       ) : (
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <button onClick={() => updateAddCount(p.id, -1)} className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center hover:bg-gray-200">
+                          <button onClick={() => updateAddCount(p.id, -1)} className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center hover:bg-surface-container-high">
                             <Minus className="h-3.5 w-3.5" />
                           </button>
                           <span className="w-8 text-center font-bold text-sm">{inCart.boxes_count}</span>
@@ -820,7 +820,7 @@ export function OrderDetail() {
               )
             })}
             {!loadingAddProducts && (addProducts || []).length === 0 && (
-              <p className="text-center text-sm text-gray-400 py-4">Nenhum produto encontrado</p>
+              <p className="text-center text-sm text-outline/70 py-4">Nenhum produto encontrado</p>
             )}
           </div>
         </div>
@@ -854,7 +854,7 @@ export function OrderDetail() {
           />
           {newStatusId && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Novo status:</span>
+              <span className="text-sm text-outline">Novo status:</span>
               {statuses?.find((s) => s.id === newStatusId) && (
                 <StatusBadge
                   name={statuses.find((s) => s.id === newStatusId)!.name}
@@ -894,16 +894,16 @@ export function OrderDetail() {
 
           {/* ── Trocar cliente ── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
-            <div className="text-xs text-gray-500 mb-1.5 bg-surface-container-low rounded-lg px-2 py-1">
-              Atual: <span className="font-semibold text-gray-700">{order.client_name}</span>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">Cliente</label>
+            <div className="text-xs text-outline mb-1.5 bg-surface-container-low rounded-lg px-2 py-1">
+              Atual: <span className="font-semibold text-on-surface-variant">{order.client_name}</span>
             </div>
             <input
               type="text"
               value={editInfoForm.client_search}
               onChange={e => setEditInfoForm(f => ({ ...f, client_search: e.target.value, client_id: '' }))}
               placeholder="Digite para buscar e trocar cliente..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             />
             {editInfoForm.client_id && (
               <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
@@ -919,8 +919,8 @@ export function OrderDetail() {
                     onClick={() => setEditInfoForm(f => ({ ...f, client_id: c.id, client_search: c.name }))}
                     className="w-full text-left px-3 py-2 hover:bg-primary/10 text-sm border-b border-gray-50 last:border-0"
                   >
-                    <p className="font-medium text-gray-900 truncate">{c.name}</p>
-                    {c.trade_name && <p className="text-xs text-gray-500 truncate">{c.trade_name} · {c.city}</p>}
+                    <p className="font-medium text-on-surface truncate">{c.name}</p>
+                    {c.trade_name && <p className="text-xs text-outline truncate">{c.trade_name} · {c.city}</p>}
                   </button>
                 ))}
               </div>
@@ -929,20 +929,20 @@ export function OrderDetail() {
 
           <div className="border-t border-outline-variant/50 pt-3 grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Data de Entrega</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">Data de Entrega</label>
               <input
                 type="date"
                 value={editInfoForm.delivery_date}
                 onChange={e => setEditInfoForm(f => ({ ...f, delivery_date: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Frete</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">Frete</label>
               <select
                 value={editInfoForm.freight_type}
                 onChange={e => setEditInfoForm(f => ({ ...f, freight_type: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="CIF">CIF</option>
                 <option value="FOB">FOB</option>
@@ -951,45 +951,45 @@ export function OrderDetail() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cond. de Pagamento</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">Cond. de Pagamento</label>
             <input
               type="text"
               value={editInfoForm.payment_terms}
               onChange={e => setEditInfoForm(f => ({ ...f, payment_terms: e.target.value }))}
               placeholder="Ex: 30/60/90 DDL, À vista, 28 DDL..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Comprador</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">Comprador</label>
               <input
                 type="text"
                 value={editInfoForm.buyer_name}
                 onChange={e => setEditInfoForm(f => ({ ...f, buyer_name: e.target.value }))}
                 placeholder="Nome do comprador..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nº na Representada</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">Nº na Representada</label>
               <input
                 type="text"
                 value={editInfoForm.industry_order_number}
                 onChange={e => setEditInfoForm(f => ({ ...f, industry_order_number: e.target.value }))}
                 placeholder="Número da indústria..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">Observações</label>
             <textarea
               value={editInfoForm.notes}
               onChange={e => setEditInfoForm(f => ({ ...f, notes: e.target.value }))}
               rows={3}
               placeholder="Observações do pedido..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white resize-none"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white resize-none"
             />
           </div>
         </div>
@@ -1014,7 +1014,7 @@ export function OrderDetail() {
           </div>
         }
       >
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-on-surface-variant">
           Tem certeza que deseja remover este item do pedido?
           Os totais serão recalculados automaticamente.
         </p>
@@ -1045,10 +1045,10 @@ export function OrderDetail() {
           <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Trash2 className="h-6 w-6 text-red-500" />
           </div>
-          <p className="text-gray-700 font-medium">
+          <p className="text-on-surface-variant font-medium">
             Tem certeza que deseja excluir o pedido <span className="font-bold">{order && formatOrderNumber(order.order_number)}</span>?
           </p>
-          <p className="text-sm text-gray-400 mt-1">Esta ação não pode ser desfeita.</p>
+          <p className="text-sm text-outline/70 mt-1">Esta ação não pode ser desfeita.</p>
         </div>
       </Modal>
     </div>

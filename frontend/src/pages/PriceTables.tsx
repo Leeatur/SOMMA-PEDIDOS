@@ -195,7 +195,7 @@ export function PriceTables() {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-[22px] font-bold text-on-surface">Tabelas de Preço</h1>
-            <p className="text-xs text-gray-500 mt-0.5">{tables.length} tabelas</p>
+            <p className="text-xs text-outline mt-0.5">{tables.length} tabelas</p>
           </div>
           <Button onClick={() => { resetImport(); setImportOpen(true) }} icon={<Upload className="h-4 w-4" />} size="sm">
             Importar Excel
@@ -216,9 +216,9 @@ export function PriceTables() {
         {tables.length === 0 ? (
           <Card>
             <div className="flex flex-col items-center py-8 text-center">
-              <FileSpreadsheet className="h-10 w-10 text-gray-300 mb-3" />
-              <p className="font-medium text-gray-600">Nenhuma tabela de preço</p>
-              <p className="text-sm text-gray-400 mt-1">Importe uma planilha Excel para começar</p>
+              <FileSpreadsheet className="h-10 w-10 text-outline/50 mb-3" />
+              <p className="font-medium text-on-surface-variant">Nenhuma tabela de preço</p>
+              <p className="text-sm text-outline/70 mt-1">Importe uma planilha Excel para começar</p>
             </div>
           </Card>
         ) : (
@@ -231,8 +231,8 @@ export function PriceTables() {
                       <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{t.name}</p>
-                      <p className="text-xs text-gray-500">{t.factory_name}</p>
+                      <p className="font-semibold text-on-surface">{t.name}</p>
+                      <p className="text-xs text-outline">{t.factory_name}</p>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {t.collection && <Badge variant="info">{t.collection}</Badge>}
                         {t.season && <Badge variant="default">{t.season}</Badge>}
@@ -242,7 +242,7 @@ export function PriceTables() {
                           {t.product_count} produtos
                         </Badge>
                       </div>
-                      <p className="text-xs text-gray-400 mt-1.5">Importado em {formatDate(t.imported_at || t.created_at)}</p>
+                      <p className="text-xs text-outline/70 mt-1.5">Importado em {formatDate(t.imported_at || t.created_at)}</p>
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -293,7 +293,7 @@ export function PriceTables() {
                 <div
                   key={s}
                   className={`h-2 w-8 rounded-full transition-colors ${
-                    importStep >= s ? 'bg-primary' : 'bg-gray-200'
+                    importStep >= s ? 'bg-primary' : 'bg-surface-container-high'
                   }`}
                 />
               ))}
@@ -325,7 +325,7 @@ export function PriceTables() {
         {/* Step 1: Upload */}
         {importStep === 1 && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-on-surface-variant">
               Selecione a planilha Excel (.xlsx) exportada da fábrica com os produtos e preços.
             </p>
             {previewError && (
@@ -335,7 +335,7 @@ export function PriceTables() {
               </div>
             )}
             <div
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-primary/10 transition-colors"
+              className="border-2 border-dashed border-outline-variant rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-primary/10 transition-colors"
               onClick={() => fileRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
@@ -348,9 +348,9 @@ export function PriceTables() {
                 <Spinner label="Lendo planilha..." />
               ) : (
                 <>
-                  <FileSpreadsheet className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-gray-700">Arraste o arquivo aqui ou clique para selecionar</p>
-                  <p className="text-xs text-gray-400 mt-1">Suporta .xlsx e .xls</p>
+                  <FileSpreadsheet className="h-10 w-10 text-outline/70 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-on-surface-variant">Arraste o arquivo aqui ou clique para selecionar</p>
+                  <p className="text-xs text-outline/70 mt-1">Suporta .xlsx e .xls</p>
                 </>
               )}
             </div>
@@ -428,7 +428,7 @@ export function PriceTables() {
             {/* Discount rules */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-gray-700">Tabela Desconto × Comissão</p>
+                <p className="text-sm font-medium text-on-surface-variant">Tabela Desconto × Comissão</p>
                 <button
                   onClick={addDiscountRule}
                   className="text-xs text-primary flex items-center gap-1 hover:text-primary"
@@ -437,7 +437,7 @@ export function PriceTables() {
                 </button>
               </div>
               <div className="space-y-2">
-                <div className="grid grid-cols-5 gap-1 text-xs font-medium text-gray-500 px-1">
+                <div className="grid grid-cols-5 gap-1 text-xs font-medium text-outline px-1">
                   <span>Desc. %</span>
                   <span>Com. Total %</span>
                   <span>Com. Rep %</span>
@@ -461,7 +461,7 @@ export function PriceTables() {
                     <button
                       onClick={() => removeDiscountRule(i)}
                       disabled={discountRules.length === 1}
-                      className="flex items-center justify-center text-gray-300 hover:text-red-500 disabled:opacity-30"
+                      className="flex items-center justify-center text-outline/50 hover:text-red-500 disabled:opacity-30"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -487,18 +487,18 @@ export function PriceTables() {
             </div>
 
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">Regras de comissão configuradas:</p>
+              <p className="text-sm font-medium text-on-surface-variant mb-2">Regras de comissão configuradas:</p>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-xs border border-outline-variant rounded-lg overflow-hidden">
                   <thead className="bg-surface-container-low">
                     <tr>
-                      <th className="px-3 py-2 text-left text-gray-600">Desconto</th>
-                      <th className="px-3 py-2 text-left text-gray-600">Com. Total</th>
-                      <th className="px-3 py-2 text-left text-gray-600">Com. Rep</th>
-                      <th className="px-3 py-2 text-left text-gray-600">Com. Esc</th>
+                      <th className="px-3 py-2 text-left text-on-surface-variant">Desconto</th>
+                      <th className="px-3 py-2 text-left text-on-surface-variant">Com. Total</th>
+                      <th className="px-3 py-2 text-left text-on-surface-variant">Com. Rep</th>
+                      <th className="px-3 py-2 text-left text-on-surface-variant">Com. Esc</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-outline-variant/50">
                     {discountRules.map((r, i) => (
                       <tr key={i} className="bg-white">
                         <td className="px-3 py-2">{r.discount_pct}%</td>
@@ -544,11 +544,11 @@ export function PriceTables() {
         }
       >
         <div className="space-y-3">
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-on-surface-variant">
             Tem certeza que deseja excluir a tabela{' '}
             <span className="font-semibold">"{deleteTable?.name}"</span>?
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-outline">
             Os produtos e fotos desta tabela serão removidos. Os pedidos já realizados são mantidos no histórico com todos os valores intactos.
           </p>
         </div>
@@ -588,16 +588,16 @@ export function PriceTables() {
           <div className="space-y-4">
             {selectedTable && (
               <div className="bg-surface-container-low rounded-lg p-3">
-                <p className="text-xs text-gray-500">Tabela de preços:</p>
-                <p className="font-medium text-gray-900">{selectedTable.name}</p>
-                <p className="text-xs text-gray-500">{selectedTable.product_count} produtos</p>
+                <p className="text-xs text-outline">Tabela de preços:</p>
+                <p className="font-medium text-on-surface">{selectedTable.name}</p>
+                <p className="text-xs text-outline">{selectedTable.product_count} produtos</p>
               </div>
             )}
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-on-surface-variant">
               O sistema irá extrair as fotos do catálogo PDF e associar automaticamente às referências da tabela de preços.
             </p>
             <div
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-primary/10 transition-colors"
+              className="border-2 border-dashed border-outline-variant rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-primary/10 transition-colors"
               onClick={() => catalogFileRef.current?.click()}
             >
               {catalogMut.isPending ? (
@@ -605,14 +605,14 @@ export function PriceTables() {
               ) : catalogFile ? (
                 <div>
                   <FileImage className="h-8 w-8 text-primary/80 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">{catalogFile.name}</p>
-                  <p className="text-xs text-gray-400">Clique para trocar</p>
+                  <p className="text-sm font-medium text-on-surface-variant">{catalogFile.name}</p>
+                  <p className="text-xs text-outline/70">Clique para trocar</p>
                 </div>
               ) : (
                 <>
-                  <FileImage className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-gray-700">Selecione o catálogo PDF</p>
-                  <p className="text-xs text-gray-400 mt-1">Arquivo .pdf</p>
+                  <FileImage className="h-10 w-10 text-outline/70 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-on-surface-variant">Selecione o catálogo PDF</p>
+                  <p className="text-xs text-outline/70 mt-1">Arquivo .pdf</p>
                 </>
               )}
             </div>
@@ -633,7 +633,7 @@ export function PriceTables() {
                 <span className="text-amber-500 text-xl font-bold">!</span>
               </div>
             )}
-            <p className="font-semibold text-gray-900">
+            <p className="font-semibold text-on-surface">
               {catalogResult.matchedCount > 0 ? 'Catálogo Importado!' : 'Catálogo Processado'}
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -646,7 +646,7 @@ export function PriceTables() {
                 <p className="text-xs text-amber-600">Sem foto</p>
               </div>
             </div>
-            <div className="text-xs text-gray-400 space-y-1">
+            <div className="text-xs text-outline/70 space-y-1">
               <p>{catalogResult.totalPages} páginas · {catalogResult.pagesWithText} com texto · {catalogResult.foundInPdfCount} refs no PDF</p>
               {catalogResult.matchedCount === 0 && catalogResult.pagesWithText === 0 && (
                 <p className="text-amber-500 font-medium">PDF escaneado — sem texto extraível. Use um PDF com texto pesquisável.</p>
@@ -654,8 +654,8 @@ export function PriceTables() {
               {catalogResult.matchedCount === 0 && catalogResult.foundInPdfCount > 0 && (
                 <div className="text-left mt-2">
                   <p className="text-amber-500 font-semibold mb-1">{catalogResult.foundInPdfCount} refs encontradas no PDF mas nenhuma bate com esta tabela.</p>
-                  <p className="text-gray-500 mb-1">Refs extraídas do PDF (compare com os códigos da tabela):</p>
-                  <div className="bg-surface-container-low rounded-lg p-2 font-mono text-gray-700 text-[11px] leading-5 break-all">
+                  <p className="text-outline mb-1">Refs extraídas do PDF (compare com os códigos da tabela):</p>
+                  <div className="bg-surface-container-low rounded-lg p-2 font-mono text-on-surface-variant text-[11px] leading-5 break-all">
                     {catalogResult.foundInPdf.join(' · ')}
                   </div>
                 </div>

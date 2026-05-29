@@ -71,14 +71,14 @@ function EmptyState({ label }: { label: string }) {
   return (
     <div className="text-center py-16">
       <BarChart2 className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-      <p className="text-sm text-gray-400">{label}</p>
+      <p className="text-sm text-outline/70">{label}</p>
     </div>
   )
 }
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
-    <th className={`px-4 py-2.5 text-xs font-semibold text-gray-500 ${right ? 'text-right' : 'text-left'}`}>
+    <th className={`px-4 py-2.5 text-xs font-semibold text-outline ${right ? 'text-right' : 'text-left'}`}>
       {children}
     </th>
   )
@@ -86,7 +86,7 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
 
 function Td({ children, right, bold }: { children: React.ReactNode; right?: boolean; bold?: boolean }) {
   return (
-    <td className={`px-4 py-3 text-sm ${right ? 'text-right' : ''} ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
+    <td className={`px-4 py-3 text-sm ${right ? 'text-right' : ''} ${bold ? 'font-bold text-on-surface' : 'text-on-surface-variant'}`}>
       {children}
     </td>
   )
@@ -170,7 +170,7 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
         <input
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Buscar referência, nome..."
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <button
           onClick={toggleAll}
@@ -193,17 +193,17 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
               onClick={() => toggle(row.price_table_id)}
             >
               {isOpen
-                ? <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                : <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                ? <ChevronDown className="h-4 w-4 text-outline/70 flex-shrink-0" />
+                : <ChevronRight className="h-4 w-4 text-outline/70 flex-shrink-0" />
               }
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-gray-900 text-sm">{row.table_name}</span>
+                  <span className="font-semibold text-on-surface text-sm">{row.table_name}</span>
                   <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">{row.factory_name}</span>
-                  {label && <span className="text-xs text-gray-500">{label}</span>}
+                  {label && <span className="text-xs text-outline">{label}</span>}
                 </div>
               </div>
-              <span className="text-xs text-gray-400 flex-shrink-0">{row.products.length} ref.</span>
+              <span className="text-xs text-outline/70 flex-shrink-0">{row.products.length} ref.</span>
             </button>
 
             {/* Table */}
@@ -212,11 +212,11 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
                 <table className="min-w-full">
                   <thead className="bg-surface-container-low">
                     <tr>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-left w-24">Referência</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-left">Nome / Modelo</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-left">Tamanhos</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right w-28">Preço</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-left w-32">Tipo</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-outline text-left w-24">Referência</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-outline text-left">Nome / Modelo</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-outline text-left">Tamanhos</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-outline text-right w-28">Preço</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-outline text-left w-32">Tipo</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -225,11 +225,11 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
                       return (
                         <tr key={p.product_id} className="hover:bg-primary/10/30">
                           <td className="px-3 py-2.5">
-                            <span className="font-mono text-xs font-bold text-gray-900">{p.reference}</span>
+                            <span className="font-mono text-xs font-bold text-on-surface">{p.reference}</span>
                           </td>
                           <td className="px-3 py-2.5">
-                            <p className="text-sm text-gray-800 leading-tight">{p.product_name || '—'}</p>
-                            {p.model && <p className="text-xs text-gray-400">{p.model}</p>}
+                            <p className="text-sm text-on-surface leading-tight">{p.product_name || '—'}</p>
+                            {p.model && <p className="text-xs text-outline/70">{p.model}</p>}
                           </td>
                           <td className="px-3 py-2.5">
                             <div className="flex flex-wrap gap-1">
@@ -241,7 +241,7 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-right">
-                            <span className="text-sm font-bold text-gray-900">{fmtR(p.base_price)}</span>
+                            <span className="text-sm font-bold text-on-surface">{fmtR(p.base_price)}</span>
                           </td>
                           <td className="px-3 py-2.5">
                             {p.type === 'pack'
@@ -318,14 +318,14 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors text-left"
             >
               {isOpen
-                ? <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                : <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />}
+                ? <ChevronDown className="h-4 w-4 text-outline/70 flex-shrink-0" />
+                : <ChevronRight className="h-4 w-4 text-outline/70 flex-shrink-0" />}
 
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-sm font-bold text-gray-900">{col.factory_name}</span>
-                  <span className="text-xs text-gray-400">—</span>
-                  <span className="text-sm text-gray-700 truncate">{col.collection}</span>
+                  <span className="text-sm font-bold text-on-surface">{col.factory_name}</span>
+                  <span className="text-xs text-outline/70">—</span>
+                  <span className="text-sm text-on-surface-variant truncate">{col.collection}</span>
                   {col.season && (
                     <span className="text-xs text-primary font-medium">
                       {col.season}{col.year ? ` ${col.year}` : ''}
@@ -337,18 +337,18 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
               {/* totais resumo */}
               <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
                 <div className="text-right">
-                  <p className="text-xs text-gray-400">Refs vendidas</p>
-                  <p className="text-sm font-bold text-gray-700">
+                  <p className="text-xs text-outline/70">Refs vendidas</p>
+                  <p className="text-sm font-bold text-on-surface-variant">
                     {soldCount}
-                    <span className="text-xs text-gray-400 font-normal"> / {products.length}</span>
+                    <span className="text-xs text-outline/70 font-normal"> / {products.length}</span>
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-400">Peças</p>
-                  <p className="text-sm font-bold text-gray-700">{fmtN(totalPcs)}</p>
+                  <p className="text-xs text-outline/70">Peças</p>
+                  <p className="text-sm font-bold text-on-surface-variant">{fmtN(totalPcs)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-400">Valor</p>
+                  <p className="text-xs text-outline/70">Valor</p>
                   <p className="text-sm font-bold text-primary">{fmtR(totalVal)}</p>
                 </div>
               </div>
@@ -356,7 +356,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
 
             {/* ── Linha de totais mobile ── */}
             {!isOpen && (
-              <div className="sm:hidden flex items-center gap-4 px-11 pb-2 text-xs text-gray-500">
+              <div className="sm:hidden flex items-center gap-4 px-11 pb-2 text-xs text-outline">
                 <span>{soldCount}/{products.length} refs</span>
                 <span>{fmtN(totalPcs)} pç</span>
                 <span className="font-semibold text-primary">{fmtR(totalVal)}</span>
@@ -383,13 +383,13 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                           key={p.product_id}
                           className={`hover:bg-surface-container-low/50 ${p.total_pieces === 0 ? 'opacity-50' : ''}`}
                         >
-                          <td className="px-4 py-2.5 font-mono text-xs font-bold text-gray-900 whitespace-nowrap">
+                          <td className="px-4 py-2.5 font-mono text-xs font-bold text-on-surface whitespace-nowrap">
                             {p.reference}
                             {p.type === 'pack' && (
                               <span className="ml-1 text-[10px] text-amber-600 font-sans font-medium bg-amber-50 px-1 rounded">pack</span>
                             )}
                           </td>
-                          <td className="px-4 py-2.5 text-xs text-gray-600 max-w-[200px] truncate">
+                          <td className="px-4 py-2.5 text-xs text-on-surface-variant max-w-[200px] truncate">
                             {p.product_name || '—'}
                           </td>
                           <Td right>{p.order_count > 0 ? p.order_count : '—'}</Td>
@@ -401,13 +401,13 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                     {totalPcs > 0 && (
                       <tfoot>
                         <tr className="bg-surface-container-low border-t border-outline-variant">
-                          <td colSpan={2} className="px-4 py-2 text-xs font-bold text-gray-700">
+                          <td colSpan={2} className="px-4 py-2 text-xs font-bold text-on-surface-variant">
                             {soldCount} ref{soldCount !== 1 ? 's' : ''} vendida{soldCount !== 1 ? 's' : ''} de {products.length}
                           </td>
-                          <td className="px-4 py-2 text-right text-xs font-bold text-gray-700">
+                          <td className="px-4 py-2 text-right text-xs font-bold text-on-surface-variant">
                             {products.reduce((s, p) => s + p.order_count, 0)}
                           </td>
-                          <td className="px-4 py-2 text-right text-xs font-bold text-gray-700">{fmtN(totalPcs)}</td>
+                          <td className="px-4 py-2 text-right text-xs font-bold text-on-surface-variant">{fmtN(totalPcs)}</td>
                           <td className="px-4 py-2 text-right text-xs font-bold text-primary">{fmtR(totalVal)}</td>
                         </tr>
                       </tfoot>
@@ -537,7 +537,7 @@ export function Reports() {
 
           <div className="flex items-center gap-2">
             <BarChart2 className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-bold text-gray-900">Relatórios</h1>
+            <h1 className="text-lg font-bold text-on-surface">Relatórios</h1>
           </div>
 
           {/* ── filters ── */}
@@ -545,12 +545,12 @@ export function Reports() {
             {/* date inputs */}
             <input
               type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <span className="text-gray-400 text-sm">–</span>
+            <span className="text-outline/70 text-sm">–</span>
             <input
               type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
 
             {/* quick range buttons */}
@@ -558,7 +558,7 @@ export function Reports() {
               {[{ label: '7d', d: 7 }, { label: '30d', d: 30 }, { label: '90d', d: 90 }].map(r => (
                 <button
                   key={r.label} onClick={() => setRange(r.d)}
-                  className="px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-surface-container hover:bg-gray-200 rounded-lg transition-colors"
+                  className="px-2.5 py-1.5 text-xs font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg transition-colors"
                 >
                   {r.label}
                 </button>
@@ -569,7 +569,7 @@ export function Reports() {
             {tab !== 'commissions' && (
               <select
                 value={factoryId} onChange={e => setFactoryId(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as fábricas</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -580,7 +580,7 @@ export function Reports() {
             {isAdmin && tab !== 'products' && (
               <select
                 value={repId} onChange={e => setRepId(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos os representantes</option>
                 {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -596,7 +596,7 @@ export function Reports() {
                 className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
                   tab === t.id
                     ? 'border-blue-600 text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-outline hover:text-on-surface-variant'
                 }`}
               >
                 {t.label}
@@ -620,14 +620,14 @@ export function Reports() {
               {[
                 { label: 'Pedidos',     value: fmtN(ordersQ.data.summary.order_count),       color: 'bg-primary/10',    text: 'text-primary' },
                 { label: 'Peças',       value: fmtN(ordersQ.data.summary.total_pieces),       color: 'bg-purple-50',  text: 'text-purple-700' },
-                { label: 'Valor Total', value: fmtR(ordersQ.data.summary.total_value),         color: 'bg-surface-container-low',    text: 'text-gray-900' },
+                { label: 'Valor Total', value: fmtR(ordersQ.data.summary.total_value),         color: 'bg-surface-container-low',    text: 'text-on-surface' },
                 { label: 'Com. Rep',    value: fmtR(ordersQ.data.summary.rep_commission_value), color: 'bg-emerald-50', text: 'text-emerald-700' },
               ].map(c => (
                 <div key={c.label} className={`${c.color} rounded-xl border border-outline-variant/50 p-4`}>
-                  <p className="text-xs text-gray-500 mb-1">{c.label}</p>
+                  <p className="text-xs text-outline mb-1">{c.label}</p>
                   <p className={`text-xl font-bold ${c.text}`}>{c.value}</p>
                   {c.label === 'Com. Rep' && isAdmin && (
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-outline/70 mt-0.5">
                       Esc: {fmtR(ordersQ.data.summary.office_commission_value)}
                     </p>
                   )}
@@ -640,7 +640,7 @@ export function Reports() {
               ? <EmptyState label="Nenhum pedido no período" />
               : (
                 <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
-                  <p className="px-4 py-3 text-sm font-semibold text-gray-800 border-b border-outline-variant/50">Por dia</p>
+                  <p className="px-4 py-3 text-sm font-semibold text-on-surface border-b border-outline-variant/50">Por dia</p>
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
                       <thead className="bg-surface-container-low">
@@ -663,14 +663,14 @@ export function Reports() {
                       </tbody>
                       <tfoot>
                         <tr className="bg-surface-container-low border-t border-outline-variant">
-                          <td className="px-4 py-2.5 text-xs font-bold text-gray-700">Total</td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-700">
+                          <td className="px-4 py-2.5 text-xs font-bold text-on-surface-variant">Total</td>
+                          <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface-variant">
                             {ordersQ.data.byDay.reduce((s, d) => s + d.order_count, 0)}
                           </td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-700">
+                          <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface-variant">
                             {fmtN(ordersQ.data.byDay.reduce((s, d) => s + d.total_pieces, 0))}
                           </td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-900">
+                          <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface">
                             {fmtR(ordersQ.data.byDay.reduce((s, d) => s + Number(d.total_value), 0))}
                           </td>
                         </tr>
@@ -706,7 +706,7 @@ export function Reports() {
                     <tbody className="divide-y divide-gray-50">
                       {commissionsQ.data.map(r => (
                         <tr key={r.rep_id} className="hover:bg-surface-container-low/50">
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{r.rep_name}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-on-surface">{r.rep_name}</td>
                           <Td right>{r.order_count}</Td>
                           <Td right>{fmtN(r.total_pieces)}</Td>
                           <Td right bold>{fmtR(r.total_value)}</Td>
@@ -722,21 +722,21 @@ export function Reports() {
                     {commissionsQ.data.length > 1 && (
                       <tfoot>
                         <tr className="bg-surface-container-low border-t border-outline-variant">
-                          <td className="px-4 py-2.5 text-xs font-bold text-gray-700">Total</td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-700">
+                          <td className="px-4 py-2.5 text-xs font-bold text-on-surface-variant">Total</td>
+                          <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface-variant">
                             {commissionsQ.data.reduce((s, r) => s + r.order_count, 0)}
                           </td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-700">
+                          <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface-variant">
                             {fmtN(commissionsQ.data.reduce((s, r) => s + r.total_pieces, 0))}
                           </td>
-                          <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-900">
+                          <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface">
                             {fmtR(commissionsQ.data.reduce((s, r) => s + Number(r.total_value), 0))}
                           </td>
                           <td className="px-4 py-2.5 text-right text-xs font-bold text-emerald-700">
                             {fmtR(commissionsQ.data.reduce((s, r) => s + Number(r.rep_commission_value), 0))}
                           </td>
                           {isAdmin && (
-                            <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-700">
+                            <td className="px-4 py-2.5 text-right text-xs font-bold text-on-surface-variant">
                               {fmtR(commissionsQ.data.reduce((s, r) => s + Number(r.office_commission_value), 0))}
                             </td>
                           )}
@@ -771,13 +771,13 @@ export function Reports() {
                     <tbody className="divide-y divide-gray-50">
                       {clientsQ.data.map((c, i) => (
                         <tr key={c.id} className="hover:bg-surface-container-low/50">
-                          <td className="px-4 py-3 text-xs text-gray-400 w-8">{i + 1}</td>
+                          <td className="px-4 py-3 text-xs text-outline/70 w-8">{i + 1}</td>
                           <td className="px-4 py-3">
-                            <p className="text-sm font-semibold text-gray-900 truncate max-w-[220px]">
+                            <p className="text-sm font-semibold text-on-surface truncate max-w-[220px]">
                               {c.trade_name || c.name}
                             </p>
                             {c.city && (
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-outline/70">
                                 {c.city}{c.state ? ` / ${c.state}` : ''}
                               </p>
                             )}
@@ -825,8 +825,8 @@ export function Reports() {
                     <tbody className="divide-y divide-gray-50">
                       {productsQ.data.map((p, i) => (
                         <tr key={p.reference} className="hover:bg-surface-container-low/50">
-                          <td className="px-4 py-3 text-xs text-gray-400 w-8">{i + 1}</td>
-                          <td className="px-4 py-3 font-mono text-sm font-bold text-gray-900">
+                          <td className="px-4 py-3 text-xs text-outline/70 w-8">{i + 1}</td>
+                          <td className="px-4 py-3 font-mono text-sm font-bold text-on-surface">
                             {p.reference}
                           </td>
                           <Td right>{p.order_count}</Td>
@@ -849,7 +849,7 @@ export function Reports() {
               <select
                 value={catalogFactoryId}
                 onChange={e => { setCatalogFactoryId(e.target.value); setCatalogPriceTableId('') }}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as indústrias</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -857,7 +857,7 @@ export function Reports() {
               <select
                 value={catalogPriceTableId}
                 onChange={e => setCatalogPriceTableId(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as coleções</option>
                 {(catalogPriceTables || []).map(pt => (

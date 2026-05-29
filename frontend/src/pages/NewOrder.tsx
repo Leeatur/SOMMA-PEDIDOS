@@ -125,15 +125,15 @@ function GradePreview({ configs, boxCount }: { configs: GradeConfig[]; boxCount:
         const sizes = sortSizes(Object.keys(gc.sizes))
         return (
           <div key={i}>
-            {gc.color && <p className="text-xs font-medium text-gray-600">{gc.color}</p>}
+            {gc.color && <p className="text-xs font-medium text-on-surface-variant">{gc.color}</p>}
             <div className="overflow-x-auto scrollbar-hide">
               <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
                 <thead className="bg-surface-container-low">
                   <tr>
                     {sizes.map((s) => (
-                      <th key={s} className="px-2 py-1 text-gray-600 text-center font-medium min-w-[28px]">{s}</th>
+                      <th key={s} className="px-2 py-1 text-on-surface-variant text-center font-medium min-w-[28px]">{s}</th>
                     ))}
-                    <th className="px-2 py-1 text-gray-500 border-l border-outline-variant text-center">Total/cx</th>
+                    <th className="px-2 py-1 text-outline border-l border-outline-variant text-center">Total/cx</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -169,7 +169,7 @@ function SizeGrid({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs font-medium text-gray-600">Qtd por tamanho:</span>
+        <span className="text-xs font-medium text-on-surface-variant">Qtd por tamanho:</span>
         <button
           onClick={onRemove}
           className="text-red-400 hover:text-red-600 flex items-center gap-1 text-xs"
@@ -182,7 +182,7 @@ function SizeGrid({
           <thead>
             <tr>
               {sizeKeys.map(s => (
-                <th key={s} className="px-1 pb-0.5 text-center text-gray-500 font-medium min-w-[36px]">{s}</th>
+                <th key={s} className="px-1 pb-0.5 text-center text-outline font-medium min-w-[36px]">{s}</th>
               ))}
               <th className="px-1 pb-0.5 text-center text-primary font-bold pl-2">Total</th>
             </tr>
@@ -226,7 +226,7 @@ function SizeGrid({
 function SizeDisplay({ sizes }: { sizes: Record<string, number> }) {
   const sizeKeys = sortSizes(Object.keys(sizes).filter(s => (sizes[s] || 0) > 0))
   const total = Object.values(sizes).reduce((s, v) => s + (v || 0), 0)
-  if (sizeKeys.length === 0) return <p className="text-xs text-gray-400 italic">Nenhum tamanho preenchido</p>
+  if (sizeKeys.length === 0) return <p className="text-xs text-outline/70 italic">Nenhum tamanho preenchido</p>
 
   return (
     <div className="overflow-x-auto scrollbar-hide">
@@ -234,9 +234,9 @@ function SizeDisplay({ sizes }: { sizes: Record<string, number> }) {
         <thead className="bg-surface-container-low">
           <tr>
             {sizeKeys.map(s => (
-              <th key={s} className="px-2 py-1 text-center text-gray-600 font-medium min-w-[28px]">{s}</th>
+              <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
             ))}
-            <th className="px-2 py-1 text-center text-gray-500 border-l border-outline-variant font-bold">Total</th>
+            <th className="px-2 py-1 text-center text-outline border-l border-outline-variant font-bold">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -455,29 +455,29 @@ export function NewOrder() {
                 if (step === 0) navigate('/orders')
                 else setStep(step - 1)
               }}
-              className="p-1.5 rounded-lg text-gray-500 hover:bg-surface-container"
+              className="p-1.5 rounded-lg text-outline hover:bg-surface-container"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-base font-bold text-gray-900">Novo Pedido</h1>
+            <h1 className="text-base font-bold text-on-surface">Novo Pedido</h1>
           </div>
 
           {/* Step indicator */}
           <div className="flex items-center gap-0">
             {STEPS.map((s, i) => (
               <div key={i} className="flex items-center flex-1">
-                <div className={`flex-1 flex flex-col items-center gap-1 ${i <= step ? 'text-primary' : 'text-gray-300'}`}>
+                <div className={`flex-1 flex flex-col items-center gap-1 ${i <= step ? 'text-primary' : 'text-outline/50'}`}>
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                     i < step ? 'bg-primary text-white' :
                     i === step ? 'bg-primary/10 text-primary ring-2 ring-blue-300' :
-                    'bg-surface-container text-gray-400'
+                    'bg-surface-container text-outline/70'
                   }`}>
                     {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
                   </div>
                   <span className="text-xs font-medium hidden sm:block">{s.label}</span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`h-0.5 flex-1 transition-colors ${i < step ? 'bg-primary' : 'bg-gray-200'}`} />
+                  <div className={`h-0.5 flex-1 transition-colors ${i < step ? 'bg-primary' : 'bg-surface-container-high'}`} />
                 )}
               </div>
             ))}
@@ -491,8 +491,8 @@ export function NewOrder() {
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-gray-900 mb-1">Selecionar Cliente</h2>
-                <p className="text-sm text-gray-500">Escolha o cliente para este pedido</p>
+                <h2 className="text-base font-semibold text-on-surface mb-1">Selecionar Cliente</h2>
+                <p className="text-sm text-outline">Escolha o cliente para este pedido</p>
               </div>
               <button
                 onClick={() => setShowNewClient(true)}
@@ -532,16 +532,16 @@ export function NewOrder() {
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">{c.name}</p>
-                        {c.city && <p className="text-xs text-gray-500">{c.city}</p>}
+                        <p className="font-semibold text-on-surface truncate">{c.name}</p>
+                        {c.city && <p className="text-xs text-outline">{c.city}</p>}
                       </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-outline/50 flex-shrink-0" />
                     </div>
                   </Card>
                 ))}
                 {clients?.length === 0 && (
                   <div className="text-center py-6 space-y-3">
-                    <p className="text-sm text-gray-500">Nenhum cliente encontrado</p>
+                    <p className="text-sm text-outline">Nenhum cliente encontrado</p>
                     <button
                       onClick={() => setShowNewClient(true)}
                       className="inline-flex items-center gap-2 text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-4 py-2 transition-colors"
@@ -570,9 +570,9 @@ export function NewOrder() {
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-base font-semibold text-gray-900 mb-1">Tabela de Preços</h2>
+              <h2 className="text-base font-semibold text-on-surface mb-1">Tabela de Preços</h2>
               {selectedClient && (
-                <p className="text-sm text-gray-500">Cliente: <strong>{selectedClient.name}</strong></p>
+                <p className="text-sm text-outline">Cliente: <strong>{selectedClient.name}</strong></p>
               )}
             </div>
 
@@ -604,20 +604,20 @@ export function NewOrder() {
                         <Tags className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">{t.name}</p>
-                        <p className="text-xs text-gray-500">{t.factory_name}</p>
+                        <p className="font-semibold text-on-surface truncate">{t.name}</p>
+                        <p className="text-xs text-outline">{t.factory_name}</p>
                         <div className="flex gap-1.5 mt-1 flex-wrap">
                           {t.collection && <Badge variant="info">{t.collection}</Badge>}
                           {t.season && <Badge variant="default">{t.season}</Badge>}
                           {t.year && <Badge variant="default">{t.year}</Badge>}
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-outline/50 flex-shrink-0" />
                     </div>
                   </Card>
                 ))}
                 {priceTables?.length === 0 && (
-                  <p className="text-center text-sm text-gray-500 py-4">Nenhuma tabela disponível</p>
+                  <p className="text-center text-sm text-outline py-4">Nenhuma tabela disponível</p>
                 )}
               </div>
             )}
@@ -629,8 +629,8 @@ export function NewOrder() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold text-gray-900">Produtos</h2>
-                <p className="text-xs text-gray-500">{selectedTable?.name} — {selectedTable?.factory_name}</p>
+                <h2 className="text-base font-semibold text-on-surface">Produtos</h2>
+                <p className="text-xs text-outline">{selectedTable?.name} — {selectedTable?.factory_name}</p>
               </div>
               {cart.length > 0 && (
                 <div className="flex items-center gap-2">
@@ -655,7 +655,7 @@ export function NewOrder() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-2 py-2.5 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos</option>
                 <option value="regular">Regular</option>
@@ -686,7 +686,7 @@ export function NewOrder() {
                           {p.image_url ? (
                             <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <div className="w-full h-full flex items-center justify-center text-outline/50">
                               <ImageIcon className="h-6 w-6" />
                             </div>
                           )}
@@ -695,20 +695,20 @@ export function NewOrder() {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-1.5">
-                            <p className="font-bold text-gray-900 text-sm">{p.reference}</p>
+                            <p className="font-bold text-on-surface text-sm">{p.reference}</p>
                             <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-xs flex-shrink-0">
                               {p.type === 'pack' ? 'PACK' : 'REG'}
                             </Badge>
                           </div>
-                          {p.product_name && <p className="text-xs text-gray-500 truncate">{p.product_name}</p>}
+                          {p.product_name && <p className="text-xs text-outline truncate">{p.product_name}</p>}
                           <p className="text-sm font-semibold text-primary">
-                            R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-gray-400 font-normal">/pç</span>
+                            R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-outline/70 font-normal">/pç</span>
                           </p>
                           {/* Para packs: exibe pç/cx com toggle de grade */}
                           {!isRegular && totalPiecesPerBox > 0 && (
                             <button
                               onClick={() => setExpandedGrade(isExpanded ? null : p.id)}
-                              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mt-0.5"
+                              className="flex items-center gap-1 text-xs text-outline/70 hover:text-on-surface-variant mt-0.5"
                             >
                               <Info className="h-3 w-3" />
                               {totalPiecesPerBox} pç/cx
@@ -716,7 +716,7 @@ export function NewOrder() {
                           )}
                           {/* Para regulares: exibe range de tamanhos */}
                           {isRegular && p.grade_configs && p.grade_configs.length > 0 && (
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-xs text-outline/70 mt-0.5">
                               Tam: {sortSizes(Object.keys(p.grade_configs[0].sizes)).join(' · ')}
                             </p>
                           )}
@@ -741,7 +741,7 @@ export function NewOrder() {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => updateBoxCount(p.id, -1)}
-                                  className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center text-gray-600 hover:bg-gray-200"
+                                  className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high"
                                 >
                                   <Minus className="h-3.5 w-3.5" />
                                 </button>
@@ -776,7 +776,7 @@ export function NewOrder() {
                           )}
                           {/* Total de peças para packs */}
                           {cartItem && !isRegular && (
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-outline">
                               {cartTotal} pç total
                             </p>
                           )}
@@ -797,7 +797,7 @@ export function NewOrder() {
                       )}
                       {isExpanded && !isRegular && p.grade_configs && (
                         <div className="px-3 pb-3 border-t border-outline-variant/50 pt-2">
-                          <p className="text-xs font-medium text-gray-600 mb-1.5">Composição da grade:</p>
+                          <p className="text-xs font-medium text-on-surface-variant mb-1.5">Composição da grade:</p>
                           <GradePreview
                             configs={p.grade_configs}
                             boxCount={cartItem?.boxes_count || 1}
@@ -808,7 +808,7 @@ export function NewOrder() {
                   )
                 })}
                 {products?.length === 0 && (
-                  <p className="text-center text-sm text-gray-500 py-4">Nenhum produto encontrado</p>
+                  <p className="text-center text-sm text-outline py-4">Nenhum produto encontrado</p>
                 )}
               </div>
             )}
@@ -836,8 +836,8 @@ export function NewOrder() {
         {step === 3 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-base font-semibold text-gray-900">Revisão do Pedido</h2>
-              <p className="text-sm text-gray-500">Confirme os dados antes de enviar</p>
+              <h2 className="text-base font-semibold text-on-surface">Revisão do Pedido</h2>
+              <p className="text-sm text-outline">Confirme os dados antes de enviar</p>
             </div>
 
             {/* Offline warning */}
@@ -854,16 +854,16 @@ export function NewOrder() {
             <Card padding="sm">
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Cliente:</span>
-                  <span className="font-medium text-gray-900">{selectedClient?.name}</span>
+                  <span className="text-outline">Cliente:</span>
+                  <span className="font-medium text-on-surface">{selectedClient?.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Tabela:</span>
-                  <span className="font-medium text-gray-900">{selectedTable?.name}</span>
+                  <span className="text-outline">Tabela:</span>
+                  <span className="font-medium text-on-surface">{selectedTable?.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Fábrica:</span>
-                  <span className="font-medium text-gray-900">{selectedTable?.factory_name}</span>
+                  <span className="text-outline">Fábrica:</span>
+                  <span className="font-medium text-on-surface">{selectedTable?.factory_name}</span>
                 </div>
               </div>
             </Card>
@@ -871,7 +871,7 @@ export function NewOrder() {
             {/* Items */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-gray-700">Itens ({cart.length})</h3>
+                <h3 className="text-sm font-semibold text-on-surface-variant">Itens ({cart.length})</h3>
                 <button
                   onClick={() => setStep(2)}
                   className="text-xs text-primary hover:text-primary"
@@ -891,19 +891,19 @@ export function NewOrder() {
                     <div key={item.product.id} className="bg-white rounded-xl border border-outline-variant p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-gray-900">{item.product.reference}</p>
-                          <p className="text-xs text-gray-500">{item.product.product_name}</p>
+                          <p className="font-semibold text-sm text-on-surface">{item.product.reference}</p>
+                          <p className="text-xs text-outline">{item.product.product_name}</p>
                           {isRegular ? (
-                            <p className="text-xs text-gray-500 mt-0.5">{totalPieces} peças</p>
+                            <p className="text-xs text-outline mt-0.5">{totalPieces} peças</p>
                           ) : (
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-xs text-outline mt-0.5">
                               {item.boxes_count} cx × {piecesPerBox} pç/cx = {totalPieces} peças
                             </p>
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold text-gray-900">{formatCurrency(subtotal)}</p>
-                          <p className="text-xs text-gray-400">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
+                          <p className="text-sm font-bold text-on-surface">{formatCurrency(subtotal)}</p>
+                          <p className="text-xs text-outline/70">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
                         </div>
                       </div>
                       {/* Grade display */}
@@ -931,11 +931,11 @@ export function NewOrder() {
                 placeholder="Ex: 30/60/90 dias"
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Frete</label>
+                <label className="block text-sm font-medium text-on-surface-variant mb-1">Tipo de Frete</label>
                 <select
                   value={freightType}
                   onChange={(e) => setFreightType(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="CIF">CIF</option>
                   <option value="FOB">FOB</option>
@@ -977,7 +977,7 @@ export function NewOrder() {
 
               {/* Desconto */}
               <div className="p-4 border-b border-outline-variant/50">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Desconto</h3>
+                <h3 className="text-sm font-semibold text-on-surface-variant mb-3">Desconto</h3>
                 {discountRules.length > 0 && !customDiscount ? (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
@@ -991,15 +991,15 @@ export function NewOrder() {
                             className={`text-left p-3 rounded-xl border transition-colors ${
                               isSelected
                                 ? 'border-primary bg-primary/10 ring-1 ring-blue-400'
-                                : 'border-outline-variant bg-surface-container-low hover:border-gray-300 hover:bg-white'
+                                : 'border-outline-variant bg-surface-container-low hover:border-outline-variant hover:bg-white'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-1">
                               <div className="min-w-0">
-                                <p className="font-bold text-gray-900 text-sm leading-tight">
+                                <p className="font-bold text-on-surface text-sm leading-tight">
                                   {formatPct(rule.discount_pct)}
                                 </p>
-                                <p className="text-xs text-gray-500 mt-0.5 leading-tight">
+                                <p className="text-xs text-outline mt-0.5 leading-tight">
                                   {formatCurrency(discountedTotal)}
                                 </p>
                                 {isAdmin && rule.rep_commission_pct > 0 && (
@@ -1043,7 +1043,7 @@ export function NewOrder() {
 
               {/* Resumo financeiro */}
               <div className="p-4 space-y-2 text-sm bg-surface-container-low">
-                <div className="flex justify-between text-gray-500">
+                <div className="flex justify-between text-outline">
                   <span>Subtotal:</span>
                   <span>{formatCurrency(totals.grossValue)}</span>
                 </div>
@@ -1053,11 +1053,11 @@ export function NewOrder() {
                     <span>−{formatCurrency(totals.grossValue * discountNum / 100)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-gray-900 text-base pt-1.5 border-t border-outline-variant">
+                <div className="flex justify-between font-bold text-on-surface text-base pt-1.5 border-t border-outline-variant">
                   <span>Total do pedido:</span>
                   <span>{formatCurrency(totals.totalValue)}</span>
                 </div>
-                <div className="flex justify-between text-gray-400 text-xs">
+                <div className="flex justify-between text-outline/70 text-xs">
                   <span>Peças:</span>
                   <span>{totals.totalPieces} pç</span>
                 </div>

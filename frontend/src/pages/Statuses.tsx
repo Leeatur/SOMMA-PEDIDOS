@@ -127,7 +127,7 @@ export function Statuses() {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-[22px] font-bold text-on-surface">Status de Pedidos</h1>
-            <p className="text-xs text-gray-500 mt-0.5">{list.length} status configurados</p>
+            <p className="text-xs text-outline mt-0.5">{list.length} status configurados</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
             Novo Status
@@ -152,7 +152,7 @@ export function Statuses() {
             {list.map((s) => (
               <Card key={s.id} padding="md">
                 <div className="flex items-center gap-3">
-                  <div className="text-gray-300 cursor-grab flex-shrink-0">
+                  <div className="text-outline/50 cursor-grab flex-shrink-0">
                     <GripVertical className="h-5 w-5" />
                   </div>
                   <StatusBadge name={s.name} color={s.color} />
@@ -162,7 +162,7 @@ export function Statuses() {
                         <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">inicial</span>
                       )}
                       {s.is_final && (
-                        <span className="text-xs bg-surface-container text-gray-600 px-1.5 py-0.5 rounded-full">final</span>
+                        <span className="text-xs bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full">final</span>
                       )}
                       {!s.active && (
                         <span className="text-xs bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full">inativo</span>
@@ -172,20 +172,20 @@ export function Statuses() {
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       onClick={() => toggleActiveMut.mutate({ id: s.id, active: !s.active })}
-                      className={`p-1.5 rounded-lg transition-colors ${s.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-400 hover:bg-surface-container'}`}
+                      className={`p-1.5 rounded-lg transition-colors ${s.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-outline/70 hover:bg-surface-container'}`}
                       title={s.active ? 'Desativar' : 'Ativar'}
                     >
                       {s.active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                     </button>
                     <button
                       onClick={() => openEdit(s)}
-                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      className="p-1.5 text-outline/70 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => setDeleteOpen(s)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-1.5 text-outline/70 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -226,7 +226,7 @@ export function Statuses() {
 
           {/* Color picker */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Cor</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-2">Cor</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {PRESET_COLORS.map((c) => (
                 <button
@@ -250,7 +250,7 @@ export function Statuses() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500">Preview:</span>
+              <span className="text-sm text-outline">Preview:</span>
               <StatusBadge name={form.name || 'Status'} color={form.color} />
             </div>
           </div>
@@ -259,26 +259,26 @@ export function Statuses() {
           <div className="space-y-2">
             <label className="flex items-center gap-3 cursor-pointer">
               <div
-                className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_initial ? 'bg-primary' : 'bg-gray-200'}`}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_initial ? 'bg-primary' : 'bg-surface-container-high'}`}
                 onClick={() => setForm({ ...form, is_initial: !form.is_initial })}
               >
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_initial ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">Status inicial</p>
-                <p className="text-xs text-gray-500">Aplicado automaticamente a novos pedidos</p>
+                <p className="text-sm font-medium text-on-surface-variant">Status inicial</p>
+                <p className="text-xs text-outline">Aplicado automaticamente a novos pedidos</p>
               </div>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <div
-                className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_final ? 'bg-emerald-600' : 'bg-gray-200'}`}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_final ? 'bg-emerald-600' : 'bg-surface-container-high'}`}
                 onClick={() => setForm({ ...form, is_final: !form.is_final })}
               >
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_final ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">Status final</p>
-                <p className="text-xs text-gray-500">Indica pedidos concluídos/cancelados</p>
+                <p className="text-sm font-medium text-on-surface-variant">Status final</p>
+                <p className="text-xs text-outline">Indica pedidos concluídos/cancelados</p>
               </div>
             </label>
           </div>
@@ -303,7 +303,7 @@ export function Statuses() {
           </div>
         }
       >
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-on-surface-variant">
           Tem certeza que deseja excluir o status{' '}
           <strong>{deleteOpen?.name}</strong>? Pedidos com este status não serão afetados, mas o status não estará mais disponível.
         </p>

@@ -221,8 +221,8 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
           <div className="flex items-center gap-3">
             <CheckCircle className="h-8 w-8 text-emerald-500 flex-shrink-0" />
             <div>
-              <p className="font-semibold text-gray-900">Importação concluída!</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-semibold text-on-surface">Importação concluída!</p>
+              <p className="text-sm text-outline">
                 {result.total} foto{result.total !== 1 ? 's' : ''} encontrada{result.total !== 1 ? 's' : ''} no ZIP
               </p>
             </div>
@@ -233,22 +233,22 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
               <p className="text-2xl font-bold text-emerald-600">{result.matched}</p>
               <p className="text-xs text-emerald-700">Vinculadas</p>
             </div>
-            <div className={`rounded-xl p-3 text-center ${result.skipped > 0 ? 'bg-gray-50' : 'bg-gray-50'}`}>
-              <p className="text-2xl font-bold text-gray-400">{result.skipped}</p>
-              <p className="text-xs text-gray-500">Ignoradas*</p>
+            <div className={`rounded-xl p-3 text-center ${result.skipped > 0 ? 'bg-surface-container-low' : 'bg-surface-container-low'}`}>
+              <p className="text-2xl font-bold text-outline/70">{result.skipped}</p>
+              <p className="text-xs text-outline">Ignoradas*</p>
             </div>
-            <div className={`rounded-xl p-3 text-center ${result.notFound > 0 ? 'bg-amber-50' : 'bg-gray-50'}`}>
-              <p className={`text-2xl font-bold ${result.notFound > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+            <div className={`rounded-xl p-3 text-center ${result.notFound > 0 ? 'bg-amber-50' : 'bg-surface-container-low'}`}>
+              <p className={`text-2xl font-bold ${result.notFound > 0 ? 'text-amber-600' : 'text-outline/70'}`}>
                 {result.notFound}
               </p>
-              <p className={`text-xs ${result.notFound > 0 ? 'text-amber-700' : 'text-gray-500'}`}>
+              <p className={`text-xs ${result.notFound > 0 ? 'text-amber-700' : 'text-outline'}`}>
                 Ref. não encontrada
               </p>
             </div>
           </div>
 
           {result.skipped > 0 && (
-            <p className="text-xs text-gray-400 text-center">
+            <p className="text-xs text-outline/70 text-center">
               * Ignoradas = já tinham foto e "sobreescrever" estava desativado
             </p>
           )}
@@ -287,13 +287,13 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
 
           {/* Tabela de preços */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">
               Tabela de Preços *
             </label>
             <select
               value={priceTableId}
               onChange={e => setPriceTableId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             >
               <option value="">Selecione a tabela...</option>
               {(tables || []).map(t => (
@@ -306,24 +306,24 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
 
           {/* Arquivo ZIP */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">
               Arquivo ZIP *
             </label>
             <div
-              className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors"
+              className="border-2 border-dashed border-outline-variant rounded-xl p-6 text-center cursor-pointer hover:border-primary/30 hover:bg-primary/5/30 transition-colors"
               onClick={() => !processing && fileRef.current?.click()}
             >
               {file ? (
-                <div className="flex items-center justify-center gap-2 text-indigo-600">
+                <div className="flex items-center justify-center gap-2 text-primary">
                   <Archive className="h-5 w-5" />
                   <span className="text-sm font-medium">{file.name}</span>
-                  <span className="text-xs text-gray-400">({(file.size / 1024 / 1024).toFixed(0)} MB)</span>
+                  <span className="text-xs text-outline/70">({(file.size / 1024 / 1024).toFixed(0)} MB)</span>
                 </div>
               ) : (
-                <div className="text-gray-400">
+                <div className="text-outline/70">
                   <Upload className="h-8 w-8 mx-auto mb-2" />
                   <p className="text-sm">Clique para selecionar o arquivo .zip</p>
-                  <p className="text-xs mt-0.5 text-gray-300">Qualquer tamanho — processado localmente</p>
+                  <p className="text-xs mt-0.5 text-outline/50">Qualquer tamanho — processado localmente</p>
                 </div>
               )}
             </div>
@@ -342,15 +342,15 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
               type="checkbox"
               checked={overwrite}
               onChange={e => setOverwrite(e.target.checked)}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="rounded border-outline-variant text-primary focus:ring-primary"
             />
-            <span className="text-sm text-gray-700">Sobreescrever fotos já existentes</span>
+            <span className="text-sm text-on-surface-variant">Sobreescrever fotos já existentes</span>
           </label>
 
           {/* Progresso */}
           {processing && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-indigo-600">
+              <div className="flex items-center gap-2 text-sm text-primary">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>
                   {phase === 'reading'
@@ -359,9 +359,9 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
                 </span>
               </div>
               {phase === 'uploading' && (
-                <div className="w-full bg-gray-100 rounded-full h-2">
+                <div className="w-full bg-surface-container rounded-full h-2">
                   <div
-                    className="bg-indigo-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
                     style={{ width: `${pct}%` }}
                   />
                 </div>

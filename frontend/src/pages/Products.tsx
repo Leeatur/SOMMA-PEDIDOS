@@ -85,7 +85,7 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
             <img src={p.image_url} alt={p.reference} className="w-full h-full object-contain" />
           </div>
         ) : (
-          <div className="w-full h-40 bg-surface-container rounded-xl flex items-center justify-center text-gray-300">
+          <div className="w-full h-40 bg-surface-container rounded-xl flex items-center justify-center text-outline/50">
             <ImageIcon className="h-12 w-12" />
           </div>
         )}
@@ -94,8 +94,8 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
           <Badge variant={p.type === 'pack' ? 'purple' : 'info'}>
             {p.type === 'pack' ? 'PACK' : 'Regular'}
           </Badge>
-          {p.product_name && <span className="text-sm font-semibold text-gray-800">{p.product_name}</span>}
-          {p.model && <span className="text-sm text-gray-500">{p.model}</span>}
+          {p.product_name && <span className="text-sm font-semibold text-on-surface">{p.product_name}</span>}
+          {p.model && <span className="text-sm text-outline">{p.model}</span>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -105,8 +105,8 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
           </div>
           {p.type === 'pack' && totalPieces > 0 && (
             <div className="bg-surface-container-low rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 mb-0.5">Preço por caixa ({totalPieces} pç)</p>
-              <p className="text-lg font-bold text-gray-800">R$ {pricePerBox.toFixed(2)}</p>
+              <p className="text-xs text-outline mb-0.5">Preço por caixa ({totalPieces} pç)</p>
+              <p className="text-lg font-bold text-on-surface">R$ {pricePerBox.toFixed(2)}</p>
             </div>
           )}
         </div>
@@ -114,31 +114,31 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
         <div className="space-y-1.5 text-sm">
           {p.size_range && (
             <div className="flex justify-between">
-              <span className="text-gray-500">Tamanhos</span>
-              <span className="font-medium text-gray-800">{p.size_range}</span>
+              <span className="text-outline">Tamanhos</span>
+              <span className="font-medium text-on-surface">{p.size_range}</span>
             </div>
           )}
           {p.category && (
             <div className="flex justify-between">
-              <span className="text-gray-500">Categoria</span>
-              <span className="font-medium text-gray-800">{p.category}</span>
+              <span className="text-outline">Categoria</span>
+              <span className="font-medium text-on-surface">{p.category}</span>
             </div>
           )}
           {p.factory_name && (
             <div className="flex justify-between">
-              <span className="text-gray-500">Fábrica</span>
-              <span className="font-medium text-gray-800">{p.factory_name}</span>
+              <span className="text-outline">Fábrica</span>
+              <span className="font-medium text-on-surface">{p.factory_name}</span>
             </div>
           )}
           {p.price_table_name && (
             <div className="flex justify-between">
-              <span className="text-gray-500">Tabela</span>
-              <span className="font-medium text-gray-800 text-right max-w-[60%] truncate">{p.price_table_name}</span>
+              <span className="text-outline">Tabela</span>
+              <span className="font-medium text-on-surface text-right max-w-[60%] truncate">{p.price_table_name}</span>
             </div>
           )}
           {p.observation && isNaN(Number(p.observation)) && (
             <div className="flex justify-between">
-              <span className="text-gray-500">Observação</span>
+              <span className="text-outline">Observação</span>
               <span className="font-medium text-orange-600 text-right max-w-[60%]">{p.observation}</span>
             </div>
           )}
@@ -146,7 +146,7 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
 
         {p.grade_configs && p.grade_configs.length > 0 && (
           <div className="bg-surface-container-low rounded-xl px-4 py-2.5">
-            <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">
+            <p className="text-xs text-outline mb-2 font-medium uppercase tracking-wide">
               {p.type === 'regular' ? 'Tamanhos disponíveis' : 'Grade por caixa'}
             </p>
             {p.type === 'regular' ? (
@@ -166,15 +166,15 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
                   const sizes = sortSizes(Object.keys(expandedSizes))
                   return (
                     <div key={i}>
-                      {gc.color && <p className="text-xs font-medium text-gray-600 mb-1">{gc.color}</p>}
+                      {gc.color && <p className="text-xs font-medium text-on-surface-variant mb-1">{gc.color}</p>}
                       <div className="overflow-x-auto scrollbar-hide">
                         <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
                           <thead className="bg-white">
                             <tr>
                               {sizes.map(s => (
-                                <th key={s} className="px-2 py-1 text-gray-600 font-medium text-center min-w-[28px]">{s}</th>
+                                <th key={s} className="px-2 py-1 text-on-surface-variant font-medium text-center min-w-[28px]">{s}</th>
                               ))}
-                              <th className="px-2 py-1 text-gray-500 text-center border-l border-outline-variant">Tot</th>
+                              <th className="px-2 py-1 text-outline text-center border-l border-outline-variant">Tot</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -234,7 +234,7 @@ function ProductRow({
             <div className="w-10 h-10 rounded-lg bg-surface-container overflow-hidden flex-shrink-0 flex items-center justify-center">
               {p.image_url
                 ? <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
-                : <ImageIcon className="h-4 w-4 text-gray-300" />}
+                : <ImageIcon className="h-4 w-4 text-outline/50" />}
             </div>
           </td>
         )
@@ -252,45 +252,45 @@ function ProductRow({
       case 'name':
         return (
           <td key={id} className="px-2 py-2 max-w-[180px]">
-            <p className="text-sm font-medium text-gray-800 truncate">{p.product_name || '—'}</p>
-            {p.model && <p className="text-xs text-gray-400 truncate">{p.model}</p>}
+            <p className="text-sm font-medium text-on-surface truncate">{p.product_name || '—'}</p>
+            {p.model && <p className="text-xs text-outline/70 truncate">{p.model}</p>}
           </td>
         )
       case 'size_range':
         return (
           <td key={id} className="px-2 py-2 whitespace-nowrap">
-            <span className="text-xs text-gray-600">{p.size_range || '—'}</span>
+            <span className="text-xs text-on-surface-variant">{p.size_range || '—'}</span>
           </td>
         )
       case 'price':
         return (
           <td key={id} className="px-2 py-2 whitespace-nowrap text-right">
             <span className="text-sm font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</span>
-            <span className="text-xs text-gray-400 ml-0.5">/pç</span>
+            <span className="text-xs text-outline/70 ml-0.5">/pç</span>
           </td>
         )
       case 'pieces':
         return (
           <td key={id} className="px-2 py-2 whitespace-nowrap text-center">
-            <span className="text-xs text-gray-500">{totalPieces > 0 ? `${totalPieces} pç` : '—'}</span>
+            <span className="text-xs text-outline">{totalPieces > 0 ? `${totalPieces} pç` : '—'}</span>
           </td>
         )
       case 'category':
         return (
           <td key={id} className="px-2 py-2 max-w-[120px]">
-            <span className="text-xs text-gray-500 truncate block">{p.category || '—'}</span>
+            <span className="text-xs text-outline truncate block">{p.category || '—'}</span>
           </td>
         )
       case 'factory':
         return (
           <td key={id} className="px-2 py-2 max-w-[120px]">
-            <span className="text-xs text-gray-600 truncate block">{p.factory_name || '—'}</span>
+            <span className="text-xs text-on-surface-variant truncate block">{p.factory_name || '—'}</span>
           </td>
         )
       case 'table':
         return (
           <td key={id} className="px-2 py-2 max-w-[150px]">
-            <span className="text-xs text-gray-500 truncate block">{p.price_table_name || '—'}</span>
+            <span className="text-xs text-outline truncate block">{p.price_table_name || '—'}</span>
           </td>
         )
       case 'observation':
@@ -356,14 +356,14 @@ export function Products() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="font-display text-[22px] font-bold text-on-surface">Produtos</h1>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-outline">
               {isLoading ? 'Carregando…' : `${total} produto${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowZipImport(true)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 bg-surface-container hover:bg-gray-200 border border-outline-variant rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
               title="Importar fotos via ZIP"
             >
               <Archive className="h-4 w-4" />
@@ -391,7 +391,7 @@ export function Products() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
           >
             <option value="">Todos</option>
             <option value="regular">Regular</option>
@@ -408,10 +408,10 @@ export function Products() {
       ) : total === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <ChevronDown className="h-8 w-8 text-gray-300" />
+            <ChevronDown className="h-8 w-8 text-outline/50" />
           </div>
-          <p className="text-gray-500 font-medium">Nenhum produto encontrado</p>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-outline font-medium">Nenhum produto encontrado</p>
+          <p className="text-sm text-outline/70 mt-1">
             {debouncedSearch
               ? `Nenhum resultado para "${debouncedSearch}"`
               : 'Importe uma tabela de preços para começar'}
@@ -425,7 +425,7 @@ export function Products() {
                 {visibleCols.map(col => (
                   <th
                     key={col.id}
-                    className={`px-2 py-2.5 text-xs font-semibold text-gray-500 first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''}`}
+                    className={`px-2 py-2.5 text-xs font-semibold text-outline first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''}`}
                   >
                     {col.label}
                   </th>

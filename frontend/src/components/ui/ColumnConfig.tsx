@@ -116,7 +116,7 @@ export function ColumnConfigModal({
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={handleReset}
-            className="text-sm text-indigo-500 hover:text-indigo-700"
+            className="text-sm text-primary hover:text-primary"
           >
             Restaurar padrão
           </button>
@@ -127,10 +127,10 @@ export function ColumnConfigModal({
         </div>
       }
     >
-      <p className="text-xs text-gray-400 mb-3">
+      <p className="text-xs text-outline/70 mb-3">
         Ative/desative colunas e use ▲▼ para reordenar.
       </p>
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-outline-variant/50">
         {local.map((col, idx) => {
           const def = defs.find(d => d.id === col.id)
           if (!def) return null
@@ -148,18 +148,18 @@ export function ColumnConfigModal({
                 className={`flex-shrink-0 p-0.5 rounded transition-colors ${
                   def.alwaysVisible
                     ? 'opacity-30 cursor-default'
-                    : 'hover:bg-gray-100 cursor-pointer'
+                    : 'hover:bg-surface-container cursor-pointer'
                 }`}
                 title={col.visible ? 'Ocultar' : 'Mostrar'}
               >
                 {col.visible
-                  ? <Eye className="h-4 w-4 text-indigo-500" />
-                  : <EyeOff className="h-4 w-4 text-gray-400" />
+                  ? <Eye className="h-4 w-4 text-primary" />
+                  : <EyeOff className="h-4 w-4 text-outline/70" />
                 }
               </button>
 
               {/* Label */}
-              <span className={`flex-1 text-sm ${col.visible ? 'font-medium text-gray-800' : 'text-gray-400'}`}>
+              <span className={`flex-1 text-sm ${col.visible ? 'font-medium text-on-surface' : 'text-outline/70'}`}>
                 {def.label}
               </span>
 
@@ -168,14 +168,14 @@ export function ColumnConfigModal({
                 <button
                   onClick={() => move(idx, -1)}
                   disabled={idx === 0}
-                  className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 disabled:cursor-default rounded"
+                  className="p-0.5 text-outline/50 hover:text-on-surface-variant disabled:opacity-20 disabled:cursor-default rounded"
                 >
                   <ChevronUp className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => move(idx, 1)}
                   disabled={idx === local.length - 1}
-                  className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 disabled:cursor-default rounded"
+                  className="p-0.5 text-outline/50 hover:text-on-surface-variant disabled:opacity-20 disabled:cursor-default rounded"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
@@ -206,7 +206,7 @@ export function ColumnConfigButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex-shrink-0"
+        className="p-1.5 text-outline/70 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors flex-shrink-0"
         title="Personalizar colunas"
       >
         <Settings2 className="h-4 w-4" />

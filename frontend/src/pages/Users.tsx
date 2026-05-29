@@ -116,7 +116,7 @@ export function Users() {
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-[22px] font-bold text-on-surface">Usuários</h1>
-            <p className="text-xs text-gray-500 mt-0.5">{list.length} usuários</p>
+            <p className="text-xs text-outline mt-0.5">{list.length} usuários</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
             Novo Usuário
@@ -147,26 +147,26 @@ export function Users() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-gray-900">{u.name}</p>
+                      <p className="font-semibold text-on-surface">{u.name}</p>
                       <Badge variant={u.role === 'admin' ? 'danger' : 'info'}>
                         {u.role === 'admin' ? 'Admin' : 'Representante'}
                       </Badge>
                       {!u.active && <Badge variant="default">Inativo</Badge>}
                     </div>
-                    <p className="text-xs text-gray-500">{u.email}</p>
-                    <p className="text-xs text-gray-400">Criado em {formatDate(u.created_at)}</p>
+                    <p className="text-xs text-outline">{u.email}</p>
+                    <p className="text-xs text-outline/70">Criado em {formatDate(u.created_at)}</p>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       onClick={() => toggleActiveMut.mutate({ id: u.id, active: !u.active })}
-                      className={`p-1.5 rounded-lg transition-colors ${u.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-400 hover:bg-surface-container'}`}
+                      className={`p-1.5 rounded-lg transition-colors ${u.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-outline/70 hover:bg-surface-container'}`}
                       title={u.active ? 'Desativar' : 'Ativar'}
                     >
                       {u.active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                     </button>
                     <button
                       onClick={() => openEdit(u)}
-                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      className="p-1.5 text-outline/70 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
@@ -212,7 +212,7 @@ export function Users() {
             error={errors.password}
             {...f('password')}
             rightElement={
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-outline/70 hover:text-on-surface-variant">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             }

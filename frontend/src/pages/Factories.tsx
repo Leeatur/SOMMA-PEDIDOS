@@ -94,7 +94,7 @@ export function Factories() {
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-[22px] font-bold text-on-surface">Fábricas / Marcas</h1>
-            <p className="text-xs text-gray-500 mt-0.5">{list.length} cadastradas</p>
+            <p className="text-xs text-outline mt-0.5">{list.length} cadastradas</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
             Nova Fábrica
@@ -124,18 +124,18 @@ export function Factories() {
                       <Building2 className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{f.name}</p>
+                      <p className="font-semibold text-on-surface">{f.name}</p>
                       {f.contact && (
-                        <p className="text-xs text-gray-500 mt-0.5">{f.contact}</p>
+                        <p className="text-xs text-outline mt-0.5">{f.contact}</p>
                       )}
                       {f.notes && (
-                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{f.notes}</p>
+                        <p className="text-xs text-outline/70 mt-0.5 line-clamp-1">{f.notes}</p>
                       )}
                     </div>
                   </div>
                   <button
                     onClick={() => openEdit(f)}
-                    className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    className="p-2 text-outline/70 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>

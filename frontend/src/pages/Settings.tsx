@@ -93,7 +93,7 @@ function CompanySection() {
   })
 
   if (isLoading) return (
-    <div className="h-20 flex items-center justify-center text-gray-400 text-sm">
+    <div className="h-20 flex items-center justify-center text-outline/70 text-sm">
       Carregando dados da empresa…
     </div>
   )
@@ -104,7 +104,7 @@ function CompanySection() {
       <div className="flex items-center gap-4">
         <div
           onClick={() => logoRef.current?.click()}
-          className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-400 bg-surface-container-low hover:bg-primary/10 flex items-center justify-center cursor-pointer transition-colors overflow-hidden flex-shrink-0"
+          className="w-20 h-20 rounded-2xl border-2 border-dashed border-outline-variant hover:border-blue-400 bg-surface-container-low hover:bg-primary/10 flex items-center justify-center cursor-pointer transition-colors overflow-hidden flex-shrink-0"
         >
           {logoPreview ? (
             <img
@@ -113,15 +113,15 @@ function CompanySection() {
               className="w-full h-full object-contain p-1"
             />
           ) : (
-            <div className="flex flex-col items-center gap-1 text-gray-400">
+            <div className="flex flex-col items-center gap-1 text-outline/70">
               <ImageIcon className="h-6 w-6" />
               <span className="text-[10px] font-medium">Logo</span>
             </div>
           )}
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-700">Logo da empresa</p>
-          <p className="text-xs text-gray-400 mb-2">PNG ou JPG · aparece no cabeçalho dos pedidos</p>
+          <p className="text-sm font-medium text-on-surface-variant">Logo da empresa</p>
+          <p className="text-xs text-outline/70 mb-2">PNG ou JPG · aparece no cabeçalho dos pedidos</p>
           <Button
             size="sm"
             variant="outline"
@@ -230,7 +230,7 @@ export function Settings() {
       <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <h1 className="font-display text-[22px] font-bold text-on-surface">Configurações</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Ajustes do aplicativo</p>
+          <p className="text-xs text-outline mt-0.5">Ajustes do aplicativo</p>
         </div>
       </div>
 
@@ -239,7 +239,7 @@ export function Settings() {
         {/* ── Empresa (admin only) ── */}
         {user?.role === 'admin' && (
           <div>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <h2 className="text-xs font-semibold text-outline uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Building2 className="h-3.5 w-3.5" />
               Dados da Empresa
             </h2>
@@ -251,7 +251,7 @@ export function Settings() {
 
         {/* Profile */}
         <div>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Conta</h2>
+          <h2 className="text-xs font-semibold text-outline uppercase tracking-wider mb-3">Conta</h2>
           <Card padding="md">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -260,8 +260,8 @@ export function Settings() {
                 </span>
               </div>
               <div>
-                <p className="font-semibold text-gray-900">{user?.name}</p>
-                <p className="text-sm text-gray-500">{user?.email}</p>
+                <p className="font-semibold text-on-surface">{user?.name}</p>
+                <p className="text-sm text-outline">{user?.email}</p>
                 <Badge variant={user?.role === 'admin' ? 'danger' : 'info'} className="mt-1">
                   {user?.role === 'admin' ? 'Administrador' : 'Representante'}
                 </Badge>
@@ -272,7 +272,7 @@ export function Settings() {
 
         {/* Connectivity */}
         <div>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Conectividade</h2>
+          <h2 className="text-xs font-semibold text-outline uppercase tracking-wider mb-3">Conectividade</h2>
           <Card padding="md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -286,8 +286,8 @@ export function Settings() {
                   </div>
                 )}
                 <div>
-                  <p className="font-medium text-gray-900">{online ? 'Online' : 'Offline'}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="font-medium text-on-surface">{online ? 'Online' : 'Offline'}</p>
+                  <p className="text-xs text-outline">
                     {online ? 'Conectado ao servidor' : 'Trabalhando localmente'}
                   </p>
                 </div>
@@ -302,7 +302,7 @@ export function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-orange-600">{pendingCount} pedido{pendingCount > 1 ? 's' : ''} pendente{pendingCount > 1 ? 's' : ''}</p>
-                    <p className="text-xs text-gray-500">Aguardando sincronização</p>
+                    <p className="text-xs text-outline">Aguardando sincronização</p>
                   </div>
                   {online && (
                     <Button size="sm" variant="outline" icon={<RefreshCw className="h-3.5 w-3.5" />}>
@@ -317,26 +317,26 @@ export function Settings() {
 
         {/* Offline cache */}
         <div>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Cache Offline</h2>
+          <h2 className="text-xs font-semibold text-outline uppercase tracking-wider mb-3">Cache Offline</h2>
           <Card padding="md">
             <div className="flex items-start gap-3 mb-3">
               <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Database className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="font-medium text-gray-900">Dados em cache</p>
-                <p className="text-xs text-gray-500">Usados quando sem conexão</p>
+                <p className="font-medium text-on-surface">Dados em cache</p>
+                <p className="text-xs text-outline">Usados quando sem conexão</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-surface-container-low rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-gray-900">{cachedProductsCount}</p>
-                <p className="text-xs text-gray-500">Produtos</p>
+                <p className="text-xl font-bold text-on-surface">{cachedProductsCount}</p>
+                <p className="text-xs text-outline">Produtos</p>
               </div>
               <div className="bg-surface-container-low rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-gray-900">{cachedClientsCount}</p>
-                <p className="text-xs text-gray-500">Clientes</p>
+                <p className="text-xl font-bold text-on-surface">{cachedClientsCount}</p>
+                <p className="text-xs text-outline">Clientes</p>
               </div>
             </div>
 
@@ -355,7 +355,7 @@ export function Settings() {
 
         {/* App info */}
         <div>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Sobre</h2>
+          <h2 className="text-xs font-semibold text-outline uppercase tracking-wider mb-3">Sobre</h2>
           <Card padding="md">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -363,11 +363,11 @@ export function Settings() {
                   <ShieldCheck className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">Somma Pedidos</p>
-                  <p className="text-xs text-gray-500">Versão 1.0.0</p>
+                  <p className="font-semibold text-on-surface">Somma Pedidos</p>
+                  <p className="text-xs text-outline">Versão 1.0.0</p>
                 </div>
               </div>
-              <div className="pt-3 border-t border-outline-variant/50 text-sm text-gray-500">
+              <div className="pt-3 border-t border-outline-variant/50 text-sm text-outline">
                 <p>Sistema de Gestão de Pedidos</p>
                 <p className="text-xs mt-1">Somma Gestão Comercial &copy; {new Date().getFullYear()}</p>
               </div>

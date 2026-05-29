@@ -107,7 +107,7 @@ export function OrderPrint() {
 
   if (!order || !company) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-gray-500 text-sm">
+      <div className="flex items-center justify-center min-h-screen text-outline text-sm">
         Preparando pedido para impressão…
       </div>
     )

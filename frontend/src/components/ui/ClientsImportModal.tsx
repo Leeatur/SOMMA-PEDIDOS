@@ -111,13 +111,13 @@ export function ClientsImportModal({ open, onClose }: Props) {
           const done = (step === 'mapping' && i === 0) || (step === 'result' && i < 2)
           return (
             <div key={s} className="flex items-center gap-2 flex-1">
-              <div className={`flex items-center gap-1.5 text-xs font-semibold ${active ? 'text-indigo-600' : done ? 'text-emerald-600' : 'text-gray-400'}`}>
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${active ? 'bg-indigo-100 text-indigo-600 ring-2 ring-blue-300' : done ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+              <div className={`flex items-center gap-1.5 text-xs font-semibold ${active ? 'text-primary' : done ? 'text-emerald-600' : 'text-outline/70'}`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${active ? 'bg-primary/10 text-primary ring-2 ring-blue-300' : done ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-container text-outline/70'}`}>
                   {done ? <CheckCircle2 className="h-3 w-3" /> : i + 1}
                 </div>
                 {labels[i]}
               </div>
-              {i < 2 && <div className={`flex-1 h-px ${done ? 'bg-emerald-300' : 'bg-gray-200'}`} />}
+              {i < 2 && <div className={`flex-1 h-px ${done ? 'bg-emerald-300' : 'bg-surface-container-high'}`} />}
             </div>
           )
         })}
@@ -126,7 +126,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
       {/* ── STEP 1: Upload ── */}
       {step === 'upload' && (
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-on-surface-variant">
             Exporte os clientes do seu sistema atual como Excel (.xlsx ou .xls) e faça o upload aqui.
             O sistema detecta as colunas automaticamente.
           </p>
@@ -136,21 +136,21 @@ export function ClientsImportModal({ open, onClose }: Props) {
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${dragging ? 'border-blue-400 bg-indigo-50' : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50'}`}
+            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${dragging ? 'border-blue-400 bg-primary/5' : 'border-outline-variant hover:border-blue-300 hover:bg-surface-container-low'}`}
           >
             {previewMut.isPending ? (
-              <div className="flex flex-col items-center gap-3 text-indigo-500">
+              <div className="flex flex-col items-center gap-3 text-primary">
                 <Loader2 className="h-10 w-10 animate-spin" />
                 <p className="text-sm font-medium">Lendo arquivo...</p>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-3 text-gray-500">
+              <div className="flex flex-col items-center gap-3 text-outline">
                 <FileSpreadsheet className="h-12 w-12 text-emerald-500" />
                 <div>
-                  <p className="font-semibold text-gray-700">Arraste o arquivo aqui</p>
+                  <p className="font-semibold text-on-surface-variant">Arraste o arquivo aqui</p>
                   <p className="text-sm">ou clique para selecionar</p>
                 </div>
-                <p className="text-xs text-gray-400">Suporta .xlsx e .xls</p>
+                <p className="text-xs text-outline/70">Suporta .xlsx e .xls</p>
               </div>
             )}
           </div>
@@ -185,16 +185,16 @@ export function ClientsImportModal({ open, onClose }: Props) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-sm font-semibold text-on-surface">
                 {preview.totalRows} clientes encontrados
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-outline">
                 Arquivo: <strong>{file?.name}</strong> · {preview.headers.length} colunas detectadas
               </p>
             </div>
             <button
               onClick={() => { setStep('upload'); setFile(null) }}
-              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              className="text-xs text-outline hover:text-on-surface-variant flex items-center gap-1"
             >
               <RefreshCw className="h-3 w-3" /> Trocar arquivo
             </button>
@@ -202,12 +202,12 @@ export function ClientsImportModal({ open, onClose }: Props) {
 
           {/* Preview tabela bruta */}
           {preview.sampleRaw.length > 0 && (
-            <div className="border border-gray-200 rounded-lg overflow-auto max-h-36">
+            <div className="border border-outline-variant rounded-lg overflow-auto max-h-36">
               <table className="min-w-max text-xs">
-                <thead className="bg-gray-50 sticky top-0">
+                <thead className="bg-surface-container-low sticky top-0">
                   <tr>
                     {preview.sampleRaw[0].map((h, i) => (
-                      <th key={i} className="px-3 py-1.5 text-left font-semibold text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                      <th key={i} className="px-3 py-1.5 text-left font-semibold text-on-surface-variant border-b border-outline-variant whitespace-nowrap">
                         {h}
                       </th>
                     ))}
@@ -215,9 +215,9 @@ export function ClientsImportModal({ open, onClose }: Props) {
                 </thead>
                 <tbody>
                   {preview.sampleRaw.slice(1, 4).map((row, ri) => (
-                    <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-surface-container-low'}>
                       {row.map((cell, ci) => (
-                        <td key={ci} className="px-3 py-1 text-gray-700 whitespace-nowrap max-w-[150px] truncate">
+                        <td key={ci} className="px-3 py-1 text-on-surface-variant whitespace-nowrap max-w-[150px] truncate">
                           {cell}
                         </td>
                       ))}
@@ -230,27 +230,27 @@ export function ClientsImportModal({ open, onClose }: Props) {
 
           {/* Mapeamento de campos */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <p className="text-xs font-semibold text-outline uppercase tracking-wide">
               Confirme o mapeamento de colunas
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
               {FIELDS.map(f => (
                 <div key={f.key} className="flex items-center gap-3">
                   <label className="w-44 flex-shrink-0">
-                    <span className="text-sm text-gray-700">
+                    <span className="text-sm text-on-surface-variant">
                       {f.label}
                       {f.required && <span className="text-red-500 ml-0.5">*</span>}
                     </span>
-                    {f.hint && <span className="block text-[10px] text-gray-400 leading-tight">{f.hint}</span>}
+                    {f.hint && <span className="block text-[10px] text-outline/70 leading-tight">{f.hint}</span>}
                   </label>
-                  <ArrowRight className="h-3.5 w-3.5 text-gray-300 flex-shrink-0" />
+                  <ArrowRight className="h-3.5 w-3.5 text-outline/50 flex-shrink-0" />
                   <select
                     value={mapping[f.key] || ''}
                     onChange={e => setMapping(m => ({ ...m, [f.key]: e.target.value }))}
                     className={`flex-1 text-sm border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
                       f.required && !mapping[f.key]
                         ? 'border-red-300 bg-red-50'
-                        : mapping[f.key] ? 'border-emerald-300 bg-emerald-50' : 'border-gray-300'
+                        : mapping[f.key] ? 'border-emerald-300 bg-emerald-50' : 'border-outline-variant'
                     }`}
                   >
                     <option value="">— não importar —</option>
@@ -298,11 +298,11 @@ export function ClientsImportModal({ open, onClose }: Props) {
               <p className="text-2xl font-bold text-amber-700">{result.skipped}</p>
               <p className="text-xs text-amber-600 font-medium mt-0.5">Já existiam</p>
             </div>
-            <div className={`border rounded-xl p-4 text-center ${result.errors.length ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
-              <p className={`text-2xl font-bold ${result.errors.length ? 'text-red-700' : 'text-gray-400'}`}>
+            <div className={`border rounded-xl p-4 text-center ${result.errors.length ? 'bg-red-50 border-red-200' : 'bg-surface-container-low border-outline-variant'}`}>
+              <p className={`text-2xl font-bold ${result.errors.length ? 'text-red-700' : 'text-outline/70'}`}>
                 {result.errors.length}
               </p>
-              <p className={`text-xs font-medium mt-0.5 ${result.errors.length ? 'text-red-600' : 'text-gray-500'}`}>Erros</p>
+              <p className={`text-xs font-medium mt-0.5 ${result.errors.length ? 'text-red-600' : 'text-outline'}`}>Erros</p>
             </div>
           </div>
 
