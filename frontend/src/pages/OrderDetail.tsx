@@ -822,7 +822,8 @@ export function OrderDetail() {
                       {p.product_name && <p className="text-xs text-outline truncate">{p.product_name}</p>}
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-primary">R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-outline/70 font-normal">/pç</span></p>
-                        {piecesPerBox > 0 && (
+                        {/* pç/cx: só packs têm grade clicável */}
+                        {piecesPerBox > 0 && p.type === 'pack' && (
                           <button onClick={() => setExpandedGrade(isExpanded ? null : p.id)} className="text-xs text-outline/70 flex items-center gap-0.5 hover:text-on-surface-variant">
                             <Info className="h-3 w-3" />{piecesPerBox} pç/cx
                           </button>
@@ -854,7 +855,8 @@ export function OrderDetail() {
                       </button>
                     )}
                   </div>
-                  {isExpanded && p.grade_configs && (
+                  {/* Grade expandida só para packs */}
+                  {isExpanded && p.type === 'pack' && p.grade_configs && (
                     <div className="px-3 pb-3 border-t border-outline-variant/50 pt-2">
                       <GradeDisplay configs={p.grade_configs} boxCount={inCart?.boxes_count || 1} />
                     </div>
