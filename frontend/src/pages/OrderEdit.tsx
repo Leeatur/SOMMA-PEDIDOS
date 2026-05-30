@@ -461,7 +461,7 @@ export default function OrderEdit() {
 
       qc.invalidateQueries({ queryKey: ['order', id] })
       qc.invalidateQueries({ queryKey: ['orders'] })
-      navigate('/orders')
+      navigate(`/orders/${id}`)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
       setSaveError(msg || 'Erro ao salvar. Tente novamente.')
@@ -495,7 +495,7 @@ export default function OrderEdit() {
       {/* Topbar */}
       <div className="sticky top-0 z-30 bg-white border-b border-outline-variant shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2">
-          <button onClick={() => navigate('/orders')}
+          <button onClick={() => navigate(`/orders/${id}`)}
             className="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant shrink-0">
             <ChevronLeft size={20} />
           </button>
@@ -518,7 +518,7 @@ export default function OrderEdit() {
             <Printer size={15} />
           </button>
           {/* Cancelar */}
-          <button onClick={() => navigate('/orders')}
+          <button onClick={() => navigate(`/orders/${id}`)}
             className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container shrink-0">
             <X size={15} /> Cancelar
           </button>
@@ -799,7 +799,7 @@ export default function OrderEdit() {
 
         {/* Botões de ação no final (mobile-friendly) */}
         <div className="flex gap-3 pb-8">
-          <button onClick={() => navigate('/orders')}
+          <button onClick={() => navigate(`/orders/${id}`)}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container">
             <X size={16} /> Cancelar
           </button>

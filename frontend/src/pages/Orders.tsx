@@ -369,7 +369,7 @@ export function Orders() {
                 <tr
                   key={o.id}
                   className="border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/orders/${o.id}/edit`)}
+                  onClick={() => navigate(`/orders/${o.id}`)}
                 >
                   {visibleCols.map(col => (
                     <OrderCell key={col.id} id={col.id} o={o} />
