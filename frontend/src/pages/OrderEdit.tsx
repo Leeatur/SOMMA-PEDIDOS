@@ -124,22 +124,31 @@ function parseSizeRange(sizeRange: string | null | undefined): string[] {
 
 function initSizes(product: Product | OrderItemRaw): Record<string, number> {
   const blocked = new Set(('blocked_sizes' in product ? product.blocked_sizes : null) || [])
-  // 1. Se já tem sizes salvas no item, usa elas (filtra bloqueados)
-  if ('sizes' in product && product.sizes && Object.keys(product.sizes).length > 0) {
-    return Object.fromEntries(Object.entries(product.sizes).filter(([s]) => !blocked.has(s)))
-  }
-  // 2. Pack: derivar tamanhos dos grade_configs
+
+  // Descobre todos os tamanhos disponíveis para este produto
+  let allSizes: string[] = []
   if (product.grade_configs && product.grade_configs.length > 0) {
     const all = new Set<string>()
-    product.grade_configs.forEach(gc => Object.keys(gc.sizes).forEach(s => all.add(s)))
-    return Object.fromEntries(sortSizes([...all]).filter(s => !blocked.has(s)).map(s => [s, 0]))
+    product.grade_configs.forEach(gc => {
+      if (gc.sizes) Object.keys(gc.sizes).forEach(s => all.add(s))
+    })
+    allSizes = sortSizes([...all]).filter(s => !blocked.has(s))
   }
-  // 3. Regular: parsear size_range do produto → inicia tudo com 0 (filtra bloqueados)
-  const parsed = parseSizeRange(product.size_range)
-  if (parsed.length > 0) {
-    return Object.fromEntries(sortSizes(parsed).filter(s => !blocked.has(s)).map(s => [s, 0]))
+  if (allSizes.length === 0 && product.size_range) {
+    allSizes = sortSizes(parseSizeRange(product.size_range)).filter(s => !blocked.has(s))
   }
-  return {}
+
+  // Inicia todos os tamanhos com 0
+  const result: Record<string, number> = Object.fromEntries(allSizes.map(s => [s, 0]))
+
+  // Sobrepõe com valores já salvos (se item existente)
+  if ('sizes' in product && product.sizes) {
+    for (const [s, v] of Object.entries(product.sizes)) {
+      if (!blocked.has(s) && s in result) result[s] = v
+    }
+  }
+
+  return result
 }
 
 function initDraftGrade(item: OrderItemRaw): DraftGradeEntry[] {
@@ -864,10 +873,7 @@ function ItemRow({
     ? Object.values(draftSizes).reduce((s, v) => s + (v || 0), 0)
     : (draftGrade || []).reduce((s, gc) => s + gc.total_pieces, 0)
 
-  const standardPPB = (gradeConfigs || []).reduce((s, gc) => s + gc.total_pieces, 0) || 1
-  const subtotal = type === 'regular'
-    ? unitPrice * pieces
-    : (unitPrice / standardPPB) * pieces
+  const subtotal = unitPrice * pieces
 
   const inputNum = 'w-10 text-center border border-outline-variant rounded px-0.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
 
