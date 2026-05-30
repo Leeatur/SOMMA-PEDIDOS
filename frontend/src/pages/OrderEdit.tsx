@@ -471,6 +471,14 @@ export default function OrderEdit() {
   const inputCls = 'w-full border border-outline-variant rounded-lg px-3 py-2 text-sm bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary'
   const labelCls = 'block text-xs font-medium text-on-surface-variant mb-1'
 
+  // Campos obrigatórios — ámbar quando vazios
+  const warnCls = (val: string) => val.trim()
+    ? inputCls
+    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2 text-sm bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'
+  const warnLabelCls = (val: string) => val.trim()
+    ? labelCls
+    : 'block text-xs font-semibold text-amber-600 mb-1'
+
   const reps = usersList.filter(u => u.role === 'rep' || u.role === 'admin')
 
   if (isLoading || !order) return <PageSpinner />
@@ -566,8 +574,10 @@ export default function OrderEdit() {
 
             {/* Comprador */}
             <div>
-              <label className={labelCls}>Comprador</label>
-              <input className={inputCls} value={form.buyer_name}
+              <label className={warnLabelCls(form.buyer_name)}>
+                Comprador {!form.buyer_name.trim() && <span className="text-amber-500">⚠</span>}
+              </label>
+              <input className={warnCls(form.buyer_name)} value={form.buyer_name}
                 onChange={e => setForm(f => ({ ...f, buyer_name: e.target.value }))}
                 placeholder="Nome do comprador" />
             </div>
@@ -592,15 +602,19 @@ export default function OrderEdit() {
 
             {/* Previsão de Entrega */}
             <div>
-              <label className={labelCls}>Previsão de Entrega</label>
-              <input type="date" className={inputCls} value={form.delivery_date}
+              <label className={warnLabelCls(form.delivery_date)}>
+                Previsão de Entrega {!form.delivery_date.trim() && <span className="text-amber-500">⚠</span>}
+              </label>
+              <input type="date" className={warnCls(form.delivery_date)} value={form.delivery_date}
                 onChange={e => setForm(f => ({ ...f, delivery_date: e.target.value }))} />
             </div>
 
             {/* Condição de Pagamento */}
             <div>
-              <label className={labelCls}>Condição de Pagamento</label>
-              <input className={inputCls} value={form.payment_terms}
+              <label className={warnLabelCls(form.payment_terms)}>
+                Cond. Pagamento {!form.payment_terms.trim() && <span className="text-amber-500">⚠</span>}
+              </label>
+              <input className={warnCls(form.payment_terms)} value={form.payment_terms}
                 onChange={e => setForm(f => ({ ...f, payment_terms: e.target.value }))}
                 placeholder="Ex: 30/60/90" />
             </div>
