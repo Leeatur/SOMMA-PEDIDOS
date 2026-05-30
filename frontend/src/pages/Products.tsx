@@ -47,12 +47,19 @@ function expandGradeSizes(sizes: Record<string, number>): Record<string, number>
 
 function parseSizeRange(sr: string | null | undefined): string[] {
   if (!sr) return []
-  const m = sr.match(/^(\d+)\s+ao\s+(\d+)$/i)
-  if (m) {
-    const lo = parseInt(m[1]), hi = parseInt(m[2])
+  // "36 ao 48" format
+  const m1 = sr.match(/^(\d+)\s+ao\s+(\d+)$/i)
+  if (m1) {
+    const lo = parseInt(m1[1]), hi = parseInt(m1[2])
     return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
   }
-  return sr.split(/\s+/).filter(Boolean)
+  // "36-48" format (hífen separando range numérico)
+  const m2 = sr.match(/^(\d+)-(\d+)$/)
+  if (m2) {
+    const lo = parseInt(m2[1]), hi = parseInt(m2[2])
+    return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
+  }
+  return sr.split(/[\s,]+/).filter(Boolean)
 }
 
 interface GradeConfig {
@@ -97,12 +104,18 @@ function ProductDetailModal({
   // Tamanhos disponíveis para bloqueio
   const allSizes = (() => {
     if (p.type === 'pack') return []  // packs não têm bloqueio por tamanho
+    // Preferência: parsear size_range (mais confiável e evita null em gc.sizes)
+    const fromRange = sortSizes(parseSizeRange(p.size_range))
+    if (fromRange.length > 0) return fromRange
+    // Fallback: extrair de grade_configs com proteção contra sizes nulo
     if (p.grade_configs && p.grade_configs.length > 0) {
       return sortSizes(Array.from(new Set(
-        p.grade_configs.flatMap(gc => Object.keys(gc.sizes)).flatMap(expandSizeKey)
+        p.grade_configs
+          .flatMap(gc => gc.sizes ? Object.keys(gc.sizes) : [])
+          .flatMap(expandSizeKey)
       )))
     }
-    return sortSizes(parseSizeRange(p.size_range))
+    return []
   })()
 
   const [localBlocked, setLocalBlocked] = useState<string[]>(p.blocked_sizes || [])

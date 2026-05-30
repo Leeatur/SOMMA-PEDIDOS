@@ -106,14 +106,20 @@ function sortSizes(keys: string[]): string[] {
 
 function parseSizeRange(sizeRange: string | null | undefined): string[] {
   if (!sizeRange) return []
-  // Padrão "36 ao 46" → filtra SIZE_ORDER entre os dois limites
-  const m = sizeRange.match(/^(\d+)\s+ao\s+(\d+)$/i)
-  if (m) {
-    const lo = parseInt(m[1]), hi = parseInt(m[2])
+  // Padrão "36 ao 46"
+  const m1 = sizeRange.match(/^(\d+)\s+ao\s+(\d+)$/i)
+  if (m1) {
+    const lo = parseInt(m1[1]), hi = parseInt(m1[2])
     return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
   }
-  // Padrão "P M G GG" → tokens separados por espaço
-  return sizeRange.split(/\s+/).filter(Boolean)
+  // Padrão "36-48" (hífen numérico)
+  const m2 = sizeRange.match(/^(\d+)-(\d+)$/)
+  if (m2) {
+    const lo = parseInt(m2[1]), hi = parseInt(m2[2])
+    return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
+  }
+  // Padrão "P M G GG" ou lista separada
+  return sizeRange.split(/[\s,]+/).filter(Boolean)
 }
 
 function initSizes(product: Product | OrderItemRaw): Record<string, number> {
