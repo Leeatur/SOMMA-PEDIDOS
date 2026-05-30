@@ -256,6 +256,7 @@ export const ordersApi = {
   changePriceTable: (id: string, price_table_id: string, discount_pct: number) =>
     apiClient.put(`/orders/${id}/price-table`, { price_table_id, discount_pct }),
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),
+  duplicate: (id: string) => apiClient.post(`/orders/${id}/duplicate`, {}),
   delete: (id: string) => apiClient.delete(`/orders/${id}`),
   listTrash: () => apiClient.get('/orders/trash'),
   restore: (id: string) => apiClient.patch(`/orders/${id}/restore`, {}),

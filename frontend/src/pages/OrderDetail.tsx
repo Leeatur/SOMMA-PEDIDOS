@@ -24,6 +24,7 @@ import {
   Truck,
   RefreshCw,
   AlertTriangle,
+  Copy,
 } from 'lucide-react'
 import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -271,6 +272,14 @@ export function OrderDetail() {
     },
   })
 
+  const duplicateMut = useMutation({
+    mutationFn: () => ordersApi.duplicate(id!),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      navigate(`/orders/${res.data.id}/edit`)
+    },
+  })
+
   const updateInfoMut = useMutation({
     mutationFn: async () => {
       const newDiscount = parseFloat(editInfoForm.discount_pct.replace(',', '.')) || 0
@@ -437,6 +446,14 @@ export function OrderDetail() {
           </div>
           <button onClick={() => window.open(`/orders/${id}/print`, '_blank')} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors" title="Imprimir pedido">
             <Printer className="h-4.5 w-4.5" />
+          </button>
+          <button
+            onClick={() => duplicateMut.mutate()}
+            disabled={duplicateMut.isPending}
+            className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors disabled:opacity-50"
+            title="Duplicar pedido"
+          >
+            <Copy className="h-4 w-4" />
           </button>
           <Button size="sm" variant="primary" onClick={() => navigate(`/orders/${id}/edit`)} icon={<Pencil className="h-3.5 w-3.5" />}>Editar</Button>
           {isAdmin && (
@@ -1312,19 +1329,27 @@ export function OrderDetail() {
       </Modal>
 
       {/* ── Mobile sticky bottom actions ── */}
-      <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white/95 border-t border-border-subtle px-4 py-3 flex gap-3" style={{ backdropFilter: 'blur(8px)' }}>
+      <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white/95 border-t border-border-subtle px-4 py-3 flex gap-2" style={{ backdropFilter: 'blur(8px)' }}>
         <button
           onClick={() => setDeleteModal(true)}
-          className="flex-1 h-12 flex items-center justify-center border border-status-error text-status-error rounded-xl text-sm font-bold uppercase tracking-wide hover:bg-red-50 active:scale-95 transition-all"
+          className="flex-1 h-12 flex items-center justify-center border border-status-error text-status-error rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-red-50 active:scale-95 transition-all"
         >
-          Cancelar
+          Excluir
+        </button>
+        <button
+          onClick={() => duplicateMut.mutate()}
+          disabled={duplicateMut.isPending}
+          className="flex-1 h-12 flex items-center justify-center border border-primary text-primary rounded-xl text-xs font-bold uppercase tracking-wide gap-1.5 hover:bg-primary/5 active:scale-95 transition-all disabled:opacity-50"
+        >
+          <Copy className="h-4 w-4" />
+          Duplicar
         </button>
         <button
           onClick={() => navigate(`/orders/${id}/edit`)}
-          className="flex-[2] h-12 flex items-center justify-center bg-primary text-white rounded-xl text-sm font-bold uppercase tracking-wide shadow-sm active:opacity-80 active:scale-95 transition-all gap-2"
+          className="flex-[2] h-12 flex items-center justify-center bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-wide shadow-sm active:opacity-80 active:scale-95 transition-all gap-1.5"
         >
           <Pencil className="h-4 w-4" />
-          Editar Pedido
+          Editar
         </button>
       </div>
     </div>

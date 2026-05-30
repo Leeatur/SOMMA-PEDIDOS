@@ -718,3 +718,95 @@ export async function syncOfflineOrders(req: AuthRequest, res: Response) {
   }
   res.json({ results })
 }
+
+// Duplica um pedido: cria um novo pedido idêntico para edição
+export async function duplicateOrder(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const isAdmin = req.user!.role === 'admin'
+
+  // Busca o pedido original com todos os dados
+  const { rows: [orig] } = await query(
+    `SELECT o.*,
+       COALESCE(
+         array_agg(row_to_json(oi) ORDER BY oi.created_at) FILTER (WHERE oi.id IS NOT NULL),
+         '{}'
+       ) AS items
+     FROM orders o
+     LEFT JOIN order_items oi ON oi.order_id = o.id
+     WHERE o.id=$1 AND o.deleted_at IS NULL`,
+    [id]
+  )
+  if (!orig) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  if (!isAdmin && orig.rep_id !== req.user!.id) {
+    res.status(403).json({ error: 'Acesso negado' }); return
+  }
+
+  const dbClient = await pool.connect()
+  try {
+    await dbClient.query('BEGIN')
+
+    // Status inicial
+    const { rows: [initStatus] } = await dbClient.query(
+      'SELECT id FROM order_statuses WHERE is_initial=true AND active=true ORDER BY sort_order LIMIT 1'
+    )
+
+    // Cria o novo pedido com os mesmos dados (sem os campos específicos do original)
+    const { rows: [newOrder] } = await dbClient.query(
+      `INSERT INTO orders
+       (client_id, rep_id, factory_id, price_table_id, status_id,
+        discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct,
+        total_pieces, total_value, rep_commission_value, office_commission_value,
+        notes, payment_terms, freight_type, delivery_date, buyer_name,
+        synced_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW())
+       RETURNING id`,
+      [
+        orig.client_id, orig.rep_id, orig.factory_id, orig.price_table_id,
+        initStatus?.id || null,
+        orig.discount_pct,
+        orig.total_commission_pct, orig.rep_commission_pct, orig.office_commission_pct,
+        orig.total_pieces, orig.total_value,
+        orig.rep_commission_value, orig.office_commission_value,
+        orig.notes, orig.payment_terms, orig.freight_type || 'CIF',
+        orig.delivery_date, orig.buyer_name,
+      ]
+    )
+
+    // Copia os itens do pedido original
+    for (const item of (orig.items as Record<string, unknown>[])) {
+      await dbClient.query(
+        `INSERT INTO order_items
+         (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, sizes, custom_grade)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [
+          newOrder.id,
+          item.product_id,
+          item.reference,
+          item.boxes_count,
+          item.unit_price,
+          item.total_pieces,
+          item.subtotal,
+          item.sizes ? JSON.stringify(item.sizes) : null,
+          item.custom_grade ? JSON.stringify(item.custom_grade) : null,
+        ]
+      )
+    }
+
+    if (initStatus) {
+      await dbClient.query(
+        `INSERT INTO order_status_history (order_id, from_status_id, to_status_id, changed_by)
+         VALUES ($1,NULL,$2,$3)`,
+        [newOrder.id, initStatus.id, req.user!.id]
+      )
+    }
+
+    await dbClient.query('COMMIT')
+    res.status(201).json({ id: newOrder.id })
+  } catch (err) {
+    await dbClient.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao duplicar pedido' })
+  } finally {
+    dbClient.release()
+  }
+}
