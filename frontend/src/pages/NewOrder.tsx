@@ -453,7 +453,14 @@ export function NewOrder() {
             <button
               onClick={() => {
                 if (step === 0) navigate('/orders')
-                else setStep(step - 1)
+                else if (step === 2 && cart.length > 0) {
+                  if (window.confirm(`Você tem ${cart.length} item(ns) no carrinho.\nVoltar irá esvaziar o carrinho e permitir trocar a tabela.\n\nDeseja continuar?`)) {
+                    setCart([])
+                    setStep(1)
+                  }
+                } else {
+                  setStep(step - 1)
+                }
               }}
               className="p-1.5 rounded-lg text-outline hover:bg-surface-container"
             >
@@ -593,9 +600,21 @@ export function NewOrder() {
                     key={t.id}
                     padding="md"
                     onClick={() => {
-                      setSelectedTable(t)
-                      setCart([])
-                      setStep(2)
+                      if (selectedTable?.id === t.id) {
+                        // Mesma tabela: mantém carrinho
+                        setStep(2)
+                      } else if (cart.length > 0) {
+                        // Tabela diferente com itens no carrinho: confirma
+                        if (window.confirm(`Trocar para "${t.name}" irá esvaziar o carrinho com ${cart.length} item(ns).\n\nDeseja continuar?`)) {
+                          setSelectedTable(t)
+                          setCart([])
+                          setStep(2)
+                        }
+                      } else {
+                        setSelectedTable(t)
+                        setCart([])
+                        setStep(2)
+                      }
                     }}
                     className={selectedTable?.id === t.id ? 'ring-2 ring-primary' : ''}
                   >
