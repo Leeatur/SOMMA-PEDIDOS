@@ -165,13 +165,13 @@ export async function getOrder(req: AuthRequest, res: Response) {
 
   const { rows: items } = await query(
     `SELECT oi.*,
-       p.product_name, p.model, p.type, p.image_url,
+       p.product_name, p.model, p.type, p.image_url, p.size_range,
        json_agg(gc ORDER BY gc.sort_order) FILTER (WHERE gc.id IS NOT NULL) as grade_configs
      FROM order_items oi
      JOIN products p ON p.id = oi.product_id
      LEFT JOIN grade_configs gc ON gc.product_id = oi.product_id
      WHERE oi.order_id = $1
-     GROUP BY oi.id, p.product_name, p.model, p.type, p.image_url
+     GROUP BY oi.id, p.product_name, p.model, p.type, p.image_url, p.size_range
      ORDER BY oi.created_at`,
     [req.params.id]
   )

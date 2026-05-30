@@ -36,6 +36,7 @@ interface OrderItemRaw {
   product_name: string | null
   type: 'regular' | 'pack'
   image_url: string | null
+  size_range: string | null
   boxes_count: number
   unit_price: number
   total_pieces: number
@@ -59,6 +60,7 @@ interface NewItem {
   product_name: string | null
   type: 'regular' | 'pack'
   image_url: string | null
+  size_range: string | null
   unit_price: number
   grade_configs: GradeConfig[] | null
   draftSizes: Record<string, number>
@@ -73,6 +75,7 @@ interface Product {
   product_name: string | null
   base_price: number
   image_url: string | null
+  size_range: string | null
   grade_configs: GradeConfig[] | null
 }
 
@@ -99,14 +102,33 @@ function sortSizes(keys: string[]): string[] {
   })
 }
 
+function parseSizeRange(sizeRange: string | null | undefined): string[] {
+  if (!sizeRange) return []
+  // Padrão "36 ao 46" → filtra SIZE_ORDER entre os dois limites
+  const m = sizeRange.match(/^(\d+)\s+ao\s+(\d+)$/i)
+  if (m) {
+    const lo = parseInt(m[1]), hi = parseInt(m[2])
+    return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
+  }
+  // Padrão "P M G GG" → tokens separados por espaço
+  return sizeRange.split(/\s+/).filter(Boolean)
+}
+
 function initSizes(product: Product | OrderItemRaw): Record<string, number> {
+  // 1. Se já tem sizes salvas no item, usa elas
   if ('sizes' in product && product.sizes && Object.keys(product.sizes).length > 0) {
     return { ...product.sizes }
   }
+  // 2. Pack: derivar tamanhos dos grade_configs
   if (product.grade_configs && product.grade_configs.length > 0) {
     const all = new Set<string>()
     product.grade_configs.forEach(gc => Object.keys(gc.sizes).forEach(s => all.add(s)))
     return Object.fromEntries(sortSizes([...all]).map(s => [s, 0]))
+  }
+  // 3. Regular: parsear size_range do produto → inicia tudo com 0
+  const parsed = parseSizeRange(product.size_range)
+  if (parsed.length > 0) {
+    return Object.fromEntries(sortSizes(parsed).map(s => [s, 0]))
   }
   return {}
 }
@@ -342,6 +364,7 @@ export default function OrderEdit() {
       product_name: prod.product_name,
       type: prod.type,
       image_url: prod.image_url,
+      size_range: prod.size_range,
       unit_price: prod.base_price,
       grade_configs: prod.grade_configs || null,
       draftSizes: initSizes(prod),
@@ -820,7 +843,6 @@ function ItemRow({
     : (unitPrice / standardPPB) * pieces
 
   const inputNum = 'w-10 text-center border border-outline-variant rounded px-0.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
-  const inputNumReg = 'w-12 text-center border border-outline-variant rounded px-1 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
 
   return (
     <tr className={`align-top hover:bg-surface-container/40 transition-colors ${isNew ? 'bg-primary/3' : ''}`}>
@@ -849,21 +871,42 @@ function ItemRow({
 
       {/* Grade / Quantidades */}
       <td className="px-3 py-3">
+
+        {/* Regular: uma linha de inputs por tamanho */}
         {type === 'regular' && sizes.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap">
-            {sizes.map(size => (
-              <div key={size} className="flex flex-col items-center gap-0.5">
-                <span className="text-xs text-on-surface-variant font-medium">{size}</span>
-                <input
-                  type="number" min={0} max={999}
-                  className={inputNumReg}
-                  value={draftSizes[size] || 0}
-                  onChange={e => onSizeChange(size, parseInt(e.target.value) || 0)}
-                />
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="text-xs border-collapse">
+              <thead>
+                <tr>
+                  {sizes.map(s => (
+                    <th key={s} className="w-10 text-center pb-1 text-on-surface-variant font-medium px-0.5">{s}</th>
+                  ))}
+                  <th className="pl-3 pb-1 text-center text-on-surface-variant font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  {sizes.map(size => (
+                    <td key={size} className="px-0.5 py-0.5">
+                      <input
+                        type="number" min={0} max={999}
+                        className={inputNum}
+                        value={draftSizes[size] || 0}
+                        onChange={e => onSizeChange(size, parseInt(e.target.value) || 0)}
+                        onFocus={e => e.target.select()}
+                      />
+                    </td>
+                  ))}
+                  <td className="pl-3 py-0.5 text-center font-bold text-on-surface">
+                    {pieces || '—'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         )}
+
+        {/* Pack: tabela cor × tamanho */}
         {type === 'pack' && draftGrade.length > 0 && (
           <div className="overflow-x-auto">
             <table className="text-xs border-collapse w-full">
@@ -887,6 +930,7 @@ function ItemRow({
                           className={inputNum}
                           value={gc.sizes[size] || 0}
                           onChange={e => onGradeChange(colorIdx, size, parseInt(e.target.value) || 0)}
+                          onFocus={e => e.target.select()}
                         />
                       </td>
                     ))}
@@ -908,6 +952,7 @@ function ItemRow({
             </table>
           </div>
         )}
+
         {type === 'regular' && sizes.length === 0 && (
           <span className="text-xs text-on-surface-variant italic">sem grade</span>
         )}
