@@ -112,11 +112,12 @@ function parseSizeRange(sizeRange: string | null | undefined): string[] {
     const lo = parseInt(m1[1]), hi = parseInt(m1[2])
     return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
   }
-  // Padrão "36-48" (hífen numérico)
-  const m2 = sizeRange.match(/^(\d+)-(\d+)$/)
+  // Padrão "36-48", "P-GG", "P-EXG" etc — qualquer X-Y via SIZE_ORDER
+  const m2 = sizeRange.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/)
   if (m2) {
-    const lo = parseInt(m2[1]), hi = parseInt(m2[2])
-    return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
+    const s = SIZE_ORDER.indexOf(m2[1].toUpperCase())
+    const e = SIZE_ORDER.indexOf(m2[2].toUpperCase())
+    if (s >= 0 && e >= s) return SIZE_ORDER.slice(s, e + 1)
   }
   // Padrão "P M G GG" ou lista separada
   return sizeRange.split(/[\s,]+/).filter(Boolean)
