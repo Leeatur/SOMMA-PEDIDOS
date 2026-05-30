@@ -31,8 +31,8 @@ export async function createUser(req: AuthRequest, res: Response) {
   try {
     const hash = await bcrypt.hash(password, 10)
     const { rows } = await query(
-      `INSERT INTO users (name, email, password_hash, role)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO users (name, email, password_hash, role, active)
+       VALUES ($1, $2, $3, $4, true)
        RETURNING id, name, email, role, active, created_at`,
       [name, email.toLowerCase().trim(), hash, role]
     )

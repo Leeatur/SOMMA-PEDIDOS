@@ -48,11 +48,38 @@ function sortSizes(sizes: string[]) {
   })
 }
 
+function parseSizeRange(sr: string | null | undefined): string[] {
+  if (!sr) return []
+  const m1 = sr.match(/^(\d+)\s+ao\s+(\d+)$/i)
+  if (m1) {
+    const lo = parseInt(m1[1]), hi = parseInt(m1[2])
+    return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
+  }
+  const m2 = sr.match(/^(\d+)-(\d+)$/)
+  if (m2) {
+    const lo = parseInt(m2[1]), hi = parseInt(m2[2])
+    return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
+  }
+  return sr.split(/[\s,]+/).filter(Boolean)
+}
+
 function initSizes(product: Product): Record<string, number> {
-  if (!product.grade_configs || product.grade_configs.length === 0) return {}
-  const allSizes = new Set<string>()
-  product.grade_configs.forEach(gc => Object.keys(gc.sizes).forEach(s => allSizes.add(s)))
-  return Object.fromEntries(sortSizes([...allSizes]).map(s => [s, 0]))
+  // 1. Tentar extrair tamanhos do grade_configs (com proteção contra sizes nulo)
+  if (product.grade_configs && product.grade_configs.length > 0) {
+    const allSizes = new Set<string>()
+    product.grade_configs.forEach(gc => {
+      if (gc.sizes) Object.keys(gc.sizes).forEach(s => allSizes.add(s))
+    })
+    if (allSizes.size > 0) {
+      return Object.fromEntries(sortSizes([...allSizes]).map(s => [s, 0]))
+    }
+  }
+  // 2. Fallback: parsear size_range
+  const fromRange = parseSizeRange(product.size_range)
+  if (fromRange.length > 0) {
+    return Object.fromEntries(sortSizes(fromRange).map(s => [s, 0]))
+  }
+  return {}
 }
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -100,6 +127,7 @@ interface Product {
   model: string | null
   base_price: number
   image_url: string | null
+  size_range: string | null
   grade_configs: GradeConfig[] | null
 }
 
