@@ -924,12 +924,20 @@ export function NewOrder() {
 
             {/* Campos do pedido */}
             <div className="grid grid-cols-2 gap-3">
-              <Input
-                label="Condição de Pagamento"
-                value={paymentTerms}
-                onChange={(e) => setPaymentTerms(e.target.value)}
-                placeholder="Ex: 30/60/90 dias"
-              />
+              <div>
+                <label className={paymentTerms.trim() ? 'block text-sm font-medium text-on-surface-variant mb-1' : 'block text-sm font-semibold text-amber-600 mb-1'}>
+                  Condição de Pagamento {!paymentTerms.trim() && <span className="text-amber-500">⚠</span>}
+                </label>
+                <input
+                  type="text"
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                  placeholder="Ex: 30/60/90 dias"
+                  className={paymentTerms.trim()
+                    ? 'w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
+                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2.5 text-sm bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-on-surface-variant mb-1">Tipo de Frete</label>
                 <select
@@ -947,12 +955,20 @@ export function NewOrder() {
                 value={deliveryDate}
                 onChange={(e) => setDeliveryDate(e.target.value)}
               />
-              <Input
-                label="Comprador"
-                value={buyerName}
-                onChange={(e) => setBuyerName(e.target.value)}
-                placeholder="Nome do comprador"
-              />
+              <div>
+                <label className={buyerName.trim() ? 'block text-sm font-medium text-on-surface-variant mb-1' : 'block text-sm font-semibold text-amber-600 mb-1'}>
+                  Comprador {!buyerName.trim() && <span className="text-amber-500">⚠</span>}
+                </label>
+                <input
+                  type="text"
+                  value={buyerName}
+                  onChange={(e) => setBuyerName(e.target.value)}
+                  placeholder="Nome do comprador"
+                  className={buyerName.trim()
+                    ? 'w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
+                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2.5 text-sm bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
+                />
+              </div>
               <div className="col-span-2">
                 <Input
                   label="Nº do Pedido na Indústria"
