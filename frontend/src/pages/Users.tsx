@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { UserCog, Plus, Edit2, ToggleLeft, ToggleRight, Eye, EyeOff, Factory } from 'lucide-react'
+import { UserCog, Plus, Edit2, ToggleLeft, ToggleRight, Eye, EyeOff, Factory, Trash2 } from 'lucide-react'
 import { usersApi, factoriesApi } from '../api/client'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
@@ -37,6 +37,7 @@ export function Users() {
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
   const [showPassword, setShowPassword] = useState(false)
@@ -72,6 +73,15 @@ export function Users() {
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
       usersApi.update(id, { active }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => usersApi.delete(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setConfirmDeleteId(null) },
+    onError: (err: any) => {
+      alert(err?.response?.data?.error || 'Erro ao excluir usuário')
+      setConfirmDeleteId(null)
+    },
   })
 
   function openNew() {
@@ -196,19 +206,47 @@ export function Users() {
                       <p className="text-xs text-outline/70">Criado em {formatDate(u.created_at)}</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => toggleActiveMut.mutate({ id: u.id, active: !u.active })}
-                        className={`p-1.5 rounded-lg transition-colors ${u.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-outline/70 hover:bg-surface-container'}`}
-                        title={u.active ? 'Desativar' : 'Ativar'}
-                      >
-                        {u.active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                      </button>
-                      <button
-                        onClick={() => openEdit(u)}
-                        className="p-1.5 text-outline/70 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
+                      {confirmDeleteId === u.id ? (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-red-600 font-medium">Confirmar?</span>
+                          <button
+                            onClick={() => deleteMut.mutate(u.id)}
+                            disabled={deleteMut.isPending}
+                            className="px-2 py-1 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                          >
+                            Sim
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="px-2 py-1 text-xs border border-outline-variant text-outline rounded-lg hover:bg-surface-container transition-colors"
+                          >
+                            Não
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => toggleActiveMut.mutate({ id: u.id, active: !u.active })}
+                            className={`p-1.5 rounded-lg transition-colors ${u.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-outline/70 hover:bg-surface-container'}`}
+                            title={u.active ? 'Desativar' : 'Ativar'}
+                          >
+                            {u.active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                          </button>
+                          <button
+                            onClick={() => openEdit(u)}
+                            className="p-1.5 text-outline/70 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(u.id)}
+                            className="p-1.5 text-outline/70 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Excluir usuário"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </Card>

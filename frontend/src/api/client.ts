@@ -302,4 +302,5 @@ export const usersApi = {
     apiClient.post('/users', data),
   update: (id: string, data: { name?: string; email?: string; password?: string; role?: string; active?: boolean; factory_ids?: string[] }) =>
     apiClient.put(`/users/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/users/${id}`),
 }

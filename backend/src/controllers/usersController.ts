@@ -104,9 +104,23 @@ export async function updateUser(req: AuthRequest, res: Response) {
 export async function deleteUser(req: AuthRequest, res: Response) {
   const { id } = req.params
   if (id === req.user!.id) {
-    res.status(400).json({ error: 'Não é possível remover o próprio usuário' })
+    res.status(400).json({ error: 'Não é possível excluir o próprio usuário' })
     return
   }
-  await query('UPDATE users SET active=false WHERE id=$1', [id])
-  res.json({ message: 'Usuário desativado' })
+  try {
+    // Verifica se o usuário tem pedidos vinculados
+    const { rows: orderCheck } = await query(
+      'SELECT 1 FROM orders WHERE rep_id=$1 LIMIT 1',
+      [id]
+    )
+    if (orderCheck.length > 0) {
+      res.status(400).json({ error: 'Usuário possui pedidos e não pode ser excluído. Desative-o em vez de excluir.' })
+      return
+    }
+    await query('DELETE FROM user_factory_access WHERE user_id=$1', [id])
+    await query('DELETE FROM users WHERE id=$1', [id])
+    res.json({ message: 'Usuário excluído' })
+  } catch {
+    res.status(500).json({ error: 'Erro interno' })
+  }
 }
