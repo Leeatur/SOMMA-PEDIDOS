@@ -186,13 +186,8 @@ function calcPieces(item: EditableItem | NewItem): number {
 }
 
 function calcSubtotal(item: EditableItem | NewItem): number {
-  const price = item.unit_price
-  if (item.type === 'regular') {
-    return price * calcPieces(item)
-  }
-  // Pack: preço por caixa → derivar preço por peça
-  const standardPPB = (item.grade_configs || []).reduce((s, gc) => s + gc.total_pieces, 0) || 1
-  return (price / standardPPB) * calcPieces(item)
+  // preço por PEÇA × total de peças (tanto regular quanto pack)
+  return item.unit_price * calcPieces(item)
 }
 
 // ── componente principal ───────────────────────────────────────────────────────

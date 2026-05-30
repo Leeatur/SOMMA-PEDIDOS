@@ -484,7 +484,8 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
         )
         const piecesPerBox = grades.reduce((s: number, g: {total_pieces:number}) => s + g.total_pieces, 0) || 1
         itemPieces = (item.boxes_count || 1) * piecesPerBox
-        subtotal = discountedPrice * (item.boxes_count || 1)
+        // preço por PEÇA × total de peças
+        subtotal = discountedPrice * itemPieces
       }
 
       await dbClient.query(
@@ -592,12 +593,8 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
       if (newTotalPieces <= 0) {
         res.status(400).json({ error: 'Total de peças não pode ser zero' }); return
       }
-      const { rows: grades } = await query(
-        'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
-      )
-      const standardPPB = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0) || 1
-      const pricePerPiece = Number(item.unit_price) / standardPPB
-      newSubtotal = Math.round(pricePerPiece * (1 - disc / 100) * newTotalPieces * 100) / 100
+      // preço por PEÇA × total de peças
+      newSubtotal = Math.round(discountedPrice * newTotalPieces * 100) / 100
       newBoxesCount = 1
       newCustomGrade = JSON.stringify(customArr.map(gc => ({
         color: gc.color,
@@ -615,7 +612,8 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
       )
       const piecesPerBox = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0) || 1
       newTotalPieces = newBoxes * piecesPerBox
-      newSubtotal = Math.round(discountedPrice * newBoxes * 100) / 100
+      // preço por PEÇA × total de peças
+      newSubtotal = Math.round(discountedPrice * newTotalPieces * 100) / 100
       newBoxesCount = newBoxes
     }
   } else {
