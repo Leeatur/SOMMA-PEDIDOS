@@ -747,6 +747,7 @@ export default function OrderEdit() {
                     onBoxesChange={val => updateBoxes(it.id, val)}
                     onGradeChange={(colorIdx, size, val) => updateGrade(it.id, colorIdx, size, val)}
                     onRemove={() => removeItem(it.id)}
+                    priceTableName={order?.price_table_name}
                   />
                 ))}
 
@@ -769,6 +770,7 @@ export default function OrderEdit() {
                     onGradeChange={(colorIdx, size, val) => updateNewGrade(it.tempId, colorIdx, size, val)}
                     onRemove={() => removeNewItem(it.tempId)}
                     isNew
+                    priceTableName={order?.price_table_name}
                   />
                 ))}
 
@@ -837,12 +839,13 @@ interface ItemRowProps {
   onGradeChange: (colorIdx: number, size: string, val: number) => void
   onRemove: () => void
   isNew?: boolean
+  priceTableName?: string | null
 }
 
 function ItemRow({
   index, reference, productName, imageUrl, type, unitPrice,
   gradeConfigs, draftSizes, draftGrade,
-  onSizeChange, onGradeChange, onRemove, isNew,
+  onSizeChange, onGradeChange, onRemove, isNew, priceTableName,
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
 
@@ -876,6 +879,7 @@ function ItemRow({
             : <div className="w-10 h-10 rounded bg-surface-container-low shrink-0" />}
           <div className="min-w-0">
             <p className="font-semibold text-on-surface text-sm">{reference}</p>
+            {priceTableName && <p className="text-[10px] text-primary/70 font-medium leading-tight">{priceTableName}</p>}
             <p className="text-xs text-on-surface-variant truncate max-w-[160px]">{productName}</p>
             {isNew && <span className="text-xs text-primary font-medium">+ novo</span>}
           </div>

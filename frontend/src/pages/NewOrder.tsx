@@ -720,6 +720,7 @@ export function NewOrder() {
                             </Badge>
                           </div>
                           {p.product_name && <p className="text-xs text-outline truncate">{p.product_name}</p>}
+                          <p className="text-[10px] text-primary/70 font-medium truncate">{selectedTable?.name}</p>
                           <p className="text-sm font-semibold text-primary">
                             R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-outline/70 font-normal">/pç</span>
                           </p>
@@ -911,6 +912,7 @@ export function NewOrder() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm text-on-surface">{item.product.reference}</p>
+                          <p className="text-[10px] text-primary/70 font-medium">{selectedTable?.name}</p>
                           <p className="text-xs text-outline">{item.product.product_name}</p>
                           {isRegular ? (
                             <p className="text-xs text-outline mt-0.5">{totalPieces} peças</p>
