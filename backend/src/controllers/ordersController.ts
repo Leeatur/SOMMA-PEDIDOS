@@ -41,27 +41,22 @@ async function computeOrderTotals(
       finalBoxesCount = 1
       finalSizes = sizesMap
     } else if (item.custom_grade && Array.isArray(item.custom_grade) && item.custom_grade.length > 0) {
-      // Pack com grade personalizada: peças = soma de todas as quantidades
+      // Pack com grade personalizada: preço por PEÇA × total de peças
       itemPieces = item.custom_grade.reduce((s, gc) =>
         s + Object.values(gc.sizes || {}).reduce((ss, v) => ss + Number(v || 0), 0), 0
       )
-      const { rows: grades } = await client.query(
-        'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
-      )
-      const standardPPB = grades.reduce((sum: number, g: { total_pieces: number }) => sum + g.total_pieces, 0) || 1
-      const pricePerPiece = item.unit_price / standardPPB
-      subtotal = Math.round(pricePerPiece * (1 - discountPct / 100) * itemPieces * 100) / 100
+      subtotal = Math.round(discountedPrice * itemPieces * 100) / 100
       finalBoxesCount = 1
       finalSizes = null
     } else {
-      // Pack padrão: preço por CAIXA
+      // Pack padrão: preço por PEÇA × total de peças (boxes × peças/caixa)
       const { rows: grades } = await client.query(
         'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
       )
       const piecesPerBox = grades.reduce((sum: number, g: { total_pieces: number }) => sum + g.total_pieces, 0) || 1
       const boxCount = item.boxes_count || 1
       itemPieces = boxCount * piecesPerBox
-      subtotal = discountedPrice * boxCount
+      subtotal = Math.round(discountedPrice * itemPieces * 100) / 100
       finalBoxesCount = boxCount
       finalSizes = null
     }
