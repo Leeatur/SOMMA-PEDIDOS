@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, ChevronDown, Archive } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock } from 'lucide-react'
 import { productsApi } from '../api/client'
+import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -26,7 +27,6 @@ function sortSizes(sizes: string[]) {
   })
 }
 
-/** Expands a range notation like "P-GG" → ["P","M","G","GG"] using SIZE_ORDER */
 function expandSizeKey(key: string): string[] {
   const m = key.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/)
   if (m) {
@@ -37,15 +37,22 @@ function expandSizeKey(key: string): string[] {
   return [key]
 }
 
-/** Expands range keys in a sizes map, e.g. {"P-GG": 1} → {P:1, M:1, G:1, GG:1} */
 function expandGradeSizes(sizes: Record<string, number>): Record<string, number> {
   const result: Record<string, number> = {}
   for (const [key, val] of Object.entries(sizes)) {
-    for (const expanded of expandSizeKey(key)) {
-      result[expanded] = val
-    }
+    for (const expanded of expandSizeKey(key)) result[expanded] = val
   }
   return result
+}
+
+function parseSizeRange(sr: string | null | undefined): string[] {
+  if (!sr) return []
+  const m = sr.match(/^(\d+)\s+ao\s+(\d+)$/i)
+  if (m) {
+    const lo = parseInt(m[1]), hi = parseInt(m[2])
+    return SIZE_ORDER.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
+  }
+  return sr.split(/\s+/).filter(Boolean)
 }
 
 interface GradeConfig {
@@ -67,15 +74,66 @@ interface Product {
   category: string | null
   observation: string | null
   image_url: string | null
+  active: boolean
+  blocked_sizes: string[]
   price_table_name: string | null
   factory_name: string | null
   grade_configs: GradeConfig[] | null
 }
 
 // ─── Product Detail Modal ────────────────────────────────────────────────────
-function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void }) {
+function ProductDetailModal({
+  p, isAdmin, onClose, onUpdated,
+}: {
+  p: Product
+  isAdmin: boolean
+  onClose: () => void
+  onUpdated: (updated: Partial<Product>) => void
+}) {
+  const qc = useQueryClient()
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
   const pricePerBox = p.base_price * totalPieces
+
+  // Tamanhos disponíveis para bloqueio
+  const allSizes = (() => {
+    if (p.type === 'pack') return []  // packs não têm bloqueio por tamanho
+    if (p.grade_configs && p.grade_configs.length > 0) {
+      return sortSizes(Array.from(new Set(
+        p.grade_configs.flatMap(gc => Object.keys(gc.sizes)).flatMap(expandSizeKey)
+      )))
+    }
+    return sortSizes(parseSizeRange(p.size_range))
+  })()
+
+  const [localBlocked, setLocalBlocked] = useState<string[]>(p.blocked_sizes || [])
+  const [savingBlocked, setSavingBlocked] = useState(false)
+
+  const availMut = useMutation({
+    mutationFn: (active: boolean) => productsApi.setAvailability(p.id, active),
+    onSuccess: (res) => {
+      onUpdated({ active: res.data.active })
+      qc.invalidateQueries({ queryKey: ['all-products'] })
+    },
+  })
+
+  async function saveBlockedSizes() {
+    setSavingBlocked(true)
+    try {
+      const res = await productsApi.setBlockedSizes(p.id, localBlocked)
+      onUpdated({ blocked_sizes: res.data.blocked_sizes })
+      qc.invalidateQueries({ queryKey: ['all-products'] })
+    } finally {
+      setSavingBlocked(false)
+    }
+  }
+
+  function toggleSize(size: string) {
+    setLocalBlocked(prev =>
+      prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
+    )
+  }
+
+  const blockedChanged = JSON.stringify(sortSizes(localBlocked)) !== JSON.stringify(sortSizes(p.blocked_sizes || []))
 
   return (
     <Modal open onClose={onClose} title={p.reference} size="md">
@@ -94,6 +152,7 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
           <Badge variant={p.type === 'pack' ? 'purple' : 'info'}>
             {p.type === 'pack' ? 'PACK' : 'Regular'}
           </Badge>
+          {!p.active && <Badge variant="danger">Indisponível</Badge>}
           {p.product_name && <span className="text-sm font-semibold text-on-surface">{p.product_name}</span>}
           {p.model && <span className="text-sm text-outline">{p.model}</span>}
         </div>
@@ -150,7 +209,6 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
               {p.type === 'regular' ? 'Tamanhos disponíveis' : 'Grade por caixa'}
             </p>
             {p.type === 'regular' ? (
-              /* Regular: só os tamanhos — o rep digita as quantidades na hora */
               <div className="flex flex-wrap gap-1.5">
                 {sortSizes(Array.from(new Set(p.grade_configs.flatMap(gc => Object.keys(gc.sizes)).flatMap(expandSizeKey)))).map(s => (
                   <span key={s} className="px-2.5 py-1 text-sm font-semibold bg-white text-primary rounded-lg border border-primary/30 shadow-sm">
@@ -159,7 +217,6 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
                 ))}
               </div>
             ) : (
-              /* Pack: tabela com quantidade por cor/tamanho */
               <div className="space-y-2">
                 {p.grade_configs.map((gc, i) => {
                   const expandedSizes = expandGradeSizes(gc.sizes)
@@ -194,6 +251,76 @@ function ProductDetailModal({ p, onClose }: { p: Product; onClose: () => void })
             )}
           </div>
         )}
+
+        {/* ── Controles admin ── */}
+        {isAdmin && (
+          <div className="border-t border-outline-variant pt-4 space-y-4">
+
+            {/* Disponibilidade */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-on-surface">Disponibilidade</p>
+                <p className="text-xs text-outline">
+                  {p.active ? 'Referência disponível para venda' : 'Referência bloqueada — não aparece para representantes'}
+                </p>
+              </div>
+              <button
+                onClick={() => availMut.mutate(!p.active)}
+                disabled={availMut.isPending}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                  p.active
+                    ? 'border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                    : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
+                }`}
+              >
+                {p.active
+                  ? <><ToggleRight className="h-4 w-4" /> Disponível</>
+                  : <><ToggleLeft className="h-4 w-4" /> Indisponível</>}
+              </button>
+            </div>
+
+            {/* Bloqueio de tamanhos (apenas regular com tamanhos conhecidos) */}
+            {p.type === 'regular' && allSizes.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-semibold text-on-surface">Tamanhos bloqueados</p>
+                    <p className="text-xs text-outline">Clique para bloquear/desbloquear cada tamanho</p>
+                  </div>
+                  {blockedChanged && (
+                    <button
+                      onClick={saveBlockedSizes}
+                      disabled={savingBlocked}
+                      className="text-xs px-3 py-1 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 disabled:opacity-60"
+                    >
+                      {savingBlocked ? 'Salvando…' : 'Salvar'}
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {allSizes.map(size => {
+                    const blocked = localBlocked.includes(size)
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => toggleSize(size)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-sm font-semibold transition-all ${
+                          blocked
+                            ? 'border-red-400 bg-red-50 text-red-600 line-through'
+                            : 'border-primary/30 bg-white text-primary hover:border-primary'
+                        }`}
+                      >
+                        {blocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                        {size}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   )
@@ -214,7 +341,6 @@ const PRODUCT_COL_DEFS: ColumnDef[] = [
   { id: 'observation', label: 'Observação', defaultVisible: false },
 ]
 
-// ─── Table Row ───────────────────────────────────────────────────────────────
 function ProductRow({
   p,
   visibleCols,
@@ -225,6 +351,7 @@ function ProductRow({
   onOpenDetail: (p: Product) => void
 }) {
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
+  const blockedCount = (p.blocked_sizes || []).length
 
   const renderCell = (id: string) => {
     switch (id) {
@@ -242,10 +369,20 @@ function ProductRow({
         return (
           <td key={id} className="px-2 py-2">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-primary text-sm whitespace-nowrap">{p.reference}</span>
+              <span className={`font-bold text-sm whitespace-nowrap ${p.active ? 'text-primary' : 'text-outline line-through'}`}>
+                {p.reference}
+              </span>
               <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[10px] px-1.5 py-0">
                 {p.type === 'pack' ? 'PK' : 'REG'}
               </Badge>
+              {!p.active && (
+                <Badge variant="danger" className="text-[10px] px-1.5 py-0">Indisp.</Badge>
+              )}
+              {blockedCount > 0 && p.active && (
+                <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-medium">
+                  {blockedCount} tam. bloq.
+                </span>
+              )}
             </div>
           </td>
         )
@@ -306,7 +443,9 @@ function ProductRow({
 
   return (
     <tr
-      className="border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors"
+      className={`border-b border-outline-variant/50 cursor-pointer transition-colors ${
+        p.active ? 'hover:bg-primary/5' : 'bg-surface-container/40 hover:bg-surface-container'
+      }`}
       onClick={() => onOpenDetail(p)}
     >
       {visibleCols.map(col => renderCell(col.id))}
@@ -317,8 +456,12 @@ function ProductRow({
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export function Products() {
   const qc = useQueryClient()
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'admin'
+
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const [showZipImport, setShowZipImport] = useState(false)
@@ -332,22 +475,25 @@ export function Products() {
   }
 
   const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ['all-products', debouncedSearch, typeFilter],
+    queryKey: ['all-products', debouncedSearch, typeFilter, showInactive],
     queryFn: () =>
       productsApi.list({
         search: debouncedSearch || undefined,
         type: typeFilter || undefined,
+        include_inactive: isAdmin && showInactive ? true : undefined,
       }).then(r => r.data),
   })
 
   const { orderedDefs, config, save, reset } = useColumnConfig('products', PRODUCT_COL_DEFS)
   const visibleCols = orderedDefs.filter(c => c.visible)
 
-  const COL_ALIGN: Record<string, string> = {
-    price: 'text-right', pieces: 'text-center',
-  }
-
+  const COL_ALIGN: Record<string, string> = { price: 'text-right', pieces: 'text-center' }
   const total = products?.length || 0
+
+  // Atualiza produto no detalhe modal quando muda availability/blocked_sizes
+  function handleProductUpdated(updated: Partial<Product>) {
+    setDetailProduct(prev => prev ? { ...prev, ...updated } : null)
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -361,6 +507,20 @@ export function Products() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => setShowInactive(v => !v)}
+                className={`flex items-center gap-1.5 text-sm font-semibold border rounded-lg px-3 py-2 transition-colors ${
+                  showInactive
+                    ? 'bg-red-50 border-red-300 text-red-700'
+                    : 'bg-surface-container hover:bg-surface-container-high border-outline-variant text-on-surface-variant'
+                }`}
+                title="Mostrar referências indisponíveis"
+              >
+                {showInactive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                <span className="hidden sm:inline">Inativas</span>
+              </button>
+            )}
             <button
               onClick={() => setShowZipImport(true)}
               className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
@@ -402,9 +562,7 @@ export function Products() {
 
       {/* Tabela */}
       {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <PageSpinner />
-        </div>
+        <div className="flex-1 flex items-center justify-center"><PageSpinner /></div>
       ) : total === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -443,7 +601,12 @@ export function Products() {
 
       {/* Modal detalhe produto */}
       {detailProduct && (
-        <ProductDetailModal p={detailProduct} onClose={() => setDetailProduct(null)} />
+        <ProductDetailModal
+          p={detailProduct}
+          isAdmin={isAdmin}
+          onClose={() => setDetailProduct(null)}
+          onUpdated={handleProductUpdated}
+        />
       )}
 
       {/* Modal importar fotos ZIP */}

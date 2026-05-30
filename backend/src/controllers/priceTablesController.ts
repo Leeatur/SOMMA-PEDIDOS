@@ -8,6 +8,7 @@ import { uploadToR2, isR2Configured } from '../utils/r2'
 
 export async function listPriceTables(req: AuthRequest, res: Response) {
   const { factory_id } = req.query
+  const isAdmin = req.user?.role === 'admin'
   let sql = `
     SELECT pt.*, f.name as factory_name,
       COUNT(p.id) as product_count
@@ -17,7 +18,17 @@ export async function listPriceTables(req: AuthRequest, res: Response) {
     WHERE pt.active = true
   `
   const params: unknown[] = []
-  if (factory_id) { sql += ` AND pt.factory_id = $1`; params.push(factory_id) }
+  let idx = 1
+  if (factory_id) { sql += ` AND pt.factory_id = $${idx++}`; params.push(factory_id) }
+  // Rep: filtra apenas fábricas autorizadas (se tiver alguma configurada)
+  if (!isAdmin) {
+    sql += ` AND (
+      NOT EXISTS (SELECT 1 FROM user_factory_access WHERE user_id=$${idx})
+      OR pt.factory_id IN (SELECT factory_id FROM user_factory_access WHERE user_id=$${idx})
+    )`
+    params.push(req.user!.id)
+    idx++
+  }
   sql += ' GROUP BY pt.id, f.name ORDER BY pt.created_at DESC'
   const { rows } = await query(sql, params)
   res.json(rows)
@@ -272,7 +283,8 @@ export async function uploadProductImage(req: AuthRequest, res: Response) {
 }
 
 export async function listProducts(req: AuthRequest, res: Response) {
-  const { price_table_id, search, type } = req.query
+  const { price_table_id, search, type, include_inactive } = req.query
+  const isAdmin = req.user?.role === 'admin'
   let sql = `
     SELECT p.*,
       pt.name as price_table_name,
@@ -282,10 +294,14 @@ export async function listProducts(req: AuthRequest, res: Response) {
     LEFT JOIN price_tables pt ON pt.id = p.price_table_id
     LEFT JOIN factories f ON f.id = pt.factory_id
     LEFT JOIN grade_configs gc ON gc.product_id = p.id
-    WHERE p.active = true
+    WHERE 1=1
   `
   const params: unknown[] = []
   let idx = 1
+  // Filtra inativos: admin com include_inactive=true vê tudo; rep só vê ativos
+  if (!isAdmin || include_inactive !== 'true') {
+    sql += ` AND p.active = true`
+  }
   if (price_table_id) { sql += ` AND p.price_table_id = $${idx++}`; params.push(price_table_id) }
   if (type) { sql += ` AND p.type = $${idx++}`; params.push(type) }
   if (search) {
@@ -293,9 +309,48 @@ export async function listProducts(req: AuthRequest, res: Response) {
     params.push(`%${search}%`)
     idx++
   }
+  // Rep: filtra apenas fábricas autorizadas (se tiver alguma configurada)
+  if (!isAdmin) {
+    sql += ` AND (
+      NOT EXISTS (SELECT 1 FROM user_factory_access WHERE user_id=$${idx})
+      OR pt.factory_id IN (SELECT factory_id FROM user_factory_access WHERE user_id=$${idx})
+    )`
+    params.push(req.user!.id)
+    idx++
+  }
   sql += ' GROUP BY p.id, pt.name, f.name ORDER BY p.reference'
   const { rows } = await query(sql, params)
   res.json(rows)
+}
+
+export async function updateProductAvailability(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { active } = req.body
+  if (typeof active !== 'boolean') {
+    res.status(400).json({ error: 'active deve ser boolean' })
+    return
+  }
+  const { rows } = await query(
+    'UPDATE products SET active=$1 WHERE id=$2 RETURNING id, active',
+    [active, id]
+  )
+  if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
+  res.json(rows[0])
+}
+
+export async function updateBlockedSizes(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { blocked_sizes } = req.body
+  if (!Array.isArray(blocked_sizes)) {
+    res.status(400).json({ error: 'blocked_sizes deve ser array' })
+    return
+  }
+  const { rows } = await query(
+    'UPDATE products SET blocked_sizes=$1 WHERE id=$2 RETURNING id, blocked_sizes',
+    [blocked_sizes, id]
+  )
+  if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
+  res.json(rows[0])
 }
 
 export async function deletePriceTable(req: AuthRequest, res: Response) {

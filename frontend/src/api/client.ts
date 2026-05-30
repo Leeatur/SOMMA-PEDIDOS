@@ -158,7 +158,7 @@ export const priceTablesApi = {
 }
 
 export const productsApi = {
-  list: (params: { price_table_id?: string; search?: string; type?: string }) =>
+  list: (params: { price_table_id?: string; search?: string; type?: string; include_inactive?: boolean }) =>
     apiClient.get('/products', { params }),
   uploadImage: (id: string, file: File) => {
     const fd = new FormData()
@@ -171,6 +171,10 @@ export const productsApi = {
     sort_order: number
   }>) =>
     apiClient.put(`/products/${product_id}/grade`, { grade_configs }),
+  setAvailability: (id: string, active: boolean) =>
+    apiClient.patch(`/products/${id}/availability`, { active }),
+  setBlockedSizes: (id: string, blocked_sizes: string[]) =>
+    apiClient.patch(`/products/${id}/blocked-sizes`, { blocked_sizes }),
 }
 
 export const clientsApi = {
@@ -294,8 +298,8 @@ export const statusesApi = {
 
 export const usersApi = {
   list: () => apiClient.get('/users'),
-  create: (data: { name: string; email: string; password: string; role: string }) =>
+  create: (data: { name: string; email: string; password: string; role: string; factory_ids?: string[] }) =>
     apiClient.post('/users', data),
-  update: (id: string, data: { name?: string; email?: string; password?: string; role?: string; active?: boolean }) =>
+  update: (id: string, data: { name?: string; email?: string; password?: string; role?: string; active?: boolean; factory_ids?: string[] }) =>
     apiClient.put(`/users/${id}`, data),
 }

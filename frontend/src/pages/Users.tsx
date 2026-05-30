@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { UserCog, Plus, Edit2, ToggleLeft, ToggleRight, Eye, EyeOff } from 'lucide-react'
-import { usersApi } from '../api/client'
+import { UserCog, Plus, Edit2, ToggleLeft, ToggleRight, Eye, EyeOff, Factory } from 'lucide-react'
+import { usersApi, factoriesApi } from '../api/client'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
@@ -11,6 +11,8 @@ import { PageSpinner } from '../components/ui/Spinner'
 import { EmptyState } from '../components/ui/EmptyState'
 import { formatDate } from '../utils/format'
 
+interface FactoryOption { id: string; name: string }
+
 interface User {
   id: string
   name: string
@@ -18,6 +20,7 @@ interface User {
   role: 'admin' | 'representante'
   active: boolean
   created_at: string
+  factory_ids: string[]
 }
 
 interface FormState {
@@ -25,16 +28,17 @@ interface FormState {
   email: string
   password: string
   role: string
+  factory_ids: string[]
 }
 
-const emptyForm: FormState = { name: '', email: '', password: '', role: 'representante' }
+const emptyForm: FormState = { name: '', email: '', password: '', role: 'representante', factory_ids: [] }
 
 export function Users() {
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
-  const [errors, setErrors] = useState<Partial<FormState>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
   const [showPassword, setShowPassword] = useState(false)
 
   const { data: users, isLoading } = useQuery<User[]>({
@@ -42,16 +46,23 @@ export function Users() {
     queryFn: () => usersApi.list().then((r) => r.data),
   })
 
+  const { data: factories = [] } = useQuery<FactoryOption[]>({
+    queryKey: ['factories'],
+    queryFn: () => factoriesApi.list().then(r => r.data),
+  })
+
   const createMut = useMutation({
-    mutationFn: () => usersApi.create({ name: form.name, email: form.email, password: form.password, role: form.role }),
+    mutationFn: () => usersApi.create({
+      name: form.name, email: form.email, password: form.password,
+      role: form.role, factory_ids: form.factory_ids,
+    }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); closeModal() },
   })
 
   const updateMut = useMutation({
     mutationFn: () => usersApi.update(editing!.id, {
-      name: form.name,
-      email: form.email,
-      role: form.role,
+      name: form.name, email: form.email, role: form.role,
+      factory_ids: form.factory_ids,
       ...(form.password ? { password: form.password } : {}),
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); closeModal() },
@@ -72,7 +83,7 @@ export function Users() {
 
   function openEdit(u: User) {
     setEditing(u)
-    setForm({ name: u.name, email: u.email, password: '', role: u.role })
+    setForm({ name: u.name, email: u.email, password: '', role: u.role, factory_ids: u.factory_ids || [] })
     setErrors({})
     setOpen(true)
   }
@@ -85,7 +96,7 @@ export function Users() {
   }
 
   function validate() {
-    const e: Partial<FormState> = {}
+    const e: Partial<Record<keyof FormState, string>> = {}
     if (!form.name.trim()) e.name = 'Nome é obrigatório'
     if (!form.email.trim()) e.email = 'E-mail é obrigatório'
     if (!editing && !form.password.trim()) e.password = 'Senha é obrigatória para novos usuários'
@@ -100,11 +111,22 @@ export function Users() {
     else createMut.mutate()
   }
 
-  const f = (key: keyof FormState) => ({
+  function toggleFactory(fid: string) {
+    setForm(f => ({
+      ...f,
+      factory_ids: f.factory_ids.includes(fid)
+        ? f.factory_ids.filter(x => x !== fid)
+        : [...f.factory_ids, fid],
+    }))
+  }
+
+  const f = (key: 'name' | 'email' | 'password') => ({
     value: form[key] as string,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm({ ...form, [key]: e.target.value }),
   })
+
+  const factoryMap = Object.fromEntries(factories.map(f => [f.id, f.name]))
 
   if (isLoading) return <PageSpinner />
   const list = users || []
@@ -137,43 +159,61 @@ export function Users() {
           />
         ) : (
           <div className="space-y-2">
-            {list.map((u) => (
-              <Card key={u.id} padding="md">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-primary">
-                      {u.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-on-surface">{u.name}</p>
-                      <Badge variant={u.role === 'admin' ? 'danger' : 'info'}>
-                        {u.role === 'admin' ? 'Admin' : 'Representante'}
-                      </Badge>
-                      {!u.active && <Badge variant="default">Inativo</Badge>}
+            {list.map((u) => {
+              const factoryNames = (u.factory_ids || []).map(id => factoryMap[id]).filter(Boolean)
+              return (
+                <Card key={u.id} padding="md">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-primary">
+                        {u.name.charAt(0).toUpperCase()}
+                      </span>
                     </div>
-                    <p className="text-xs text-outline">{u.email}</p>
-                    <p className="text-xs text-outline/70">Criado em {formatDate(u.created_at)}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-on-surface">{u.name}</p>
+                        <Badge variant={u.role === 'admin' ? 'danger' : 'info'}>
+                          {u.role === 'admin' ? 'Admin' : 'Representante'}
+                        </Badge>
+                        {!u.active && <Badge variant="default">Inativo</Badge>}
+                      </div>
+                      <p className="text-xs text-outline">{u.email}</p>
+                      {/* Fábricas autorizadas */}
+                      {u.role !== 'admin' && (
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          <Factory className="h-3 w-3 text-outline/60 shrink-0" />
+                          {factoryNames.length > 0 ? (
+                            factoryNames.map(name => (
+                              <span key={name} className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+                                {name}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-outline/60 italic">todas as fábricas</span>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-xs text-outline/70">Criado em {formatDate(u.created_at)}</p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => toggleActiveMut.mutate({ id: u.id, active: !u.active })}
+                        className={`p-1.5 rounded-lg transition-colors ${u.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-outline/70 hover:bg-surface-container'}`}
+                        title={u.active ? 'Desativar' : 'Ativar'}
+                      >
+                        {u.active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                      </button>
+                      <button
+                        onClick={() => openEdit(u)}
+                        className="p-1.5 text-outline/70 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => toggleActiveMut.mutate({ id: u.id, active: !u.active })}
-                      className={`p-1.5 rounded-lg transition-colors ${u.active ? 'text-emerald-500 hover:bg-emerald-50' : 'text-outline/70 hover:bg-surface-container'}`}
-                      title={u.active ? 'Desativar' : 'Ativar'}
-                    >
-                      {u.active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                    </button>
-                    <button
-                      onClick={() => openEdit(u)}
-                      className="p-1.5 text-outline/70 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              )
+            })}
           </div>
         )}
       </div>
@@ -204,7 +244,8 @@ export function Users() {
               { value: 'representante', label: 'Representante' },
               { value: 'admin', label: 'Administrador' },
             ]}
-            {...f('role')}
+            value={form.role}
+            onChange={e => setForm({ ...form, role: e.target.value })}
           />
           <Input
             label={editing ? 'Nova senha (deixe em branco para manter)' : 'Senha'}
@@ -217,6 +258,38 @@ export function Users() {
               </button>
             }
           />
+
+          {/* Fábricas (apenas para representantes) */}
+          {form.role === 'representante' && factories.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-on-surface-variant mb-2">
+                Fábricas autorizadas
+              </label>
+              <p className="text-xs text-outline mb-2">
+                Sem seleção = acesso a todas. Selecione para restringir.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {factories.map(fac => {
+                  const selected = form.factory_ids.includes(fac.id)
+                  return (
+                    <button
+                      key={fac.id}
+                      type="button"
+                      onClick={() => toggleFactory(fac.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                        selected
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-outline-variant bg-white text-on-surface-variant hover:border-primary/50'
+                      }`}
+                    >
+                      <Factory className="h-3.5 w-3.5" />
+                      {fac.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

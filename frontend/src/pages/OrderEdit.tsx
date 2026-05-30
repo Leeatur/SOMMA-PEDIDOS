@@ -61,6 +61,7 @@ interface NewItem {
   type: 'regular' | 'pack'
   image_url: string | null
   size_range: string | null
+  blocked_sizes: string[] | null
   unit_price: number
   grade_configs: GradeConfig[] | null
   draftSizes: Record<string, number>
@@ -76,6 +77,7 @@ interface Product {
   base_price: number
   image_url: string | null
   size_range: string | null
+  blocked_sizes: string[] | null
   grade_configs: GradeConfig[] | null
 }
 
@@ -115,20 +117,21 @@ function parseSizeRange(sizeRange: string | null | undefined): string[] {
 }
 
 function initSizes(product: Product | OrderItemRaw): Record<string, number> {
-  // 1. Se já tem sizes salvas no item, usa elas
+  const blocked = new Set(('blocked_sizes' in product ? product.blocked_sizes : null) || [])
+  // 1. Se já tem sizes salvas no item, usa elas (filtra bloqueados)
   if ('sizes' in product && product.sizes && Object.keys(product.sizes).length > 0) {
-    return { ...product.sizes }
+    return Object.fromEntries(Object.entries(product.sizes).filter(([s]) => !blocked.has(s)))
   }
   // 2. Pack: derivar tamanhos dos grade_configs
   if (product.grade_configs && product.grade_configs.length > 0) {
     const all = new Set<string>()
     product.grade_configs.forEach(gc => Object.keys(gc.sizes).forEach(s => all.add(s)))
-    return Object.fromEntries(sortSizes([...all]).map(s => [s, 0]))
+    return Object.fromEntries(sortSizes([...all]).filter(s => !blocked.has(s)).map(s => [s, 0]))
   }
-  // 3. Regular: parsear size_range do produto → inicia tudo com 0
+  // 3. Regular: parsear size_range do produto → inicia tudo com 0 (filtra bloqueados)
   const parsed = parseSizeRange(product.size_range)
   if (parsed.length > 0) {
-    return Object.fromEntries(sortSizes(parsed).map(s => [s, 0]))
+    return Object.fromEntries(sortSizes(parsed).filter(s => !blocked.has(s)).map(s => [s, 0]))
   }
   return {}
 }
@@ -365,6 +368,7 @@ export default function OrderEdit() {
       type: prod.type,
       image_url: prod.image_url,
       size_range: prod.size_range,
+      blocked_sizes: prod.blocked_sizes || null,
       unit_price: prod.base_price,
       grade_configs: prod.grade_configs || null,
       draftSizes: initSizes(prod),
