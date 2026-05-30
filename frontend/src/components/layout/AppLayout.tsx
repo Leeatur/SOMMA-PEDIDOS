@@ -258,15 +258,15 @@ export function AppLayout() {
         </main>
 
         {/* ── Mobile Bottom Nav ── */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest border-t border-outline-variant rounded-t-2xl shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.08)] flex items-center justify-around px-2 h-16 safe-bottom z-30">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant flex items-center justify-around px-2 h-16 safe-bottom z-30 shadow-sm">
           {mobileNav.map(item => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-xl transition-all duration-200 ${
+                `flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-full transition-all duration-200 ${
                   isActive
-                    ? 'bg-primary/10 text-primary'
+                    ? 'bg-primary-container text-primary'
                     : 'text-on-surface-variant'
                 }`
               }

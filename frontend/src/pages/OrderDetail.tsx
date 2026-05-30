@@ -403,57 +403,89 @@ export function OrderDetail() {
 
   return (
     <div className="pb-24 lg:pb-0">
-      {/* Header */}
-      <div className="bg-white border-b border-outline-variant px-4 py-3 lg:px-8 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
+      {/* ── Mobile Header ── */}
+      <div className="lg:hidden bg-white/90 border-b border-border-subtle px-4 py-3 sticky top-0 z-10" style={{ backdropFilter: 'blur(8px)' }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors active:scale-95">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <h1 className="text-lg font-bold text-primary" style={{ fontFamily: 'Plus Jakarta Sans' }}>Detalhes do Pedido</h1>
+          </div>
           <button
-            onClick={() => navigate(-1)}
-            className="p-1.5 rounded-lg text-outline hover:bg-surface-container"
+            onClick={() => window.open(`/orders/${id}/print`, '_blank')}
+            className="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container transition-colors"
           >
+            <Printer className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Desktop Header ── */}
+      <div className="hidden lg:block bg-white border-b border-outline-variant px-8 py-3 sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base font-bold text-on-surface">
-                {formatOrderNumber(order.order_number)}
-              </h1>
+              <h1 className="text-base font-bold text-on-surface">{formatOrderNumber(order.order_number)}</h1>
               {order.status_name && order.status_color && (
                 <StatusBadge name={order.status_name} color={order.status_color} />
               )}
             </div>
           </div>
-          <button
-            onClick={() => window.open(`/orders/${id}/print`, '_blank')}
-            className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors"
-            title="Imprimir pedido"
-          >
+          <button onClick={() => window.open(`/orders/${id}/print`, '_blank')} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors" title="Imprimir pedido">
             <Printer className="h-4.5 w-4.5" />
           </button>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => navigate(`/orders/${id}/edit`)}
-            icon={<Pencil className="h-3.5 w-3.5" />}
-          >
-            Editar
-          </Button>
+          <Button size="sm" variant="primary" onClick={() => navigate(`/orders/${id}/edit`)} icon={<Pencil className="h-3.5 w-3.5" />}>Editar</Button>
           {isAdmin && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => { setStatusModal(true); setNewStatusId(order.status_id || '') }}
-              icon={<ChevronDown className="h-3.5 w-3.5" />}
-            >
-              Status
-            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setStatusModal(true); setNewStatusId(order.status_id || '') }} icon={<ChevronDown className="h-3.5 w-3.5" />}>Status</Button>
           )}
-          <button
-            onClick={() => setDeleteModal(true)}
-            className="p-1.5 rounded-lg text-red-300 hover:bg-red-50 hover:text-red-500 transition-colors"
-            title="Excluir pedido"
-          >
+          <button onClick={() => setDeleteModal(true)} className="p-1.5 rounded-lg text-red-300 hover:bg-red-50 hover:text-red-500 transition-colors" title="Excluir pedido">
             <Trash2 className="h-4 w-4" />
           </button>
+        </div>
+      </div>
+
+      {/* ── Mobile: Order status card ── */}
+      <div className="lg:hidden px-4 pt-4">
+        <div className="bg-white border border-border-subtle rounded-xl p-4">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <span className="text-xs font-bold text-outline uppercase tracking-wide">Pedido</span>
+              <p className="text-2xl font-bold text-on-surface leading-tight mt-0.5">{formatOrderNumber(order.order_number)}</p>
+            </div>
+            {order.status_name && order.status_color ? (
+              <span
+                className="px-3 py-1 rounded-full text-xs font-bold uppercase"
+                style={{ backgroundColor: order.status_color + '22', color: order.status_color }}
+              >
+                {order.status_name}
+              </span>
+            ) : (
+              isAdmin && (
+                <button
+                  onClick={() => { setStatusModal(true); setNewStatusId(order.status_id || '') }}
+                  className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-surface-container text-on-surface-variant border border-outline-variant"
+                >
+                  + Status
+                </button>
+              )
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-on-surface-variant">
+            <Clock className="h-4 w-4" />
+            <span className="text-sm">{formatDateTime(order.created_at)}</span>
+          </div>
+          {isAdmin && order.status_name && (
+            <button
+              onClick={() => { setStatusModal(true); setNewStatusId(order.status_id || '') }}
+              className="mt-2 text-xs text-primary font-medium flex items-center gap-1 hover:underline"
+            >
+              <RefreshCw className="h-3 w-3" /> Alterar status
+            </button>
+          )}
         </div>
       </div>
 
@@ -1278,6 +1310,23 @@ export function OrderDetail() {
           )}
         </div>
       </Modal>
+
+      {/* ── Mobile sticky bottom actions ── */}
+      <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white/95 border-t border-border-subtle px-4 py-3 flex gap-3" style={{ backdropFilter: 'blur(8px)' }}>
+        <button
+          onClick={() => setDeleteModal(true)}
+          className="flex-1 h-12 flex items-center justify-center border border-status-error text-status-error rounded-xl text-sm font-bold uppercase tracking-wide hover:bg-red-50 active:scale-95 transition-all"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={() => navigate(`/orders/${id}/edit`)}
+          className="flex-[2] h-12 flex items-center justify-center bg-primary text-white rounded-xl text-sm font-bold uppercase tracking-wide shadow-sm active:opacity-80 active:scale-95 transition-all gap-2"
+        >
+          <Pencil className="h-4 w-4" />
+          Editar Pedido
+        </button>
+      </div>
     </div>
   )
 }

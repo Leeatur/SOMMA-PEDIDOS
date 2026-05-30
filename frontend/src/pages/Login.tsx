@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, Eye, EyeOff, Lock, Mail } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { authApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
-import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
 
 export function Login() {
   const navigate = useNavigate()
@@ -31,80 +29,135 @@ export function Login() {
         'Erro ao fazer login. Verifique suas credenciais.'
       setError(msg)
     } finally {
-      setLoading(false) }
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-on-surface flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-48 -right-48 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-48 -left-48 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
-      </div>
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        backgroundColor: '#131b2e',
+        backgroundImage: 'radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)',
+        backgroundSize: '24px 24px',
+      }}
+    >
+      <div className="w-full max-w-[400px] flex flex-col items-center">
 
-      {/* Card */}
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl shadow-black/40 overflow-hidden relative z-10">
-        {/* Header */}
-        <div className="bg-on-surface px-8 py-9 text-center relative overflow-hidden border-b border-white/5">
-          <div className="absolute inset-0 opacity-[0.03]"
-            style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}
-          />
-          <div className="relative">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-primary rounded-xl mb-4 shadow-xl shadow-primary/30">
-              <ShoppingCart className="h-7 w-7 text-white" />
-            </div>
-            <h1 className="font-display text-[22px] font-bold text-white tracking-wide">Somma</h1>
-            <p className="text-surface-variant/50 text-[12px] mt-1 font-medium tracking-widest uppercase">Gestão Comercial</p>
+        {/* Brand */}
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="w-16 h-16 bg-primary-container rounded-xl flex items-center justify-center mb-4 shadow-lg">
+            <span
+              className="text-white text-4xl select-none"
+              style={{ fontFamily: 'Material Symbols Outlined', fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 40" }}
+            >
+              inventory_2
+            </span>
           </div>
+          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Plus Jakarta Sans' }}>Somma</h1>
+          <p className="text-xs text-outline-variant/80 mt-1 uppercase tracking-widest font-medium">Gestão Comercial</p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-8 py-7 space-y-5">
-          <div>
-            <h2 className="font-display text-[18px] font-semibold text-on-surface">Bem-vindo de volta</h2>
-            <p className="text-[13px] text-on-surface-variant mt-0.5">Acesse sua conta para continuar</p>
+        {/* Card */}
+        <div className="bg-white w-full rounded-xl p-8 border border-border-subtle shadow-2xl">
+          <div className="mb-6 text-center">
+            <h2 className="text-xl font-semibold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Bem-vindo de volta</h2>
+            <p className="text-sm text-on-surface-variant mt-1">Acesse sua conta para continuar</p>
           </div>
 
           {error && (
-            <div className="bg-error-container border border-error/20 rounded-xl px-4 py-3">
-              <p className="text-[13px] text-error">{error}</p>
+            <div className="mb-4 bg-error-container border border-error/20 rounded-xl px-4 py-3">
+              <p className="text-sm text-error">{error}</p>
             </div>
           )}
 
-          <Input
-            label="E-mail"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="seu@email.com"
-            autoComplete="email"
-            autoFocus
-            leftIcon={<Mail className="h-4 w-4" />}
-          />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-on-surface tracking-wide" htmlFor="email">Email</label>
+              <div className="relative flex items-center">
+                <span
+                  className="absolute left-3 text-outline text-xl select-none"
+                  style={{ fontFamily: 'Material Symbols Outlined', fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
+                >
+                  mail
+                </span>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  autoComplete="email"
+                  autoFocus
+                  className="w-full h-12 pl-10 pr-4 bg-surface-container-low border border-border-subtle rounded-lg text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                />
+              </div>
+            </div>
 
-          <Input
-            label="Senha"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            autoComplete="current-password"
-            leftIcon={<Lock className="h-4 w-4" />}
-            rightElement={
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-outline hover:text-on-surface transition-colors">
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            }
-          />
+            {/* Senha */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-on-surface tracking-wide" htmlFor="password">Senha</label>
+              <div className="relative flex items-center">
+                <span
+                  className="absolute left-3 text-outline text-xl select-none"
+                  style={{ fontFamily: 'Material Symbols Outlined', fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
+                >
+                  lock
+                </span>
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="w-full h-12 pl-10 pr-12 bg-surface-container-low border border-border-subtle rounded-lg text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 text-outline hover:text-on-surface transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
 
-          <Button type="submit" fullWidth loading={loading} size="lg">
-            Entrar
-          </Button>
-        </form>
-
-        <div className="px-8 pb-5 text-center">
-          <p className="text-[11px] text-outline">Somma Gestão Comercial &copy; {new Date().getFullYear()}</p>
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 bg-primary-container text-on-primary font-semibold text-sm rounded-lg shadow-md hover:bg-primary transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
+            >
+              {loading ? (
+                <span
+                  className="text-xl animate-spin select-none"
+                  style={{ fontFamily: 'Material Symbols Outlined', fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
+                >
+                  progress_activity
+                </span>
+              ) : (
+                <>
+                  <span>Entrar</span>
+                  <span
+                    className="text-xl select-none"
+                    style={{ fontFamily: 'Material Symbols Outlined', fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
+                  >
+                    arrow_forward
+                  </span>
+                </>
+              )}
+            </button>
+          </form>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-6 text-center">
+          <p className="text-xs text-outline-variant/60">
+            © {new Date().getFullYear()} Somma Gestão Comercial
+          </p>
+        </footer>
       </div>
     </div>
   )
