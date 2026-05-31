@@ -98,7 +98,7 @@ function EmptyState({ label }: { label: string }) {
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
-    <th className={`px-4 py-2.5 text-[11px] font-semibold text-outline ${right ? 'text-right' : 'text-left'}`}>
+    <th className={`px-4 py-1.5 text-[11px] font-semibold text-outline ${right ? 'text-right' : 'text-left'}`}>
       {children}
     </th>
   )
@@ -106,7 +106,7 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
 
 function Td({ children, right, bold }: { children: React.ReactNode; right?: boolean; bold?: boolean }) {
   return (
-    <td className={`px-4 py-3 text-[11px] ${right ? 'text-right' : ''} ${bold ? 'font-bold text-on-surface' : 'text-on-surface-variant'}`}>
+    <td className={`px-4 py-2 text-[11px] ${right ? 'text-right' : ''} ${bold ? 'font-bold text-on-surface' : 'text-on-surface-variant'}`}>
       {children}
     </td>
   )
@@ -184,13 +184,13 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1.5">
       {/* Search + expand all */}
       <div className="flex gap-2 items-center">
         <input
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Buscar referência, nome..."
-          className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+          className="flex-1 border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <button
           onClick={toggleAll}
@@ -209,7 +209,7 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
           <div key={row.price_table_id} className="bg-white rounded-xl border border-outline-variant overflow-hidden">
             {/* Header */}
             <button
-              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-container-low transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-surface-container-low transition-colors"
               onClick={() => toggle(row.price_table_id)}
             >
               {isOpen
@@ -232,11 +232,11 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
                 <table className="min-w-full">
                   <thead className="bg-surface-container-low">
                     <tr>
-                      <th className="px-3 py-2 text-[11px] font-semibold text-outline text-left w-24">Referência</th>
-                      <th className="px-3 py-2 text-[11px] font-semibold text-outline text-left">Nome / Modelo</th>
-                      <th className="px-3 py-2 text-[11px] font-semibold text-outline text-left">Tamanhos</th>
-                      <th className="px-3 py-2 text-[11px] font-semibold text-outline text-right w-28">Preço</th>
-                      <th className="px-3 py-2 text-[11px] font-semibold text-outline text-left w-32">Tipo</th>
+                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-left w-24">Referência</th>
+                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-left">Nome / Modelo</th>
+                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-left">Tamanhos</th>
+                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-right w-28">Preço</th>
+                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-left w-32">Tipo</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -244,14 +244,14 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
                       const sizes = catGetSizes(p)
                       return (
                         <tr key={p.product_id} className="hover:bg-primary/10/30">
-                          <td className="px-3 py-2.5">
+                          <td className="px-3 py-1.5">
                             <span className="font-mono text-[11px] font-bold text-on-surface">{p.reference}</span>
                           </td>
-                          <td className="px-3 py-2.5">
+                          <td className="px-3 py-1.5">
                             <p className="text-[11px] text-on-surface leading-tight">{p.product_name || '—'}</p>
                             {p.model && <p className="text-[11px] text-outline/70">{p.model}</p>}
                           </td>
-                          <td className="px-3 py-2.5">
+                          <td className="px-3 py-1.5">
                             <div className="flex flex-wrap gap-1">
                               {sizes.map(s => (
                                 <span key={s} className="px-1.5 py-0.5 text-[11px] font-semibold bg-primary/10 text-primary rounded border border-indigo-100">
@@ -260,10 +260,10 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
                               ))}
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 text-right">
+                          <td className="px-3 py-1.5 text-right">
                             <span className="text-[11px] font-bold text-on-surface">{fmtR(p.base_price)}</span>
                           </td>
-                          <td className="px-3 py-2.5">
+                          <td className="px-3 py-1.5">
                             {p.type === 'pack'
                               ? <span className="px-2 py-0.5 text-[11px] font-semibold bg-orange-100 text-orange-700 rounded-full">Pack</span>
                               : <span className="px-2 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-600 rounded-full">Regular</span>
@@ -300,7 +300,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
   const q = search.toLowerCase().trim()
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1.5">
       {/* busca rápida por referência */}
       <input
         type="text"
@@ -312,7 +312,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
           if (e.target.value) setExpanded(new Set(data.map(c => c.price_table_id)))
           else setExpanded(new Set())
         }}
-        className="w-full border border-outline-variant rounded-lg px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-400"
       />
 
       {data.map(col => {
@@ -335,7 +335,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
             {/* ── Cabeçalho da coleção ── */}
             <button
               onClick={() => toggle(col.price_table_id)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-container-low transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-surface-container-low transition-colors text-left"
             >
               {isOpen
                 ? <ChevronDown className="h-4 w-4 text-outline/70 flex-shrink-0" />
@@ -403,13 +403,13 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                           key={p.product_id}
                           className={`hover:bg-surface-container-low/50 ${p.total_pieces === 0 ? 'opacity-50' : ''}`}
                         >
-                          <td className="px-4 py-2.5 font-mono text-[11px] font-bold text-on-surface whitespace-nowrap">
+                          <td className="px-4 py-1.5 font-mono text-[11px] font-bold text-on-surface whitespace-nowrap">
                             {p.reference}
                             {p.type === 'pack' && (
                               <span className="ml-1 text-[10px] text-amber-600 font-sans font-medium bg-amber-50 px-1 rounded">pack</span>
                             )}
                           </td>
-                          <td className="px-4 py-2.5 text-[11px] text-on-surface-variant max-w-[200px] truncate">
+                          <td className="px-4 py-1.5 text-[11px] text-on-surface-variant max-w-[200px] truncate">
                             {p.product_name || '—'}
                           </td>
                           <Td right>{p.order_count > 0 ? p.order_count : '—'}</Td>
@@ -421,14 +421,14 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                     {totalPcs > 0 && (
                       <tfoot>
                         <tr className="bg-surface-container-low border-t border-outline-variant">
-                          <td colSpan={2} className="px-4 py-2 text-[11px] font-bold text-on-surface-variant">
+                          <td colSpan={2} className="px-4 py-1 text-[11px] font-bold text-on-surface-variant">
                             {soldCount} ref{soldCount !== 1 ? 's' : ''} vendida{soldCount !== 1 ? 's' : ''} de {products.length}
                           </td>
-                          <td className="px-4 py-2 text-right text-[11px] font-bold text-on-surface-variant">
+                          <td className="px-4 py-1 text-right text-[11px] font-bold text-on-surface-variant">
                             {products.reduce((s, p) => s + p.order_count, 0)}
                           </td>
-                          <td className="px-4 py-2 text-right text-[11px] font-bold text-on-surface-variant">{fmtN(totalPcs)}</td>
-                          <td className="px-4 py-2 text-right text-[11px] font-bold text-primary">{fmtR(totalVal)}</td>
+                          <td className="px-4 py-1 text-right text-[11px] font-bold text-on-surface-variant">{fmtN(totalPcs)}</td>
+                          <td className="px-4 py-1 text-right text-[11px] font-bold text-primary">{fmtR(totalVal)}</td>
                         </tr>
                       </tfoot>
                     )}
@@ -552,8 +552,8 @@ export function Reports() {
     <div className="pb-24 lg:pb-0">
 
       {/* ── sticky header ── */}
-      <div className="bg-white border-b border-outline-variant px-4 py-4 lg:px-8 space-y-3">
-        <div className="max-w-5xl mx-auto space-y-3">
+      <div className="bg-white border-b border-outline-variant px-4 py-2.5 lg:px-8 space-y-1.5">
+        <div className="max-w-5xl mx-auto space-y-1.5">
 
           <div className="flex items-center gap-2">
             <BarChart2 className="h-5 w-5 text-primary" />
@@ -565,12 +565,12 @@ export function Reports() {
             {/* date inputs */}
             <input
               type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <span className="text-outline/70 text-[11px]">–</span>
             <input
               type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
             />
 
             {/* quick range buttons */}
@@ -589,7 +589,7 @@ export function Reports() {
             {(
               <select
                 value={factoryId} onChange={e => setFactoryId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as fábricas</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -600,7 +600,7 @@ export function Reports() {
             {isAdmin && tab !== 'products' && (
               <select
                 value={repId} onChange={e => setRepId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos os representantes</option>
                 {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -613,7 +613,7 @@ export function Reports() {
             {TABS.map(t => (
               <button
                 key={t.id} onClick={() => setTab(t.id)}
-                className={`px-4 py-2.5 text-[11px] font-medium border-b-2 transition-colors -mb-px ${
+                className={`px-4 py-1.5 text-[11px] font-medium border-b-2 transition-colors -mb-px ${
                   tab === t.id
                     ? 'border-blue-600 text-primary'
                     : 'border-transparent text-outline hover:text-on-surface-variant'
@@ -633,7 +633,7 @@ export function Reports() {
         {tab === 'orders' && (
           ordersQ.isLoading ? <PageSpinner /> :
           !ordersQ.data ? null :
-          <div className="space-y-4">
+          <div className="space-y-1">
 
             {/* KPI cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -660,7 +660,7 @@ export function Reports() {
               ? <EmptyState label="Nenhum pedido no período" />
               : (
                 <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
-                  <p className="px-4 py-3 text-[11px] font-semibold text-on-surface border-b border-outline-variant/50">Por dia</p>
+                  <p className="px-4 py-2 text-[11px] font-semibold text-on-surface border-b border-outline-variant/50">Por dia</p>
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
                       <thead className="bg-surface-container-low">
@@ -683,14 +683,14 @@ export function Reports() {
                       </tbody>
                       <tfoot>
                         <tr className="bg-surface-container-low border-t border-outline-variant">
-                          <td className="px-4 py-2.5 text-[11px] font-bold text-on-surface-variant">Total</td>
-                          <td className="px-4 py-2.5 text-right text-[11px] font-bold text-on-surface-variant">
+                          <td className="px-4 py-1.5 text-[11px] font-bold text-on-surface-variant">Total</td>
+                          <td className="px-4 py-1.5 text-right text-[11px] font-bold text-on-surface-variant">
                             {ordersQ.data.byDay.reduce((s, d) => s + d.order_count, 0)}
                           </td>
-                          <td className="px-4 py-2.5 text-right text-[11px] font-bold text-on-surface-variant">
+                          <td className="px-4 py-1.5 text-right text-[11px] font-bold text-on-surface-variant">
                             {fmtN(ordersQ.data.byDay.reduce((s, d) => s + d.total_pieces, 0))}
                           </td>
-                          <td className="px-4 py-2.5 text-right text-[11px] font-bold text-on-surface">
+                          <td className="px-4 py-1.5 text-right text-[11px] font-bold text-on-surface">
                             {fmtR(ordersQ.data.byDay.reduce((s, d) => s + Number(d.total_value), 0))}
                           </td>
                         </tr>
@@ -722,51 +722,51 @@ export function Reports() {
                       <table className="min-w-full text-[11px]">
                         <thead className="bg-surface-container-low">
                           <tr>
-                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Dt. Venda</th>
-                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Indústria</th>
-                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Vendedor</th>
-                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nr. Ped. Fábrica</th>
-                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Razão Social</th>
-                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nome Fantasia</th>
-                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Cidade</th>
-                            <th className="px-3 py-2.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Ítens</th>
-                            <th className="px-3 py-2.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Valor</th>
-                            <th className="px-3 py-2.5 text-right font-semibold text-emerald-700 whitespace-nowrap">Com. Vendedor</th>
-                            {isAdmin && <th className="px-3 py-2.5 text-right font-semibold text-blue-700 whitespace-nowrap">Com. Escrit.</th>}
-                            <th className="px-3 py-2.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Vlr. Faturado</th>
-                            <th className="px-3 py-2.5 text-right font-semibold text-orange-600 whitespace-nowrap">Falta Faturar</th>
+                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Dt. Venda</th>
+                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Indústria</th>
+                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Vendedor</th>
+                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nr. Ped. Fábrica</th>
+                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Razão Social</th>
+                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nome Fantasia</th>
+                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Cidade</th>
+                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Ítens</th>
+                            <th className="px-3 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Valor</th>
+                            <th className="px-3 py-1.5 text-right font-semibold text-emerald-700 whitespace-nowrap">Com. Vendedor</th>
+                            {isAdmin && <th className="px-3 py-1.5 text-right font-semibold text-blue-700 whitespace-nowrap">Com. Escrit.</th>}
+                            <th className="px-3 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Vlr. Faturado</th>
+                            <th className="px-3 py-1.5 text-right font-semibold text-orange-600 whitespace-nowrap">Falta Faturar</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                           {rows.map(r => (
                             <tr key={r.id} className="hover:bg-surface-container-low/50">
-                              <td className="px-3 py-2 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>
-                              <td className="px-3 py-2 whitespace-nowrap font-medium text-on-surface">{r.industria}</td>
-                              <td className="px-3 py-2 whitespace-nowrap text-on-surface-variant">{r.vendedor}</td>
-                              <td className="px-3 py-2 whitespace-nowrap text-on-surface-variant">{r.nr_ped_fabrica || '—'}</td>
-                              <td className="px-3 py-2 max-w-[160px]">
+                              <td className="px-3 py-1 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>
+                              <td className="px-3 py-1 whitespace-nowrap font-medium text-on-surface">{r.industria}</td>
+                              <td className="px-3 py-1 whitespace-nowrap text-on-surface-variant">{r.vendedor}</td>
+                              <td className="px-3 py-1 whitespace-nowrap text-on-surface-variant">{r.nr_ped_fabrica || '—'}</td>
+                              <td className="px-3 py-1 max-w-[160px]">
                                 <span className="block truncate text-on-surface font-medium" title={r.razao_social}>{r.razao_social}</span>
                               </td>
-                              <td className="px-3 py-2 max-w-[140px]">
+                              <td className="px-3 py-1 max-w-[140px]">
                                 <span className="block truncate text-on-surface-variant" title={r.cliente || ''}>{r.cliente || '—'}</span>
                               </td>
-                              <td className="px-3 py-2 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>
-                              <td className="px-3 py-2 max-w-[180px]">
+                              <td className="px-3 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>
+                              <td className="px-3 py-1 max-w-[180px]">
                                 <span className="block truncate text-on-surface-variant" title={r.items_refs || ''}>{r.items_refs || '—'}</span>
                               </td>
-                              <td className="px-3 py-2 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>
-                              <td className="px-3 py-2 text-right whitespace-nowrap">
+                              <td className="px-3 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>
+                              <td className="px-3 py-1 text-right whitespace-nowrap">
                                 <span className="font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</span>
                                 <span className="text-emerald-600/70 ml-1">({fmtPct(r.rep_commission_pct)})</span>
                               </td>
                               {isAdmin && (
-                                <td className="px-3 py-2 text-right whitespace-nowrap">
+                                <td className="px-3 py-1 text-right whitespace-nowrap">
                                   <span className="font-bold text-blue-700">{fmtR(r.office_commission_value)}</span>
                                   <span className="text-blue-600/70 ml-1">({fmtPct(r.office_commission_pct)})</span>
                                 </td>
                               )}
-                              <td className="px-3 py-2 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
-                              <td className="px-3 py-2 text-right whitespace-nowrap">
+                              <td className="px-3 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
+                              <td className="px-3 py-1 text-right whitespace-nowrap">
                                 {Number(r.falta_faturar) > 0
                                   ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span>
                                   : <span className="text-on-surface-variant/50">—</span>
@@ -777,17 +777,17 @@ export function Reports() {
                         </tbody>
                         <tfoot>
                           <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
-                            <td className="px-3 py-2.5 text-on-surface-variant" colSpan={8}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
-                            <td className="px-3 py-2.5 text-right text-on-surface">{fmtR(sum('total_value'))}</td>
-                            <td className="px-3 py-2.5 text-right text-emerald-700">{fmtR(sum('rep_commission_value'))}</td>
-                            {isAdmin && <td className="px-3 py-2.5 text-right text-blue-700">{fmtR(sum('office_commission_value'))}</td>}
-                            <td className="px-3 py-2.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
-                            <td className="px-3 py-2.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
+                            <td className="px-3 py-1.5 text-on-surface-variant" colSpan={8}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
+                            <td className="px-3 py-1.5 text-right text-on-surface">{fmtR(sum('total_value'))}</td>
+                            <td className="px-3 py-1.5 text-right text-emerald-700">{fmtR(sum('rep_commission_value'))}</td>
+                            {isAdmin && <td className="px-3 py-1.5 text-right text-blue-700">{fmtR(sum('office_commission_value'))}</td>}
+                            <td className="px-3 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
+                            <td className="px-3 py-1.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
                           </tr>
                         </tfoot>
                       </table>
                     </div>
-                    <div className="px-4 py-2.5 bg-surface-container-lowest border-t border-outline-variant/50 text-[11px] text-outline/70">
+                    <div className="px-4 py-1.5 bg-surface-container-lowest border-t border-outline-variant/50 text-[11px] text-outline/70">
                       * Valor Faturado = pedidos com status <strong>final</strong>. Falta Faturar = demais pedidos.
                     </div>
                   </div>
@@ -817,8 +817,8 @@ export function Reports() {
                     <tbody className="divide-y divide-gray-50">
                       {clientsQ.data.map((c, i) => (
                         <tr key={c.id} className="hover:bg-surface-container-low/50">
-                          <td className="px-4 py-3 text-[11px] text-outline/70 w-8">{i + 1}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-2 text-[11px] text-outline/70 w-8">{i + 1}</td>
+                          <td className="px-4 py-2">
                             <p className="text-[11px] font-semibold text-on-surface truncate max-w-[220px]">
                               {c.trade_name || c.name}
                             </p>
@@ -871,8 +871,8 @@ export function Reports() {
                     <tbody className="divide-y divide-gray-50">
                       {productsQ.data.map((p, i) => (
                         <tr key={p.reference} className="hover:bg-surface-container-low/50">
-                          <td className="px-4 py-3 text-[11px] text-outline/70 w-8">{i + 1}</td>
-                          <td className="px-4 py-3 font-mono text-[11px] font-bold text-on-surface">
+                          <td className="px-4 py-2 text-[11px] text-outline/70 w-8">{i + 1}</td>
+                          <td className="px-4 py-2 font-mono text-[11px] font-bold text-on-surface">
                             {p.reference}
                           </td>
                           <Td right>{p.order_count}</Td>
@@ -889,13 +889,13 @@ export function Reports() {
 
         {/* ═══ CATÁLOGO ═════════════════════════════════════════════════════ */}
         {tab === 'catalog' && (
-          <div className="space-y-4">
+          <div className="space-y-1">
             {/* Catalog-specific filters */}
-            <div className="bg-white rounded-xl border border-outline-variant px-4 py-3 flex flex-wrap gap-3 items-center">
+            <div className="bg-white rounded-xl border border-outline-variant px-4 py-2 flex flex-wrap gap-3 items-center">
               <select
                 value={catalogFactoryId}
                 onChange={e => { setCatalogFactoryId(e.target.value); setCatalogPriceTableId('') }}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as indústrias</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -903,7 +903,7 @@ export function Reports() {
               <select
                 value={catalogPriceTableId}
                 onChange={e => setCatalogPriceTableId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as coleções</option>
                 {(catalogPriceTables || []).map(pt => (

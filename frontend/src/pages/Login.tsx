@@ -66,12 +66,12 @@ export function Login() {
           </div>
 
           {error && (
-            <div className="mb-4 bg-error-container border border-error/20 rounded-xl px-4 py-3">
+            <div className="mb-4 bg-error-container border border-error/20 rounded-xl px-4 py-2">
               <p className="text-[11px] text-error">{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-1">
             {/* Email */}
             <div className="space-y-1">
               <label className="text-[11px] font-semibold text-on-surface tracking-wide" htmlFor="email">Email</label>

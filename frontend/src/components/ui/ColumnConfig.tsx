@@ -137,7 +137,7 @@ export function ColumnConfigModal({
           return (
             <div
               key={col.id}
-              className={`flex items-center gap-2 py-2 px-1 transition-colors ${
+              className={`flex items-center gap-2 py-1 px-1 transition-colors ${
                 col.visible ? '' : 'opacity-50'
               }`}
             >

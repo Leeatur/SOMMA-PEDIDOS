@@ -144,7 +144,7 @@ export function Users() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-2.5 lg:px-8">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Usuários</h1>
@@ -168,7 +168,7 @@ export function Users() {
             }
           />
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {list.map((u) => {
               const factoryNames = (u.factory_ids || []).map(id => factoryMap[id]).filter(Boolean)
               return (
@@ -273,7 +273,7 @@ export function Users() {
           </div>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-1">
           <Input label="Nome completo" error={errors.name} autoFocus {...f('name')} />
           <Input label="E-mail" type="email" error={errors.email} {...f('email')} />
           <Select

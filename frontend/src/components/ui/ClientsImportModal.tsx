@@ -125,7 +125,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
 
       {/* ── STEP 1: Upload ── */}
       {step === 'upload' && (
-        <div className="space-y-4">
+        <div className="space-y-1">
           <p className="text-[11px] text-on-surface-variant">
             Exporte os clientes do seu sistema atual como Excel (.xlsx ou .xls) e faça o upload aqui.
             O sistema detecta as colunas automaticamente.
@@ -164,13 +164,13 @@ export function ClientsImportModal({ open, onClose }: Props) {
           />
 
           {previewMut.isError && (
-            <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center gap-2">
+            <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-1 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               {(previewMut.error as any)?.response?.data?.error || 'Erro ao ler o arquivo'}
             </p>
           )}
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-[11px] text-amber-800 space-y-1">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-[11px] text-amber-800 space-y-1">
             <p className="font-semibold">💡 Formatos suportados automaticamente:</p>
             <p>• Planilha padrão Somma (colunas: Cidade, Razão Social, Endereço, Número…)</p>
             <p>• Exportação do suasvendas.com: Clientes → Exportar → Excel</p>
@@ -182,7 +182,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
 
       {/* ── STEP 2: Mapeamento de colunas ── */}
       {step === 'mapping' && preview && (
-        <div className="space-y-4">
+        <div className="space-y-1">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-semibold text-on-surface">
@@ -229,11 +229,11 @@ export function ClientsImportModal({ open, onClose }: Props) {
           )}
 
           {/* Mapeamento de campos */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">
               Confirme o mapeamento de colunas
             </p>
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
               {FIELDS.map(f => (
                 <div key={f.key} className="flex items-center gap-3">
                   <label className="w-44 flex-shrink-0">
@@ -288,7 +288,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
 
       {/* ── STEP 3: Resultado ── */}
       {step === 'result' && result && (
-        <div className="space-y-5">
+        <div className="space-y-1.5">
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
               <p className="text-2xl font-bold text-emerald-700">{result.imported}</p>
@@ -307,7 +307,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
           </div>
 
           {result.imported > 0 && (
-            <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
               <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
               <p className="text-[11px] font-medium">
                 {result.imported} cliente{result.imported !== 1 ? 's' : ''} importado{result.imported !== 1 ? 's' : ''} com sucesso!
@@ -316,7 +316,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
           )}
 
           {result.skipped > 0 && (
-            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1">
               {result.skipped} cliente{result.skipped !== 1 ? 's' : ''} ignorado{result.skipped !== 1 ? 's' : ''} por já existirem no sistema (mesmo CNPJ).
             </p>
           )}
@@ -325,7 +325,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
             <div className="border border-red-200 rounded-lg overflow-hidden">
               <button
                 onClick={() => setShowErrors(e => !e)}
-                className="w-full flex items-center justify-between px-3 py-2 bg-red-50 text-[11px] font-medium text-red-700"
+                className="w-full flex items-center justify-between px-3 py-1 bg-red-50 text-[11px] font-medium text-red-700"
               >
                 <span>Ver {result.errors.length} erros</span>
                 {showErrors ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}

@@ -245,12 +245,12 @@ function ProductDetailModal({
 
   // ── Edit form ────────────────────────────────────────────────────────────
   if (editing) {
-    const inputCls = "w-full border border-outline-variant rounded-lg px-3 py-2 text-[11px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+    const inputCls = "w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary bg-white"
     return (
       <Modal open onClose={() => setEditing(false)} title={`Editar: ${p.reference}`} size="lg">
-        <div className="space-y-4">
+        <div className="space-y-1">
           {saveError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-[11px] text-red-700">{saveError}</div>
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-1 text-[11px] text-red-700">{saveError}</div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
@@ -314,7 +314,7 @@ function ProductDetailModal({
             {gradeSizes.length === 0 ? (
               <p className="text-[11px] text-outline/70 italic">Preencha a faixa de tamanhos para editar a grade.</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {editGrade.map((row, rowIdx) => (
                   <div key={rowIdx} className="bg-surface-container-low rounded-xl p-2.5">
                     <div className="flex items-center gap-2 mb-2">
@@ -368,11 +368,11 @@ function ProductDetailModal({
 
           <div className="flex gap-2 pt-2 border-t border-outline-variant">
             <button onClick={handleSave} disabled={saving || !editForm.reference}
-              className="flex-1 bg-primary text-white rounded-xl py-2.5 text-[11px] font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
+              className="flex-1 bg-primary text-white rounded-xl py-1.5 text-[11px] font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
               {saving ? 'Salvando…' : 'Salvar alterações'}
             </button>
             <button onClick={() => setEditing(false)}
-              className="px-4 py-2.5 border border-outline-variant rounded-xl text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1.5">
+              className="px-4 py-1.5 border border-outline-variant rounded-xl text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1.5">
               <X className="h-4 w-4" /> Cancelar
             </button>
           </div>
@@ -384,7 +384,7 @@ function ProductDetailModal({
   // ── View mode ────────────────────────────────────────────────────────────
   return (
     <Modal open onClose={onClose} title={p.reference} size="md">
-      <div className="space-y-4">
+      <div className="space-y-1">
         {isAdmin && (
           <div className="flex justify-end">
             <button onClick={() => setEditing(true)}
@@ -460,7 +460,7 @@ function ProductDetailModal({
         </div>
 
         {p.grade_configs && p.grade_configs.length > 0 && (
-          <div className="bg-surface-container-low rounded-xl px-4 py-2.5">
+          <div className="bg-surface-container-low rounded-xl px-4 py-1.5">
             <p className="text-[11px] text-outline mb-2 font-medium uppercase tracking-wide">
               {p.type === 'regular' ? 'Tamanhos disponíveis' : 'Grade por caixa'}
             </p>
@@ -473,7 +473,7 @@ function ProductDetailModal({
                 ))}
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {p.grade_configs.map((gc, i) => {
                   const expandedSizes = expandGradeSizes(gc.sizes)
                   const sizes = sortSizes(Object.keys(expandedSizes))
@@ -510,7 +510,7 @@ function ProductDetailModal({
 
         {/* ── Controles admin ── */}
         {isAdmin && (
-          <div className="border-t border-outline-variant pt-4 space-y-4">
+          <div className="border-t border-outline-variant pt-4 space-y-1">
 
             {/* Disponibilidade */}
             <div className="flex items-center justify-between">
@@ -613,7 +613,7 @@ function ProductRow({
     switch (id) {
       case 'image':
         return (
-          <td key={id} className="pl-3 pr-2 py-2 w-14">
+          <td key={id} className="pl-3 pr-2 py-1 w-14">
             <div className="w-10 h-10 rounded-lg bg-surface-container overflow-hidden flex-shrink-0 flex items-center justify-center">
               {p.image_url
                 ? <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
@@ -623,7 +623,7 @@ function ProductRow({
         )
       case 'reference':
         return (
-          <td key={id} className="px-2 py-2">
+          <td key={id} className="px-2 py-1">
             <div className="flex items-center gap-1.5">
               <span className={`font-bold text-[11px] whitespace-nowrap ${p.active ? 'text-primary' : 'text-outline line-through'}`}>
                 {p.reference}
@@ -644,56 +644,56 @@ function ProductRow({
         )
       case 'name':
         return (
-          <td key={id} className="px-2 py-2 max-w-[180px]">
+          <td key={id} className="px-2 py-1 max-w-[180px]">
             <p className="text-[11px] font-medium text-on-surface truncate">{p.product_name || '—'}</p>
             {p.model && <p className="text-[11px] text-outline/70 truncate">{p.model}</p>}
           </td>
         )
       case 'size_range':
         return (
-          <td key={id} className="px-2 py-2 whitespace-nowrap">
+          <td key={id} className="px-2 py-1 whitespace-nowrap">
             <span className="text-[11px] text-on-surface-variant">{p.size_range || '—'}</span>
           </td>
         )
       case 'price':
         return (
-          <td key={id} className="px-2 py-2 whitespace-nowrap text-right">
+          <td key={id} className="px-2 py-1 whitespace-nowrap text-right">
             <span className="text-[11px] font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</span>
             <span className="text-[11px] text-outline/70 ml-0.5">/pç</span>
           </td>
         )
       case 'pieces':
         return (
-          <td key={id} className="px-2 py-2 whitespace-nowrap text-center">
+          <td key={id} className="px-2 py-1 whitespace-nowrap text-center">
             <span className="text-[11px] text-outline">{totalPieces > 0 ? `${totalPieces} pç` : '—'}</span>
           </td>
         )
       case 'category':
         return (
-          <td key={id} className="px-2 py-2 max-w-[120px]">
+          <td key={id} className="px-2 py-1 max-w-[120px]">
             <span className="text-[11px] text-outline truncate block">{p.category || '—'}</span>
           </td>
         )
       case 'factory':
         return (
-          <td key={id} className="px-2 py-2 max-w-[120px]">
+          <td key={id} className="px-2 py-1 max-w-[120px]">
             <span className="text-[11px] text-on-surface-variant truncate block">{p.factory_name || '—'}</span>
           </td>
         )
       case 'table':
         return (
-          <td key={id} className="px-2 py-2 max-w-[150px]">
+          <td key={id} className="px-2 py-1 max-w-[150px]">
             <span className="text-[11px] text-outline truncate block">{p.price_table_name || '—'}</span>
           </td>
         )
       case 'observation':
         return (
-          <td key={id} className="px-2 pr-3 py-2 max-w-[140px]">
+          <td key={id} className="px-2 pr-3 py-1 max-w-[140px]">
             <span className="text-[10px] text-orange-500 truncate block">{p.observation || '—'}</span>
           </td>
         )
       default:
-        return <td key={id} className="px-2 py-2" />
+        return <td key={id} className="px-2 py-1" />
     }
   }
 
@@ -869,7 +869,7 @@ export function Products() {
             {isAdmin && (
               <button
                 onClick={() => setShowInactive(v => !v)}
-                className={`flex items-center gap-1.5 text-[11px] font-semibold border rounded-lg px-3 py-2 transition-colors ${
+                className={`flex items-center gap-1.5 text-[11px] font-semibold border rounded-lg px-3 py-1 transition-colors ${
                   showInactive
                     ? 'bg-red-50 border-red-300 text-red-700'
                     : 'bg-surface-container hover:bg-surface-container-high border-outline-variant text-on-surface-variant'
@@ -882,7 +882,7 @@ export function Products() {
             )}
             <button
               onClick={() => setShowZipImport(true)}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-1 transition-colors"
               title="Importar fotos via ZIP"
             >
               <Archive className="h-4 w-4" />
@@ -910,7 +910,7 @@ export function Products() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="border border-outline-variant rounded-lg px-3 py-2 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
           >
             <option value="">Todos</option>
             <option value="regular">Regular</option>
@@ -942,7 +942,7 @@ export function Products() {
                 {visibleCols.map(col => (
                   <th
                     key={col.id}
-                    className={`px-2 py-2.5 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''}`}
+                    className={`px-2 py-1.5 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''}`}
                   >
                     {col.label}
                   </th>

@@ -92,49 +92,49 @@ function OrderHeader({ id, label }: { id: string; label: string }) {
 function OrderCell({ id, o }: { id: string; o: Order }) {
   switch (id) {
     case 'date':
-      return <td className="pl-3 pr-2 py-2 whitespace-nowrap"><span className="text-[11px] text-outline">{formatDate(o.created_at)}</span></td>
+      return <td className="pl-3 pr-2 py-1 whitespace-nowrap"><span className="text-[11px] text-outline">{formatDate(o.created_at)}</span></td>
     case 'number':
-      return <td className="px-2 py-2 whitespace-nowrap first:pl-3"><span className="text-[11px] font-bold text-primary">{formatOrderNumber(o.order_number)}</span></td>
+      return <td className="px-2 py-1 whitespace-nowrap first:pl-3"><span className="text-[11px] font-bold text-primary">{formatOrderNumber(o.order_number)}</span></td>
     case 'factory':
-      return <td className="px-2 py-2 max-w-[110px]"><span className="text-[11px] font-semibold text-on-surface-variant truncate block">{o.factory_name}</span></td>
+      return <td className="px-2 py-1 max-w-[110px]"><span className="text-[11px] font-semibold text-on-surface-variant truncate block">{o.factory_name}</span></td>
     case 'rep':
-      return <td className="px-2 py-2 max-w-[120px]"><span className="text-[11px] text-outline truncate block">{o.rep_name || '—'}</span></td>
+      return <td className="px-2 py-1 max-w-[120px]"><span className="text-[11px] text-outline truncate block">{o.rep_name || '—'}</span></td>
     case 'nr_rep':
-      return <td className="px-2 py-2 whitespace-nowrap"><span className="text-[11px] text-outline font-mono">{o.industry_order_number || '—'}</span></td>
+      return <td className="px-2 py-1 whitespace-nowrap"><span className="text-[11px] text-outline font-mono">{o.industry_order_number || '—'}</span></td>
     case 'razao_social':
-      return <td className="px-2 py-2 max-w-[200px]"><p className="text-[12px] font-semibold text-on-surface truncate leading-tight">{o.client_name}</p></td>
+      return <td className="px-2 py-1 max-w-[200px]"><p className="text-[12px] font-semibold text-on-surface truncate leading-tight">{o.client_name}</p></td>
     case 'client':
-      return <td className="px-2 py-2 max-w-[160px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.client_trade_name || '—'}</span></td>
+      return <td className="px-2 py-1 max-w-[160px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.client_trade_name || '—'}</span></td>
     case 'city':
-      return <td className="px-2 py-2 max-w-[120px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.client_city || '—'}</span></td>
+      return <td className="px-2 py-1 max-w-[120px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.client_city || '—'}</span></td>
     case 'items':
-      return <td className="px-2 py-2 text-center"><span className="text-[11px] font-medium text-on-surface-variant">{o.total_pieces > 0 ? o.total_pieces : '—'}</span></td>
+      return <td className="px-2 py-1 text-center"><span className="text-[11px] font-medium text-on-surface-variant">{o.total_pieces > 0 ? o.total_pieces : '—'}</span></td>
     case 'value':
-      return <td className="px-2 py-2 text-right whitespace-nowrap"><span className="text-[12px] font-bold text-on-surface">{formatCurrency(o.total_value)}</span></td>
+      return <td className="px-2 py-1 text-right whitespace-nowrap"><span className="text-[12px] font-bold text-on-surface">{formatCurrency(o.total_value)}</span></td>
     case 'delivery':
-      return <td className="px-2 py-2 whitespace-nowrap">
+      return <td className="px-2 py-1 whitespace-nowrap">
         {o.delivery_date
           ? <span className="text-[11px] text-on-surface-variant">{new Date(o.delivery_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
           : <span className="text-[11px] text-outline/50">—</span>}
       </td>
     case 'payment':
-      return <td className="px-2 py-2 max-w-[130px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.payment_terms || '—'}</span></td>
+      return <td className="px-2 py-1 max-w-[130px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.payment_terms || '—'}</span></td>
     case 'commission':
-      return <td className="px-2 py-2 text-right whitespace-nowrap">
+      return <td className="px-2 py-1 text-right whitespace-nowrap">
         {o.rep_commission_value > 0
           ? <span className="text-[11px] font-semibold text-emerald-600">{formatCurrency(o.rep_commission_value)}</span>
           : <span className="text-[11px] text-outline/50">—</span>}
       </td>
     case 'discount':
-      return <td className="px-2 py-2 text-right whitespace-nowrap last:pr-3">
+      return <td className="px-2 py-1 text-right whitespace-nowrap last:pr-3">
         {o.discount_pct > 0
           ? <span className="text-[11px] font-semibold text-emerald-600">-{o.discount_pct}%</span>
           : <span className="text-[11px] text-outline/50">—</span>}
       </td>
     case 'table':
-      return <td className="px-2 py-2 max-w-[150px]"><span className="text-[11px] text-outline/70 truncate block">{o.price_table_name}</span></td>
+      return <td className="px-2 py-1 max-w-[150px]"><span className="text-[11px] text-outline/70 truncate block">{o.price_table_name}</span></td>
     case 'status':
-      return <td className="px-2 pr-3 py-2">
+      return <td className="px-2 pr-3 py-1">
         {o.status_name && o.status_color ? (
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color }} />
@@ -143,7 +143,7 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
         ) : <span className="text-[11px] text-outline/50">—</span>}
       </td>
     default:
-      return <td className="px-2 py-2" />
+      return <td className="px-2 py-1" />
   }
 }
 
@@ -275,7 +275,7 @@ export function Orders() {
 
         {/* Status filter chips */}
         {statuses && statuses.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto px-4 py-3 bg-surface border-b border-border-subtle"
+          <div className="flex gap-2 overflow-x-auto px-4 py-2 bg-surface border-b border-border-subtle"
                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button
               onClick={() => setStatusFilter('')}
@@ -317,7 +317,7 @@ export function Orders() {
               </p>
             </div>
           ) : (
-            <div className="p-4 space-y-3 pb-24">
+            <div className="p-4 space-y-1.5 pb-24">
               {(orders || []).map(o => (
                 <MobileOrderCard
                   key={o.id}
@@ -346,7 +346,7 @@ export function Orders() {
               <ColumnConfigButton defs={colDefs} config={config} onSave={save} onReset={reset} />
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-1 text-xs px-3 py-2 border rounded-lg transition-colors ${
+                className={`flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors ${
                   showFilters || statusFilter || factoryFilter || dateFrom || dateTo
                     ? 'text-primary border-primary/40 bg-primary/10'
                     : 'text-outline border-outline-variant bg-white hover:text-on-surface-variant'
@@ -377,7 +377,7 @@ export function Orders() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos os status</option>
                 {(statuses || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -385,15 +385,15 @@ export function Orders() {
               <select
                 value={factoryFilter}
                 onChange={(e) => setFactoryFilter(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as fábricas</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
+                className="border border-outline-variant rounded-lg px-3 py-1 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
+                className="border border-outline-variant rounded-lg px-3 py-1 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
             </div>
           )}
         </div>
@@ -412,7 +412,7 @@ export function Orders() {
             </p>
             <button
               onClick={() => navigate('/orders/new')}
-              className="mt-4 flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+              className="mt-4 flex items-center gap-2 px-4 py-1 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors"
             >
               <PlusCircle className="h-4 w-4" /> Criar Pedido
             </button>

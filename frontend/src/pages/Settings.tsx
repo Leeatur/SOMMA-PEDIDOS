@@ -109,7 +109,7 @@ function CompanySection() {
   )
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-1">
       {/* Logo */}
       <div className="flex items-center gap-4">
         {/* Thumbnail com botão de remover sobreposto */}
@@ -266,14 +266,14 @@ export function Settings() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-2.5 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <h1 className="font-display text-lg font-bold text-on-surface">Configurações</h1>
           <p className="text-[11px] text-outline mt-0.5">Ajustes do aplicativo</p>
         </div>
       </div>
 
-      <div className="px-4 py-5 lg:px-8 max-w-2xl mx-auto space-y-5">
+      <div className="px-4 py-5 lg:px-8 max-w-2xl mx-auto space-y-1.5">
 
         {/* ── Empresa (admin only) ── */}
         {user?.role === 'admin' && (
@@ -396,7 +396,7 @@ export function Settings() {
         <div>
           <h2 className="text-[11px] font-semibold text-outline uppercase tracking-wider mb-3">Sobre</h2>
           <Card padding="md">
-            <div className="space-y-3">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
                   <ShieldCheck className="h-5 w-5 text-white" />

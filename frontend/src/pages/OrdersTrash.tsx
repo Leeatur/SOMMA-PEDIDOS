@@ -51,7 +51,7 @@ export function OrdersTrash() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-2.5 lg:px-8">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
           <div className="w-9 h-9 bg-red-100 rounded-xl flex items-center justify-center">
             <Trash2 className="h-5 w-5 text-red-500" />
@@ -79,7 +79,7 @@ export function OrdersTrash() {
             </div>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-700">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>Pedidos na lixeira podem ser restaurados a qualquer momento. Clique em <strong>Restaurar</strong> para devolver ao sistema.</span>

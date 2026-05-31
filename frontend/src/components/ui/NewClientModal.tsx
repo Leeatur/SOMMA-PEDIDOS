@@ -178,10 +178,10 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
 
   return (
     <Modal open={open} onClose={handleClose} title="Novo Cliente" size="lg">
-      <div className="space-y-5">
+      <div className="space-y-1.5">
 
         {/* ── CNPJ Lookup ── */}
-        <div className="bg-primary/5 border border-blue-100 rounded-xl p-4 space-y-3">
+        <div className="bg-primary/5 border border-blue-100 rounded-xl p-4 space-y-1.5">
           <div className="flex items-center gap-2 text-[11px] font-semibold text-blue-800">
             <Building2 className="h-4 w-4" />
             Buscar dados na Receita Federal
@@ -194,13 +194,13 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               onKeyDown={e => e.key === 'Enter' && lookupCnpj()}
               placeholder="00.000.000/0001-00"
               maxLength={18}
-              className="flex-1 px-3 py-2 text-[11px] border border-blue-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-outline/70"
+              className="flex-1 px-3 py-1 text-[11px] border border-blue-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-outline/70"
             />
             <button
               type="button"
               onClick={lookupCnpj}
               disabled={loadingCnpj}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-[11px] font-semibold rounded-lg hover:bg-primary disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-1 bg-primary text-white text-[11px] font-semibold rounded-lg hover:bg-primary disabled:opacity-60 transition-colors"
             >
               {loadingCnpj
                 ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -221,7 +221,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
         </div>
 
         {/* ── Dados da empresa ── */}
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           <p className="text-[11px] font-semibold text-outline uppercase tracking-wide flex items-center gap-1.5">
             <User className="h-3.5 w-3.5" /> Identificação
           </p>
@@ -233,7 +233,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               <input
                 value={form.name}
                 onChange={e => set('name', e.target.value)}
-                className={`w-full px-3 py-2 text-[11px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.name ? 'border-red-400' : 'border-outline-variant'}`}
+                className={`w-full px-3 py-1 text-[11px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.name ? 'border-red-400' : 'border-outline-variant'}`}
               />
               {errors.name && <p className="text-[11px] text-red-500 mt-0.5">{errors.name}</p>}
             </div>
@@ -242,7 +242,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               <input
                 value={form.trade_name}
                 onChange={e => set('trade_name', e.target.value)}
-                className="w-full px-3 py-2 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full px-3 py-1 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -253,7 +253,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
                   onChange={e => set('cnpj', maskCnpj(e.target.value))}
                   maxLength={18}
                   placeholder="00.000.000/0001-00"
-                  className="w-full px-3 py-2 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-full px-3 py-1 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
               <div>
@@ -262,7 +262,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
                   value={form.state_registration}
                   onChange={e => set('state_registration', e.target.value)}
                   placeholder="000.000.000.000"
-                  className="w-full px-3 py-2 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-full px-3 py-1 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
             </div>
@@ -270,7 +270,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
         </div>
 
         {/* ── Contato ── */}
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           <p className="text-[11px] font-semibold text-outline uppercase tracking-wide flex items-center gap-1.5">
             <Phone className="h-3.5 w-3.5" /> Contato
           </p>
@@ -286,7 +286,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               value={form.phone}
               onChange={e => set('phone', maskPhone(e.target.value))}
               placeholder="(00) 00000-0000"
-              className={`w-full px-3 py-2 text-[11px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('phone') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
+              className={`w-full px-3 py-1 text-[11px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('phone') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
             />
           </div>
 
@@ -301,7 +301,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               value={form.whatsapp}
               onChange={e => set('whatsapp', maskPhone(e.target.value))}
               placeholder="(00) 00000-0000"
-              className={`w-full px-3 py-2 text-[11px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('whatsapp') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
+              className={`w-full px-3 py-1 text-[11px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('whatsapp') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
             />
           </div>
 
@@ -317,13 +317,13 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               onChange={e => set('email', e.target.value)}
               type="email"
               placeholder="contato@empresa.com.br"
-              className={`w-full px-3 py-2 text-[11px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('email') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
+              className={`w-full px-3 py-1 text-[11px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('email') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
             />
           </div>
         </div>
 
         {/* ── Endereço ── */}
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           <p className="text-[11px] font-semibold text-outline uppercase tracking-wide flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5" /> Endereço
           </p>
@@ -333,7 +333,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               value={form.address}
               onChange={e => set('address', e.target.value)}
               placeholder="Rua, número, complemento, bairro"
-              className="w-full px-3 py-2 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full px-3 py-1 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -342,7 +342,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               <input
                 value={form.city}
                 onChange={e => set('city', e.target.value)}
-                className="w-full px-3 py-2 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full px-3 py-1 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
             <div>
@@ -352,7 +352,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
                 onChange={e => set('state', e.target.value.toUpperCase().slice(0, 2))}
                 placeholder="SP"
                 maxLength={2}
-                className="w-full px-3 py-2 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full px-3 py-1 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
           </div>
@@ -363,7 +363,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               onChange={e => set('zip', maskCep(e.target.value))}
               placeholder="00000-000"
               maxLength={9}
-              className="w-full px-3 py-2 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full px-3 py-1 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
         </div>
@@ -375,13 +375,13 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
             rows={2}
-            className="w-full px-3 py-2 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+            className="w-full px-3 py-1 text-[11px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
           />
         </div>
 
         {/* ── Ações ── */}
         {createMut.isError && (
-          <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-1">
             Erro ao salvar cliente. Tente novamente.
           </p>
         )}

@@ -66,7 +66,7 @@ export function Dashboard() {
         {/* FAB new order (desktop) */}
         <button
           onClick={() => navigate('/orders/new')}
-          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-[11px] font-semibold px-4 py-2 rounded-xl border border-white/20 transition-all backdrop-blur-sm"
+          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-[11px] font-semibold px-4 py-1 rounded-xl border border-white/20 transition-all backdrop-blur-sm"
         >
           <Plus className="h-4 w-4" /> Novo pedido
         </button>
@@ -120,7 +120,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-8 mt-5 space-y-5">
+      <div className="px-4 lg:px-8 mt-5 space-y-1.5">
 
         {/* ─── Pipeline por status ──────────────────────── */}
         {statusCounts.length > 0 && (
@@ -176,7 +176,7 @@ export function Dashboard() {
                 <div
                   key={order.id}
                   onClick={() => navigate(`/orders/${order.id}`)}
-                  className={`flex items-center gap-3 px-4 py-3.5 hover:bg-blue-50/60 active:bg-blue-50 cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50/60 active:bg-blue-50 cursor-pointer transition-colors ${
                     idx > 0 ? 'border-t border-gray-50' : ''
                   }`}
                 >

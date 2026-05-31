@@ -191,7 +191,7 @@ export function PriceTables() {
   return (
     <div className="pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
+      <div className="bg-white border-b border-outline-variant px-5 py-2.5 lg:px-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Tabelas de Preço</h1>
@@ -203,7 +203,7 @@ export function PriceTables() {
         </div>
       </div>
 
-      <div className="px-4 py-5 lg:px-8 max-w-4xl mx-auto space-y-5">
+      <div className="px-4 py-5 lg:px-8 max-w-4xl mx-auto space-y-1.5">
         {/* Filter by factory */}
         <Select
           options={[{ value: '', label: 'Todas as fábricas' }, ...factoryOptions]}
@@ -222,7 +222,7 @@ export function PriceTables() {
             </div>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             {tables.map((t) => (
               <Card key={t.id} padding="md">
                 <div className="flex items-start justify-between">
@@ -324,7 +324,7 @@ export function PriceTables() {
       >
         {/* Step 1: Upload */}
         {importStep === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-1">
             <p className="text-[11px] text-on-surface-variant">
               Selecione a planilha Excel (.xlsx) exportada da fábrica com os produtos e preços.
             </p>
@@ -369,7 +369,7 @@ export function PriceTables() {
 
         {/* Step 2: Configure */}
         {importStep === 2 && preview && (
-          <div className="space-y-5">
+          <div className="space-y-1.5">
             {/* Preview summary */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
               <p className="text-[11px] font-semibold text-emerald-800 mb-2">Planilha lida com sucesso</p>
@@ -436,7 +436,7 @@ export function PriceTables() {
                   <Plus className="h-3.5 w-3.5" /> Adicionar linha
                 </button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="grid grid-cols-5 gap-1 text-[11px] font-medium text-outline px-1">
                   <span>Desc. %</span>
                   <span>Com. Total %</span>
@@ -474,8 +474,8 @@ export function PriceTables() {
 
         {/* Step 3: Confirm */}
         {importStep === 3 && preview && (
-          <div className="space-y-4">
-            <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 space-y-2">
+          <div className="space-y-1">
+            <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 space-y-1">
               <p className="font-semibold text-blue-900">Resumo da Importação</p>
               <div className="text-[11px] text-blue-800 space-y-1">
                 <p><span className="font-medium">Tabela:</span> {importForm.name}</p>
@@ -492,19 +492,19 @@ export function PriceTables() {
                 <table className="min-w-full text-[11px] border border-outline-variant rounded-lg overflow-hidden">
                   <thead className="bg-surface-container-low">
                     <tr>
-                      <th className="px-3 py-2 text-left text-on-surface-variant">Desconto</th>
-                      <th className="px-3 py-2 text-left text-on-surface-variant">Com. Total</th>
-                      <th className="px-3 py-2 text-left text-on-surface-variant">Com. Rep</th>
-                      <th className="px-3 py-2 text-left text-on-surface-variant">Com. Esc</th>
+                      <th className="px-3 py-1 text-left text-on-surface-variant">Desconto</th>
+                      <th className="px-3 py-1 text-left text-on-surface-variant">Com. Total</th>
+                      <th className="px-3 py-1 text-left text-on-surface-variant">Com. Rep</th>
+                      <th className="px-3 py-1 text-left text-on-surface-variant">Com. Esc</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/50">
                     {discountRules.map((r, i) => (
                       <tr key={i} className="bg-white">
-                        <td className="px-3 py-2">{r.discount_pct}%</td>
-                        <td className="px-3 py-2">{r.total_commission_pct}%</td>
-                        <td className="px-3 py-2">{r.rep_commission_pct}%</td>
-                        <td className="px-3 py-2">{r.office_commission_pct}%</td>
+                        <td className="px-3 py-1">{r.discount_pct}%</td>
+                        <td className="px-3 py-1">{r.total_commission_pct}%</td>
+                        <td className="px-3 py-1">{r.rep_commission_pct}%</td>
+                        <td className="px-3 py-1">{r.office_commission_pct}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -543,7 +543,7 @@ export function PriceTables() {
           </div>
         }
       >
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           <p className="text-[11px] text-on-surface-variant">
             Tem certeza que deseja excluir a tabela{' '}
             <span className="font-semibold">"{deleteTable?.name}"</span>?
@@ -585,7 +585,7 @@ export function PriceTables() {
         }
       >
         {!catalogResult ? (
-          <div className="space-y-4">
+          <div className="space-y-1">
             {selectedTable && (
               <div className="bg-surface-container-low rounded-lg p-3">
                 <p className="text-[11px] text-outline">Tabela de preços:</p>
@@ -625,7 +625,7 @@ export function PriceTables() {
             />
           </div>
         ) : (
-          <div className="space-y-4 text-center py-4">
+          <div className="space-y-1 text-center py-2.5">
             {catalogResult.matchedCount > 0 ? (
               <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto" />
             ) : (

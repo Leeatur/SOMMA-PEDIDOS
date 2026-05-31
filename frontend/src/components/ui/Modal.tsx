@@ -60,7 +60,7 @@ export function Modal({ open, onClose, title, children, size = 'md', footer }: M
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-2.5 border-b border-outline-variant flex-shrink-0">
             <h2 className="text-[16px] font-semibold text-on-surface font-display">{title}</h2>
             <button
               onClick={onClose}
@@ -72,11 +72,11 @@ export function Modal({ open, onClose, title, children, size = 'md', footer }: M
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 custom-scrollbar">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 py-2.5 custom-scrollbar">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-5 py-4 border-t border-outline-variant flex-shrink-0 bg-surface-container-low rounded-b-2xl">
+          <div className="px-5 py-2.5 border-t border-outline-variant flex-shrink-0 bg-surface-container-low rounded-b-2xl">
             {footer}
           </div>
         )}

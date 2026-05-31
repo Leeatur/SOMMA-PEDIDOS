@@ -38,7 +38,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 : 'border-outline-variant bg-surface-container-lowest text-on-surface placeholder-outline',
               leftIcon ? 'pl-10' : 'pl-3',
               rightElement ? 'pr-10' : 'pr-3',
-              'py-2.5',
+              'py-1.5',
               className
             )}
             {...props}
@@ -82,7 +82,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             error
               ? 'border-error bg-error-container/20 text-error'
               : 'border-outline-variant bg-surface-container-lowest text-on-surface',
-            'px-3 py-2.5 resize-none',
+            'px-3 py-1.5 resize-none',
             className
           )}
           {...props}
@@ -121,7 +121,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             error
               ? 'border-error bg-error-container/20 text-error'
               : 'border-outline-variant bg-surface-container-lowest text-on-surface',
-            'px-3 py-2.5',
+            'px-3 py-1.5',
             className
           )}
           {...props}

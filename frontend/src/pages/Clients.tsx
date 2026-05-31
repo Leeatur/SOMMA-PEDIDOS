@@ -158,13 +158,13 @@ export function Clients() {
     switch (id) {
       case 'name':
         return (
-          <td key={id} className="pl-3 pr-2 py-2.5 max-w-[220px]">
+          <td key={id} className="pl-3 pr-2 py-1.5 max-w-[220px]">
             <p className="text-[11px] font-semibold text-on-surface truncate">{c.name}</p>
           </td>
         )
       case 'trade_name':
         return (
-          <td key={id} className="px-2 py-2.5 max-w-[180px]">
+          <td key={id} className="px-2 py-1.5 max-w-[180px]">
             <span className="text-[11px] text-outline truncate block">
               {c.trade_name && c.trade_name !== c.name ? c.trade_name : '—'}
             </span>
@@ -172,7 +172,7 @@ export function Clients() {
         )
       case 'city':
         return (
-          <td key={id} className="px-2 py-2.5 max-w-[150px]">
+          <td key={id} className="px-2 py-1.5 max-w-[150px]">
             <span className="text-[11px] text-on-surface-variant truncate block">
               {[c.city, c.state].filter(Boolean).join(' / ') || '—'}
             </span>
@@ -180,37 +180,37 @@ export function Clients() {
         )
       case 'phone':
         return (
-          <td key={id} className="px-2 py-2.5 whitespace-nowrap">
+          <td key={id} className="px-2 py-1.5 whitespace-nowrap">
             <span className="text-[11px] text-on-surface-variant">{c.phone || '—'}</span>
           </td>
         )
       case 'whatsapp':
         return (
-          <td key={id} className="px-2 py-2.5 whitespace-nowrap">
+          <td key={id} className="px-2 py-1.5 whitespace-nowrap">
             <span className="text-[11px] text-on-surface-variant">{c.whatsapp || '—'}</span>
           </td>
         )
       case 'email':
         return (
-          <td key={id} className="px-2 py-2.5 max-w-[180px]">
+          <td key={id} className="px-2 py-1.5 max-w-[180px]">
             <span className="text-[11px] text-outline truncate block">{c.email || '—'}</span>
           </td>
         )
       case 'cnpj':
         return (
-          <td key={id} className="px-2 py-2.5 whitespace-nowrap">
+          <td key={id} className="px-2 py-1.5 whitespace-nowrap">
             <span className="text-[11px] text-outline/70">{c.cnpj || '—'}</span>
           </td>
         )
       case 'rep':
         return (
-          <td key={id} className="px-2 py-2.5 max-w-[120px]">
+          <td key={id} className="px-2 py-1.5 max-w-[120px]">
             <span className="text-[11px] text-primary font-medium truncate block">{c.rep_name || '—'}</span>
           </td>
         )
       case '_edit':
         return (
-          <td key={id} className="px-2 pr-3 py-2.5 text-right w-10">
+          <td key={id} className="px-2 pr-3 py-1.5 text-right w-10">
             <button
               onClick={(e) => { e.stopPropagation(); openEdit(c) }}
               className="p-1.5 text-outline/50 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
@@ -220,7 +220,7 @@ export function Clients() {
           </td>
         )
       default:
-        return <td key={id} className="px-2 py-2.5" />
+        return <td key={id} className="px-2 py-1.5" />
     }
   }
 
@@ -248,7 +248,7 @@ export function Clients() {
             <h2 className="font-display text-lg font-bold text-on-surface">Clientes</h2>
             <button
               onClick={() => setShowNewCnpj(true)}
-              className="flex items-center gap-1.5 bg-primary text-white text-[11px] font-semibold px-3.5 py-2 rounded-xl active:scale-95 transition-transform"
+              className="flex items-center gap-1.5 bg-primary text-white text-[11px] font-semibold px-3.5 py-1 rounded-xl active:scale-95 transition-transform"
             >
               <Plus className="h-4 w-4" /> Novo
             </button>
@@ -279,7 +279,7 @@ export function Clients() {
               </p>
             </div>
           ) : (
-            <div className="p-4 space-y-3 pb-28">
+            <div className="p-4 space-y-1.5 pb-28">
               {(clients || []).map(c => {
                 const [bg, fg] = avatarColor(c.name)
                 const initials = c.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -320,7 +320,7 @@ export function Clients() {
                       <div className="flex border-t border-outline-variant/30 divide-x divide-outline-variant/30">
                         {c.phone && (
                           <a href={`tel:${c.phone}`}
-                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
+                             className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
                              onClick={e => e.stopPropagation()}>
                             📞 Ligar
                           </a>
@@ -328,14 +328,14 @@ export function Clients() {
                         {c.whatsapp && (
                           <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`}
                              target="_blank" rel="noreferrer"
-                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 transition-colors"
+                             className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 transition-colors"
                              onClick={e => e.stopPropagation()}>
                             💬 WhatsApp
                           </a>
                         )}
                         {c.email && (
                           <a href={`mailto:${c.email}`}
-                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
+                             className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
                              onClick={e => e.stopPropagation()}>
                             ✉️ E-mail
                           </a>
@@ -370,7 +370,7 @@ export function Clients() {
             />
             <button
               onClick={() => setShowImport(true)}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-1 transition-colors"
               title="Importar via Excel"
             >
               <Upload className="h-4 w-4" />
@@ -378,7 +378,7 @@ export function Clients() {
             </button>
             <button
               onClick={() => setShowNewCnpj(true)}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg px-3 py-1 transition-colors"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Novo</span>
@@ -412,11 +412,11 @@ export function Clients() {
           {!search && (
             <div className="flex gap-3 mt-4">
               <button onClick={() => setShowImport(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-surface-container text-on-surface-variant text-[11px] font-semibold rounded-lg hover:bg-surface-container-high transition-colors">
+                className="flex items-center gap-2 px-4 py-1 bg-surface-container text-on-surface-variant text-[11px] font-semibold rounded-lg hover:bg-surface-container-high transition-colors">
                 <Upload className="h-4 w-4" /> Importar Excel
               </button>
               <button onClick={() => setShowNewCnpj(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[11px] font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+                className="flex items-center gap-2 px-4 py-1 bg-primary text-white text-[11px] font-semibold rounded-lg hover:bg-primary/90 transition-colors">
                 <Plus className="h-4 w-4" /> Cadastrar Cliente
               </button>
             </div>
@@ -430,7 +430,7 @@ export function Clients() {
                 {visibleCols.map(col => (
                   <th
                     key={col.id}
-                    className={`px-2 py-2.5 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${col.id === '_edit' ? 'w-10' : ''}`}
+                    className={`px-2 py-1.5 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${col.id === '_edit' ? 'w-10' : ''}`}
                   >
                     {col.label}
                   </th>
@@ -468,7 +468,7 @@ export function Clients() {
           </div>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <Input label="Razão Social / Nome *" {...f('name')} error={errors.name} autoFocus />

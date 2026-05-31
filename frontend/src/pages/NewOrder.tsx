@@ -477,7 +477,7 @@ export function NewOrder() {
   return (
     <div className="pb-24 lg:pb-0 min-h-screen bg-surface-container-low">
       {/* Header */}
-      <div className="bg-white border-b border-outline-variant px-4 py-3 lg:px-8 sticky top-0 z-10">
+      <div className="bg-white border-b border-outline-variant px-4 py-2 lg:px-8 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-3">
             <button
@@ -525,7 +525,7 @@ export function NewOrder() {
       <div className="px-4 py-5 lg:px-8 max-w-2xl mx-auto">
         {/* STEP 0: Select Client */}
         {step === 0 && (
-          <div className="space-y-4">
+          <div className="space-y-1">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-[11px] font-semibold text-on-surface mb-1">Selecionar Cliente</h2>
@@ -551,7 +551,7 @@ export function NewOrder() {
             {loadingClients ? (
               <PageSpinner />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {(clients || []).map((c) => (
                   <Card
                     key={c.id}
@@ -577,11 +577,11 @@ export function NewOrder() {
                   </Card>
                 ))}
                 {clients?.length === 0 && (
-                  <div className="text-center py-6 space-y-3">
+                  <div className="text-center py-6 space-y-1.5">
                     <p className="text-[11px] text-outline">Nenhum cliente encontrado</p>
                     <button
                       onClick={() => setShowNewClient(true)}
-                      className="inline-flex items-center gap-2 text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-4 py-2 transition-colors"
+                      className="inline-flex items-center gap-2 text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-4 py-1 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                       Cadastrar novo cliente
@@ -605,7 +605,7 @@ export function NewOrder() {
 
         {/* STEP 1: Select Price Table */}
         {step === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-1">
             <div>
               <h2 className="text-[11px] font-semibold text-on-surface mb-1">Tabela de Preços</h2>
               {selectedClient && (
@@ -624,7 +624,7 @@ export function NewOrder() {
             {loadingTables ? (
               <PageSpinner />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {(priceTables || []).map((t) => (
                   <Card
                     key={t.id}
@@ -666,7 +666,7 @@ export function NewOrder() {
                   </Card>
                 ))}
                 {priceTables?.length === 0 && (
-                  <p className="text-center text-[11px] text-outline py-4">Nenhuma tabela disponível</p>
+                  <p className="text-center text-[11px] text-outline py-2.5">Nenhuma tabela disponível</p>
                 )}
               </div>
             )}
@@ -675,7 +675,7 @@ export function NewOrder() {
 
         {/* STEP 2: Browse Catalog + Cart */}
         {step === 2 && (
-          <div className="space-y-4">
+          <div className="space-y-1">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-[11px] font-semibold text-on-surface">Produtos</h2>
@@ -704,7 +704,7 @@ export function NewOrder() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="border border-outline-variant rounded-lg px-2 py-2.5 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-2 py-1.5 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos</option>
                 <option value="regular">Regular</option>
@@ -715,7 +715,7 @@ export function NewOrder() {
             {loadingProducts ? (
               <PageSpinner />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {(products || []).map((p) => {
                   const cartItem = cart.find((c) => c.product.id === p.id)
                   const isRegular = p.type === 'regular'
@@ -858,7 +858,7 @@ export function NewOrder() {
                   )
                 })}
                 {products?.length === 0 && (
-                  <p className="text-center text-[11px] text-outline py-4">Nenhum produto encontrado</p>
+                  <p className="text-center text-[11px] text-outline py-2.5">Nenhum produto encontrado</p>
                 )}
               </div>
             )}
@@ -884,7 +884,7 @@ export function NewOrder() {
 
         {/* STEP 3: Review */}
         {step === 3 && (
-          <div className="space-y-5">
+          <div className="space-y-1.5">
             <div>
               <h2 className="text-[11px] font-semibold text-on-surface">Revisão do Pedido</h2>
               <p className="text-[11px] text-outline">Confirme os dados antes de enviar</p>
@@ -902,7 +902,7 @@ export function NewOrder() {
 
             {/* Client + Table summary */}
             <Card padding="sm">
-              <div className="space-y-2 text-[11px]">
+              <div className="space-y-1 text-[11px]">
                 <div className="flex justify-between">
                   <span className="text-outline">Cliente:</span>
                   <span className="font-medium text-on-surface">{selectedClient?.name}</span>
@@ -929,7 +929,7 @@ export function NewOrder() {
                   Editar
                 </button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {cart.map((item) => {
                   const isRegular = item.product.type === 'regular'
                   const piecesPerBox = item.product.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 1
@@ -985,8 +985,8 @@ export function NewOrder() {
                   onChange={(e) => setPaymentTerms(e.target.value)}
                   placeholder="Ex: 30/60/90 dias"
                   className={paymentTerms.trim()
-                    ? 'w-full border border-outline-variant rounded-lg px-3 py-2.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary'
-                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2.5 text-[11px] bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
+                    ? 'w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary'
+                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-1.5 text-[11px] bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
                 />
               </div>
               <div>
@@ -994,7 +994,7 @@ export function NewOrder() {
                 <select
                   value={freightType}
                   onChange={(e) => setFreightType(e.target.value)}
-                  className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="CIF">CIF</option>
                   <option value="FOB">FOB</option>
@@ -1016,8 +1016,8 @@ export function NewOrder() {
                   onChange={(e) => setBuyerName(e.target.value)}
                   placeholder="Nome do comprador"
                   className={buyerName.trim()
-                    ? 'w-full border border-outline-variant rounded-lg px-3 py-2.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary'
-                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2.5 text-[11px] bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
+                    ? 'w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary'
+                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-1.5 text-[11px] bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
                 />
               </div>
               <div className="col-span-2">
@@ -1046,7 +1046,7 @@ export function NewOrder() {
               <div className="p-4 border-b border-outline-variant/50">
                 <h3 className="text-[11px] font-semibold text-on-surface-variant mb-3">Desconto</h3>
                 {discountRules.length > 0 && !customDiscount ? (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <div className="grid grid-cols-2 gap-2">
                       {discountRules.map((rule) => {
                         const isSelected = parseDecimal(discountPct) === rule.discount_pct
@@ -1089,7 +1089,7 @@ export function NewOrder() {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <MaskedInput
                       label="Desconto (%)"
                       mask="percent"
@@ -1109,7 +1109,7 @@ export function NewOrder() {
               </div>
 
               {/* Resumo financeiro */}
-              <div className="p-4 space-y-2 text-[11px] bg-surface-container-low">
+              <div className="p-4 space-y-1 text-[11px] bg-surface-container-low">
                 <div className="flex justify-between text-outline">
                   <span>Subtotal:</span>
                   <span>{formatCurrency(totals.grossValue)}</span>

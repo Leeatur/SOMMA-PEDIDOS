@@ -217,7 +217,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
     >
       {result ? (
         /* ── Resultado ── */
-        <div className="space-y-4">
+        <div className="space-y-1">
           <div className="flex items-center gap-3">
             <CheckCircle className="h-8 w-8 text-emerald-500 flex-shrink-0" />
             <div>
@@ -270,7 +270,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
         </div>
       ) : (
         /* ── Formulário ── */
-        <div className="space-y-4">
+        <div className="space-y-1">
           <div className="bg-blue-50 rounded-xl p-3 text-[11px] text-blue-700">
             <p className="font-semibold mb-1">Como funciona:</p>
             <ol className="list-decimal list-inside space-y-0.5 text-[11px]">
@@ -293,7 +293,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
             <select
               value={priceTableId}
               onChange={e => setPriceTableId(e.target.value)}
-              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             >
               <option value="">Selecione a tabela...</option>
               {(tables || []).map(t => (
@@ -349,7 +349,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
 
           {/* Progresso */}
           {processing && (
-            <div className="space-y-2">
+            <div className="space-y-1">
               <div className="flex items-center gap-2 text-[11px] text-primary">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>
