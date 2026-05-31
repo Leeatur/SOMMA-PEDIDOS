@@ -855,7 +855,7 @@ interface ItemRowProps {
 
 function ItemRow({
   index, reference, productName, imageUrl, type, unitPrice,
-  gradeConfigs, draftSizes, draftGrade,
+  gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
   onSizeChange, onGradeChange, onRemove, isNew, priceTableName,
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
