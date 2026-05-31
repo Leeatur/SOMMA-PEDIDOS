@@ -194,7 +194,7 @@ export function PriceTables() {
       <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="font-display text-[22px] font-bold text-on-surface">Tabelas de Preço</h1>
+            <h1 className="font-display text-lg font-bold text-on-surface">Tabelas de Preço</h1>
             <p className="text-xs text-outline mt-0.5">{tables.length} tabelas</p>
           </div>
           <Button onClick={() => { resetImport(); setImportOpen(true) }} icon={<Upload className="h-4 w-4" />} size="sm">
@@ -218,7 +218,7 @@ export function PriceTables() {
             <div className="flex flex-col items-center py-8 text-center">
               <FileSpreadsheet className="h-10 w-10 text-outline/50 mb-3" />
               <p className="font-medium text-on-surface-variant">Nenhuma tabela de preço</p>
-              <p className="text-sm text-outline/70 mt-1">Importe uma planilha Excel para começar</p>
+              <p className="text-xs text-outline/70 mt-1">Importe uma planilha Excel para começar</p>
             </div>
           </Card>
         ) : (
@@ -325,13 +325,13 @@ export function PriceTables() {
         {/* Step 1: Upload */}
         {importStep === 1 && (
           <div className="space-y-4">
-            <p className="text-sm text-on-surface-variant">
+            <p className="text-xs text-on-surface-variant">
               Selecione a planilha Excel (.xlsx) exportada da fábrica com os produtos e preços.
             </p>
             {previewError && (
               <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
                 <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700">{previewError}</p>
+                <p className="text-xs text-red-700">{previewError}</p>
               </div>
             )}
             <div
@@ -349,7 +349,7 @@ export function PriceTables() {
               ) : (
                 <>
                   <FileSpreadsheet className="h-10 w-10 text-outline/70 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-on-surface-variant">Arraste o arquivo aqui ou clique para selecionar</p>
+                  <p className="text-xs font-medium text-on-surface-variant">Arraste o arquivo aqui ou clique para selecionar</p>
                   <p className="text-xs text-outline/70 mt-1">Suporta .xlsx e .xls</p>
                 </>
               )}
@@ -372,18 +372,18 @@ export function PriceTables() {
           <div className="space-y-5">
             {/* Preview summary */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-              <p className="text-sm font-semibold text-emerald-800 mb-2">Planilha lida com sucesso</p>
+              <p className="text-xs font-semibold text-emerald-800 mb-2">Planilha lida com sucesso</p>
               <div className="grid grid-cols-3 gap-3">
                 <div className="text-center">
-                  <p className="text-xl font-bold text-emerald-700">{preview.totalProducts}</p>
+                  <p className="text-xs font-bold text-emerald-700">{preview.totalProducts}</p>
                   <p className="text-xs text-emerald-600">Total</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold text-primary">{preview.regularCount}</p>
+                  <p className="text-xs font-bold text-primary">{preview.regularCount}</p>
                   <p className="text-xs text-primary">Regular (TE)</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold text-purple-700">{preview.packCount}</p>
+                  <p className="text-xs font-bold text-purple-700">{preview.packCount}</p>
                   <p className="text-xs text-purple-600">Pack (PKTE)</p>
                 </div>
               </div>
@@ -428,7 +428,7 @@ export function PriceTables() {
             {/* Discount rules */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-on-surface-variant">Tabela Desconto × Comissão</p>
+                <p className="text-xs font-medium text-on-surface-variant">Tabela Desconto × Comissão</p>
                 <button
                   onClick={addDiscountRule}
                   className="text-xs text-primary flex items-center gap-1 hover:text-primary"
@@ -477,7 +477,7 @@ export function PriceTables() {
           <div className="space-y-4">
             <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 space-y-2">
               <p className="font-semibold text-blue-900">Resumo da Importação</p>
-              <div className="text-sm text-blue-800 space-y-1">
+              <div className="text-xs text-blue-800 space-y-1">
                 <p><span className="font-medium">Tabela:</span> {importForm.name}</p>
                 <p><span className="font-medium">Fábrica:</span> {factories?.find((f) => f.id === importForm.factory_id)?.name}</p>
                 {importForm.collection && <p><span className="font-medium">Coleção:</span> {importForm.collection}</p>}
@@ -487,7 +487,7 @@ export function PriceTables() {
             </div>
 
             <div>
-              <p className="text-sm font-medium text-on-surface-variant mb-2">Regras de comissão configuradas:</p>
+              <p className="text-xs font-medium text-on-surface-variant mb-2">Regras de comissão configuradas:</p>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-xs border border-outline-variant rounded-lg overflow-hidden">
                   <thead className="bg-surface-container-low">
@@ -514,7 +514,7 @@ export function PriceTables() {
 
             {importMut.isError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-sm text-red-700">Erro ao importar. Verifique os dados e tente novamente.</p>
+                <p className="text-xs text-red-700">Erro ao importar. Verifique os dados e tente novamente.</p>
               </div>
             )}
           </div>
@@ -544,7 +544,7 @@ export function PriceTables() {
         }
       >
         <div className="space-y-3">
-          <p className="text-sm text-on-surface-variant">
+          <p className="text-xs text-on-surface-variant">
             Tem certeza que deseja excluir a tabela{' '}
             <span className="font-semibold">"{deleteTable?.name}"</span>?
           </p>
@@ -593,7 +593,7 @@ export function PriceTables() {
                 <p className="text-xs text-outline">{selectedTable.product_count} produtos</p>
               </div>
             )}
-            <p className="text-sm text-on-surface-variant">
+            <p className="text-xs text-on-surface-variant">
               O sistema irá extrair as fotos do catálogo PDF e associar automaticamente às referências da tabela de preços.
             </p>
             <div
@@ -605,13 +605,13 @@ export function PriceTables() {
               ) : catalogFile ? (
                 <div>
                   <FileImage className="h-8 w-8 text-primary/80 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-on-surface-variant">{catalogFile.name}</p>
+                  <p className="text-xs font-medium text-on-surface-variant">{catalogFile.name}</p>
                   <p className="text-xs text-outline/70">Clique para trocar</p>
                 </div>
               ) : (
                 <>
                   <FileImage className="h-10 w-10 text-outline/70 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-on-surface-variant">Selecione o catálogo PDF</p>
+                  <p className="text-xs font-medium text-on-surface-variant">Selecione o catálogo PDF</p>
                   <p className="text-xs text-outline/70 mt-1">Arquivo .pdf</p>
                 </>
               )}
@@ -638,11 +638,11 @@ export function PriceTables() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-emerald-50 rounded-xl p-3">
-                <p className="text-2xl font-bold text-emerald-700">{catalogResult.matchedCount}</p>
+                <p className="text-xs font-bold text-emerald-700">{catalogResult.matchedCount}</p>
                 <p className="text-xs text-emerald-600">Fotos vinculadas</p>
               </div>
               <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-2xl font-bold text-amber-700">{catalogResult.unmatchedCount}</p>
+                <p className="text-xs font-bold text-amber-700">{catalogResult.unmatchedCount}</p>
                 <p className="text-xs text-amber-600">Sem foto</p>
               </div>
             </div>

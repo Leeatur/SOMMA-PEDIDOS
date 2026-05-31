@@ -444,7 +444,7 @@ export function OrderDetail() {
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base font-bold text-on-surface">{formatOrderNumber(order.order_number)}</h1>
+              <h1 className="text-xs font-bold text-on-surface">{formatOrderNumber(order.order_number)}</h1>
               {order.status_name && order.status_color && (
                 <StatusBadge name={order.status_name} color={order.status_color} />
               )}
@@ -472,7 +472,7 @@ export function OrderDetail() {
           <div className="flex justify-between items-start mb-3">
             <div>
               <span className="text-xs font-bold text-outline uppercase tracking-wide">Pedido</span>
-              <p className="text-2xl font-bold text-on-surface leading-tight mt-0.5">{formatOrderNumber(order.order_number)}</p>
+              <p className="text-lg font-bold text-on-surface leading-tight mt-0.5">{formatOrderNumber(order.order_number)}</p>
             </div>
             {order.status_name && order.status_color ? (
               <span
@@ -494,7 +494,7 @@ export function OrderDetail() {
           </div>
           <div className="flex items-center gap-2 text-on-surface-variant">
             <Clock className="h-4 w-4" />
-            <span className="text-sm">{formatDateTime(order.created_at)}</span>
+            <span className="text-xs">{formatDateTime(order.created_at)}</span>
           </div>
           {isAdmin && order.status_name && (
             <button
@@ -513,7 +513,7 @@ export function OrderDetail() {
           <div className="flex items-start justify-between mb-3">
             <p className="text-xs font-semibold text-outline uppercase tracking-wide">Informações do Pedido</p>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm select-text">
+          <div className="grid grid-cols-2 gap-3 text-xs select-text">
             <div className="col-span-2">
               <p className="text-xs text-outline mb-0.5">Cliente</p>
               <p className="font-semibold text-on-surface">{order.client_name}</p>
@@ -618,7 +618,7 @@ export function OrderDetail() {
               <p className="text-xs text-outline flex items-center gap-1 mb-1">
                 <MessageSquare className="h-3 w-3" /> Observações
               </p>
-              <p className="text-sm text-on-surface-variant">{order.notes}</p>
+              <p className="text-xs text-on-surface-variant">{order.notes}</p>
             </div>
           )}
         </Card>
@@ -627,16 +627,16 @@ export function OrderDetail() {
         <Card padding="md">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-4 w-4 text-emerald-600" />
-            <h2 className="text-sm font-semibold text-on-surface">Resumo Financeiro</h2>
+            <h2 className="text-xs font-semibold text-on-surface">Resumo Financeiro</h2>
           </div>
-          <div className="space-y-1.5 text-sm">
+          <div className="space-y-1.5 text-xs">
             <div className="flex justify-between items-center text-on-surface-variant">
               <span>Desconto aplicado:</span>
               <div className="flex items-center gap-2">
                 <span className="font-medium">{formatPct(order.discount_pct)}</span>
               </div>
             </div>
-            <div className="flex justify-between font-bold text-on-surface text-base">
+            <div className="flex justify-between font-bold text-on-surface text-xs">
               <span>Total do Pedido:</span>
               <span>{formatCurrency(order.total_value)}</span>
             </div>
@@ -667,7 +667,7 @@ export function OrderDetail() {
           }
         >
           <div className="space-y-4">
-            <p className="text-sm text-on-surface-variant">
+            <p className="text-xs text-on-surface-variant">
               O novo desconto será aplicado a todos os itens do pedido recalculando os valores.
               A tabela de preços permanece a mesma (<span className="font-medium text-on-surface">{order.price_table_name}</span>).
             </p>
@@ -681,7 +681,7 @@ export function OrderDetail() {
               hint="Use vírgula ou ponto. Ex: 4,61"
             />
             {editDiscountMut.isError && (
-              <p className="text-sm text-red-500">
+              <p className="text-xs text-red-500">
                 {(editDiscountMut.error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao alterar desconto'}
               </p>
             )}
@@ -690,7 +690,7 @@ export function OrderDetail() {
 
         {/* Items */}
         <div>
-          <h2 className="text-sm font-semibold text-on-surface-variant mb-3">
+          <h2 className="text-xs font-semibold text-on-surface-variant mb-3">
             Itens do Pedido ({order.items.length})
           </h2>
           <div className="space-y-2">
@@ -713,7 +713,7 @@ export function OrderDetail() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-on-surface text-sm select-text">{item.reference}</p>
+                        <p className="font-semibold text-on-surface text-xs select-text">{item.reference}</p>
                         {item.product_name && (
                           <p className="text-xs text-outline truncate select-text">{item.product_name}</p>
                         )}
@@ -726,7 +726,7 @@ export function OrderDetail() {
                         )}
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold text-on-surface">{formatCurrency(item.subtotal)}</p>
+                        <p className="text-xs font-bold text-on-surface">{formatCurrency(item.subtotal)}</p>
                         <p className="text-xs text-outline/70">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
                         <ChevronDown className={`h-3.5 w-3.5 text-outline/70 ml-auto mt-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </div>
@@ -781,7 +781,7 @@ export function OrderDetail() {
         {/* Status History */}
         {order.history.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-on-surface-variant mb-3">Histórico de Status</h2>
+            <h2 className="text-xs font-semibold text-on-surface-variant mb-3">Histórico de Status</h2>
             <div className="space-y-2">
               {order.history.map((h) => (
                 <div key={h.id} className="flex items-start gap-3">
@@ -822,7 +822,7 @@ export function OrderDetail() {
         size="lg"
         footer={
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-outline">
+            <span className="text-xs text-outline">
               {addCart.length > 0 ? `${addCart.length} produto${addCart.length > 1 ? 's' : ''} selecionado${addCart.length > 1 ? 's' : ''}` : 'Selecione os produtos'}
             </span>
             <div className="flex gap-2">
@@ -862,7 +862,7 @@ export function OrderDetail() {
                   <div key={c.product.id} className="bg-white rounded-lg px-3 py-2 space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-on-surface">{c.product.reference}</p>
+                        <p className="text-xs font-semibold text-on-surface">{c.product.reference}</p>
                         <p className="text-xs text-outline">{totalPieces} pç</p>
                       </div>
                       {!isRegular && (
@@ -870,7 +870,7 @@ export function OrderDetail() {
                           <button onClick={() => updateAddCount(c.product.id, -1)} className="w-6 h-6 rounded bg-surface-container flex items-center justify-center hover:bg-surface-container-high">
                             <Minus className="h-3 w-3" />
                           </button>
-                          <span className="w-8 text-center text-sm font-bold">{c.boxes_count}</span>
+                          <span className="w-8 text-center text-xs font-bold">{c.boxes_count}</span>
                           <button onClick={() => updateAddCount(c.product.id, 1)} className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center hover:bg-indigo-200">
                             <Plus className="h-3 w-3 text-primary" />
                           </button>
@@ -909,7 +909,7 @@ export function OrderDetail() {
           {/* Catálogo */}
           <div className="max-h-96 overflow-y-auto space-y-2 pr-1">
             {loadingAddProducts ? (
-              <div className="text-center py-6 text-sm text-outline/70">Carregando produtos…</div>
+              <div className="text-center py-6 text-xs text-outline/70">Carregando produtos…</div>
             ) : (addProducts || []).map(p => {
               const inCart = addCart.find(c => c.product.id === p.id)
               const piecesPerBox = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
@@ -927,10 +927,10 @@ export function OrderDetail() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-on-surface">{p.reference}</p>
+                      <p className="font-bold text-xs text-on-surface">{p.reference}</p>
                       {p.product_name && <p className="text-xs text-outline truncate">{p.product_name}</p>}
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-primary">R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-outline/70 font-normal">/pç</span></p>
+                        <p className="text-xs font-semibold text-primary">R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-outline/70 font-normal">/pç</span></p>
                         {/* pç/cx: só packs têm grade clicável */}
                         {piecesPerBox > 0 && p.type === 'pack' && (
                           <button onClick={() => setExpandedGrade(isExpanded ? null : p.id)} className="text-xs text-outline/70 flex items-center gap-0.5 hover:text-on-surface-variant">
@@ -949,7 +949,7 @@ export function OrderDetail() {
                           <button onClick={() => updateAddCount(p.id, -1)} className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center hover:bg-surface-container-high">
                             <Minus className="h-3.5 w-3.5" />
                           </button>
-                          <span className="w-8 text-center font-bold text-sm">{inCart.boxes_count}</span>
+                          <span className="w-8 text-center font-bold text-xs">{inCart.boxes_count}</span>
                           <button onClick={() => updateAddCount(p.id, 1)} className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-indigo-200">
                             <Plus className="h-3.5 w-3.5 text-primary" />
                           </button>
@@ -974,7 +974,7 @@ export function OrderDetail() {
               )
             })}
             {!loadingAddProducts && (addProducts || []).length === 0 && (
-              <p className="text-center text-sm text-outline/70 py-4">Nenhum produto encontrado</p>
+              <p className="text-center text-xs text-outline/70 py-4">Nenhum produto encontrado</p>
             )}
           </div>
         </div>
@@ -1008,7 +1008,7 @@ export function OrderDetail() {
           />
           {newStatusId && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-outline">Novo status:</span>
+              <span className="text-xs text-outline">Novo status:</span>
               {statuses?.find((s) => s.id === newStatusId) && (
                 <StatusBadge
                   name={statuses.find((s) => s.id === newStatusId)!.name}
@@ -1048,7 +1048,7 @@ export function OrderDetail() {
 
           {/* ── Trocar cliente ── */}
           <div>
-            <label className="block text-sm font-medium text-on-surface-variant mb-1">Cliente</label>
+            <label className="block text-xs font-medium text-on-surface-variant mb-1">Cliente</label>
             <div className="text-xs text-outline mb-1.5 bg-surface-container-low rounded-lg px-2 py-1">
               Atual: <span className="font-semibold text-on-surface-variant">{order.client_name}</span>
             </div>
@@ -1057,7 +1057,7 @@ export function OrderDetail() {
               value={editInfoForm.client_search}
               onChange={e => setEditInfoForm(f => ({ ...f, client_search: e.target.value, client_id: '' }))}
               placeholder="Digite para buscar e trocar cliente..."
-              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             />
             {editInfoForm.client_id && (
               <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
@@ -1071,7 +1071,7 @@ export function OrderDetail() {
                   <button
                     key={c.id}
                     onClick={() => setEditInfoForm(f => ({ ...f, client_id: c.id, client_search: c.name }))}
-                    className="w-full text-left px-3 py-2 hover:bg-primary/10 text-sm border-b border-gray-50 last:border-0"
+                    className="w-full text-left px-3 py-2 hover:bg-primary/10 text-xs border-b border-gray-50 last:border-0"
                   >
                     <p className="font-medium text-on-surface truncate">{c.name}</p>
                     {c.trade_name && <p className="text-xs text-outline truncate">{c.trade_name} · {c.city}</p>}
@@ -1084,11 +1084,11 @@ export function OrderDetail() {
           {/* ── Representante (admin only) ── */}
           {isAdmin && (
             <div>
-              <label className="block text-sm font-medium text-on-surface-variant mb-1">Representante</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Representante</label>
               <select
                 value={editInfoForm.rep_id}
                 onChange={e => setEditInfoForm(f => ({ ...f, rep_id: e.target.value }))}
-                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 {(usersList || []).filter(u => u.role === 'rep' || u.role === 'admin').map(u => (
                   <option key={u.id} value={u.id}>{u.name} {u.role === 'admin' ? '(Admin)' : ''}</option>
@@ -1101,84 +1101,84 @@ export function OrderDetail() {
             {/* ── Desconto (admin only) ── */}
             {isAdmin && (
               <div>
-                <label className="block text-sm font-medium text-on-surface-variant mb-1">Desconto (%)</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">Desconto (%)</label>
                 <input
                   type="text"
                   inputMode="decimal"
                   value={editInfoForm.discount_pct}
                   onChange={e => setEditInfoForm(f => ({ ...f, discount_pct: e.target.value }))}
                   placeholder="0,00"
-                  className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                  className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
                 />
                 <p className="text-xs text-outline mt-0.5">Recalcula todos os itens</p>
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-on-surface-variant mb-1">Frete</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Frete</label>
               <select
                 value={editInfoForm.freight_type}
                 onChange={e => setEditInfoForm(f => ({ ...f, freight_type: e.target.value }))}
-                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="CIF">CIF</option>
                 <option value="FOB">FOB</option>
               </select>
             </div>
             <div className={isAdmin ? 'col-span-2' : ''}>
-              <label className="block text-sm font-medium text-on-surface-variant mb-1">Data de Entrega</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Data de Entrega</label>
               <input
                 type="date"
                 value={editInfoForm.delivery_date}
                 onChange={e => setEditInfoForm(f => ({ ...f, delivery_date: e.target.value }))}
-                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-on-surface-variant mb-1">Cond. de Pagamento</label>
+            <label className="block text-xs font-medium text-on-surface-variant mb-1">Cond. de Pagamento</label>
             <input
               type="text"
               value={editInfoForm.payment_terms}
               onChange={e => setEditInfoForm(f => ({ ...f, payment_terms: e.target.value }))}
               placeholder="Ex: 30/60/90 DDL, À vista, 28 DDL..."
-              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-on-surface-variant mb-1">Comprador</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Comprador</label>
               <input
                 type="text"
                 value={editInfoForm.buyer_name}
                 onChange={e => setEditInfoForm(f => ({ ...f, buyer_name: e.target.value }))}
                 placeholder="Nome do comprador..."
-                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-on-surface-variant mb-1">Nº na Representada</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Nº na Representada</label>
               <input
                 type="text"
                 value={editInfoForm.industry_order_number}
                 onChange={e => setEditInfoForm(f => ({ ...f, industry_order_number: e.target.value }))}
                 placeholder="Número da indústria..."
-                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-on-surface-variant mb-1">Observações</label>
+            <label className="block text-xs font-medium text-on-surface-variant mb-1">Observações</label>
             <textarea
               value={editInfoForm.notes}
               onChange={e => setEditInfoForm(f => ({ ...f, notes: e.target.value }))}
               rows={3}
               placeholder="Observações do pedido..."
-              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white resize-none"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white resize-none"
             />
           </div>
           {updateInfoMut.isError && (
-            <p className="text-sm text-red-500">
+            <p className="text-xs text-red-500">
               {(updateInfoMut.error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao salvar'}
             </p>
           )}
@@ -1204,7 +1204,7 @@ export function OrderDetail() {
           </div>
         }
       >
-        <p className="text-sm text-on-surface-variant">
+        <p className="text-xs text-on-surface-variant">
           Tem certeza que deseja remover este item do pedido?
           Os totais serão recalculados automaticamente.
         </p>
@@ -1224,7 +1224,7 @@ export function OrderDetail() {
             <button
               onClick={() => deleteMut.mutate()}
               disabled={deleteMut.isPending}
-              className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-colors"
             >
               {deleteMut.isPending ? 'Excluindo…' : 'Excluir pedido'}
             </button>
@@ -1238,7 +1238,7 @@ export function OrderDetail() {
           <p className="text-on-surface-variant font-medium">
             Tem certeza que deseja excluir o pedido <span className="font-bold">{order && formatOrderNumber(order.order_number)}</span>?
           </p>
-          <p className="text-sm text-outline/70 mt-1">Esta ação não pode ser desfeita.</p>
+          <p className="text-xs text-outline/70 mt-1">Esta ação não pode ser desfeita.</p>
         </div>
       </Modal>
 
@@ -1280,7 +1280,7 @@ export function OrderDetail() {
             <select
               value={newPriceTableId}
               onChange={e => setNewPriceTableId(e.target.value)}
-              className="w-full border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2.5 text-xs text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             >
               <option value="">Selecione uma tabela…</option>
               {(factoryPriceTables || []).map(pt => (
@@ -1305,7 +1305,7 @@ export function OrderDetail() {
               value={newDiscountPct}
               onChange={e => setNewDiscountPct(e.target.value)}
               placeholder="0"
-              className="w-full border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2.5 text-xs text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />
           </div>
 

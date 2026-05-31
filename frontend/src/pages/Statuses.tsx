@@ -126,7 +126,7 @@ export function Statuses() {
       <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="font-display text-[22px] font-bold text-on-surface">Status de Pedidos</h1>
+            <h1 className="font-display text-lg font-bold text-on-surface">Status de Pedidos</h1>
             <p className="text-xs text-outline mt-0.5">{list.length} status configurados</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
@@ -226,7 +226,7 @@ export function Statuses() {
 
           {/* Color picker */}
           <div>
-            <label className="block text-sm font-medium text-on-surface-variant mb-2">Cor</label>
+            <label className="block text-xs font-medium text-on-surface-variant mb-2">Cor</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {PRESET_COLORS.map((c) => (
                 <button
@@ -250,7 +250,7 @@ export function Statuses() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-outline">Preview:</span>
+              <span className="text-xs text-outline">Preview:</span>
               <StatusBadge name={form.name || 'Status'} color={form.color} />
             </div>
           </div>
@@ -265,7 +265,7 @@ export function Statuses() {
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_initial ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <p className="text-sm font-medium text-on-surface-variant">Status inicial</p>
+                <p className="text-xs font-medium text-on-surface-variant">Status inicial</p>
                 <p className="text-xs text-outline">Aplicado automaticamente a novos pedidos</p>
               </div>
             </label>
@@ -277,7 +277,7 @@ export function Statuses() {
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_final ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <p className="text-sm font-medium text-on-surface-variant">Status final</p>
+                <p className="text-xs font-medium text-on-surface-variant">Status final</p>
                 <p className="text-xs text-outline">Indica pedidos concluídos/cancelados</p>
               </div>
             </label>
@@ -303,7 +303,7 @@ export function Statuses() {
           </div>
         }
       >
-        <p className="text-sm text-on-surface-variant">
+        <p className="text-xs text-on-surface-variant">
           Tem certeza que deseja excluir o status{' '}
           <strong>{deleteOpen?.name}</strong>? Pedidos com este status não serão afetados, mas o status não estará mais disponível.
         </p>

@@ -75,12 +75,12 @@ export function OrdersTrash() {
                 <Trash2 className="h-7 w-7 text-outline/50" />
               </div>
               <p className="text-outline font-medium">Lixeira vazia</p>
-              <p className="text-sm text-outline/70 mt-1">Pedidos excluídos aparecerão aqui</p>
+              <p className="text-xs text-outline/70 mt-1">Pedidos excluídos aparecerão aqui</p>
             </div>
           </Card>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>Pedidos na lixeira podem ser restaurados a qualquer momento. Clique em <strong>Restaurar</strong> para devolver ao sistema.</span>
             </div>
@@ -92,7 +92,7 @@ export function OrdersTrash() {
                     {/* Número e cliente */}
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-bold text-outline/70">#{order.order_number}</span>
-                      <span className="text-sm font-semibold text-on-surface truncate">{order.client_name}</span>
+                      <span className="text-xs font-semibold text-on-surface truncate">{order.client_name}</span>
                       {order.client_city && (
                         <span className="text-xs text-outline/70">— {order.client_city}</span>
                       )}

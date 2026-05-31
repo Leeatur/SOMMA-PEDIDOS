@@ -56,9 +56,9 @@ export function Dashboard() {
         <div className="absolute top-8 right-20 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
         <div className="absolute -bottom-6 left-1/3 w-36 h-36 bg-white/5 rounded-full pointer-events-none" />
 
-        <p className="text-white/70 text-sm font-medium">{greeting()},</p>
+        <p className="text-white/70 text-xs font-medium">{greeting()},</p>
         <h1 className="font-display text-[32px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
-        <p className="text-white/60 text-sm mt-1.5">
+        <p className="text-white/60 text-xs mt-1.5">
           {isAdmin ? 'Administrador' : 'Representante'} &bull;{' '}
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
@@ -66,7 +66,7 @@ export function Dashboard() {
         {/* FAB new order (desktop) */}
         <button
           onClick={() => navigate('/orders/new')}
-          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold px-4 py-2 rounded-xl border border-white/20 transition-all backdrop-blur-sm"
+          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-xs font-semibold px-4 py-2 rounded-xl border border-white/20 transition-all backdrop-blur-sm"
         >
           <Plus className="h-4 w-4" /> Novo pedido
         </button>
@@ -162,10 +162,10 @@ export function Dashboard() {
               <div className="w-14 h-14 bg-surface-container rounded-2xl flex items-center justify-center mb-3">
                 <Package className="h-7 w-7 text-outline" />
               </div>
-              <p className="text-sm text-on-surface-variant font-medium">Nenhum pedido ainda</p>
+              <p className="text-xs text-on-surface-variant font-medium">Nenhum pedido ainda</p>
               <button
                 onClick={() => navigate('/orders/new')}
-                className="mt-3 text-[13px] text-primary font-semibold hover:underline"
+                className="mt-3 text-xs text-primary font-semibold hover:underline"
               >
                 Criar primeiro pedido →
               </button>
@@ -194,7 +194,7 @@ export function Dashboard() {
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-[12px] font-bold text-primary font-mono">{formatOrderNumber(order.order_number)}</span>
                       <span className="text-outline/40">·</span>
-                      <span className="text-[14px] font-semibold text-on-surface truncate">{order.client_name}</span>
+                      <span className="text-xs font-semibold text-on-surface truncate">{order.client_name}</span>
                     </div>
                     <p className="text-[12px] text-outline truncate">{order.factory_name} · {formatDate(order.created_at)}</p>
                   </div>
@@ -211,7 +211,7 @@ export function Dashboard() {
                         {order.status_name}
                       </span>
                     )}
-                    <p className="text-[14px] font-bold text-on-surface">{formatCurrency(order.total_value)}</p>
+                    <p className="text-xs font-bold text-on-surface">{formatCurrency(order.total_value)}</p>
                   </div>
                 </div>
               ))}
@@ -274,7 +274,7 @@ function StatCard({
 
 function SectionTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <h2 className={`text-[13px] font-bold text-outline uppercase tracking-wider mb-3 ${className}`}>
+    <h2 className={`text-xs font-bold text-outline uppercase tracking-wider mb-3 ${className}`}>
       {children}
     </h2>
   )

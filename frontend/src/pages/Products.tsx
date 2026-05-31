@@ -245,12 +245,12 @@ function ProductDetailModal({
 
   // ── Edit form ────────────────────────────────────────────────────────────
   if (editing) {
-    const inputCls = "w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+    const inputCls = "w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary bg-white"
     return (
       <Modal open onClose={() => setEditing(false)} title={`Editar: ${p.reference}`} size="lg">
         <div className="space-y-4">
           {saveError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">{saveError}</div>
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">{saveError}</div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
@@ -368,11 +368,11 @@ function ProductDetailModal({
 
           <div className="flex gap-2 pt-2 border-t border-outline-variant">
             <button onClick={handleSave} disabled={saving || !editForm.reference}
-              className="flex-1 bg-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
+              className="flex-1 bg-primary text-white rounded-xl py-2.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
               {saving ? 'Salvando…' : 'Salvar alterações'}
             </button>
             <button onClick={() => setEditing(false)}
-              className="px-4 py-2.5 border border-outline-variant rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1.5">
+              className="px-4 py-2.5 border border-outline-variant rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1.5">
               <X className="h-4 w-4" /> Cancelar
             </button>
           </div>
@@ -409,8 +409,8 @@ function ProductDetailModal({
             {p.type === 'pack' ? 'PACK' : 'Regular'}
           </Badge>
           {!p.active && <Badge variant="danger">Indisponível</Badge>}
-          {p.product_name && <span className="text-sm font-semibold text-on-surface">{p.product_name}</span>}
-          {p.model && <span className="text-sm text-outline">{p.model}</span>}
+          {p.product_name && <span className="text-xs font-semibold text-on-surface">{p.product_name}</span>}
+          {p.model && <span className="text-xs text-outline">{p.model}</span>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -426,7 +426,7 @@ function ProductDetailModal({
           )}
         </div>
 
-        <div className="space-y-1.5 text-sm">
+        <div className="space-y-1.5 text-xs">
           {p.size_range && (
             <div className="flex justify-between">
               <span className="text-outline">Tamanhos</span>
@@ -467,7 +467,7 @@ function ProductDetailModal({
             {p.type === 'regular' ? (
               <div className="flex flex-wrap gap-1.5">
                 {sortSizes(Array.from(new Set(p.grade_configs.flatMap(gc => Object.keys(gc.sizes)).flatMap(expandSizeKey)))).map(s => (
-                  <span key={s} className="px-2.5 py-1 text-sm font-semibold bg-white text-primary rounded-lg border border-primary/30 shadow-sm">
+                  <span key={s} className="px-2.5 py-1 text-xs font-semibold bg-white text-primary rounded-lg border border-primary/30 shadow-sm">
                     {s}
                   </span>
                 ))}
@@ -515,7 +515,7 @@ function ProductDetailModal({
             {/* Disponibilidade */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-on-surface">Disponibilidade</p>
+                <p className="text-xs font-semibold text-on-surface">Disponibilidade</p>
                 <p className="text-xs text-outline">
                   {p.active ? 'Referência disponível para venda' : 'Referência bloqueada — não aparece para representantes'}
                 </p>
@@ -523,7 +523,7 @@ function ProductDetailModal({
               <button
                 onClick={() => availMut.mutate(!p.active)}
                 disabled={availMut.isPending}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   p.active
                     ? 'border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                     : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
@@ -540,7 +540,7 @@ function ProductDetailModal({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <p className="text-sm font-semibold text-on-surface">Tamanhos bloqueados</p>
+                    <p className="text-xs font-semibold text-on-surface">Tamanhos bloqueados</p>
                     <p className="text-xs text-outline">Clique para bloquear/desbloquear cada tamanho</p>
                   </div>
                   {blockedChanged && (
@@ -561,7 +561,7 @@ function ProductDetailModal({
                         key={size}
                         type="button"
                         onClick={() => toggleSize(size)}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-sm font-semibold transition-all ${
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all ${
                           blocked
                             ? 'border-red-400 bg-red-50 text-red-600 line-through'
                             : 'border-primary/30 bg-white text-primary hover:border-primary'
@@ -625,7 +625,7 @@ function ProductRow({
         return (
           <td key={id} className="px-2 py-2">
             <div className="flex items-center gap-1.5">
-              <span className={`font-bold text-sm whitespace-nowrap ${p.active ? 'text-primary' : 'text-outline line-through'}`}>
+              <span className={`font-bold text-xs whitespace-nowrap ${p.active ? 'text-primary' : 'text-outline line-through'}`}>
                 {p.reference}
               </span>
               <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[10px] px-1.5 py-0">
@@ -645,7 +645,7 @@ function ProductRow({
       case 'name':
         return (
           <td key={id} className="px-2 py-2 max-w-[180px]">
-            <p className="text-sm font-medium text-on-surface truncate">{p.product_name || '—'}</p>
+            <p className="text-xs font-medium text-on-surface truncate">{p.product_name || '—'}</p>
             {p.model && <p className="text-xs text-outline/70 truncate">{p.model}</p>}
           </td>
         )
@@ -658,7 +658,7 @@ function ProductRow({
       case 'price':
         return (
           <td key={id} className="px-2 py-2 whitespace-nowrap text-right">
-            <span className="text-sm font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</span>
+            <span className="text-xs font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</span>
             <span className="text-xs text-outline/70 ml-0.5">/pç</span>
           </td>
         )
@@ -760,7 +760,7 @@ export function Products() {
         {/* Mobile header */}
         <div className="px-4 pt-4 pb-3 bg-white border-b border-outline-variant/60 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-xl font-bold text-on-surface">Produtos</h2>
+            <h2 className="font-display text-lg font-bold text-on-surface">Produtos</h2>
             <span className="text-xs text-outline">
               {isLoading ? '' : `${total} produto${total !== 1 ? 's' : ''}`}
             </span>
@@ -771,7 +771,7 @@ export function Products() {
               value={search}
               onChange={e => handleSearch(e.target.value)}
               placeholder="Referência, nome, fábrica..."
-              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
           </div>
           {/* Type filter chips */}
@@ -836,7 +836,7 @@ export function Products() {
                       )}
                       <div className="mt-2 flex items-end justify-between">
                         <div>
-                          <p className="text-base font-bold text-on-surface leading-none">
+                          <p className="text-xs font-bold text-on-surface leading-none">
                             R$ {Number(p.base_price).toFixed(2)}
                           </p>
                           <p className="text-[9px] text-outline">/peça{pieces > 0 ? ` · ${pieces}pç/cx` : ''}</p>
@@ -860,7 +860,7 @@ export function Products() {
       <div className="px-4 pt-5 pb-3 lg:px-8 border-b border-outline-variant bg-white">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="font-display text-[22px] font-bold text-on-surface">Produtos</h1>
+            <h1 className="font-display text-lg font-bold text-on-surface">Produtos</h1>
             <p className="text-xs text-outline">
               {isLoading ? 'Carregando…' : `${total} produto${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
             </p>
@@ -869,7 +869,7 @@ export function Products() {
             {isAdmin && (
               <button
                 onClick={() => setShowInactive(v => !v)}
-                className={`flex items-center gap-1.5 text-sm font-semibold border rounded-lg px-3 py-2 transition-colors ${
+                className={`flex items-center gap-1.5 text-xs font-semibold border rounded-lg px-3 py-2 transition-colors ${
                   showInactive
                     ? 'bg-red-50 border-red-300 text-red-700'
                     : 'bg-surface-container hover:bg-surface-container-high border-outline-variant text-on-surface-variant'
@@ -882,7 +882,7 @@ export function Products() {
             )}
             <button
               onClick={() => setShowZipImport(true)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
               title="Importar fotos via ZIP"
             >
               <Archive className="h-4 w-4" />
@@ -910,7 +910,7 @@ export function Products() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
           >
             <option value="">Todos</option>
             <option value="regular">Regular</option>
@@ -928,7 +928,7 @@ export function Products() {
             <ChevronDown className="h-8 w-8 text-outline/50" />
           </div>
           <p className="text-outline font-medium">Nenhum produto encontrado</p>
-          <p className="text-sm text-outline/70 mt-1">
+          <p className="text-xs text-outline/70 mt-1">
             {debouncedSearch
               ? `Nenhum resultado para "${debouncedSearch}"`
               : 'Importe uma tabela de preços para começar'}

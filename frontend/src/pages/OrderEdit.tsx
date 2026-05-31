@@ -483,13 +483,13 @@ export default function OrderEdit() {
 
   // ── render helpers ────────────────────────────────────────────────────────────
 
-  const inputCls = 'w-full border border-outline-variant rounded-lg px-3 py-2 text-sm bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary'
+  const inputCls = 'w-full border border-outline-variant rounded-lg px-3 py-2 text-xs bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary'
   const labelCls = 'block text-xs font-medium text-on-surface-variant mb-1'
 
   // Campos obrigatórios — ámbar quando vazios
   const warnCls = (val: string) => val.trim()
     ? inputCls
-    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2 text-sm bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'
+    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2 text-xs bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'
   const warnLabelCls = (val: string) => val.trim()
     ? labelCls
     : 'block text-xs font-semibold text-amber-600 mb-1'
@@ -511,7 +511,7 @@ export default function OrderEdit() {
             <ChevronLeft size={20} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="font-semibold text-on-surface text-base leading-tight">
+            <h1 className="font-semibold text-on-surface text-xs leading-tight">
               {formatOrderNumber(order.order_number)}
             </h1>
             <p className="text-xs text-on-surface-variant truncate">{order.client_trade_name || order.client_name}</p>
@@ -519,7 +519,7 @@ export default function OrderEdit() {
           {/* Visualizar */}
           <button onClick={() => window.open(`/orders/${id}/print`, '_blank')}
             title="Visualizar pedido (somente leitura)"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container shrink-0">
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-xs text-on-surface-variant hover:bg-surface-container shrink-0">
             <Eye size={15} /> Visualizar
           </button>
           {/* Imprimir */}
@@ -530,19 +530,19 @@ export default function OrderEdit() {
           </button>
           {/* Cancelar */}
           <button onClick={() => navigate(`/orders/${id}`)}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container shrink-0">
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-xs text-on-surface-variant hover:bg-surface-container shrink-0">
             <X size={15} /> Cancelar
           </button>
           {/* Salvar */}
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 shrink-0">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 disabled:opacity-60 shrink-0">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             {saving ? 'Salvando...' : 'Salvar'}
           </button>
         </div>
         {saveError && (
           <div className="max-w-7xl mx-auto px-4 pb-2">
-            <div className="flex items-center gap-2 text-error text-sm bg-error/8 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-error text-xs bg-error/8 rounded-lg px-3 py-2">
               <AlertTriangle size={15} /> {saveError}
             </div>
           </div>
@@ -553,7 +553,7 @@ export default function OrderEdit() {
 
         {/* ── Informações do Pedido ── */}
         <div className="bg-white rounded-2xl border border-outline-variant shadow-sm p-5">
-          <h2 className="font-semibold text-on-surface mb-4 text-sm uppercase tracking-wide text-on-surface-variant">
+          <h2 className="font-semibold text-on-surface mb-4 text-xs uppercase tracking-wide text-on-surface-variant">
             Informações do Pedido
           </h2>
 
@@ -574,7 +574,7 @@ export default function OrderEdit() {
                 <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-outline-variant rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {clientResults.map(c => (
                     <button key={c.id} type="button"
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-surface-container"
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-surface-container"
                       onMouseDown={() => {
                         setForm(f => ({ ...f, client_id: c.id, client_display: c.trade_name || c.name }))
                         setShowClientDropdown(false)
@@ -686,14 +686,14 @@ export default function OrderEdit() {
         {/* ── Itens do Pedido ── */}
         <div className="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
           <div className="p-5 border-b border-outline-variant flex items-center justify-between gap-4">
-            <h2 className="font-semibold text-on-surface text-sm uppercase tracking-wide text-on-surface-variant">
+            <h2 className="font-semibold text-on-surface text-xs uppercase tracking-wide text-on-surface-variant">
               Itens do Pedido
             </h2>
             {/* Busca de produto */}
             <div className="relative flex-1 max-w-sm">
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
               <input
-                className="w-full border border-outline-variant rounded-lg pl-8 pr-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                className="w-full border border-outline-variant rounded-lg pl-8 pr-3 py-2 text-xs bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                 value={prodSearch}
                 onChange={e => searchProducts(e.target.value)}
                 onBlur={() => setTimeout(() => setShowProdDropdown(false), 150)}
@@ -701,13 +701,13 @@ export default function OrderEdit() {
               />
               {showProdDropdown && (
                 <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-outline-variant rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                  {searching && <p className="px-3 py-2 text-sm text-on-surface-variant">Buscando...</p>}
+                  {searching && <p className="px-3 py-2 text-xs text-on-surface-variant">Buscando...</p>}
                   {!searching && prodResults.length === 0 && (
-                    <p className="px-3 py-2 text-sm text-on-surface-variant">Nenhum produto encontrado</p>
+                    <p className="px-3 py-2 text-xs text-on-surface-variant">Nenhum produto encontrado</p>
                   )}
                   {prodResults.map(p => (
                     <button key={p.id} type="button"
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-surface-container text-left"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-surface-container text-left"
                       onMouseDown={() => addProduct(p)}>
                       {p.image_url
                         ? <img src={p.image_url} className="w-8 h-8 object-cover rounded shrink-0" />
@@ -726,7 +726,7 @@ export default function OrderEdit() {
 
           {/* Tabela de itens — scrollável horizontalmente no desktop */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-max text-sm">
+            <table className="w-full min-w-max text-xs">
               <thead>
                 <tr className="bg-surface-container-low text-on-surface-variant text-xs">
                   <th className="px-4 py-2 text-left font-medium w-8">#</th>
@@ -787,7 +787,7 @@ export default function OrderEdit() {
 
                 {activeItems.length === 0 && newItems.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-on-surface-variant">
+                    <td colSpan={7} className="px-4 py-8 text-center text-xs text-on-surface-variant">
                       Nenhum item. Use a busca acima para adicionar produtos.
                     </td>
                   </tr>
@@ -798,13 +798,13 @@ export default function OrderEdit() {
 
           {/* Totais */}
           <div className="px-5 py-4 border-t border-outline-variant bg-surface-container-low flex items-center justify-end gap-8">
-            <div className="text-sm text-on-surface-variant">
+            <div className="text-xs text-on-surface-variant">
               <span className="font-medium text-on-surface">{allItems.length}</span> produto{allItems.length !== 1 ? 's' : ''}
             </div>
-            <div className="text-sm text-on-surface-variant">
+            <div className="text-xs text-on-surface-variant">
               <span className="font-medium text-on-surface">{totalPieces}</span> peças
             </div>
-            <div className="text-base font-bold text-on-surface">
+            <div className="text-xs font-bold text-on-surface">
               {formatCurrency(totalValue)}
             </div>
           </div>
@@ -813,15 +813,15 @@ export default function OrderEdit() {
         {/* Botões de ação no final (mobile-friendly) */}
         <div className="flex gap-3 pb-8">
           <button onClick={() => navigate(`/orders/${id}`)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container">
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-outline-variant text-xs text-on-surface-variant hover:bg-surface-container">
             <X size={16} /> Cancelar
           </button>
           <button onClick={() => window.open(`/orders/${id}/print`, '_blank')}
-            className="hidden sm:flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-outline-variant text-sm text-on-surface-variant hover:bg-surface-container">
+            className="hidden sm:flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-outline-variant text-xs text-on-surface-variant hover:bg-surface-container">
             <Eye size={16} /> Visualizar
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-60">
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary/90 disabled:opacity-60">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {saving ? 'Salvando...' : 'Salvar Pedido'}
           </button>
@@ -886,7 +886,7 @@ function ItemRow({
             ? <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded shrink-0" />
             : <div className="w-10 h-10 rounded bg-surface-container-low shrink-0" />}
           <div className="min-w-0">
-            <p className="font-semibold text-on-surface text-sm">{reference}</p>
+            <p className="font-semibold text-on-surface text-xs">{reference}</p>
             {priceTableName && <p className="text-[10px] text-primary/70 font-medium leading-tight">{priceTableName}</p>}
             <p className="text-xs text-on-surface-variant truncate max-w-[160px]">{productName}</p>
             {isNew && <span className="text-xs text-primary font-medium">+ novo</span>}
@@ -895,7 +895,7 @@ function ItemRow({
       </td>
 
       {/* Preço tabela */}
-      <td className="px-3 py-3 text-right text-sm text-on-surface-variant whitespace-nowrap align-middle">
+      <td className="px-3 py-3 text-right text-xs text-on-surface-variant whitespace-nowrap align-middle">
         {formatCurrency(unitPrice)}
       </td>
 
@@ -990,13 +990,13 @@ function ItemRow({
 
       {/* Total peças */}
       <td className="px-3 py-3 text-right align-middle">
-        <span className="inline-block bg-surface-container text-on-surface font-semibold text-sm px-2 py-0.5 rounded-lg min-w-[40px] text-center">
+        <span className="inline-block bg-surface-container text-on-surface font-semibold text-xs px-2 py-0.5 rounded-lg min-w-[40px] text-center">
           {pieces}
         </span>
       </td>
 
       {/* Total R$ */}
-      <td className="px-3 py-3 text-right font-medium text-on-surface align-middle whitespace-nowrap text-sm">
+      <td className="px-3 py-3 text-right font-medium text-on-surface align-middle whitespace-nowrap text-xs">
         {formatCurrency(subtotal)}
       </td>
 

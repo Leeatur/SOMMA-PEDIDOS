@@ -177,7 +177,7 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
 
       {/* Client */}
       <div>
-        <p className="text-sm font-semibold text-on-surface leading-tight">{o.client_name}</p>
+        <p className="text-xs font-semibold text-on-surface leading-tight">{o.client_name}</p>
         {o.client_trade_name && (
           <p className="text-xs text-on-surface-variant mt-0.5">{o.client_trade_name}</p>
         )}
@@ -197,7 +197,7 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
             </>
           )}
         </div>
-        <p className="text-base font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
+        <p className="text-xs font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
       </div>
     </div>
   )
@@ -255,7 +255,7 @@ export function Orders() {
         {/* Mobile header */}
         <div className="px-4 pt-4 pb-3 bg-surface border-b border-border-subtle">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-bold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Pedidos</h2>
+            <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Pedidos</h2>
             <span className="text-xs text-on-surface-variant">
               {isLoading ? '' : `${total} pedido${total !== 1 ? 's' : ''}`}
             </span>
@@ -268,7 +268,7 @@ export function Orders() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por cliente, nº pedido, indústria, vendedor..."
-              className="w-full h-11 pl-10 pr-4 bg-white border border-border-subtle rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all shadow-sm"
+              className="w-full h-11 pl-10 pr-4 bg-white border border-border-subtle rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all shadow-sm"
             />
           </div>
         </div>
@@ -312,7 +312,7 @@ export function Orders() {
                 <ShoppingCart className="h-8 w-8 text-outline/50" />
               </div>
               <p className="text-outline font-medium">Nenhum pedido encontrado</p>
-              <p className="text-sm text-outline/70 mt-1">
+              <p className="text-xs text-outline/70 mt-1">
                 {search || statusFilter ? 'Tente ajustar os filtros.' : 'Crie o primeiro pedido.'}
               </p>
             </div>
@@ -337,7 +337,7 @@ export function Orders() {
         <div className="px-8 pt-5 pb-3 border-b border-outline-variant bg-white">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="font-display text-[22px] font-bold text-on-surface">Pedidos</h1>
+              <h1 className="font-display text-lg font-bold text-on-surface">Pedidos</h1>
               <p className="text-[12px] text-on-surface-variant">
                 {isLoading ? 'Carregando…' : `${total} pedido${total !== 1 ? 's' : ''}`}
               </p>
@@ -346,7 +346,7 @@ export function Orders() {
               <ColumnConfigButton defs={colDefs} config={config} onSave={save} onReset={reset} />
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-1 text-sm px-3 py-2 border rounded-lg transition-colors ${
+                className={`flex items-center gap-1 text-xs px-3 py-2 border rounded-lg transition-colors ${
                   showFilters || statusFilter || factoryFilter || dateFrom || dateTo
                     ? 'text-primary border-primary/40 bg-primary/10'
                     : 'text-outline border-outline-variant bg-white hover:text-on-surface-variant'
@@ -377,7 +377,7 @@ export function Orders() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos os status</option>
                 {(statuses || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -385,15 +385,15 @@ export function Orders() {
               <select
                 value={factoryFilter}
                 onChange={(e) => setFactoryFilter(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as fábricas</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
+                className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
+                className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
             </div>
           )}
         </div>
@@ -407,12 +407,12 @@ export function Orders() {
               <ShoppingCart className="h-8 w-8 text-outline/50" />
             </div>
             <p className="text-outline font-medium">Nenhum pedido encontrado</p>
-            <p className="text-sm text-outline/70 mt-1">
+            <p className="text-xs text-outline/70 mt-1">
               {search || statusFilter || factoryFilter ? 'Tente ajustar os filtros.' : 'Crie o primeiro pedido.'}
             </p>
             <button
               onClick={() => navigate('/orders/new')}
-              className="mt-4 flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+              className="mt-4 flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors"
             >
               <PlusCircle className="h-4 w-4" /> Criar Pedido
             </button>

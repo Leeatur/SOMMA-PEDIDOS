@@ -93,7 +93,7 @@ export function Factories() {
       <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="font-display text-[22px] font-bold text-on-surface">Fábricas / Marcas</h1>
+            <h1 className="font-display text-lg font-bold text-on-surface">Fábricas / Marcas</h1>
             <p className="text-xs text-outline mt-0.5">{list.length} cadastradas</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">

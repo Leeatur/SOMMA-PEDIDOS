@@ -91,7 +91,7 @@ function EmptyState({ label }: { label: string }) {
   return (
     <div className="text-center py-16">
       <BarChart2 className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-      <p className="text-sm text-outline/70">{label}</p>
+      <p className="text-xs text-outline/70">{label}</p>
     </div>
   )
 }
@@ -106,7 +106,7 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
 
 function Td({ children, right, bold }: { children: React.ReactNode; right?: boolean; bold?: boolean }) {
   return (
-    <td className={`px-4 py-3 text-sm ${right ? 'text-right' : ''} ${bold ? 'font-bold text-on-surface' : 'text-on-surface-variant'}`}>
+    <td className={`px-4 py-3 text-xs ${right ? 'text-right' : ''} ${bold ? 'font-bold text-on-surface' : 'text-on-surface-variant'}`}>
       {children}
     </td>
   )
@@ -190,7 +190,7 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
         <input
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Buscar referência, nome..."
-          className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <button
           onClick={toggleAll}
@@ -218,7 +218,7 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
               }
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-on-surface text-sm">{row.table_name}</span>
+                  <span className="font-semibold text-on-surface text-xs">{row.table_name}</span>
                   <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">{row.factory_name}</span>
                   {label && <span className="text-xs text-outline">{label}</span>}
                 </div>
@@ -248,7 +248,7 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
                             <span className="font-mono text-xs font-bold text-on-surface">{p.reference}</span>
                           </td>
                           <td className="px-3 py-2.5">
-                            <p className="text-sm text-on-surface leading-tight">{p.product_name || '—'}</p>
+                            <p className="text-xs text-on-surface leading-tight">{p.product_name || '—'}</p>
                             {p.model && <p className="text-xs text-outline/70">{p.model}</p>}
                           </td>
                           <td className="px-3 py-2.5">
@@ -261,7 +261,7 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-right">
-                            <span className="text-sm font-bold text-on-surface">{fmtR(p.base_price)}</span>
+                            <span className="text-xs font-bold text-on-surface">{fmtR(p.base_price)}</span>
                           </td>
                           <td className="px-3 py-2.5">
                             {p.type === 'pack'
@@ -312,7 +312,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
           if (e.target.value) setExpanded(new Set(data.map(c => c.price_table_id)))
           else setExpanded(new Set())
         }}
-        className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400"
       />
 
       {data.map(col => {
@@ -343,9 +343,9 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-sm font-bold text-on-surface">{col.factory_name}</span>
+                  <span className="text-xs font-bold text-on-surface">{col.factory_name}</span>
                   <span className="text-xs text-outline/70">—</span>
-                  <span className="text-sm text-on-surface-variant truncate">{col.collection}</span>
+                  <span className="text-xs text-on-surface-variant truncate">{col.collection}</span>
                   {col.season && (
                     <span className="text-xs text-primary font-medium">
                       {col.season}{col.year ? ` ${col.year}` : ''}
@@ -358,18 +358,18 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
               <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
                 <div className="text-right">
                   <p className="text-xs text-outline/70">Refs vendidas</p>
-                  <p className="text-sm font-bold text-on-surface-variant">
+                  <p className="text-xs font-bold text-on-surface-variant">
                     {soldCount}
                     <span className="text-xs text-outline/70 font-normal"> / {products.length}</span>
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-outline/70">Peças</p>
-                  <p className="text-sm font-bold text-on-surface-variant">{fmtN(totalPcs)}</p>
+                  <p className="text-xs font-bold text-on-surface-variant">{fmtN(totalPcs)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-outline/70">Valor</p>
-                  <p className="text-sm font-bold text-primary">{fmtR(totalVal)}</p>
+                  <p className="text-xs font-bold text-primary">{fmtR(totalVal)}</p>
                 </div>
               </div>
             </button>
@@ -565,12 +565,12 @@ export function Reports() {
             {/* date inputs */}
             <input
               type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border border-outline-variant rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <span className="text-outline/70 text-sm">–</span>
+            <span className="text-outline/70 text-xs">–</span>
             <input
               type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border border-outline-variant rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
             />
 
             {/* quick range buttons */}
@@ -589,7 +589,7 @@ export function Reports() {
             {(
               <select
                 value={factoryId} onChange={e => setFactoryId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as fábricas</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -600,7 +600,7 @@ export function Reports() {
             {isAdmin && tab !== 'products' && (
               <select
                 value={repId} onChange={e => setRepId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos os representantes</option>
                 {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -613,7 +613,7 @@ export function Reports() {
             {TABS.map(t => (
               <button
                 key={t.id} onClick={() => setTab(t.id)}
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                className={`px-4 py-2.5 text-xs font-medium border-b-2 transition-colors -mb-px ${
                   tab === t.id
                     ? 'border-blue-600 text-primary'
                     : 'border-transparent text-outline hover:text-on-surface-variant'
@@ -645,7 +645,7 @@ export function Reports() {
               ].map(c => (
                 <div key={c.label} className={`${c.color} rounded-xl border border-outline-variant/50 p-4`}>
                   <p className="text-xs text-outline mb-1">{c.label}</p>
-                  <p className={`text-xl font-bold ${c.text}`}>{c.value}</p>
+                  <p className={`text-xs font-bold ${c.text}`}>{c.value}</p>
                   {c.label === 'Com. Rep' && isAdmin && (
                     <p className="text-xs text-outline/70 mt-0.5">
                       Esc: {fmtR(ordersQ.data.summary.office_commission_value)}
@@ -660,7 +660,7 @@ export function Reports() {
               ? <EmptyState label="Nenhum pedido no período" />
               : (
                 <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
-                  <p className="px-4 py-3 text-sm font-semibold text-on-surface border-b border-outline-variant/50">Por dia</p>
+                  <p className="px-4 py-3 text-xs font-semibold text-on-surface border-b border-outline-variant/50">Por dia</p>
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
                       <thead className="bg-surface-container-low">
@@ -819,7 +819,7 @@ export function Reports() {
                         <tr key={c.id} className="hover:bg-surface-container-low/50">
                           <td className="px-4 py-3 text-xs text-outline/70 w-8">{i + 1}</td>
                           <td className="px-4 py-3">
-                            <p className="text-sm font-semibold text-on-surface truncate max-w-[220px]">
+                            <p className="text-xs font-semibold text-on-surface truncate max-w-[220px]">
                               {c.trade_name || c.name}
                             </p>
                             {c.city && (
@@ -872,7 +872,7 @@ export function Reports() {
                       {productsQ.data.map((p, i) => (
                         <tr key={p.reference} className="hover:bg-surface-container-low/50">
                           <td className="px-4 py-3 text-xs text-outline/70 w-8">{i + 1}</td>
-                          <td className="px-4 py-3 font-mono text-sm font-bold text-on-surface">
+                          <td className="px-4 py-3 font-mono text-xs font-bold text-on-surface">
                             {p.reference}
                           </td>
                           <Td right>{p.order_count}</Td>
@@ -895,7 +895,7 @@ export function Reports() {
               <select
                 value={catalogFactoryId}
                 onChange={e => { setCatalogFactoryId(e.target.value); setCatalogPriceTableId('') }}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as indústrias</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -903,7 +903,7 @@ export function Reports() {
               <select
                 value={catalogPriceTableId}
                 onChange={e => setCatalogPriceTableId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as coleções</option>
                 {(catalogPriceTables || []).map(pt => (

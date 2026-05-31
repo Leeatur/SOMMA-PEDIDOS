@@ -147,7 +147,7 @@ export function Users() {
       <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="font-display text-[22px] font-bold text-on-surface">Usuários</h1>
+            <h1 className="font-display text-lg font-bold text-on-surface">Usuários</h1>
             <p className="text-xs text-outline mt-0.5">{list.length} usuários</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
@@ -175,7 +175,7 @@ export function Users() {
                 <Card key={u.id} padding="md">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-primary">
+                      <span className="text-xs font-bold text-primary">
                         {u.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -300,7 +300,7 @@ export function Users() {
           {/* Fábricas (apenas para representantes) */}
           {form.role === 'representante' && factories.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-on-surface-variant mb-2">
+              <label className="block text-xs font-medium text-on-surface-variant mb-2">
                 Fábricas autorizadas
               </label>
               <p className="text-xs text-outline mb-2">
@@ -314,7 +314,7 @@ export function Users() {
                       key={fac.id}
                       type="button"
                       onClick={() => toggleFactory(fac.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                         selected
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-outline-variant bg-white text-on-surface-variant hover:border-primary/50'

@@ -243,7 +243,7 @@ function SizeGrid({
                   />
                 </td>
               ))}
-              <td className="px-1 pl-2 text-center font-bold text-primary text-sm">{total}</td>
+              <td className="px-1 pl-2 text-center font-bold text-primary text-xs">{total}</td>
             </tr>
           </tbody>
         </table>
@@ -496,7 +496,7 @@ export function NewOrder() {
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-base font-bold text-on-surface">Novo Pedido</h1>
+            <h1 className="text-xs font-bold text-on-surface">Novo Pedido</h1>
           </div>
 
           {/* Step indicator */}
@@ -528,12 +528,12 @@ export function NewOrder() {
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-on-surface mb-1">Selecionar Cliente</h2>
-                <p className="text-sm text-outline">Escolha o cliente para este pedido</p>
+                <h2 className="text-xs font-semibold text-on-surface mb-1">Selecionar Cliente</h2>
+                <p className="text-xs text-outline">Escolha o cliente para este pedido</p>
               </div>
               <button
                 onClick={() => setShowNewClient(true)}
-                className="flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-3 py-1.5 transition-colors"
+                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-3 py-1.5 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Novo Cliente
@@ -564,7 +564,7 @@ export function NewOrder() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-bold text-emerald-700">
+                        <span className="text-xs font-bold text-emerald-700">
                           {c.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -578,10 +578,10 @@ export function NewOrder() {
                 ))}
                 {clients?.length === 0 && (
                   <div className="text-center py-6 space-y-3">
-                    <p className="text-sm text-outline">Nenhum cliente encontrado</p>
+                    <p className="text-xs text-outline">Nenhum cliente encontrado</p>
                     <button
                       onClick={() => setShowNewClient(true)}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-4 py-2 transition-colors"
+                      className="inline-flex items-center gap-2 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-4 py-2 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                       Cadastrar novo cliente
@@ -607,9 +607,9 @@ export function NewOrder() {
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-base font-semibold text-on-surface mb-1">Tabela de Preços</h2>
+              <h2 className="text-xs font-semibold text-on-surface mb-1">Tabela de Preços</h2>
               {selectedClient && (
-                <p className="text-sm text-outline">Cliente: <strong>{selectedClient.name}</strong></p>
+                <p className="text-xs text-outline">Cliente: <strong>{selectedClient.name}</strong></p>
               )}
             </div>
 
@@ -666,7 +666,7 @@ export function NewOrder() {
                   </Card>
                 ))}
                 {priceTables?.length === 0 && (
-                  <p className="text-center text-sm text-outline py-4">Nenhuma tabela disponível</p>
+                  <p className="text-center text-xs text-outline py-4">Nenhuma tabela disponível</p>
                 )}
               </div>
             )}
@@ -678,7 +678,7 @@ export function NewOrder() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold text-on-surface">Produtos</h2>
+                <h2 className="text-xs font-semibold text-on-surface">Produtos</h2>
                 <p className="text-xs text-outline">{selectedTable?.name} — {selectedTable?.factory_name}</p>
               </div>
               {cart.length > 0 && (
@@ -704,7 +704,7 @@ export function NewOrder() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="border border-outline-variant rounded-lg px-2 py-2.5 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-2 py-2.5 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos</option>
                 <option value="regular">Regular</option>
@@ -744,14 +744,14 @@ export function NewOrder() {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-1.5">
-                            <p className="font-bold text-on-surface text-sm">{p.reference}</p>
+                            <p className="font-bold text-on-surface text-xs">{p.reference}</p>
                             <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-xs flex-shrink-0">
                               {p.type === 'pack' ? 'PACK' : 'REG'}
                             </Badge>
                           </div>
                           {p.product_name && <p className="text-xs text-outline truncate">{p.product_name}</p>}
                           <p className="text-[10px] text-primary/70 font-medium truncate">{selectedTable?.name}</p>
-                          <p className="text-sm font-semibold text-primary">
+                          <p className="text-xs font-semibold text-primary">
                             R$ {Number(p.base_price).toFixed(2)}<span className="text-xs text-outline/70 font-normal">/pç</span>
                           </p>
                           {/* Para packs: exibe pç/cx com toggle de grade */}
@@ -800,7 +800,7 @@ export function NewOrder() {
                                   min="1"
                                   value={cartItem.boxes_count}
                                   onChange={(e) => setBoxCountDirect(p.id, parseInt(e.target.value) || 1)}
-                                  className="w-10 h-7 text-center border border-outline-variant rounded-lg text-sm font-bold focus:outline-none focus:ring-1 focus:ring-primary"
+                                  className="w-10 h-7 text-center border border-outline-variant rounded-lg text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary"
                                 />
                                 <button
                                   onClick={() => updateBoxCount(p.id, 1)}
@@ -858,7 +858,7 @@ export function NewOrder() {
                   )
                 })}
                 {products?.length === 0 && (
-                  <p className="text-center text-sm text-outline py-4">Nenhum produto encontrado</p>
+                  <p className="text-center text-xs text-outline py-4">Nenhum produto encontrado</p>
                 )}
               </div>
             )}
@@ -869,7 +869,7 @@ export function NewOrder() {
                 <Card padding="md" className="shadow-lg border-primary/30 bg-primary/10">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-blue-900">{cart.length} produto{cart.length > 1 ? 's' : ''} no carrinho</p>
+                      <p className="text-xs font-semibold text-blue-900">{cart.length} produto{cart.length > 1 ? 's' : ''} no carrinho</p>
                       <p className="text-xs text-primary">{totals.totalPieces} peças</p>
                     </div>
                     <Button onClick={() => setStep(3)} size="sm">
@@ -886,15 +886,15 @@ export function NewOrder() {
         {step === 3 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-base font-semibold text-on-surface">Revisão do Pedido</h2>
-              <p className="text-sm text-outline">Confirme os dados antes de enviar</p>
+              <h2 className="text-xs font-semibold text-on-surface">Revisão do Pedido</h2>
+              <p className="text-xs text-outline">Confirme os dados antes de enviar</p>
             </div>
 
             {/* Offline warning */}
             {!online && (
               <div className="flex items-start gap-2 bg-orange-50 border border-orange-200 rounded-xl p-3">
                 <WifiOff className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-orange-800">
+                <p className="text-xs text-orange-800">
                   Sem conexão. O pedido será salvo localmente e sincronizado quando você voltar online.
                 </p>
               </div>
@@ -902,7 +902,7 @@ export function NewOrder() {
 
             {/* Client + Table summary */}
             <Card padding="sm">
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-outline">Cliente:</span>
                   <span className="font-medium text-on-surface">{selectedClient?.name}</span>
@@ -921,7 +921,7 @@ export function NewOrder() {
             {/* Items */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-on-surface-variant">Itens ({cart.length})</h3>
+                <h3 className="text-xs font-semibold text-on-surface-variant">Itens ({cart.length})</h3>
                 <button
                   onClick={() => setStep(2)}
                   className="text-xs text-primary hover:text-primary"
@@ -941,7 +941,7 @@ export function NewOrder() {
                     <div key={item.product.id} className="bg-white rounded-xl border border-outline-variant p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-on-surface">{item.product.reference}</p>
+                          <p className="font-semibold text-xs text-on-surface">{item.product.reference}</p>
                           <p className="text-[10px] text-primary/70 font-medium">{selectedTable?.name}</p>
                           <p className="text-xs text-outline">{item.product.product_name}</p>
                           {isRegular ? (
@@ -953,7 +953,7 @@ export function NewOrder() {
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold text-on-surface">{formatCurrency(subtotal)}</p>
+                          <p className="text-xs font-bold text-on-surface">{formatCurrency(subtotal)}</p>
                           <p className="text-xs text-outline/70">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
                         </div>
                       </div>
@@ -976,7 +976,7 @@ export function NewOrder() {
             {/* Campos do pedido */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={paymentTerms.trim() ? 'block text-sm font-medium text-on-surface-variant mb-1' : 'block text-sm font-semibold text-amber-600 mb-1'}>
+                <label className={paymentTerms.trim() ? 'block text-xs font-medium text-on-surface-variant mb-1' : 'block text-xs font-semibold text-amber-600 mb-1'}>
                   Condição de Pagamento {!paymentTerms.trim() && <span className="text-amber-500">⚠</span>}
                 </label>
                 <input
@@ -985,16 +985,16 @@ export function NewOrder() {
                   onChange={(e) => setPaymentTerms(e.target.value)}
                   placeholder="Ex: 30/60/90 dias"
                   className={paymentTerms.trim()
-                    ? 'w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
-                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2.5 text-sm bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
+                    ? 'w-full border border-outline-variant rounded-lg px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary'
+                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2.5 text-xs bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-on-surface-variant mb-1">Tipo de Frete</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">Tipo de Frete</label>
                 <select
                   value={freightType}
                   onChange={(e) => setFreightType(e.target.value)}
-                  className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="CIF">CIF</option>
                   <option value="FOB">FOB</option>
@@ -1007,7 +1007,7 @@ export function NewOrder() {
                 onChange={(e) => setDeliveryDate(e.target.value)}
               />
               <div>
-                <label className={buyerName.trim() ? 'block text-sm font-medium text-on-surface-variant mb-1' : 'block text-sm font-semibold text-amber-600 mb-1'}>
+                <label className={buyerName.trim() ? 'block text-xs font-medium text-on-surface-variant mb-1' : 'block text-xs font-semibold text-amber-600 mb-1'}>
                   Comprador {!buyerName.trim() && <span className="text-amber-500">⚠</span>}
                 </label>
                 <input
@@ -1016,8 +1016,8 @@ export function NewOrder() {
                   onChange={(e) => setBuyerName(e.target.value)}
                   placeholder="Nome do comprador"
                   className={buyerName.trim()
-                    ? 'w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
-                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2.5 text-sm bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
+                    ? 'w-full border border-outline-variant rounded-lg px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary'
+                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-2.5 text-xs bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
                 />
               </div>
               <div className="col-span-2">
@@ -1044,7 +1044,7 @@ export function NewOrder() {
 
               {/* Desconto */}
               <div className="p-4 border-b border-outline-variant/50">
-                <h3 className="text-sm font-semibold text-on-surface-variant mb-3">Desconto</h3>
+                <h3 className="text-xs font-semibold text-on-surface-variant mb-3">Desconto</h3>
                 {discountRules.length > 0 && !customDiscount ? (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
@@ -1063,7 +1063,7 @@ export function NewOrder() {
                           >
                             <div className="flex items-start justify-between gap-1">
                               <div className="min-w-0">
-                                <p className="font-bold text-on-surface text-sm leading-tight">
+                                <p className="font-bold text-on-surface text-xs leading-tight">
                                   {formatPct(rule.discount_pct)}
                                 </p>
                                 <p className="text-xs text-outline mt-0.5 leading-tight">
@@ -1109,7 +1109,7 @@ export function NewOrder() {
               </div>
 
               {/* Resumo financeiro */}
-              <div className="p-4 space-y-2 text-sm bg-surface-container-low">
+              <div className="p-4 space-y-2 text-xs bg-surface-container-low">
                 <div className="flex justify-between text-outline">
                   <span>Subtotal:</span>
                   <span>{formatCurrency(totals.grossValue)}</span>
@@ -1120,7 +1120,7 @@ export function NewOrder() {
                     <span>−{formatCurrency(totals.grossValue * discountNum / 100)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-on-surface text-base pt-1.5 border-t border-outline-variant">
+                <div className="flex justify-between font-bold text-on-surface text-xs pt-1.5 border-t border-outline-variant">
                   <span>Total do pedido:</span>
                   <span>{formatCurrency(totals.totalValue)}</span>
                 </div>
@@ -1141,7 +1141,7 @@ export function NewOrder() {
                 {createMut.isError && (
                   <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 mb-3">
                     <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-700">Erro ao criar pedido. Tente novamente.</p>
+                    <p className="text-xs text-red-700">Erro ao criar pedido. Tente novamente.</p>
                   </div>
                 )}
                 <Button

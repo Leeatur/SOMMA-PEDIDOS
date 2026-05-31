@@ -103,7 +103,7 @@ function CompanySection() {
   })
 
   if (isLoading) return (
-    <div className="h-20 flex items-center justify-center text-outline/70 text-sm">
+    <div className="h-20 flex items-center justify-center text-outline/70 text-xs">
       Carregando dados da empresa…
     </div>
   )
@@ -145,7 +145,7 @@ function CompanySection() {
         </div>
 
         <div>
-          <p className="text-sm font-medium text-on-surface-variant">Logo da empresa</p>
+          <p className="text-xs font-medium text-on-surface-variant">Logo da empresa</p>
           <p className="text-xs text-outline/70 mb-2">PNG ou JPG · aparece no cabeçalho dos pedidos</p>
           <div className="flex items-center gap-2">
             <Button
@@ -268,7 +268,7 @@ export function Settings() {
       {/* Header */}
       <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="font-display text-[22px] font-bold text-on-surface">Configurações</h1>
+          <h1 className="font-display text-lg font-bold text-on-surface">Configurações</h1>
           <p className="text-xs text-outline mt-0.5">Ajustes do aplicativo</p>
         </div>
       </div>
@@ -294,13 +294,13 @@ export function Settings() {
           <Card padding="md">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <span className="text-xl font-bold text-primary">
+                <span className="text-xs font-bold text-primary">
                   {user?.name?.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div>
                 <p className="font-semibold text-on-surface">{user?.name}</p>
-                <p className="text-sm text-outline">{user?.email}</p>
+                <p className="text-xs text-outline">{user?.email}</p>
                 <Badge variant={user?.role === 'admin' ? 'danger' : 'info'} className="mt-1">
                   {user?.role === 'admin' ? 'Administrador' : 'Representante'}
                 </Badge>
@@ -340,7 +340,7 @@ export function Settings() {
               <div className="mt-3 pt-3 border-t border-outline-variant/50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-orange-600">{pendingCount} pedido{pendingCount > 1 ? 's' : ''} pendente{pendingCount > 1 ? 's' : ''}</p>
+                    <p className="text-xs font-medium text-orange-600">{pendingCount} pedido{pendingCount > 1 ? 's' : ''} pendente{pendingCount > 1 ? 's' : ''}</p>
                     <p className="text-xs text-outline">Aguardando sincronização</p>
                   </div>
                   {online && (
@@ -370,11 +370,11 @@ export function Settings() {
 
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-surface-container-low rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-on-surface">{cachedProductsCount}</p>
+                <p className="text-xs font-bold text-on-surface">{cachedProductsCount}</p>
                 <p className="text-xs text-outline">Produtos</p>
               </div>
               <div className="bg-surface-container-low rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-on-surface">{cachedClientsCount}</p>
+                <p className="text-xs font-bold text-on-surface">{cachedClientsCount}</p>
                 <p className="text-xs text-outline">Clientes</p>
               </div>
             </div>
@@ -406,7 +406,7 @@ export function Settings() {
                   <p className="text-xs text-outline">Versão 1.0.0</p>
                 </div>
               </div>
-              <div className="pt-3 border-t border-outline-variant/50 text-sm text-outline">
+              <div className="pt-3 border-t border-outline-variant/50 text-xs text-outline">
                 <p>Sistema de Gestão de Pedidos</p>
                 <p className="text-xs mt-1">Somma Gestão Comercial &copy; {new Date().getFullYear()}</p>
               </div>
@@ -422,7 +422,7 @@ export function Settings() {
             </div>
             <div>
               <p className="font-semibold text-blue-900">Instalar no celular</p>
-              <p className="text-sm text-primary mt-0.5">
+              <p className="text-xs text-primary mt-0.5">
                 Adicione este app à tela inicial para acesso rápido e uso offline completo.
                 No Safari/Chrome, toque em Compartilhar → "Adicionar à Tela Inicial".
               </p>

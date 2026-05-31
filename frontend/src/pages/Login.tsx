@@ -61,7 +61,7 @@ export function Login() {
         {/* Card */}
         <div className="bg-white w-full rounded-xl p-8 border border-border-subtle shadow-2xl">
           <div className="mb-6 text-center">
-            <h2 className="text-xl font-semibold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Bem-vindo de volta</h2>
+            <h2 className="text-lg font-semibold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Bem-vindo de volta</h2>
             <p className="text-sm text-on-surface-variant mt-1">Acesse sua conta para continuar</p>
           </div>
 
