@@ -226,8 +226,132 @@ export function Clients() {
 
   const total = clients?.length || 0
 
+  // Gera cor de avatar baseada no nome
+  function avatarColor(name: string) {
+    const colors = [
+      ['#dbeafe','#1d4ed8'], ['#dcfce7','#15803d'], ['#fce7f3','#be185d'],
+      ['#fef3c7','#b45309'], ['#ede9fe','#6d28d9'], ['#ffedd5','#c2410c'],
+    ]
+    const i = name.charCodeAt(0) % colors.length
+    return colors[i]
+  }
+
   return (
     <div className="flex flex-col h-full">
+
+      {/* ══ MOBILE VIEW ══════════════════════════════════════════════════════ */}
+      <div className="lg:hidden flex flex-col h-full bg-[#f8f9ff]">
+
+        {/* Mobile header */}
+        <div className="px-4 pt-4 pb-3 bg-white border-b border-outline-variant/60 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-xl font-bold text-on-surface">Clientes</h2>
+            <button
+              onClick={() => setShowNewCnpj(true)}
+              className="flex items-center gap-1.5 bg-primary text-white text-sm font-semibold px-3.5 py-2 rounded-xl active:scale-95 transition-transform"
+            >
+              <Plus className="h-4 w-4" /> Novo
+            </button>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline" />
+            <input
+              value={search}
+              onChange={e => handleSearch(e.target.value)}
+              placeholder="Nome, CNPJ, cidade, telefone..."
+              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Cards */}
+        <div className="flex-1 overflow-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16"><PageSpinner /></div>
+          ) : total === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center px-8">
+              <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mb-4">
+                <Users className="h-8 w-8 text-outline/50" />
+              </div>
+              <p className="text-outline font-medium">Nenhum cliente encontrado</p>
+              <p className="text-sm text-outline/70 mt-1">
+                {search ? 'Tente ajustar a busca.' : 'Cadastre o primeiro cliente.'}
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 space-y-3 pb-28">
+              {(clients || []).map(c => {
+                const [bg, fg] = avatarColor(c.name)
+                const initials = c.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+                return (
+                  <div key={c.id} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden active:bg-surface-container-low transition-colors">
+                    <div className="flex items-start gap-3 p-4">
+                      {/* Avatar */}
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm"
+                           style={{ backgroundColor: bg, color: fg }}>
+                        {initials}
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-on-surface text-[15px] leading-tight truncate">{c.name}</p>
+                        {c.trade_name && c.trade_name !== c.name && (
+                          <p className="text-xs text-outline truncate mt-0.5">{c.trade_name}</p>
+                        )}
+                        {(c.city || c.state) && (
+                          <p className="text-xs text-on-surface-variant mt-1">
+                            📍 {[c.city, c.state].filter(Boolean).join(' / ')}
+                          </p>
+                        )}
+                        {c.cnpj && (
+                          <p className="text-[11px] text-outline mt-0.5 font-mono">{c.cnpj}</p>
+                        )}
+                      </div>
+                      {/* Edit */}
+                      <button
+                        onClick={() => openEdit(c)}
+                        className="p-2 text-outline/50 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors flex-shrink-0"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Contact bar */}
+                    {(c.phone || c.whatsapp || c.email) && (
+                      <div className="flex border-t border-outline-variant/30 divide-x divide-outline-variant/30">
+                        {c.phone && (
+                          <a href={`tel:${c.phone}`}
+                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
+                             onClick={e => e.stopPropagation()}>
+                            📞 Ligar
+                          </a>
+                        )}
+                        {c.whatsapp && (
+                          <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`}
+                             target="_blank" rel="noreferrer"
+                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 transition-colors"
+                             onClick={e => e.stopPropagation()}>
+                            💬 WhatsApp
+                          </a>
+                        )}
+                        {c.email && (
+                          <a href={`mailto:${c.email}`}
+                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
+                             onClick={e => e.stopPropagation()}>
+                            ✉️ E-mail
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══ DESKTOP VIEW ═════════════════════════════════════════════════════ */}
+      <div className="hidden lg:flex flex-col h-full">
       {/* Header */}
       <div className="px-4 pt-5 pb-3 lg:px-8 border-b border-outline-variant bg-white">
         <div className="flex items-center justify-between mb-3">
@@ -323,6 +447,8 @@ export function Clients() {
           </table>
         </div>
       )}
+
+      </div> {/* end desktop view */}
 
       {/* Modal editar/criar cliente */}
       <Modal

@@ -753,6 +753,109 @@ export function Products() {
 
   return (
     <div className="flex flex-col h-full">
+
+      {/* ══ MOBILE VIEW ══════════════════════════════════════════════════════ */}
+      <div className="lg:hidden flex flex-col h-full bg-[#f8f9ff]">
+
+        {/* Mobile header */}
+        <div className="px-4 pt-4 pb-3 bg-white border-b border-outline-variant/60 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-xl font-bold text-on-surface">Produtos</h2>
+            <span className="text-xs text-outline">
+              {isLoading ? '' : `${total} produto${total !== 1 ? 's' : ''}`}
+            </span>
+          </div>
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline" />
+            <input
+              value={search}
+              onChange={e => handleSearch(e.target.value)}
+              placeholder="Referência, nome, fábrica..."
+              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+            />
+          </div>
+          {/* Type filter chips */}
+          <div className="flex gap-2">
+            {['', 'regular', 'pack'].map(t => (
+              <button key={t}
+                onClick={() => setTypeFilter(t)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-colors ${
+                  typeFilter === t
+                    ? t === 'pack' ? 'bg-violet-600 text-white' : 'bg-primary text-white'
+                    : 'bg-surface-container text-on-surface-variant border border-outline-variant/60'
+                }`}>
+                {t === '' ? 'Todos' : t === 'regular' ? 'Regular' : 'Pack'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Cards */}
+        <div className="flex-1 overflow-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16"><PageSpinner /></div>
+          ) : total === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center px-8">
+              <p className="text-outline font-medium">Nenhum produto encontrado</p>
+            </div>
+          ) : (
+            <div className="p-4 grid grid-cols-2 gap-3 pb-28">
+              {(products || []).map(p => {
+                const pieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setDetailProduct(p)}
+                    className={`bg-white rounded-2xl border text-left overflow-hidden active:scale-[0.97] transition-transform shadow-sm ${
+                      p.active ? 'border-outline-variant/40' : 'border-outline-variant/20 opacity-60'
+                    }`}
+                  >
+                    {/* Image */}
+                    {p.image_url ? (
+                      <div className="w-full aspect-square bg-surface-container">
+                        <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-full aspect-square bg-gradient-to-br from-surface-container to-surface-container-high flex items-center justify-center">
+                        <span className="text-3xl font-black text-outline/20 font-mono">{p.reference.slice(0, 3)}</span>
+                      </div>
+                    )}
+                    {/* Info */}
+                    <div className="p-2.5">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
+                          p.type === 'pack' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {p.type === 'pack' ? 'PACK' : 'REG'}
+                        </span>
+                        {!p.active && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">INDISP</span>}
+                      </div>
+                      <p className="text-xs font-bold text-primary font-mono leading-tight truncate">{p.reference}</p>
+                      {p.product_name && (
+                        <p className="text-[11px] text-on-surface-variant truncate mt-0.5">{p.product_name}</p>
+                      )}
+                      <div className="mt-2 flex items-end justify-between">
+                        <div>
+                          <p className="text-base font-bold text-on-surface leading-none">
+                            R$ {Number(p.base_price).toFixed(2)}
+                          </p>
+                          <p className="text-[9px] text-outline">/peça{pieces > 0 ? ` · ${pieces}pç/cx` : ''}</p>
+                        </div>
+                      </div>
+                      {p.factory_name && (
+                        <p className="text-[10px] text-outline mt-1 truncate">{p.factory_name}</p>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══ DESKTOP VIEW ═════════════════════════════════════════════════════ */}
+      <div className="hidden lg:flex flex-col h-full">
       {/* Header */}
       <div className="px-4 pt-5 pb-3 lg:px-8 border-b border-outline-variant bg-white">
         <div className="flex items-center justify-between mb-3">
@@ -855,7 +958,9 @@ export function Products() {
         </div>
       )}
 
-      {/* Modal detalhe produto */}
+      </div> {/* end desktop view */}
+
+      {/* Modal detalhe produto — compartilhado mobile+desktop */}
       {detailProduct && (
         <ProductDetailModal
           p={detailProduct}
