@@ -739,7 +739,8 @@ export async function duplicateOrder(req: AuthRequest, res: Response) {
        ) AS items
      FROM orders o
      LEFT JOIN order_items oi ON oi.order_id = o.id
-     WHERE o.id=$1 AND o.deleted_at IS NULL`,
+     WHERE o.id=$1 AND o.deleted_at IS NULL
+     GROUP BY o.id`,
     [id]
   )
   if (!orig) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
