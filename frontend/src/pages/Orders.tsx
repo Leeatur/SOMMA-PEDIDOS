@@ -83,7 +83,7 @@ const COL_META: Record<string, { align?: string; width?: string }> = {
 function OrderHeader({ id, label }: { id: string; label: string }) {
   const meta = COL_META[id] || {}
   return (
-    <th className={`px-2 py-2 text-xs font-semibold text-outline first:pl-3 last:pr-3 ${meta.width ?? ''} ${meta.align ?? ''}`}>
+    <th className={`px-2 py-1.5 text-[10px] font-semibold text-outline first:pl-3 last:pr-3 ${meta.width ?? ''} ${meta.align ?? ''}`}>
       {label}
     </th>
   )
@@ -92,58 +92,58 @@ function OrderHeader({ id, label }: { id: string; label: string }) {
 function OrderCell({ id, o }: { id: string; o: Order }) {
   switch (id) {
     case 'date':
-      return <td className="pl-3 pr-2 py-2.5 whitespace-nowrap"><span className="text-xs text-outline">{formatDate(o.created_at)}</span></td>
+      return <td className="pl-3 pr-2 py-2 whitespace-nowrap"><span className="text-[11px] text-outline">{formatDate(o.created_at)}</span></td>
     case 'number':
-      return <td className="px-2 py-2.5 whitespace-nowrap first:pl-3"><span className="text-xs font-bold text-primary">{formatOrderNumber(o.order_number)}</span></td>
+      return <td className="px-2 py-2 whitespace-nowrap first:pl-3"><span className="text-[11px] font-bold text-primary">{formatOrderNumber(o.order_number)}</span></td>
     case 'factory':
-      return <td className="px-2 py-2.5 max-w-[110px]"><span className="text-xs font-semibold text-on-surface-variant truncate block">{o.factory_name}</span></td>
+      return <td className="px-2 py-2 max-w-[110px]"><span className="text-[11px] font-semibold text-on-surface-variant truncate block">{o.factory_name}</span></td>
     case 'rep':
-      return <td className="px-2 py-2.5 max-w-[120px]"><span className="text-xs text-outline truncate block">{o.rep_name || '—'}</span></td>
+      return <td className="px-2 py-2 max-w-[120px]"><span className="text-[11px] text-outline truncate block">{o.rep_name || '—'}</span></td>
     case 'nr_rep':
-      return <td className="px-2 py-2.5 whitespace-nowrap"><span className="text-xs text-outline font-mono">{o.industry_order_number || '—'}</span></td>
+      return <td className="px-2 py-2 whitespace-nowrap"><span className="text-[11px] text-outline font-mono">{o.industry_order_number || '—'}</span></td>
     case 'razao_social':
-      return <td className="px-2 py-2.5 max-w-[200px]"><p className="text-sm font-semibold text-on-surface truncate leading-tight">{o.client_name}</p></td>
+      return <td className="px-2 py-2 max-w-[200px]"><p className="text-[12px] font-semibold text-on-surface truncate leading-tight">{o.client_name}</p></td>
     case 'client':
-      return <td className="px-2 py-2.5 max-w-[160px]"><span className="text-xs text-on-surface-variant truncate block">{o.client_trade_name || '—'}</span></td>
+      return <td className="px-2 py-2 max-w-[160px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.client_trade_name || '—'}</span></td>
     case 'city':
-      return <td className="px-2 py-2.5 max-w-[120px]"><span className="text-xs text-on-surface-variant truncate block">{o.client_city || '—'}</span></td>
+      return <td className="px-2 py-2 max-w-[120px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.client_city || '—'}</span></td>
     case 'items':
-      return <td className="px-2 py-2.5 text-center"><span className="text-xs font-medium text-on-surface-variant">{o.total_pieces > 0 ? o.total_pieces : '—'}</span></td>
+      return <td className="px-2 py-2 text-center"><span className="text-[11px] font-medium text-on-surface-variant">{o.total_pieces > 0 ? o.total_pieces : '—'}</span></td>
     case 'value':
-      return <td className="px-2 py-2.5 text-right whitespace-nowrap"><span className="text-sm font-bold text-on-surface">{formatCurrency(o.total_value)}</span></td>
+      return <td className="px-2 py-2 text-right whitespace-nowrap"><span className="text-[12px] font-bold text-on-surface">{formatCurrency(o.total_value)}</span></td>
     case 'delivery':
-      return <td className="px-2 py-2.5 whitespace-nowrap">
+      return <td className="px-2 py-2 whitespace-nowrap">
         {o.delivery_date
-          ? <span className="text-xs text-on-surface-variant">{new Date(o.delivery_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-          : <span className="text-xs text-outline/50">—</span>}
+          ? <span className="text-[11px] text-on-surface-variant">{new Date(o.delivery_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+          : <span className="text-[11px] text-outline/50">—</span>}
       </td>
     case 'payment':
-      return <td className="px-2 py-2.5 max-w-[130px]"><span className="text-xs text-on-surface-variant truncate block">{o.payment_terms || '—'}</span></td>
+      return <td className="px-2 py-2 max-w-[130px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.payment_terms || '—'}</span></td>
     case 'commission':
-      return <td className="px-2 py-2.5 text-right whitespace-nowrap">
+      return <td className="px-2 py-2 text-right whitespace-nowrap">
         {o.rep_commission_value > 0
-          ? <span className="text-xs font-semibold text-emerald-600">{formatCurrency(o.rep_commission_value)}</span>
-          : <span className="text-xs text-outline/50">—</span>}
+          ? <span className="text-[11px] font-semibold text-emerald-600">{formatCurrency(o.rep_commission_value)}</span>
+          : <span className="text-[11px] text-outline/50">—</span>}
       </td>
     case 'discount':
-      return <td className="px-2 py-2.5 text-right whitespace-nowrap last:pr-3">
+      return <td className="px-2 py-2 text-right whitespace-nowrap last:pr-3">
         {o.discount_pct > 0
-          ? <span className="text-xs font-semibold text-emerald-600">-{o.discount_pct}%</span>
-          : <span className="text-xs text-outline/50">—</span>}
+          ? <span className="text-[11px] font-semibold text-emerald-600">-{o.discount_pct}%</span>
+          : <span className="text-[11px] text-outline/50">—</span>}
       </td>
     case 'table':
-      return <td className="px-2 py-2.5 max-w-[150px]"><span className="text-xs text-outline/70 truncate block">{o.price_table_name}</span></td>
+      return <td className="px-2 py-2 max-w-[150px]"><span className="text-[11px] text-outline/70 truncate block">{o.price_table_name}</span></td>
     case 'status':
-      return <td className="px-2 pr-3 py-2.5">
+      return <td className="px-2 pr-3 py-2">
         {o.status_name && o.status_color ? (
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color }} />
-            <span className="text-xs font-medium text-on-surface-variant truncate">{o.status_name}</span>
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color }} />
+            <span className="text-[11px] font-medium text-on-surface-variant truncate">{o.status_name}</span>
           </div>
-        ) : <span className="text-xs text-outline/50">—</span>}
+        ) : <span className="text-[11px] text-outline/50">—</span>}
       </td>
     default:
-      return <td className="px-2 py-2.5" />
+      return <td className="px-2 py-2" />
   }
 }
 

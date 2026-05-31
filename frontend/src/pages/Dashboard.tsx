@@ -77,40 +77,44 @@ export function Dashboard() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
 
           <StatCard
-            icon={<ShoppingCart className="h-4.5 w-4.5 text-primary" />}
-            iconBg="bg-blue-50"
+            icon={<ShoppingCart className="h-4.5 w-4.5 text-blue-600" />}
+            iconBg="bg-blue-100"
             label="Total de pedidos"
             value={allOrders.length.toString()}
+            accentColor="#3B82F6"
             large
           />
 
           <StatCard
             icon={<Clock className="h-4.5 w-4.5 text-emerald-600" />}
-            iconBg="bg-emerald-50"
+            iconBg="bg-emerald-100"
             label="Pedidos hoje"
             value={todayOrders.length.toString()}
             badge="HOJE"
             badgeColor="emerald"
+            accentColor="#10B981"
             large
           />
 
           {isAdmin && (
             <StatCard
               icon={<TrendingUp className="h-4.5 w-4.5 text-violet-600" />}
-              iconBg="bg-violet-50"
+              iconBg="bg-violet-100"
               label="Total faturado"
               value={formatCurrency(totalValue)}
+              accentColor="#7C3AED"
             />
           )}
 
           {isAdmin && (
             <StatCard
               icon={<CheckCircle className="h-4.5 w-4.5 text-amber-600" />}
-              iconBg="bg-amber-50"
+              iconBg="bg-amber-100"
               label="Faturado hoje"
               value={formatCurrency(todayValue)}
               badge="HOJE"
               badgeColor="amber"
+              accentColor="#F59E0B"
             />
           )}
         </div>
@@ -222,7 +226,7 @@ export function Dashboard() {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function StatCard({
-  icon, iconBg, label, value, badge, badgeColor, large,
+  icon, iconBg, label, value, badge, badgeColor, large, accentColor,
 }: {
   icon: React.ReactNode
   iconBg: string
@@ -231,25 +235,37 @@ function StatCard({
   badge?: string
   badgeColor?: 'emerald' | 'amber'
   large?: boolean
+  accentColor?: string
 }) {
   const badgeCls = badgeColor === 'emerald'
-    ? 'bg-emerald-50 text-emerald-600'
-    : 'bg-amber-50 text-amber-600'
+    ? 'bg-emerald-100 text-emerald-700'
+    : 'bg-amber-100 text-amber-700'
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-lg shadow-black/[0.06] border border-outline-variant/30">
-      <div className="flex items-center justify-between mb-3">
-        <div className={`w-9 h-9 ${iconBg} rounded-xl flex items-center justify-center`}>
+    <div
+      className="bg-white rounded-2xl p-4 border-0 relative overflow-hidden"
+      style={{
+        boxShadow: accentColor
+          ? `0 10px 28px -6px ${accentColor}35, 0 4px 10px -4px ${accentColor}20`
+          : '0 8px 24px -4px rgba(0,0,0,0.10)',
+      }}
+    >
+      {/* colored top accent bar */}
+      {accentColor && (
+        <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: accentColor }} />
+      )}
+      <div className="flex items-center justify-between mb-3 mt-1">
+        <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}>
           {icon}
         </div>
         {badge && (
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${badgeCls}`}>
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${badgeCls}`}>
             {badge}
           </span>
         )}
       </div>
       <p className="text-[11px] font-bold uppercase text-outline tracking-wide mb-1.5">{label}</p>
-      <p className={`font-display font-bold text-on-surface leading-none ${large ? 'text-[38px]' : 'text-[26px]'}`}>
+      <p className={`font-display font-bold text-on-surface leading-none ${large ? 'text-[38px]' : 'text-[28px]'}`}>
         {value}
       </p>
     </div>

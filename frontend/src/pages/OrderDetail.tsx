@@ -275,8 +275,14 @@ export function OrderDetail() {
   const duplicateMut = useMutation({
     mutationFn: () => ordersApi.duplicate(id!),
     onSuccess: (res) => {
+      const newId = res.data?.id
+      if (!newId) { alert('Erro: ID do pedido duplicado não retornado'); return }
       qc.invalidateQueries({ queryKey: ['orders'] })
-      navigate(`/orders/${res.data.id}/edit`)
+      navigate(`/orders/${newId}/edit`)
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      alert(`Erro ao duplicar pedido: ${msg || 'tente novamente'}`)
     },
   })
 
@@ -447,14 +453,9 @@ export function OrderDetail() {
           <button onClick={() => window.open(`/orders/${id}/print`, '_blank')} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors" title="Imprimir pedido">
             <Printer className="h-4.5 w-4.5" />
           </button>
-          <button
-            onClick={() => duplicateMut.mutate()}
-            disabled={duplicateMut.isPending}
-            className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors disabled:opacity-50"
-            title="Duplicar pedido"
-          >
-            <Copy className="h-4 w-4" />
-          </button>
+          <Button size="sm" variant="outline" onClick={() => duplicateMut.mutate()} icon={<Copy className="h-3.5 w-3.5" />} disabled={duplicateMut.isPending}>
+            {duplicateMut.isPending ? 'Duplicando…' : 'Duplicar Pedido'}
+          </Button>
           <Button size="sm" variant="primary" onClick={() => navigate(`/orders/${id}/edit`)} icon={<Pencil className="h-3.5 w-3.5" />}>Editar</Button>
           {isAdmin && (
             <Button size="sm" variant="outline" onClick={() => { setStatusModal(true); setNewStatusId(order.status_id || '') }} icon={<ChevronDown className="h-3.5 w-3.5" />}>Status</Button>
@@ -1342,7 +1343,7 @@ export function OrderDetail() {
           className="flex-1 h-12 flex items-center justify-center border border-primary text-primary rounded-xl text-xs font-bold uppercase tracking-wide gap-1.5 hover:bg-primary/5 active:scale-95 transition-all disabled:opacity-50"
         >
           <Copy className="h-4 w-4" />
-          Duplicar
+          {duplicateMut.isPending ? 'Duplicando…' : 'Duplicar Pedido'}
         </button>
         <button
           onClick={() => navigate(`/orders/${id}/edit`)}

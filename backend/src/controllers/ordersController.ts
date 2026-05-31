@@ -810,8 +810,9 @@ export async function duplicateOrder(req: AuthRequest, res: Response) {
     res.status(201).json({ id: newOrder.id })
   } catch (err) {
     await dbClient.query('ROLLBACK')
-    console.error(err)
-    res.status(500).json({ error: 'Erro ao duplicar pedido' })
+    const msg = (err instanceof Error) ? err.message : String(err)
+    console.error('[duplicateOrder]', msg)
+    res.status(500).json({ error: `Erro ao duplicar pedido: ${msg}` })
   } finally {
     dbClient.release()
   }

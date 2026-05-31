@@ -32,16 +32,16 @@ interface NavItem {
 }
 
 const navMain: NavItem[] = [
-  { to: '/dashboard',    label: 'Dashboard',  icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
-  { to: '/orders',       label: 'Pedidos',    icon: <ShoppingCart className="h-[18px] w-[18px]" /> },
-  { to: '/clients',      label: 'Clientes',   icon: <Users className="h-[18px] w-[18px]" /> },
-  { to: '/products',     label: 'Produtos',   icon: <Package className="h-[18px] w-[18px]" /> },
-  { to: '/reports',      label: 'Relatórios', icon: <BarChart2 className="h-[18px] w-[18px]" /> },
-{ to: '/price-tables', label: 'Tabelas',    icon: <Tags className="h-[18px] w-[18px]" />, adminOnly: true },
-  { to: '/factories',    label: 'Fábricas',   icon: <Building2 className="h-[18px] w-[18px]" />, adminOnly: true },
-  { to: '/statuses',     label: 'Status',     icon: <Package className="h-[18px] w-[18px]" />, adminOnly: true },
-  { to: '/users',        label: 'Usuários',   icon: <UserCog className="h-[18px] w-[18px]" />, adminOnly: true },
-  { to: '/orders/trash', label: 'Lixeira',    icon: <Trash2 className="h-[18px] w-[18px]" />, adminOnly: true },
+  { to: '/dashboard',    label: 'Dashboard',  icon: <LayoutDashboard className="h-5 w-5" /> },
+  { to: '/orders',       label: 'Pedidos',    icon: <ShoppingCart className="h-5 w-5" /> },
+  { to: '/clients',      label: 'Clientes',   icon: <Users className="h-5 w-5" /> },
+  { to: '/products',     label: 'Produtos',   icon: <Package className="h-5 w-5" /> },
+  { to: '/reports',      label: 'Relatórios', icon: <BarChart2 className="h-5 w-5" /> },
+{ to: '/price-tables', label: 'Tabelas',    icon: <Tags className="h-5 w-5" />, adminOnly: true },
+  { to: '/factories',    label: 'Fábricas',   icon: <Building2 className="h-5 w-5" />, adminOnly: true },
+  { to: '/statuses',     label: 'Status',     icon: <Package className="h-5 w-5" />, adminOnly: true },
+  { to: '/users',        label: 'Usuários',   icon: <UserCog className="h-5 w-5" />, adminOnly: true },
+  { to: '/orders/trash', label: 'Lixeira',    icon: <Trash2 className="h-5 w-5" />, adminOnly: true },
 ]
 
 const mobileNav: NavItem[] = [
@@ -149,7 +149,7 @@ export function AppLayout() {
               to={item.to}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-150 ${
+                `flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-[16px] font-semibold transition-all duration-150 ${
                   isActive
                     ? 'sidebar-active'
                     : 'text-surface-variant/60 hover:bg-white/5 hover:text-white'
@@ -168,12 +168,12 @@ export function AppLayout() {
             to="/settings"
             onClick={() => setSidebarOpen(false)}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-150 ${
+              `flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-[16px] font-semibold transition-all duration-150 ${
                 isActive ? 'sidebar-active' : 'text-surface-variant/60 hover:bg-white/5 hover:text-white'
               }`
             }
           >
-            <Settings className="h-[18px] w-[18px]" />
+            <Settings className="h-5 w-5" />
             Ajustes
           </NavLink>
 
