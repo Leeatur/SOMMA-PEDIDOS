@@ -194,7 +194,7 @@ export function PriceTables() {
       <div className="bg-white border-b border-outline-variant px-5 py-2.5 lg:px-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="font-display text-lg font-bold text-on-surface">Tabelas de Preço</h1>
+            <h1 className="font-display text-sm font-bold text-on-surface">Tabelas de Preço</h1>
             <p className="text-[11px] text-outline mt-0.5">{tables.length} tabelas</p>
           </div>
           <Button onClick={() => { resetImport(); setImportOpen(true) }} icon={<Upload className="h-4 w-4" />} size="sm">

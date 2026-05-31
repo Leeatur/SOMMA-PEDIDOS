@@ -147,7 +147,7 @@ export function Users() {
       <div className="bg-white border-b border-outline-variant px-5 py-2.5 lg:px-8">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="font-display text-lg font-bold text-on-surface">Usuários</h1>
+            <h1 className="font-display text-sm font-bold text-on-surface">Usuários</h1>
             <p className="text-[11px] text-outline mt-0.5">{list.length} usuários</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
