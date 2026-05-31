@@ -467,9 +467,9 @@ export function OrderDetail() {
       </div>
 
       {/* ── Mobile: Order status card ── */}
-      <div className="lg:hidden px-4 pt-4">
-        <div className="bg-white border border-border-subtle rounded-xl p-4">
-          <div className="flex justify-between items-start mb-3">
+      <div className="lg:hidden px-4 pt-3">
+        <div className="bg-white border border-border-subtle rounded-xl p-3">
+          <div className="flex justify-between items-start mb-2">
             <div>
               <span className="text-[11px] font-bold text-outline uppercase tracking-wide">Pedido</span>
               <p className="text-lg font-bold text-on-surface leading-tight mt-0.5">{formatOrderNumber(order.order_number)}</p>
@@ -507,10 +507,10 @@ export function OrderDetail() {
         </div>
       </div>
 
-      <div className="px-4 py-5 lg:px-8 max-w-3xl mx-auto space-y-1.5">
+      <div className="px-4 py-3 lg:px-8 max-w-3xl mx-auto space-y-1.5">
         {/* Client + Meta */}
         <Card padding="md">
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between mb-2">
             <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Informações do Pedido</p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-[11px] select-text">
@@ -625,7 +625,7 @@ export function OrderDetail() {
 
         {/* Financial summary */}
         <Card padding="md">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="h-4 w-4 text-emerald-600" />
             <h2 className="text-[11px] font-semibold text-on-surface">Resumo Financeiro</h2>
           </div>
@@ -690,7 +690,7 @@ export function OrderDetail() {
 
         {/* Items */}
         <div>
-          <h2 className="text-[11px] font-semibold text-on-surface-variant mb-3">
+          <h2 className="text-[11px] font-semibold text-on-surface-variant mb-2">
             Itens do Pedido ({order.items.length})
           </h2>
           <div className="space-y-1">
@@ -781,7 +781,7 @@ export function OrderDetail() {
         {/* Status History */}
         {order.history.length > 0 && (
           <div>
-            <h2 className="text-[11px] font-semibold text-on-surface-variant mb-3">Histórico de Status</h2>
+            <h2 className="text-[11px] font-semibold text-on-surface-variant mb-2">Histórico de Status</h2>
             <div className="space-y-1">
               {order.history.map((h) => (
                 <div key={h.id} className="flex items-start gap-3">

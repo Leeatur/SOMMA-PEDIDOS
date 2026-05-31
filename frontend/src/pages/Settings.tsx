@@ -273,7 +273,7 @@ export function Settings() {
         </div>
       </div>
 
-      <div className="px-4 py-5 lg:px-8 max-w-2xl mx-auto space-y-1.5">
+      <div className="px-4 py-3 lg:px-8 max-w-2xl mx-auto space-y-1.5">
 
         {/* ── Empresa (admin only) ── */}
         {user?.role === 'admin' && (

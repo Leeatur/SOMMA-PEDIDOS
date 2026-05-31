@@ -32,7 +32,7 @@ from config import PSQL_PATH, DB_LOCAL, DB_LOCAL_USER, RAILWAY_DATABASE_URL
 
 def db_query(sql: str, pg_url: str = None) -> str:
     if pg_url:
-        cmd = ["psql", pg_url, "-t", "-A", "-c", sql]
+        cmd = [PSQL_PATH, pg_url, "-t", "-A", "-c", sql]
     else:
         cmd = [PSQL_PATH, "-U", DB_LOCAL_USER, "-d", DB_LOCAL, "-t", "-A", "-c", sql]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -48,7 +48,7 @@ def db_rows(sql: str, pg_url: str = None) -> list[list[str]]:
 
 def db_exec_file(sql_path: str, pg_url: str):
     """Aplica um arquivo SQL no banco de destino."""
-    cmd = ["psql", pg_url, "-f", sql_path]
+    cmd = [PSQL_PATH, pg_url, "-f", sql_path]
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         raise RuntimeError(f"Erro ao aplicar SQL:\n{r.stderr}")

@@ -243,8 +243,8 @@ export function Clients() {
       <div className="lg:hidden flex flex-col h-full bg-[#f8f9ff]">
 
         {/* Mobile header */}
-        <div className="px-4 pt-4 pb-3 bg-white border-b border-outline-variant/60 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+        <div className="px-4 pt-3 pb-2 bg-white border-b border-outline-variant/60 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="font-display text-lg font-bold text-on-surface">Clientes</h2>
             <button
               onClick={() => setShowNewCnpj(true)}
@@ -279,15 +279,15 @@ export function Clients() {
               </p>
             </div>
           ) : (
-            <div className="p-4 space-y-1.5 pb-28">
+            <div className="p-3 space-y-1.5 pb-28">
               {(clients || []).map(c => {
                 const [bg, fg] = avatarColor(c.name)
                 const initials = c.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
                 return (
                   <div key={c.id} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden active:bg-surface-container-low transition-colors">
-                    <div className="flex items-start gap-3 p-4">
+                    <div className="flex items-start gap-3 p-3">
                       {/* Avatar */}
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-[11px]"
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-[11px]"
                            style={{ backgroundColor: bg, color: fg }}>
                         {initials}
                       </div>
@@ -353,8 +353,8 @@ export function Clients() {
       {/* ══ DESKTOP VIEW ═════════════════════════════════════════════════════ */}
       <div className="hidden lg:flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 pt-5 pb-3 lg:px-8 border-b border-outline-variant bg-white">
-        <div className="flex items-center justify-between mb-3">
+      <div className="px-4 pt-4 pb-2 lg:px-8 border-b border-outline-variant bg-white">
+        <div className="flex items-center justify-between mb-2">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Clientes</h1>
             <p className="text-[11px] text-outline">

@@ -135,7 +135,7 @@ export function Statuses() {
         </div>
       </div>
 
-      <div className="px-4 py-5 lg:px-8 max-w-2xl mx-auto">
+      <div className="px-4 py-3 lg:px-8 max-w-2xl mx-auto">
         {list.length === 0 ? (
           <EmptyState
             icon={<GripVertical className="h-8 w-8" />}

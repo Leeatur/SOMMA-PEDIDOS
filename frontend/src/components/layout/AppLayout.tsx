@@ -44,12 +44,6 @@ const navMain: NavItem[] = [
   { to: '/orders/trash', label: 'Lixeira',    icon: <Trash2 className="h-5 w-5" />, adminOnly: true },
 ]
 
-const mobileNav: NavItem[] = [
-  { to: '/dashboard', label: 'Início',   icon: <LayoutDashboard className="h-5 w-5" /> },
-  { to: '/orders',    label: 'Pedidos',  icon: <ShoppingCart className="h-5 w-5" /> },
-  { to: '/products',  label: 'Produtos', icon: <Package className="h-5 w-5" /> },
-  { to: '/clients',   label: 'Clientes', icon: <Users className="h-5 w-5" /> },
-]
 
 function useOnlineStatus() {
   const [online, setOnline] = useState(navigator.onLine)

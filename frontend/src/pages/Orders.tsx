@@ -160,9 +160,9 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
       {/* Status top bar */}
       <div className="h-1 w-full" style={{ background: accent }} />
 
-      <div className="p-4">
+      <div className="p-3">
         {/* Row 1: number + status pill */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1.5">
           <span className="text-[13px] font-bold text-primary font-mono">{formatOrderNumber(o.order_number)}</span>
           {o.status_name ? (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -179,7 +179,7 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
         )}
 
         {/* Row 3: meta */}
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
           {o.factory_name && (
             <span className="text-[10px] font-semibold bg-surface-container px-2 py-0.5 rounded-full text-outline">{o.factory_name}</span>
           )}
@@ -189,14 +189,14 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
         </div>
 
         {/* Row 4: bottom — date + pieces + value */}
-        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
           <div>
             <p className="text-[10px] text-outline">{formatDate(o.created_at)}</p>
             {o.total_pieces > 0 && (
               <p className="text-[10px] text-outline/70">{o.total_pieces} peças</p>
             )}
           </div>
-          <p className="text-[15px] font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
+          <p className="text-[14px] font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
         </div>
       </div>
     </div>
@@ -253,8 +253,8 @@ export function Orders() {
       <div className="lg:hidden flex flex-col h-full" style={{ background: '#F5F3FF' }}>
 
         {/* Mobile header */}
-        <div className="px-4 pt-5 pb-3 bg-white" style={{ boxShadow: '0 1px 0 #E5E7EB' }}>
-          <div className="flex items-center justify-between mb-3">
+        <div className="px-4 pt-4 pb-2 bg-white" style={{ boxShadow: '0 1px 0 #E5E7EB' }}>
+          <div className="flex items-center justify-between mb-2">
             <div>
               <h2 className="text-[18px] font-bold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Pedidos</h2>
               <p className="text-[11px] text-outline mt-0.5">
@@ -277,7 +277,7 @@ export function Orders() {
 
         {/* Status filter chips */}
         {statuses && statuses.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto px-4 py-2.5 bg-white border-b border-gray-100 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto px-4 py-2 bg-white border-b border-gray-100 scrollbar-hide">
             <button
               onClick={() => setStatusFilter('')}
               className={`flex-shrink-0 px-3.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all ${
@@ -318,7 +318,7 @@ export function Orders() {
               </p>
             </div>
           ) : (
-            <div className="px-4 pt-3 pb-28 space-y-2.5">
+            <div className="px-4 pt-2.5 pb-28 space-y-2">
               {(orders || []).map(o => (
                 <MobileOrderCard
                   key={o.id}
@@ -335,8 +335,8 @@ export function Orders() {
       <div className="hidden lg:flex flex-col h-full">
 
         {/* Desktop Header */}
-        <div className="px-8 pt-5 pb-3 border-b border-outline-variant bg-white">
-          <div className="flex items-center justify-between mb-3">
+        <div className="px-8 pt-4 pb-2 border-b border-outline-variant bg-white">
+          <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="font-display text-lg font-bold text-on-surface">Pedidos</h1>
               <p className="text-[12px] text-on-surface-variant">

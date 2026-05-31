@@ -47,10 +47,10 @@ export function Dashboard() {
   }
 
   return (
-    <div className="pb-28 lg:pb-10 min-h-full">
+    <div className="pb-24 lg:pb-8 min-h-full">
 
       {/* ─── Hero header ─────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#2E1065] via-[#4C1D95] to-[#6D28D9] px-5 pt-8 pb-10 lg:px-8 lg:pt-10 lg:pb-12">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#2E1065] via-[#4C1D95] to-[#6D28D9] px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10">
         {/* decorative blobs */}
         <div className="absolute -top-10 -right-10 w-52 h-52 bg-white/10 rounded-full pointer-events-none" />
         <div className="absolute top-8 right-20 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
@@ -74,7 +74,7 @@ export function Dashboard() {
 
       {/* ─── Stat cards — overlap hero ──────────────────── */}
       <div className="px-4 lg:px-8 -mt-5">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
 
           <StatCard
             icon={<ShoppingCart className="h-4.5 w-4.5 text-blue-600" />}
@@ -120,25 +120,25 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-8 mt-5 space-y-1.5">
+      <div className="px-4 lg:px-8 mt-3 space-y-1">
 
         {/* ─── Pipeline por status ──────────────────────── */}
         {statusCounts.length > 0 && (
           <section>
             <SectionTitle>Pipeline de Pedidos</SectionTitle>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {statusCounts.map(s => (
                 <button
                   key={s.id}
                   onClick={() => navigate(`/orders?status_id=${s.id}`)}
-                  className="bg-white rounded-2xl p-4 text-left border border-outline-variant/40 hover:shadow-md hover:border-primary/20 active:scale-[0.98] transition-all group"
+                  className="bg-white rounded-2xl p-3 text-left border border-outline-variant/40 hover:shadow-md hover:border-primary/20 active:scale-[0.98] transition-all group"
                 >
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
                     <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
                     <span className="text-[12px] font-semibold text-outline group-hover:text-on-surface transition-colors truncate">{s.name}</span>
                   </div>
-                  <p className="font-display text-[36px] font-bold text-on-surface leading-none">{s.count}</p>
-                  <p className="text-[11px] text-outline mt-1">pedido{s.count !== 1 ? 's' : ''}</p>
+                  <p className="font-display text-[32px] font-bold text-on-surface leading-none">{s.count}</p>
+                  <p className="text-[11px] text-outline mt-0.5">pedido{s.count !== 1 ? 's' : ''}</p>
                 </button>
               ))}
             </div>
@@ -147,7 +147,7 @@ export function Dashboard() {
 
         {/* ─── Pedidos recentes ────────────────────────── */}
         <section>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <SectionTitle className="mb-0">Pedidos Recentes</SectionTitle>
             <button
               onClick={() => navigate('/orders')}
@@ -176,7 +176,7 @@ export function Dashboard() {
                 <div
                   key={order.id}
                   onClick={() => navigate(`/orders/${order.id}`)}
-                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50/60 active:bg-blue-50 cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-2 hover:bg-blue-50/60 active:bg-blue-50 cursor-pointer transition-colors ${
                     idx > 0 ? 'border-t border-gray-50' : ''
                   }`}
                 >
@@ -243,7 +243,7 @@ function StatCard({
 
   return (
     <div
-      className="bg-white rounded-2xl p-4 border-0 relative overflow-hidden"
+      className="bg-white rounded-2xl p-3 border-0 relative overflow-hidden"
       style={{
         boxShadow: accentColor
           ? `0 10px 28px -6px ${accentColor}35, 0 4px 10px -4px ${accentColor}20`
@@ -254,8 +254,8 @@ function StatCard({
       {accentColor && (
         <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: accentColor }} />
       )}
-      <div className="flex items-center justify-between mb-3 mt-1">
-        <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}>
+      <div className="flex items-center justify-between mb-2 mt-0.5">
+        <div className={`w-9 h-9 ${iconBg} rounded-xl flex items-center justify-center`}>
           {icon}
         </div>
         {badge && (
@@ -274,7 +274,7 @@ function StatCard({
 
 function SectionTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <h2 className={`text-[11px] font-bold text-outline uppercase tracking-wider mb-3 ${className}`}>
+    <h2 className={`text-[11px] font-bold text-outline uppercase tracking-wider mb-2 ${className}`}>
       {children}
     </h2>
   )

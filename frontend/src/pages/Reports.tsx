@@ -627,7 +627,7 @@ export function Reports() {
       </div>
 
       {/* ── tab content ── */}
-      <div className="px-4 py-5 lg:px-8 max-w-5xl mx-auto">
+      <div className="px-4 py-3 lg:px-8 max-w-5xl mx-auto">
 
         {/* ═══ VISÃO GERAL ══════════════════════════════════════════════════ */}
         {tab === 'orders' && (

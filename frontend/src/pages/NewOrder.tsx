@@ -479,7 +479,7 @@ export function NewOrder() {
       {/* Header */}
       <div className="bg-white border-b border-outline-variant px-4 py-2 lg:px-8 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-2">
             <button
               onClick={() => {
                 if (step === 0) navigate('/orders')
@@ -522,7 +522,7 @@ export function NewOrder() {
         </div>
       </div>
 
-      <div className="px-4 py-5 lg:px-8 max-w-2xl mx-auto">
+      <div className="px-4 py-3 lg:px-8 max-w-2xl mx-auto">
         {/* STEP 0: Select Client */}
         {step === 0 && (
           <div className="space-y-1">
@@ -1043,8 +1043,8 @@ export function NewOrder() {
             <div className="bg-white border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
 
               {/* Desconto */}
-              <div className="p-4 border-b border-outline-variant/50">
-                <h3 className="text-[11px] font-semibold text-on-surface-variant mb-3">Desconto</h3>
+              <div className="p-3 border-b border-outline-variant/50">
+                <h3 className="text-[11px] font-semibold text-on-surface-variant mb-2">Desconto</h3>
                 {discountRules.length > 0 && !customDiscount ? (
                   <div className="space-y-1">
                     <div className="grid grid-cols-2 gap-2">
@@ -1109,7 +1109,7 @@ export function NewOrder() {
               </div>
 
               {/* Resumo financeiro */}
-              <div className="p-4 space-y-1 text-[11px] bg-surface-container-low">
+              <div className="p-3 space-y-1 text-[11px] bg-surface-container-low">
                 <div className="flex justify-between text-outline">
                   <span>Subtotal:</span>
                   <span>{formatCurrency(totals.grossValue)}</span>
@@ -1137,7 +1137,7 @@ export function NewOrder() {
               </div>
 
               {/* Botão confirmar */}
-              <div className="p-4 pt-0 bg-surface-container-low">
+              <div className="p-3 pt-0 bg-surface-container-low">
                 {createMut.isError && (
                   <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 mb-3">
                     <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />

@@ -758,14 +758,14 @@ export function Products() {
       <div className="lg:hidden flex flex-col h-full bg-[#f8f9ff]">
 
         {/* Mobile header */}
-        <div className="px-4 pt-4 pb-3 bg-white border-b border-outline-variant/60 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+        <div className="px-4 pt-3 pb-2 bg-white border-b border-outline-variant/60 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="font-display text-lg font-bold text-on-surface">Produtos</h2>
             <span className="text-[11px] text-outline">
               {isLoading ? '' : `${total} produto${total !== 1 ? 's' : ''}`}
             </span>
           </div>
-          <div className="relative mb-2">
+          <div className="relative mb-1.5">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline" />
             <input
               value={search}
@@ -821,8 +821,8 @@ export function Products() {
                       </div>
                     )}
                     {/* Info */}
-                    <div className="p-2.5">
-                      <div className="flex items-center gap-1 mb-1">
+                    <div className="p-2">
+                      <div className="flex items-center gap-1 mb-0.5">
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
                           p.type === 'pack' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'
                         }`}>
@@ -857,8 +857,8 @@ export function Products() {
       {/* ══ DESKTOP VIEW ═════════════════════════════════════════════════════ */}
       <div className="hidden lg:flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 pt-5 pb-3 lg:px-8 border-b border-outline-variant bg-white">
-        <div className="flex items-center justify-between mb-3">
+      <div className="px-4 pt-4 pb-2 lg:px-8 border-b border-outline-variant bg-white">
+        <div className="flex items-center justify-between mb-2">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Produtos</h1>
             <p className="text-[11px] text-outline">

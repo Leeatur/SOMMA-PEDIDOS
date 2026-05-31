@@ -7,18 +7,25 @@ Uso:
 
 O script vai perguntar interativamente:
   - Caminho do arquivo Excel
-  - Aba com os produtos (ex: Feminina, Masculina)
-  - Nome da fábrica
-  - Nome da tabela de preço
-  - Coleção, estação, ano
-  - Regras de comissão (ou reutiliza de tabela existente)
+  - Abas a importar (Feminina, Masculina ou todas)
+  - Nome da fábrica / tabela / coleção / estação / ano
+  - Regras de comissão
 
-Formato esperado do Excel:
-  Linha 4: cabeçalho  → col0=categoria, col4="VALOR", col5-7=descontos negativos, col8="OBSERVAÇÃO"
-  Linha 5+: produtos  → col0=ref, col1=nome, col2=modelo, col3=grade, col4=preço base, col8=observação
+Formatos suportados (detectados automaticamente):
 
-  Aba "Packs" (opcional): grades detalhadas dos packs PKTE
-    - Linha com "Ref. PKTE####" → inicia um pack
+  FORMATO A — TEEZZ clássico:
+    col0=ref (TE#### / PKTE####), col1=nome, col2=modelo, col3=grade,
+    col4=preço, col8=observação
+
+  FORMATO B — novo (OUZZARE / TEEZZ 524 / etc.):
+    Linha 0: título da tabela
+    Linha 1: cabeçalho (REFERÊNCIA, PRODUTO, MODELAGEM, GRADE, 0.1, ...)
+    Linhas de seção: col0=categoria, col1=NaN  → ignoradas
+    Linhas de produto: col0=ref (ZZ##### / PKO##### / TE#### / PKTE####),
+                       col1=nome, col2=modelo, col3=grade, col4=preço base
+
+  Aba "Packs" (opcional):
+    - Linha com "Ref. PKTE####" ou "Ref. PKO#####" → inicia um pack
     - Próxima linha: "cor", tamanho1, tamanho2, ...
     - Linhas seguintes: cor, qtd1, qtd2, ...
 """
@@ -59,18 +66,31 @@ def db_rows(sql: str) -> list[list[str]]:
 def parse_price_sheet(ws) -> list[dict]:
     """
     Lê aba de preços (Feminina/Masculina/etc) e retorna lista de produtos.
-    Ignora linhas sem referência válida (TE#### ou PKTE####).
+
+    Aceita dois formatos:
+      - Formato A (TEEZZ clássico): ref TE####/PKTE####, obs na col8
+      - Formato B (novo): ref ZZ#####/PKO#####/TE####/PKTE####, sem col obs
+
+    Regra de referência válida: 2–6 letras seguidas de 4+ dígitos.
+    Pack: referência que começa com "PK".
     """
+    # Padrão: 2-6 letras maiúsculas + 4 ou mais dígitos
+    REF_PATTERN = re.compile(r'^[A-Z]{2,6}\d{4,}$')
+
     products = []
+    seen_refs = set()
+
     for row in ws.iter_rows(values_only=True):
         ref = str(row[0] or '').strip().upper()
-        if not re.match(r'^(TE|PKTE)\d+$', ref):
+        if not REF_PATTERN.match(ref):
             continue
-        name    = str(row[1] or '').strip()
-        model   = str(row[2] or '').strip()
-        grade   = str(row[3] or '').strip()
-        price   = row[4]
-        obs     = str(row[8] or '').strip() if len(row) > 8 else ''
+        if ref in seen_refs:
+            continue
+
+        name  = str(row[1] or '').strip()
+        model = str(row[2] or '').strip()
+        grade = str(row[3] or '').strip()
+        price = row[4]
 
         if price is None or not isinstance(price, (int, float)):
             continue
@@ -78,7 +98,15 @@ def parse_price_sheet(ws) -> list[dict]:
         if price <= 0:
             continue
 
-        ptype = 'pack' if ref.startswith('PKTE') else 'regular'
+        # Observação: col8 se for texto real (não número, não "Foto", não vazio)
+        obs = ''
+        if len(row) > 8 and row[8] is not None and isinstance(row[8], str):
+            candidate = row[8].strip()
+            if candidate.lower() not in ('foto', 'none', '') and not re.match(r'^-?\d', candidate):
+                obs = candidate
+
+        ptype = 'pack' if ref.startswith('PK') else 'regular'
+        seen_refs.add(ref)
         products.append({
             'reference':    ref,
             'product_name': name,
@@ -111,8 +139,8 @@ def parse_packs_sheet(ws) -> dict[str, list[dict]]:
         row = list(row)
         row_str = ' '.join(str(c) for c in row if c is not None)
 
-        # Detecta nova referência
-        ref_match = re.search(r'(PKTE\d+)', row_str, re.IGNORECASE)
+        # Detecta nova referência (PKTE, PKO, ou qualquer PK + letras + dígitos)
+        ref_match = re.search(r'\b(PK[A-Z]*\d{4,})\b', row_str, re.IGNORECASE)
         if ref_match:
             if current_ref and grades:
                 result[current_ref] = grades
@@ -274,14 +302,27 @@ def main():
         print(f"Erro ao abrir Excel: {e}")
         sys.exit(1)
 
-    print(f"\nAbas disponíveis: {wb.sheetnames}")
-    sheet_name = ask("Nome da aba com os produtos", wb.sheetnames[0])
-    if sheet_name not in wb.sheetnames:
-        print(f"Aba '{sheet_name}' não encontrada.")
-        sys.exit(1)
+    # Identifica abas de produto (tudo exceto Packs/Pack)
+    pack_sheet_names = {s for s in wb.sheetnames if s.lower().startswith('pack')}
+    product_sheets   = [s for s in wb.sheetnames if s not in pack_sheet_names]
+    packs_sheet_name = next(iter(pack_sheet_names), None)
+    has_packs_sheet  = packs_sheet_name is not None
 
-    has_packs_sheet = 'Packs' in wb.sheetnames or 'PACKS' in wb.sheetnames
-    packs_sheet_name = 'Packs' if 'Packs' in wb.sheetnames else ('PACKS' if 'PACKS' in wb.sheetnames else None)
+    print(f"\nAbas disponíveis: {wb.sheetnames}")
+    if len(product_sheets) > 1:
+        print(f"Abas de produto: {product_sheets}")
+        importar_todas = ask("Importar TODAS as abas de produto? (s/n)", "s").lower().startswith('s')
+        if importar_todas:
+            sheets_to_import = product_sheets
+        else:
+            sheet_name = ask("Nome da aba", product_sheets[0])
+            sheets_to_import = [sheet_name]
+    else:
+        sheet_name = ask("Nome da aba com os produtos", product_sheets[0] if product_sheets else wb.sheetnames[0])
+        if sheet_name not in wb.sheetnames:
+            print(f"Aba '{sheet_name}' não encontrada.")
+            sys.exit(1)
+        sheets_to_import = [sheet_name]
 
     # 2. Informações da tabela
     print()
@@ -327,9 +368,22 @@ def main():
 
     print()
     print("Lendo Excel...")
-    ws = wb[sheet_name]
-    products = parse_price_sheet(ws)
-    print(f"  → {len(products)} produtos encontrados na aba '{sheet_name}'")
+    all_products = []
+    for sname in sheets_to_import:
+        ws = wb[sname]
+        prods = parse_price_sheet(ws)
+        print(f"  → {len(prods)} produtos na aba '{sname}'")
+        all_products.extend(prods)
+
+    # Deduplica por referência (mantém primeira ocorrência)
+    seen = set()
+    products = []
+    for p in all_products:
+        if p['reference'] not in seen:
+            seen.add(p['reference'])
+            products.append(p)
+    if len(sheets_to_import) > 1:
+        print(f"  → Total: {len(products)} produtos únicos")
 
     pack_grades = {}
     if has_packs_sheet:
