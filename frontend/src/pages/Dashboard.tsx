@@ -50,7 +50,7 @@ export function Dashboard() {
     <div className="pb-28 lg:pb-10 min-h-full">
 
       {/* ─── Hero header ─────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#003fa8] via-[#004ac6] to-[#1a6fd4] px-5 pt-8 pb-10 lg:px-8 lg:pt-10 lg:pb-12">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#2E1065] via-[#4C1D95] to-[#6D28D9] px-5 pt-8 pb-10 lg:px-8 lg:pt-10 lg:pb-12">
         {/* decorative blobs */}
         <div className="absolute -top-10 -right-10 w-52 h-52 bg-white/10 rounded-full pointer-events-none" />
         <div className="absolute top-8 right-20 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />

@@ -123,7 +123,7 @@ export function AppLayout() {
           lg:translate-x-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
-        style={{ background: 'linear-gradient(180deg, #0d1f3c 0%, #0b1c30 60%, #091629 100%)' }}
+        style={{ background: 'linear-gradient(180deg, #1C0A4A 0%, #160838 60%, #110530 100%)' }}
       >
         {/* Brand */}
         <div className="flex items-center justify-between px-5 py-5 mb-2">
@@ -217,7 +217,7 @@ export function AppLayout() {
               onClick={handleLogout}
               className="flex items-center gap-2.5 hover:bg-surface-container px-3 py-1.5 rounded-xl transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center flex-shrink-0 shadow-sm">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm" style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)' }}>
                 <span className="text-[11px] font-bold text-white">{initials}</span>
               </div>
               <div className="text-left">

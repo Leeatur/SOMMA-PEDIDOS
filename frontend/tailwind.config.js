@@ -3,69 +3,71 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
-      // ── Material Design 3 color tokens (from Stitch) ──────────────────────
+      // ── Paleta Violeta Premium ─────────────────────────────────────────────
       colors: {
-        // Primary
-        'primary':                    '#004ac6',
-        'primary-container':          '#2563eb',
-        'primary-fixed':              '#dbe1ff',
-        'primary-fixed-dim':          '#b4c5ff',
+        // Primary — Violet
+        'primary':                    '#6D28D9',
+        'primary-container':          '#8B5CF6',
+        'primary-fixed':              '#EDE9FE',
+        'primary-fixed-dim':          '#DDD6FE',
         'on-primary':                 '#ffffff',
-        'on-primary-container':       '#eeefff',
-        'on-primary-fixed':           '#00174b',
-        'on-primary-fixed-variant':   '#003ea8',
-        'inverse-primary':            '#b4c5ff',
-        // Secondary
-        'secondary':                  '#565e74',
-        'secondary-container':        '#dae2fd',
-        'secondary-fixed':            '#dae2fd',
-        'secondary-fixed-dim':        '#bec6e0',
+        'on-primary-container':       '#F5F3FF',
+        'on-primary-fixed':           '#2E1065',
+        'on-primary-fixed-variant':   '#5B21B6',
+        'inverse-primary':            '#C4B5FD',
+        // Secondary — Slate neutro
+        'secondary':                  '#64748B',
+        'secondary-container':        '#E2E8F0',
+        'secondary-fixed':            '#E2E8F0',
+        'secondary-fixed-dim':        '#CBD5E1',
         'on-secondary':               '#ffffff',
-        'on-secondary-container':     '#5c647a',
-        'on-secondary-fixed':         '#131b2e',
-        'on-secondary-fixed-variant': '#3f465c',
-        // Tertiary
-        'tertiary':                   '#525657',
-        'tertiary-container':         '#6b6e70',
-        'tertiary-fixed':             '#e0e3e5',
-        'tertiary-fixed-dim':         '#c4c7c9',
+        'on-secondary-container':     '#475569',
+        'on-secondary-fixed':         '#1E1B2E',
+        'on-secondary-fixed-variant': '#3F3B52',
+        // Tertiary — neutro frio
+        'tertiary':                   '#52525B',
+        'tertiary-container':         '#71717A',
+        'tertiary-fixed':             '#E4E4E7',
+        'tertiary-fixed-dim':         '#D1D5DB',
         'on-tertiary':                '#ffffff',
-        'on-tertiary-container':      '#eff1f3',
-        'on-tertiary-fixed':          '#191c1e',
-        'on-tertiary-fixed-variant':  '#444749',
-        // Surface
-        'surface':                    '#f8f9ff',
-        'surface-dim':                '#cbdbf5',
-        'surface-bright':             '#f8f9ff',
-        'surface-variant':            '#d3e4fe',
-        'surface-tint':               '#0053db',
+        'on-tertiary-container':      '#F4F4F5',
+        'on-tertiary-fixed':          '#18181B',
+        'on-tertiary-fixed-variant':  '#444449',
+        // Surface — toque violeta suave
+        'surface':                    '#FAF8FF',
+        'surface-dim':                '#DDD6FE',
+        'surface-bright':             '#FDFCFF',
+        'surface-variant':            '#EDE9FE',
+        'surface-tint':               '#6D28D9',
         'surface-container-lowest':   '#ffffff',
-        'surface-container-low':      '#eff4ff',
-        'surface-container':          '#e5eeff',
-        'surface-container-high':     '#dce9ff',
-        'surface-container-highest':  '#d3e4fe',
-        'on-surface':                 '#0b1c30',
-        'on-surface-variant':         '#434655',
+        'surface-container-low':      '#F5F3FF',
+        'surface-container':          '#EDE9FE',
+        'surface-container-high':     '#E4DAFF',
+        'surface-container-highest':  '#DDD6FE',
+        'on-surface':                 '#1C1427',
+        'on-surface-variant':         '#4B4558',
         // Background
-        'background':                 '#f8f9ff',
-        'on-background':              '#0b1c30',
+        'background':                 '#FAF8FF',
+        'on-background':              '#1C1427',
         // Outline
-        'outline':                    '#737686',
-        'outline-variant':            '#c3c6d7',
+        'outline':                    '#6E6780',
+        'outline-variant':            '#D0C9E0',
         // Inverse
-        'inverse-surface':            '#213145',
-        'inverse-on-surface':         '#eaf1ff',
-        // Error
+        'inverse-surface':            '#2E1A47',
+        'inverse-on-surface':         '#F5F3FF',
+        // Error (mantém)
         'error':                      '#ba1a1a',
         'error-container':            '#ffdad6',
         'on-error':                   '#ffffff',
         'on-error-container':         '#93000a',
-        // Legacy brand scale (backward compat)
+        // Legacy brand scale → violet
         brand: {
-          50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
-          400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-          800: '#1e40af', 900: '#1e3a8a',
+          50:  '#F5F3FF', 100: '#EDE9FE', 200: '#DDD6FE', 300: '#C4B5FD',
+          400: '#A78BFA', 500: '#8B5CF6', 600: '#7C3AED', 700: '#6D28D9',
+          800: '#5B21B6', 900: '#4C1D95',
         },
+        // Border util usado em mobile cards
+        'border-subtle': '#E0D9F0',
       },
       // ── Fonts ─────────────────────────────────────────────────────────────
       fontFamily: {
