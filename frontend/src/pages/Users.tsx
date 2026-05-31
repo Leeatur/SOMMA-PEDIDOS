@@ -148,7 +148,7 @@ export function Users() {
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Usuários</h1>
-            <p className="text-xs text-outline mt-0.5">{list.length} usuários</p>
+            <p className="text-[11px] text-outline mt-0.5">{list.length} usuários</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
             Novo Usuário
@@ -175,7 +175,7 @@ export function Users() {
                 <Card key={u.id} padding="md">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-primary">
+                      <span className="text-[11px] font-bold text-primary">
                         {u.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -187,7 +187,7 @@ export function Users() {
                         </Badge>
                         {!u.active && <Badge variant="default">Inativo</Badge>}
                       </div>
-                      <p className="text-xs text-outline">{u.email}</p>
+                      <p className="text-[11px] text-outline">{u.email}</p>
                       {/* Fábricas autorizadas */}
                       {u.role !== 'admin' && (
                         <div className="flex items-center gap-1 mt-1 flex-wrap">
@@ -203,22 +203,22 @@ export function Users() {
                           )}
                         </div>
                       )}
-                      <p className="text-xs text-outline/70">Criado em {formatDate(u.created_at)}</p>
+                      <p className="text-[11px] text-outline/70">Criado em {formatDate(u.created_at)}</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {confirmDeleteId === u.id ? (
                         <div className="flex items-center gap-1">
-                          <span className="text-xs text-red-600 font-medium">Confirmar?</span>
+                          <span className="text-[11px] text-red-600 font-medium">Confirmar?</span>
                           <button
                             onClick={() => deleteMut.mutate(u.id)}
                             disabled={deleteMut.isPending}
-                            className="px-2 py-1 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                            className="px-2 py-1 text-[11px] bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
                           >
                             Sim
                           </button>
                           <button
                             onClick={() => setConfirmDeleteId(null)}
-                            className="px-2 py-1 text-xs border border-outline-variant text-outline rounded-lg hover:bg-surface-container transition-colors"
+                            className="px-2 py-1 text-[11px] border border-outline-variant text-outline rounded-lg hover:bg-surface-container transition-colors"
                           >
                             Não
                           </button>
@@ -300,10 +300,10 @@ export function Users() {
           {/* Fábricas (apenas para representantes) */}
           {form.role === 'representante' && factories.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-on-surface-variant mb-2">
+              <label className="block text-[11px] font-medium text-on-surface-variant mb-2">
                 Fábricas autorizadas
               </label>
-              <p className="text-xs text-outline mb-2">
+              <p className="text-[11px] text-outline mb-2">
                 Sem seleção = acesso a todas. Selecione para restringir.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -314,7 +314,7 @@ export function Users() {
                       key={fac.id}
                       type="button"
                       onClick={() => toggleFactory(fac.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all ${
                         selected
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-outline-variant bg-white text-on-surface-variant hover:border-primary/50'

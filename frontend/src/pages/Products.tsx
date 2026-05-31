@@ -245,21 +245,21 @@ function ProductDetailModal({
 
   // ── Edit form ────────────────────────────────────────────────────────────
   if (editing) {
-    const inputCls = "w-full border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+    const inputCls = "w-full border border-outline-variant rounded-lg px-3 py-2 text-[11px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary bg-white"
     return (
       <Modal open onClose={() => setEditing(false)} title={`Editar: ${p.reference}`} size="lg">
         <div className="space-y-4">
           {saveError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">{saveError}</div>
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-[11px] text-red-700">{saveError}</div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-outline mb-1">Referência *</label>
+              <label className="block text-[11px] font-semibold text-outline mb-1">Referência *</label>
               <input className={inputCls} value={editForm.reference} onChange={e => setEditForm(f => ({ ...f, reference: e.target.value }))} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-outline mb-1">Tipo</label>
+              <label className="block text-[11px] font-semibold text-outline mb-1">Tipo</label>
               <select className={inputCls} value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value as 'regular' | 'pack' }))}>
                 <option value="regular">Regular</option>
                 <option value="pack">Pack</option>
@@ -268,36 +268,36 @@ function ProductDetailModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-outline mb-1">Nome do produto</label>
+            <label className="block text-[11px] font-semibold text-outline mb-1">Nome do produto</label>
             <input className={inputCls} value={editForm.product_name} onChange={e => setEditForm(f => ({ ...f, product_name: e.target.value }))} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-outline mb-1">Modelo</label>
+              <label className="block text-[11px] font-semibold text-outline mb-1">Modelo</label>
               <input className={inputCls} value={editForm.model} onChange={e => setEditForm(f => ({ ...f, model: e.target.value }))} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-outline mb-1">Categoria</label>
+              <label className="block text-[11px] font-semibold text-outline mb-1">Categoria</label>
               <input className={inputCls} value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-outline mb-1">Preço por peça (R$) *</label>
+              <label className="block text-[11px] font-semibold text-outline mb-1">Preço por peça (R$) *</label>
               <input type="number" step="0.01" min="0" className={inputCls} value={editForm.base_price}
                 onChange={e => setEditForm(f => ({ ...f, base_price: parseFloat(e.target.value) || 0 }))} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-outline mb-1">Faixa de tamanhos</label>
+              <label className="block text-[11px] font-semibold text-outline mb-1">Faixa de tamanhos</label>
               <input className={inputCls} placeholder="ex: P-GG ou 36-48" value={editForm.size_range}
                 onChange={e => setEditForm(f => ({ ...f, size_range: e.target.value }))} />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-outline mb-1">Observação</label>
+            <label className="block text-[11px] font-semibold text-outline mb-1">Observação</label>
             <textarea className={`${inputCls} resize-none h-16`} value={editForm.observation}
               onChange={e => setEditForm(f => ({ ...f, observation: e.target.value }))} />
           </div>
@@ -305,14 +305,14 @@ function ProductDetailModal({
           {/* Grade editor */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold text-outline uppercase tracking-wide">Grade</p>
+              <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Grade</p>
               <button type="button" onClick={addGradeRow}
-                className="flex items-center gap-1 text-xs text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5">
+                className="flex items-center gap-1 text-[11px] text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5">
                 <Plus className="h-3 w-3" /> Adicionar linha
               </button>
             </div>
             {gradeSizes.length === 0 ? (
-              <p className="text-xs text-outline/70 italic">Preencha a faixa de tamanhos para editar a grade.</p>
+              <p className="text-[11px] text-outline/70 italic">Preencha a faixa de tamanhos para editar a grade.</p>
             ) : (
               <div className="space-y-2">
                 {editGrade.map((row, rowIdx) => (
@@ -320,7 +320,7 @@ function ProductDetailModal({
                     <div className="flex items-center gap-2 mb-2">
                       <input
                         placeholder="Cor (opcional)"
-                        className="border border-outline-variant rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:ring-1 focus:ring-primary bg-white flex-1"
+                        className="border border-outline-variant rounded-lg px-2 py-1 text-[11px] text-on-surface focus:outline-none focus:ring-1 focus:ring-primary bg-white flex-1"
                         value={row.color}
                         onChange={e => setGradeColor(rowIdx, e.target.value)}
                       />
@@ -332,7 +332,7 @@ function ProductDetailModal({
                       )}
                     </div>
                     <div className="overflow-x-auto scrollbar-hide">
-                      <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
+                      <table className="min-w-max text-[11px] border border-outline-variant rounded-lg overflow-hidden">
                         <thead className="bg-white">
                           <tr>
                             {gradeSizes.map(s => (
@@ -347,7 +347,7 @@ function ProductDetailModal({
                               <td key={s} className="px-1 py-1 text-center">
                                 <input
                                   type="number" min="0"
-                                  className="w-10 text-center text-xs border border-outline-variant/60 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                                  className="w-10 text-center text-[11px] border border-outline-variant/60 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
                                   value={row.sizes[s] ?? 0}
                                   onChange={e => setGradeCell(rowIdx, s, parseInt(e.target.value) || 0)}
                                 />
@@ -368,11 +368,11 @@ function ProductDetailModal({
 
           <div className="flex gap-2 pt-2 border-t border-outline-variant">
             <button onClick={handleSave} disabled={saving || !editForm.reference}
-              className="flex-1 bg-primary text-white rounded-xl py-2.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
+              className="flex-1 bg-primary text-white rounded-xl py-2.5 text-[11px] font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
               {saving ? 'Salvando…' : 'Salvar alterações'}
             </button>
             <button onClick={() => setEditing(false)}
-              className="px-4 py-2.5 border border-outline-variant rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1.5">
+              className="px-4 py-2.5 border border-outline-variant rounded-xl text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1.5">
               <X className="h-4 w-4" /> Cancelar
             </button>
           </div>
@@ -388,7 +388,7 @@ function ProductDetailModal({
         {isAdmin && (
           <div className="flex justify-end">
             <button onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-lg px-3 py-1.5 transition-colors">
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-lg px-3 py-1.5 transition-colors">
               <Pencil className="h-3.5 w-3.5" /> Editar referência
             </button>
           </div>
@@ -409,24 +409,24 @@ function ProductDetailModal({
             {p.type === 'pack' ? 'PACK' : 'Regular'}
           </Badge>
           {!p.active && <Badge variant="danger">Indisponível</Badge>}
-          {p.product_name && <span className="text-xs font-semibold text-on-surface">{p.product_name}</span>}
-          {p.model && <span className="text-xs text-outline">{p.model}</span>}
+          {p.product_name && <span className="text-[11px] font-semibold text-on-surface">{p.product_name}</span>}
+          {p.model && <span className="text-[11px] text-outline">{p.model}</span>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-primary/10 rounded-xl p-3 text-center">
-            <p className="text-xs text-primary/80 mb-0.5">Preço por peça</p>
-            <p className="text-xs font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</p>
+            <p className="text-[11px] text-primary/80 mb-0.5">Preço por peça</p>
+            <p className="text-[11px] font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</p>
           </div>
           {p.type === 'pack' && totalPieces > 0 && (
             <div className="bg-surface-container-low rounded-xl p-3 text-center">
-              <p className="text-xs text-outline mb-0.5">Preço por caixa ({totalPieces} pç)</p>
-              <p className="text-xs font-bold text-on-surface">R$ {pricePerBox.toFixed(2)}</p>
+              <p className="text-[11px] text-outline mb-0.5">Preço por caixa ({totalPieces} pç)</p>
+              <p className="text-[11px] font-bold text-on-surface">R$ {pricePerBox.toFixed(2)}</p>
             </div>
           )}
         </div>
 
-        <div className="space-y-1.5 text-xs">
+        <div className="space-y-1.5 text-[11px]">
           {p.size_range && (
             <div className="flex justify-between">
               <span className="text-outline">Tamanhos</span>
@@ -461,13 +461,13 @@ function ProductDetailModal({
 
         {p.grade_configs && p.grade_configs.length > 0 && (
           <div className="bg-surface-container-low rounded-xl px-4 py-2.5">
-            <p className="text-xs text-outline mb-2 font-medium uppercase tracking-wide">
+            <p className="text-[11px] text-outline mb-2 font-medium uppercase tracking-wide">
               {p.type === 'regular' ? 'Tamanhos disponíveis' : 'Grade por caixa'}
             </p>
             {p.type === 'regular' ? (
               <div className="flex flex-wrap gap-1.5">
                 {sortSizes(Array.from(new Set(p.grade_configs.flatMap(gc => Object.keys(gc.sizes)).flatMap(expandSizeKey)))).map(s => (
-                  <span key={s} className="px-2.5 py-1 text-xs font-semibold bg-white text-primary rounded-lg border border-primary/30 shadow-sm">
+                  <span key={s} className="px-2.5 py-1 text-[11px] font-semibold bg-white text-primary rounded-lg border border-primary/30 shadow-sm">
                     {s}
                   </span>
                 ))}
@@ -479,9 +479,9 @@ function ProductDetailModal({
                   const sizes = sortSizes(Object.keys(expandedSizes))
                   return (
                     <div key={i}>
-                      {gc.color && <p className="text-xs font-medium text-on-surface-variant mb-1">{gc.color}</p>}
+                      {gc.color && <p className="text-[11px] font-medium text-on-surface-variant mb-1">{gc.color}</p>}
                       <div className="overflow-x-auto scrollbar-hide">
-                        <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
+                        <table className="min-w-max text-[11px] border border-outline-variant rounded-lg overflow-hidden">
                           <thead className="bg-white">
                             <tr>
                               {sizes.map(s => (
@@ -515,15 +515,15 @@ function ProductDetailModal({
             {/* Disponibilidade */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold text-on-surface">Disponibilidade</p>
-                <p className="text-xs text-outline">
+                <p className="text-[11px] font-semibold text-on-surface">Disponibilidade</p>
+                <p className="text-[11px] text-outline">
                   {p.active ? 'Referência disponível para venda' : 'Referência bloqueada — não aparece para representantes'}
                 </p>
               </div>
               <button
                 onClick={() => availMut.mutate(!p.active)}
                 disabled={availMut.isPending}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all ${
                   p.active
                     ? 'border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                     : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
@@ -540,14 +540,14 @@ function ProductDetailModal({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <p className="text-xs font-semibold text-on-surface">Tamanhos bloqueados</p>
-                    <p className="text-xs text-outline">Clique para bloquear/desbloquear cada tamanho</p>
+                    <p className="text-[11px] font-semibold text-on-surface">Tamanhos bloqueados</p>
+                    <p className="text-[11px] text-outline">Clique para bloquear/desbloquear cada tamanho</p>
                   </div>
                   {blockedChanged && (
                     <button
                       onClick={saveBlockedSizes}
                       disabled={savingBlocked}
-                      className="text-xs px-3 py-1 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 disabled:opacity-60"
+                      className="text-[11px] px-3 py-1 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 disabled:opacity-60"
                     >
                       {savingBlocked ? 'Salvando…' : 'Salvar'}
                     </button>
@@ -561,7 +561,7 @@ function ProductDetailModal({
                         key={size}
                         type="button"
                         onClick={() => toggleSize(size)}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all ${
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
                           blocked
                             ? 'border-red-400 bg-red-50 text-red-600 line-through'
                             : 'border-primary/30 bg-white text-primary hover:border-primary'
@@ -625,7 +625,7 @@ function ProductRow({
         return (
           <td key={id} className="px-2 py-2">
             <div className="flex items-center gap-1.5">
-              <span className={`font-bold text-xs whitespace-nowrap ${p.active ? 'text-primary' : 'text-outline line-through'}`}>
+              <span className={`font-bold text-[11px] whitespace-nowrap ${p.active ? 'text-primary' : 'text-outline line-through'}`}>
                 {p.reference}
               </span>
               <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[10px] px-1.5 py-0">
@@ -645,45 +645,45 @@ function ProductRow({
       case 'name':
         return (
           <td key={id} className="px-2 py-2 max-w-[180px]">
-            <p className="text-xs font-medium text-on-surface truncate">{p.product_name || '—'}</p>
-            {p.model && <p className="text-xs text-outline/70 truncate">{p.model}</p>}
+            <p className="text-[11px] font-medium text-on-surface truncate">{p.product_name || '—'}</p>
+            {p.model && <p className="text-[11px] text-outline/70 truncate">{p.model}</p>}
           </td>
         )
       case 'size_range':
         return (
           <td key={id} className="px-2 py-2 whitespace-nowrap">
-            <span className="text-xs text-on-surface-variant">{p.size_range || '—'}</span>
+            <span className="text-[11px] text-on-surface-variant">{p.size_range || '—'}</span>
           </td>
         )
       case 'price':
         return (
           <td key={id} className="px-2 py-2 whitespace-nowrap text-right">
-            <span className="text-xs font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</span>
-            <span className="text-xs text-outline/70 ml-0.5">/pç</span>
+            <span className="text-[11px] font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</span>
+            <span className="text-[11px] text-outline/70 ml-0.5">/pç</span>
           </td>
         )
       case 'pieces':
         return (
           <td key={id} className="px-2 py-2 whitespace-nowrap text-center">
-            <span className="text-xs text-outline">{totalPieces > 0 ? `${totalPieces} pç` : '—'}</span>
+            <span className="text-[11px] text-outline">{totalPieces > 0 ? `${totalPieces} pç` : '—'}</span>
           </td>
         )
       case 'category':
         return (
           <td key={id} className="px-2 py-2 max-w-[120px]">
-            <span className="text-xs text-outline truncate block">{p.category || '—'}</span>
+            <span className="text-[11px] text-outline truncate block">{p.category || '—'}</span>
           </td>
         )
       case 'factory':
         return (
           <td key={id} className="px-2 py-2 max-w-[120px]">
-            <span className="text-xs text-on-surface-variant truncate block">{p.factory_name || '—'}</span>
+            <span className="text-[11px] text-on-surface-variant truncate block">{p.factory_name || '—'}</span>
           </td>
         )
       case 'table':
         return (
           <td key={id} className="px-2 py-2 max-w-[150px]">
-            <span className="text-xs text-outline truncate block">{p.price_table_name || '—'}</span>
+            <span className="text-[11px] text-outline truncate block">{p.price_table_name || '—'}</span>
           </td>
         )
       case 'observation':
@@ -761,7 +761,7 @@ export function Products() {
         <div className="px-4 pt-4 pb-3 bg-white border-b border-outline-variant/60 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-lg font-bold text-on-surface">Produtos</h2>
-            <span className="text-xs text-outline">
+            <span className="text-[11px] text-outline">
               {isLoading ? '' : `${total} produto${total !== 1 ? 's' : ''}`}
             </span>
           </div>
@@ -771,7 +771,7 @@ export function Products() {
               value={search}
               onChange={e => handleSearch(e.target.value)}
               placeholder="Referência, nome, fábrica..."
-              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-[11px] focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
           </div>
           {/* Type filter chips */}
@@ -779,7 +779,7 @@ export function Products() {
             {['', 'regular', 'pack'].map(t => (
               <button key={t}
                 onClick={() => setTypeFilter(t)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-colors ${
+                className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-colors ${
                   typeFilter === t
                     ? t === 'pack' ? 'bg-violet-600 text-white' : 'bg-primary text-white'
                     : 'bg-surface-container text-on-surface-variant border border-outline-variant/60'
@@ -830,13 +830,13 @@ export function Products() {
                         </span>
                         {!p.active && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">INDISP</span>}
                       </div>
-                      <p className="text-xs font-bold text-primary font-mono leading-tight truncate">{p.reference}</p>
+                      <p className="text-[11px] font-bold text-primary font-mono leading-tight truncate">{p.reference}</p>
                       {p.product_name && (
                         <p className="text-[11px] text-on-surface-variant truncate mt-0.5">{p.product_name}</p>
                       )}
                       <div className="mt-2 flex items-end justify-between">
                         <div>
-                          <p className="text-xs font-bold text-on-surface leading-none">
+                          <p className="text-[11px] font-bold text-on-surface leading-none">
                             R$ {Number(p.base_price).toFixed(2)}
                           </p>
                           <p className="text-[9px] text-outline">/peça{pieces > 0 ? ` · ${pieces}pç/cx` : ''}</p>
@@ -861,7 +861,7 @@ export function Products() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Produtos</h1>
-            <p className="text-xs text-outline">
+            <p className="text-[11px] text-outline">
               {isLoading ? 'Carregando…' : `${total} produto${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
             </p>
           </div>
@@ -869,7 +869,7 @@ export function Products() {
             {isAdmin && (
               <button
                 onClick={() => setShowInactive(v => !v)}
-                className={`flex items-center gap-1.5 text-xs font-semibold border rounded-lg px-3 py-2 transition-colors ${
+                className={`flex items-center gap-1.5 text-[11px] font-semibold border rounded-lg px-3 py-2 transition-colors ${
                   showInactive
                     ? 'bg-red-50 border-red-300 text-red-700'
                     : 'bg-surface-container hover:bg-surface-container-high border-outline-variant text-on-surface-variant'
@@ -882,7 +882,7 @@ export function Products() {
             )}
             <button
               onClick={() => setShowZipImport(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
               title="Importar fotos via ZIP"
             >
               <Archive className="h-4 w-4" />
@@ -910,7 +910,7 @@ export function Products() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            className="border border-outline-variant rounded-lg px-3 py-2 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
           >
             <option value="">Todos</option>
             <option value="regular">Regular</option>
@@ -928,7 +928,7 @@ export function Products() {
             <ChevronDown className="h-8 w-8 text-outline/50" />
           </div>
           <p className="text-outline font-medium">Nenhum produto encontrado</p>
-          <p className="text-xs text-outline/70 mt-1">
+          <p className="text-[11px] text-outline/70 mt-1">
             {debouncedSearch
               ? `Nenhum resultado para "${debouncedSearch}"`
               : 'Importe uma tabela de preços para começar'}
@@ -942,7 +942,7 @@ export function Products() {
                 {visibleCols.map(col => (
                   <th
                     key={col.id}
-                    className={`px-2 py-2.5 text-xs font-semibold text-outline first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''}`}
+                    className={`px-2 py-2.5 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''}`}
                   >
                     {col.label}
                   </th>

@@ -94,7 +94,7 @@ export function Factories() {
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Fábricas / Marcas</h1>
-            <p className="text-xs text-outline mt-0.5">{list.length} cadastradas</p>
+            <p className="text-[11px] text-outline mt-0.5">{list.length} cadastradas</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
             Nova Fábrica
@@ -126,10 +126,10 @@ export function Factories() {
                     <div>
                       <p className="font-semibold text-on-surface">{f.name}</p>
                       {f.contact && (
-                        <p className="text-xs text-outline mt-0.5">{f.contact}</p>
+                        <p className="text-[11px] text-outline mt-0.5">{f.contact}</p>
                       )}
                       {f.notes && (
-                        <p className="text-xs text-outline/70 mt-0.5 line-clamp-1">{f.notes}</p>
+                        <p className="text-[11px] text-outline/70 mt-0.5 line-clamp-1">{f.notes}</p>
                       )}
                     </div>
                   </div>

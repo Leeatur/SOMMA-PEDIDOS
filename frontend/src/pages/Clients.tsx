@@ -159,13 +159,13 @@ export function Clients() {
       case 'name':
         return (
           <td key={id} className="pl-3 pr-2 py-2.5 max-w-[220px]">
-            <p className="text-xs font-semibold text-on-surface truncate">{c.name}</p>
+            <p className="text-[11px] font-semibold text-on-surface truncate">{c.name}</p>
           </td>
         )
       case 'trade_name':
         return (
           <td key={id} className="px-2 py-2.5 max-w-[180px]">
-            <span className="text-xs text-outline truncate block">
+            <span className="text-[11px] text-outline truncate block">
               {c.trade_name && c.trade_name !== c.name ? c.trade_name : '—'}
             </span>
           </td>
@@ -173,7 +173,7 @@ export function Clients() {
       case 'city':
         return (
           <td key={id} className="px-2 py-2.5 max-w-[150px]">
-            <span className="text-xs text-on-surface-variant truncate block">
+            <span className="text-[11px] text-on-surface-variant truncate block">
               {[c.city, c.state].filter(Boolean).join(' / ') || '—'}
             </span>
           </td>
@@ -181,31 +181,31 @@ export function Clients() {
       case 'phone':
         return (
           <td key={id} className="px-2 py-2.5 whitespace-nowrap">
-            <span className="text-xs text-on-surface-variant">{c.phone || '—'}</span>
+            <span className="text-[11px] text-on-surface-variant">{c.phone || '—'}</span>
           </td>
         )
       case 'whatsapp':
         return (
           <td key={id} className="px-2 py-2.5 whitespace-nowrap">
-            <span className="text-xs text-on-surface-variant">{c.whatsapp || '—'}</span>
+            <span className="text-[11px] text-on-surface-variant">{c.whatsapp || '—'}</span>
           </td>
         )
       case 'email':
         return (
           <td key={id} className="px-2 py-2.5 max-w-[180px]">
-            <span className="text-xs text-outline truncate block">{c.email || '—'}</span>
+            <span className="text-[11px] text-outline truncate block">{c.email || '—'}</span>
           </td>
         )
       case 'cnpj':
         return (
           <td key={id} className="px-2 py-2.5 whitespace-nowrap">
-            <span className="text-xs text-outline/70">{c.cnpj || '—'}</span>
+            <span className="text-[11px] text-outline/70">{c.cnpj || '—'}</span>
           </td>
         )
       case 'rep':
         return (
           <td key={id} className="px-2 py-2.5 max-w-[120px]">
-            <span className="text-xs text-primary font-medium truncate block">{c.rep_name || '—'}</span>
+            <span className="text-[11px] text-primary font-medium truncate block">{c.rep_name || '—'}</span>
           </td>
         )
       case '_edit':
@@ -248,7 +248,7 @@ export function Clients() {
             <h2 className="font-display text-lg font-bold text-on-surface">Clientes</h2>
             <button
               onClick={() => setShowNewCnpj(true)}
-              className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-3.5 py-2 rounded-xl active:scale-95 transition-transform"
+              className="flex items-center gap-1.5 bg-primary text-white text-[11px] font-semibold px-3.5 py-2 rounded-xl active:scale-95 transition-transform"
             >
               <Plus className="h-4 w-4" /> Novo
             </button>
@@ -259,7 +259,7 @@ export function Clients() {
               value={search}
               onChange={e => handleSearch(e.target.value)}
               placeholder="Nome, CNPJ, cidade, telefone..."
-              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-[11px] focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
           </div>
         </div>
@@ -274,7 +274,7 @@ export function Clients() {
                 <Users className="h-8 w-8 text-outline/50" />
               </div>
               <p className="text-outline font-medium">Nenhum cliente encontrado</p>
-              <p className="text-xs text-outline/70 mt-1">
+              <p className="text-[11px] text-outline/70 mt-1">
                 {search ? 'Tente ajustar a busca.' : 'Cadastre o primeiro cliente.'}
               </p>
             </div>
@@ -287,18 +287,18 @@ export function Clients() {
                   <div key={c.id} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden active:bg-surface-container-low transition-colors">
                     <div className="flex items-start gap-3 p-4">
                       {/* Avatar */}
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-xs"
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-[11px]"
                            style={{ backgroundColor: bg, color: fg }}>
                         {initials}
                       </div>
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-on-surface text-xs leading-tight truncate">{c.name}</p>
+                        <p className="font-semibold text-on-surface text-[11px] leading-tight truncate">{c.name}</p>
                         {c.trade_name && c.trade_name !== c.name && (
-                          <p className="text-xs text-outline truncate mt-0.5">{c.trade_name}</p>
+                          <p className="text-[11px] text-outline truncate mt-0.5">{c.trade_name}</p>
                         )}
                         {(c.city || c.state) && (
-                          <p className="text-xs text-on-surface-variant mt-1">
+                          <p className="text-[11px] text-on-surface-variant mt-1">
                             📍 {[c.city, c.state].filter(Boolean).join(' / ')}
                           </p>
                         )}
@@ -320,7 +320,7 @@ export function Clients() {
                       <div className="flex border-t border-outline-variant/30 divide-x divide-outline-variant/30">
                         {c.phone && (
                           <a href={`tel:${c.phone}`}
-                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
+                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
                              onClick={e => e.stopPropagation()}>
                             📞 Ligar
                           </a>
@@ -328,14 +328,14 @@ export function Clients() {
                         {c.whatsapp && (
                           <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}`}
                              target="_blank" rel="noreferrer"
-                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 transition-colors"
+                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 transition-colors"
                              onClick={e => e.stopPropagation()}>
                             💬 WhatsApp
                           </a>
                         )}
                         {c.email && (
                           <a href={`mailto:${c.email}`}
-                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
+                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container active:bg-surface-container transition-colors"
                              onClick={e => e.stopPropagation()}>
                             ✉️ E-mail
                           </a>
@@ -357,7 +357,7 @@ export function Clients() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Clientes</h1>
-            <p className="text-xs text-outline">
+            <p className="text-[11px] text-outline">
               {isLoading ? 'Carregando…' : `${total} cliente${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
             </p>
           </div>
@@ -370,7 +370,7 @@ export function Clients() {
             />
             <button
               onClick={() => setShowImport(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 transition-colors"
               title="Importar via Excel"
             >
               <Upload className="h-4 w-4" />
@@ -378,7 +378,7 @@ export function Clients() {
             </button>
             <button
               onClick={() => setShowNewCnpj(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg px-3 py-2 transition-colors"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Novo</span>
@@ -406,17 +406,17 @@ export function Clients() {
             <Users className="h-8 w-8 text-outline/50" />
           </div>
           <p className="text-outline font-medium">Nenhum cliente encontrado</p>
-          <p className="text-xs text-outline/70 mt-1">
+          <p className="text-[11px] text-outline/70 mt-1">
             {search ? 'Tente ajustar a busca.' : 'Cadastre seu primeiro cliente ou importe via Excel.'}
           </p>
           {!search && (
             <div className="flex gap-3 mt-4">
               <button onClick={() => setShowImport(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-surface-container text-on-surface-variant text-xs font-semibold rounded-lg hover:bg-surface-container-high transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-surface-container text-on-surface-variant text-[11px] font-semibold rounded-lg hover:bg-surface-container-high transition-colors">
                 <Upload className="h-4 w-4" /> Importar Excel
               </button>
               <button onClick={() => setShowNewCnpj(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[11px] font-semibold rounded-lg hover:bg-primary/90 transition-colors">
                 <Plus className="h-4 w-4" /> Cadastrar Cliente
               </button>
             </div>
@@ -430,7 +430,7 @@ export function Clients() {
                 {visibleCols.map(col => (
                   <th
                     key={col.id}
-                    className={`px-2 py-2.5 text-xs font-semibold text-outline first:pl-3 last:pr-3 ${col.id === '_edit' ? 'w-10' : ''}`}
+                    className={`px-2 py-2.5 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${col.id === '_edit' ? 'w-10' : ''}`}
                   >
                     {col.label}
                   </th>
@@ -485,7 +485,7 @@ export function Clients() {
           </div>
 
           <div>
-            <p className="text-xs font-medium text-on-surface-variant mb-2">Endereço</p>
+            <p className="text-[11px] font-medium text-on-surface-variant mb-2">Endereço</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Input label="Endereço" {...f('address')} />

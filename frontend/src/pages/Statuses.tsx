@@ -127,7 +127,7 @@ export function Statuses() {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Status de Pedidos</h1>
-            <p className="text-xs text-outline mt-0.5">{list.length} status configurados</p>
+            <p className="text-[11px] text-outline mt-0.5">{list.length} status configurados</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
             Novo Status
@@ -159,13 +159,13 @@ export function Statuses() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mt-0.5">
                       {s.is_initial && (
-                        <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">inicial</span>
+                        <span className="text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">inicial</span>
                       )}
                       {s.is_final && (
-                        <span className="text-xs bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full">final</span>
+                        <span className="text-[11px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full">final</span>
                       )}
                       {!s.active && (
-                        <span className="text-xs bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full">inativo</span>
+                        <span className="text-[11px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full">inativo</span>
                       )}
                     </div>
                   </div>
@@ -226,7 +226,7 @@ export function Statuses() {
 
           {/* Color picker */}
           <div>
-            <label className="block text-xs font-medium text-on-surface-variant mb-2">Cor</label>
+            <label className="block text-[11px] font-medium text-on-surface-variant mb-2">Cor</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {PRESET_COLORS.map((c) => (
                 <button
@@ -250,7 +250,7 @@ export function Statuses() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-outline">Preview:</span>
+              <span className="text-[11px] text-outline">Preview:</span>
               <StatusBadge name={form.name || 'Status'} color={form.color} />
             </div>
           </div>
@@ -265,8 +265,8 @@ export function Statuses() {
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_initial ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <p className="text-xs font-medium text-on-surface-variant">Status inicial</p>
-                <p className="text-xs text-outline">Aplicado automaticamente a novos pedidos</p>
+                <p className="text-[11px] font-medium text-on-surface-variant">Status inicial</p>
+                <p className="text-[11px] text-outline">Aplicado automaticamente a novos pedidos</p>
               </div>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -277,8 +277,8 @@ export function Statuses() {
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_final ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <p className="text-xs font-medium text-on-surface-variant">Status final</p>
-                <p className="text-xs text-outline">Indica pedidos concluídos/cancelados</p>
+                <p className="text-[11px] font-medium text-on-surface-variant">Status final</p>
+                <p className="text-[11px] text-outline">Indica pedidos concluídos/cancelados</p>
               </div>
             </label>
           </div>
@@ -303,7 +303,7 @@ export function Statuses() {
           </div>
         }
       >
-        <p className="text-xs text-on-surface-variant">
+        <p className="text-[11px] text-on-surface-variant">
           Tem certeza que deseja excluir o status{' '}
           <strong>{deleteOpen?.name}</strong>? Pedidos com este status não serão afetados, mas o status não estará mais disponível.
         </p>
