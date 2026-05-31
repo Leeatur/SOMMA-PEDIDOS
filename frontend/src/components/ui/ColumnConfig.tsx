@@ -116,7 +116,7 @@ export function ColumnConfigModal({
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={handleReset}
-            className="text-sm text-primary hover:text-primary"
+            className="text-xs text-primary hover:text-primary"
           >
             Restaurar padrão
           </button>
@@ -159,7 +159,7 @@ export function ColumnConfigModal({
               </button>
 
               {/* Label */}
-              <span className={`flex-1 text-sm ${col.visible ? 'font-medium text-on-surface' : 'text-outline/70'}`}>
+              <span className={`flex-1 text-xs ${col.visible ? 'font-medium text-on-surface' : 'text-outline/70'}`}>
                 {def.label}
               </span>
 

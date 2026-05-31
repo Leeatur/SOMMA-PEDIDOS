@@ -12,7 +12,7 @@ export function Spinner({ size = 'md', className, label = 'Carregando...' }: Spi
   return (
     <div className={clsx('flex items-center justify-center gap-2', className)}>
       <Loader2 className={clsx('animate-spin text-primary', sizes[size])} />
-      {label && <span className="text-sm text-outline">{label}</span>}
+      {label && <span className="text-xs text-outline">{label}</span>}
     </div>
   )
 }

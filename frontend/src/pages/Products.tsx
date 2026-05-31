@@ -416,12 +416,12 @@ function ProductDetailModal({
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-primary/10 rounded-xl p-3 text-center">
             <p className="text-xs text-primary/80 mb-0.5">Preço por peça</p>
-            <p className="text-lg font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</p>
+            <p className="text-xs font-bold text-primary">R$ {Number(p.base_price).toFixed(2)}</p>
           </div>
           {p.type === 'pack' && totalPieces > 0 && (
             <div className="bg-surface-container-low rounded-xl p-3 text-center">
               <p className="text-xs text-outline mb-0.5">Preço por caixa ({totalPieces} pç)</p>
-              <p className="text-lg font-bold text-on-surface">R$ {pricePerBox.toFixed(2)}</p>
+              <p className="text-xs font-bold text-on-surface">R$ {pricePerBox.toFixed(2)}</p>
             </div>
           )}
         </div>

@@ -126,7 +126,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
       {/* ── STEP 1: Upload ── */}
       {step === 'upload' && (
         <div className="space-y-4">
-          <p className="text-sm text-on-surface-variant">
+          <p className="text-xs text-on-surface-variant">
             Exporte os clientes do seu sistema atual como Excel (.xlsx ou .xls) e faça o upload aqui.
             O sistema detecta as colunas automaticamente.
           </p>
@@ -141,14 +141,14 @@ export function ClientsImportModal({ open, onClose }: Props) {
             {previewMut.isPending ? (
               <div className="flex flex-col items-center gap-3 text-primary">
                 <Loader2 className="h-10 w-10 animate-spin" />
-                <p className="text-sm font-medium">Lendo arquivo...</p>
+                <p className="text-xs font-medium">Lendo arquivo...</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3 text-outline">
                 <FileSpreadsheet className="h-12 w-12 text-emerald-500" />
                 <div>
                   <p className="font-semibold text-on-surface-variant">Arraste o arquivo aqui</p>
-                  <p className="text-sm">ou clique para selecionar</p>
+                  <p className="text-xs">ou clique para selecionar</p>
                 </div>
                 <p className="text-xs text-outline/70">Suporta .xlsx e .xls</p>
               </div>
@@ -164,7 +164,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
           />
 
           {previewMut.isError && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center gap-2">
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               {(previewMut.error as any)?.response?.data?.error || 'Erro ao ler o arquivo'}
             </p>
@@ -185,7 +185,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-on-surface">
+              <p className="text-xs font-semibold text-on-surface">
                 {preview.totalRows} clientes encontrados
               </p>
               <p className="text-xs text-outline">
@@ -237,7 +237,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
               {FIELDS.map(f => (
                 <div key={f.key} className="flex items-center gap-3">
                   <label className="w-44 flex-shrink-0">
-                    <span className="text-sm text-on-surface-variant">
+                    <span className="text-xs text-on-surface-variant">
                       {f.label}
                       {f.required && <span className="text-red-500 ml-0.5">*</span>}
                     </span>
@@ -247,7 +247,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
                   <select
                     value={mapping[f.key] || ''}
                     onChange={e => setMapping(m => ({ ...m, [f.key]: e.target.value }))}
-                    className={`flex-1 text-sm border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                    className={`flex-1 text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
                       f.required && !mapping[f.key]
                         ? 'border-red-300 bg-red-50'
                         : mapping[f.key] ? 'border-emerald-300 bg-emerald-50' : 'border-outline-variant'
@@ -309,7 +309,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
           {result.imported > 0 && (
             <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
               <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-              <p className="text-sm font-medium">
+              <p className="text-xs font-medium">
                 {result.imported} cliente{result.imported !== 1 ? 's' : ''} importado{result.imported !== 1 ? 's' : ''} com sucesso!
               </p>
             </div>
@@ -325,7 +325,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
             <div className="border border-red-200 rounded-lg overflow-hidden">
               <button
                 onClick={() => setShowErrors(e => !e)}
-                className="w-full flex items-center justify-between px-3 py-2 bg-red-50 text-sm font-medium text-red-700"
+                className="w-full flex items-center justify-between px-3 py-2 bg-red-50 text-xs font-medium text-red-700"
               >
                 <span>Ver {result.errors.length} erros</span>
                 {showErrors ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}

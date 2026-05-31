@@ -62,12 +62,12 @@ export function Login() {
         <div className="bg-white w-full rounded-xl p-8 border border-border-subtle shadow-2xl">
           <div className="mb-6 text-center">
             <h2 className="text-lg font-semibold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Bem-vindo de volta</h2>
-            <p className="text-sm text-on-surface-variant mt-1">Acesse sua conta para continuar</p>
+            <p className="text-xs text-on-surface-variant mt-1">Acesse sua conta para continuar</p>
           </div>
 
           {error && (
             <div className="mb-4 bg-error-container border border-error/20 rounded-xl px-4 py-3">
-              <p className="text-sm text-error">{error}</p>
+              <p className="text-xs text-error">{error}</p>
             </div>
           )}
 
@@ -90,7 +90,7 @@ export function Login() {
                   placeholder="seu@email.com"
                   autoComplete="email"
                   autoFocus
-                  className="w-full h-12 pl-10 pr-4 bg-surface-container-low border border-border-subtle rounded-lg text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full h-12 pl-10 pr-4 bg-surface-container-low border border-border-subtle rounded-lg text-xs text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
               </div>
             </div>
@@ -112,7 +112,7 @@ export function Login() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="w-full h-12 pl-10 pr-12 bg-surface-container-low border border-border-subtle rounded-lg text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full h-12 pl-10 pr-12 bg-surface-container-low border border-border-subtle rounded-lg text-xs text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
                 <button
                   type="button"
@@ -128,7 +128,7 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-primary-container text-on-primary font-semibold text-sm rounded-lg shadow-md hover:bg-primary transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
+              className="w-full h-12 bg-primary-container text-on-primary font-semibold text-xs rounded-lg shadow-md hover:bg-primary transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
             >
               {loading ? (
                 <span
