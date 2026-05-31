@@ -323,6 +323,20 @@ export async function listProducts(req: AuthRequest, res: Response) {
   res.json(rows)
 }
 
+export async function updateProduct(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { reference, product_name, model, size_range, base_price, category, observation, type } = req.body
+  if (!reference || base_price === undefined) {
+    res.status(400).json({ error: 'reference e base_price são obrigatórios' }); return
+  }
+  const { rows } = await query(
+    `UPDATE products SET reference=$1, product_name=$2, model=$3, size_range=$4, base_price=$5, category=$6, observation=$7, type=$8, updated_at=NOW() WHERE id=$9 RETURNING *`,
+    [reference, product_name || null, model || null, size_range || null, base_price, category || null, observation || null, type, id]
+  )
+  if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
+  res.json(rows[0])
+}
+
 export async function updateProductAvailability(req: AuthRequest, res: Response) {
   const { id } = req.params
   const { active } = req.body

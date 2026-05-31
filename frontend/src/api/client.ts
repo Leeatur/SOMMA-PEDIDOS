@@ -160,6 +160,16 @@ export const priceTablesApi = {
 export const productsApi = {
   list: (params: { price_table_id?: string; search?: string; type?: string; include_inactive?: boolean }) =>
     apiClient.get('/products', { params }),
+  update: (id: string, data: {
+    reference: string
+    product_name?: string | null
+    model?: string | null
+    size_range?: string | null
+    base_price: number
+    category?: string | null
+    observation?: string | null
+    type: 'regular' | 'pack'
+  }) => apiClient.patch(`/products/${id}`, data),
   uploadImage: (id: string, file: File) => {
     const fd = new FormData()
     fd.append('file', file)

@@ -64,6 +64,7 @@ router.delete('/price-tables/:id', authenticate, requireAdmin, priceTables.delet
 router.get('/products', authenticate, priceTables.listProducts)
 router.post('/products/:id/image', authenticate, requireAdmin, upload.single('image'), priceTables.uploadProductImage)
 router.put('/products/:product_id/grade', authenticate, requireAdmin, priceTables.updateGradeConfig)
+router.patch('/products/:id', authenticate, requireAdmin, priceTables.updateProduct)
 router.patch('/products/:id/availability', authenticate, requireAdmin, priceTables.updateProductAvailability)
 router.patch('/products/:id/blocked-sizes', authenticate, requireAdmin, priceTables.updateBlockedSizes)
 

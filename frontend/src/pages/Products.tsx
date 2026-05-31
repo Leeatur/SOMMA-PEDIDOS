@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock } from 'lucide-react'
+import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { productsApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
@@ -90,6 +90,9 @@ interface Product {
 }
 
 // ─── Product Detail Modal ────────────────────────────────────────────────────
+
+type EditGradeRow = { color: string; sizes: Record<string, number> }
+
 function ProductDetailModal({
   p, isAdmin, onClose, onUpdated,
 }: {
@@ -102,13 +105,104 @@ function ProductDetailModal({
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
   const pricePerBox = p.base_price * totalPieces
 
+  // ── Edit mode state ──────────────────────────────────────────────────────
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [editForm, setEditForm] = useState({
+    reference: p.reference,
+    product_name: p.product_name || '',
+    model: p.model || '',
+    size_range: p.size_range || '',
+    base_price: p.base_price,
+    category: p.category || '',
+    observation: p.observation || '',
+    type: p.type as 'regular' | 'pack',
+  })
+  const [editGrade, setEditGrade] = useState<EditGradeRow[]>(() => {
+    if (!p.grade_configs || p.grade_configs.length === 0) {
+      const sizes = parseSizeRange(p.size_range)
+      const defaultSizes: Record<string, number> = {}
+      sizes.forEach(s => { defaultSizes[s] = 1 })
+      return [{ color: '', sizes: defaultSizes }]
+    }
+    return p.grade_configs.map(gc => ({
+      color: gc.color || '',
+      sizes: expandGradeSizes(gc.sizes),
+    }))
+  })
+
+  // Sizes used as grade columns — derived from editForm.size_range live
+  const gradeSizes = useMemo(() => {
+    const fromRange = parseSizeRange(editForm.size_range)
+    if (fromRange.length > 0) return fromRange
+    // Fallback to sizes already in grade rows
+    const allFromGrade = sortSizes(Array.from(new Set(editGrade.flatMap(r => Object.keys(r.sizes)))))
+    return allFromGrade
+  }, [editForm.size_range, editGrade])
+
+  function setGradeCell(rowIdx: number, size: string, val: number) {
+    setEditGrade(prev => prev.map((row, i) =>
+      i === rowIdx ? { ...row, sizes: { ...row.sizes, [size]: val } } : row
+    ))
+  }
+  function setGradeColor(rowIdx: number, color: string) {
+    setEditGrade(prev => prev.map((row, i) => i === rowIdx ? { ...row, color } : row))
+  }
+  function addGradeRow() {
+    const newSizes: Record<string, number> = {}
+    gradeSizes.forEach(s => { newSizes[s] = 0 })
+    setEditGrade(prev => [...prev, { color: '', sizes: newSizes }])
+  }
+  function removeGradeRow(idx: number) {
+    setEditGrade(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setSaveError('')
+    try {
+      const res = await productsApi.update(p.id, {
+        reference: editForm.reference,
+        product_name: editForm.product_name || null,
+        model: editForm.model || null,
+        size_range: editForm.size_range || null,
+        base_price: Number(editForm.base_price),
+        category: editForm.category || null,
+        observation: editForm.observation || null,
+        type: editForm.type,
+      })
+      const gradePayload = editGrade
+        .filter(row => Object.values(row.sizes).some(v => v > 0))
+        .map((row, i) => ({ color: row.color || null, sizes: row.sizes, sort_order: i }))
+      const gradeRes = await productsApi.updateGrade(p.id, gradePayload)
+      onUpdated({
+        reference: res.data.reference,
+        product_name: res.data.product_name,
+        model: res.data.model,
+        size_range: res.data.size_range,
+        base_price: res.data.base_price,
+        category: res.data.category,
+        observation: res.data.observation,
+        type: res.data.type,
+        grade_configs: gradeRes.data,
+      })
+      qc.invalidateQueries({ queryKey: ['all-products'] })
+      setEditing(false)
+    } catch {
+      setSaveError('Erro ao salvar. Verifique os dados e tente novamente.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── View-mode helpers ────────────────────────────────────────────────────
+
   // Tamanhos disponíveis para bloqueio
   const allSizes = (() => {
-    if (p.type === 'pack') return []  // packs não têm bloqueio por tamanho
-    // Preferência: parsear size_range (mais confiável e evita null em gc.sizes)
+    if (p.type === 'pack') return []
     const fromRange = sortSizes(parseSizeRange(p.size_range))
     if (fromRange.length > 0) return fromRange
-    // Fallback: extrair de grade_configs com proteção contra sizes nulo
     if (p.grade_configs && p.grade_configs.length > 0) {
       return sortSizes(Array.from(new Set(
         p.grade_configs
@@ -149,9 +243,157 @@ function ProductDetailModal({
 
   const blockedChanged = JSON.stringify(sortSizes(localBlocked)) !== JSON.stringify(sortSizes(p.blocked_sizes || []))
 
+  // ── Edit form ────────────────────────────────────────────────────────────
+  if (editing) {
+    const inputCls = "w-full border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+    return (
+      <Modal open onClose={() => setEditing(false)} title={`Editar: ${p.reference}`} size="lg">
+        <div className="space-y-4">
+          {saveError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">{saveError}</div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-outline mb-1">Referência *</label>
+              <input className={inputCls} value={editForm.reference} onChange={e => setEditForm(f => ({ ...f, reference: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-outline mb-1">Tipo</label>
+              <select className={inputCls} value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value as 'regular' | 'pack' }))}>
+                <option value="regular">Regular</option>
+                <option value="pack">Pack</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-outline mb-1">Nome do produto</label>
+            <input className={inputCls} value={editForm.product_name} onChange={e => setEditForm(f => ({ ...f, product_name: e.target.value }))} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-outline mb-1">Modelo</label>
+              <input className={inputCls} value={editForm.model} onChange={e => setEditForm(f => ({ ...f, model: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-outline mb-1">Categoria</label>
+              <input className={inputCls} value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-outline mb-1">Preço por peça (R$) *</label>
+              <input type="number" step="0.01" min="0" className={inputCls} value={editForm.base_price}
+                onChange={e => setEditForm(f => ({ ...f, base_price: parseFloat(e.target.value) || 0 }))} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-outline mb-1">Faixa de tamanhos</label>
+              <input className={inputCls} placeholder="ex: P-GG ou 36-48" value={editForm.size_range}
+                onChange={e => setEditForm(f => ({ ...f, size_range: e.target.value }))} />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-outline mb-1">Observação</label>
+            <textarea className={`${inputCls} resize-none h-16`} value={editForm.observation}
+              onChange={e => setEditForm(f => ({ ...f, observation: e.target.value }))} />
+          </div>
+
+          {/* Grade editor */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-outline uppercase tracking-wide">Grade</p>
+              <button type="button" onClick={addGradeRow}
+                className="flex items-center gap-1 text-xs text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5">
+                <Plus className="h-3 w-3" /> Adicionar linha
+              </button>
+            </div>
+            {gradeSizes.length === 0 ? (
+              <p className="text-xs text-outline/70 italic">Preencha a faixa de tamanhos para editar a grade.</p>
+            ) : (
+              <div className="space-y-2">
+                {editGrade.map((row, rowIdx) => (
+                  <div key={rowIdx} className="bg-surface-container-low rounded-xl p-2.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        placeholder="Cor (opcional)"
+                        className="border border-outline-variant rounded-lg px-2 py-1 text-xs text-on-surface focus:outline-none focus:ring-1 focus:ring-primary bg-white flex-1"
+                        value={row.color}
+                        onChange={e => setGradeColor(rowIdx, e.target.value)}
+                      />
+                      {editGrade.length > 1 && (
+                        <button type="button" onClick={() => removeGradeRow(rowIdx)}
+                          className="text-red-500 hover:text-red-700 p-1 rounded">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="overflow-x-auto scrollbar-hide">
+                      <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
+                        <thead className="bg-white">
+                          <tr>
+                            {gradeSizes.map(s => (
+                              <th key={s} className="px-2 py-1 text-on-surface-variant font-medium text-center min-w-[40px]">{s}</th>
+                            ))}
+                            <th className="px-2 py-1 text-outline text-center border-l border-outline-variant">Tot</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="bg-white">
+                            {gradeSizes.map(s => (
+                              <td key={s} className="px-1 py-1 text-center">
+                                <input
+                                  type="number" min="0"
+                                  className="w-10 text-center text-xs border border-outline-variant/60 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                                  value={row.sizes[s] ?? 0}
+                                  onChange={e => setGradeCell(rowIdx, s, parseInt(e.target.value) || 0)}
+                                />
+                              </td>
+                            ))}
+                            <td className="px-2 py-1 text-center font-bold border-l border-outline-variant text-on-surface">
+                              {Object.values(row.sizes).reduce((a, b) => a + b, 0)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 pt-2 border-t border-outline-variant">
+            <button onClick={handleSave} disabled={saving || !editForm.reference}
+              className="flex-1 bg-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
+              {saving ? 'Salvando…' : 'Salvar alterações'}
+            </button>
+            <button onClick={() => setEditing(false)}
+              className="px-4 py-2.5 border border-outline-variant rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1.5">
+              <X className="h-4 w-4" /> Cancelar
+            </button>
+          </div>
+        </div>
+      </Modal>
+    )
+  }
+
+  // ── View mode ────────────────────────────────────────────────────────────
   return (
     <Modal open onClose={onClose} title={p.reference} size="md">
       <div className="space-y-4">
+        {isAdmin && (
+          <div className="flex justify-end">
+            <button onClick={() => setEditing(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-lg px-3 py-1.5 transition-colors">
+              <Pencil className="h-3.5 w-3.5" /> Editar referência
+            </button>
+          </div>
+        )}
+
         {p.image_url ? (
           <div className="w-full aspect-square max-h-64 overflow-hidden rounded-xl bg-surface-container">
             <img src={p.image_url} alt={p.reference} className="w-full h-full object-contain" />
