@@ -5,7 +5,6 @@ import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { Factories } from './pages/Factories'
 import { PriceTables } from './pages/PriceTables'
-import { Catalog } from './pages/Catalog'
 import { Clients } from './pages/Clients'
 import { Orders } from './pages/Orders'
 import { NewOrder } from './pages/NewOrder'
@@ -55,8 +54,7 @@ export function App() {
         <Route path="/orders/:id" element={<OrderDetail />} />
         <Route path="/orders/:id/edit" element={<OrderEdit />} />
         <Route path="/clients" element={<Clients />} />
-        <Route path="/catalog" element={<Catalog />} />
-        <Route path="/products" element={<Products />} />
+<Route path="/products" element={<Products />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
 

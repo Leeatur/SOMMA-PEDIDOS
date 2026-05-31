@@ -61,6 +61,7 @@ export function Clients() {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [open, setOpen] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [showNewCnpj, setShowNewCnpj] = useState(false)
@@ -68,9 +69,17 @@ export function Clients() {
   const [form, setForm] = useState<FormState>(emptyForm)
   const [errors, setErrors] = useState<Partial<FormState>>({})
 
+  function handleSearch(val: string) {
+    setSearch(val)
+    clearTimeout((window as unknown as { _clientSearchTimer?: number })._clientSearchTimer)
+    ;(window as unknown as { _clientSearchTimer?: number })._clientSearchTimer = window.setTimeout(() => {
+      setDebouncedSearch(val)
+    }, 350)
+  }
+
   const { data: clients, isLoading } = useQuery<Client[]>({
-    queryKey: ['clients', search],
-    queryFn: () => clientsApi.list(search || undefined).then((r) => r.data),
+    queryKey: ['clients', debouncedSearch],
+    queryFn: () => clientsApi.list(debouncedSearch || undefined).then((r) => r.data),
   })
 
   const { data: users } = useQuery<User[]>({
@@ -255,9 +264,9 @@ export function Clients() {
 
         {/* Busca */}
         <Input
-          placeholder="Buscar clientes por nome, CNPJ, cidade..."
+          placeholder="Buscar por nome, CNPJ, CPF, cidade, telefone, e-mail..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearch(e.target.value)}
           leftIcon={<Search className="h-4 w-4" />}
         />
       </div>

@@ -121,9 +121,15 @@ export async function listOrders(req: AuthRequest, res: Response) {
   if (date_from) { sql += ` AND o.created_at >= $${idx++}`; params.push(date_from) }
   if (date_to) { sql += ` AND o.created_at <= $${idx++}`; params.push(date_to) }
   if (search) {
-    sql += ` AND (c.name ILIKE $${idx} OR o.order_number::text = $${idx+1})`
-    params.push(`%${search}%`, search)
-    idx += 2
+    sql += ` AND (
+      c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR
+      f.name ILIKE $${idx} OR u.name ILIKE $${idx} OR
+      o.industry_order_number ILIKE $${idx} OR
+      o.payment_terms ILIKE $${idx} OR o.buyer_name ILIKE $${idx} OR
+      o.order_number::text ILIKE $${idx}
+    )`
+    params.push(`%${search}%`)
+    idx++
   }
   sql += ' ORDER BY o.created_at DESC'
   const { rows } = await query(sql, params)

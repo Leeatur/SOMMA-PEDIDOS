@@ -267,7 +267,7 @@ export function Orders() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar pedidos ou clientes..."
+              placeholder="Buscar por cliente, nº pedido, indústria, vendedor..."
               className="w-full h-11 pl-10 pr-4 bg-white border border-border-subtle rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all shadow-sm"
             />
           </div>
@@ -364,7 +364,7 @@ export function Orders() {
           <div className="flex gap-2">
             <div className="flex-1">
               <Input
-                placeholder="Buscar cliente, nº pedido, cidade..."
+                placeholder="Buscar por cliente, nº pedido, indústria, vendedor..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 leftIcon={<Search className="h-4 w-4" />}

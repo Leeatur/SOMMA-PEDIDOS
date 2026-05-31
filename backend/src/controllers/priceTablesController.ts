@@ -305,7 +305,12 @@ export async function listProducts(req: AuthRequest, res: Response) {
   if (price_table_id) { sql += ` AND p.price_table_id = $${idx++}`; params.push(price_table_id) }
   if (type) { sql += ` AND p.type = $${idx++}`; params.push(type) }
   if (search) {
-    sql += ` AND (p.reference ILIKE $${idx} OR p.product_name ILIKE $${idx} OR p.model ILIKE $${idx})`
+    sql += ` AND (
+      p.reference ILIKE $${idx} OR p.product_name ILIKE $${idx} OR
+      p.model ILIKE $${idx} OR p.category ILIKE $${idx} OR
+      p.observation ILIKE $${idx} OR p.size_range ILIKE $${idx} OR
+      f.name ILIKE $${idx} OR pt.name ILIKE $${idx}
+    )`
     params.push(`%${search}%`)
     idx++
   }

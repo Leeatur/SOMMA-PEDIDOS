@@ -14,7 +14,15 @@ export async function listClients(req: AuthRequest, res: Response) {
   const params: unknown[] = []
   if (search) {
     const idx = params.length + 1
-    sql += ` AND (c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR c.cnpj ILIKE $${idx} OR c.city ILIKE $${idx})`
+    sql += ` AND (
+      c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR
+      c.cnpj ILIKE $${idx} OR c.cpf ILIKE $${idx} OR
+      c.city ILIKE $${idx} OR c.state ILIKE $${idx} OR
+      c.phone ILIKE $${idx} OR c.whatsapp ILIKE $${idx} OR
+      c.email ILIKE $${idx} OR c.address ILIKE $${idx} OR
+      c.zip ILIKE $${idx} OR c.state_registration ILIKE $${idx} OR
+      u.name ILIKE $${idx}
+    )`
     params.push(`%${search}%`)
   }
   sql += ' ORDER BY c.name'

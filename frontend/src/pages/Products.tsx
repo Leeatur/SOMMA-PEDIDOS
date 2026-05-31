@@ -798,7 +798,7 @@ export function Products() {
         <div className="flex gap-2">
           <div className="flex-1">
             <Input
-              placeholder="Buscar por referência, nome, modelo..."
+              placeholder="Buscar por referência, nome, modelo, categoria, fábrica..."
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
               leftIcon={<Search className="h-4 w-4" />}
