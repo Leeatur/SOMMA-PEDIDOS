@@ -9,7 +9,7 @@ import {
   Tags,
   Settings,
   LogOut,
-  PlusCircle,
+  Plus,
   UserCog,
   Wifi,
   WifiOff,
@@ -253,33 +253,72 @@ export function AppLayout() {
           <Outlet />
         </main>
 
-        {/* ── Mobile Bottom Nav ── */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant flex items-center justify-around px-2 h-16 safe-bottom z-30 shadow-sm">
-          {mobileNav.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-full transition-all duration-200 ${
-                  isActive
-                    ? 'bg-primary-container text-primary'
-                    : 'text-on-surface-variant'
-                }`
-              }
-            >
-              {item.icon}
-              <span className="text-[9px] font-semibold uppercase tracking-wider">{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+        {/* ── Mobile Bottom Nav with center FAB ── */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 safe-bottom" style={{ background: 'white', boxShadow: '0 -1px 0 #E5E7EB, 0 -4px 16px rgba(0,0,0,0.06)' }}>
+          <div className="flex items-end justify-around px-1 pt-1 pb-1" style={{ height: 64 }}>
 
-        {/* ── FAB (mobile) ── */}
-        <button
-          onClick={() => navigate('/orders/new')}
-          className="lg:hidden fixed bottom-20 right-4 w-14 h-14 bg-primary text-white rounded-2xl shadow-lg shadow-primary/30 flex items-center justify-center active:scale-90 transition-transform duration-100 z-40"
-        >
-          <PlusCircle className="h-6 w-6" />
-        </button>
+            {/* Início */}
+            <NavLink to="/dashboard" className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
+            }>
+              {({ isActive }) => (<>
+                <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
+                  <LayoutDashboard className="h-[18px] w-[18px]" />
+                </div>
+                <span className="text-[10px] font-semibold">Início</span>
+              </>)}
+            </NavLink>
+
+            {/* Pedidos */}
+            <NavLink to="/orders" className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
+            }>
+              {({ isActive }) => (<>
+                <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
+                  <ShoppingCart className="h-[18px] w-[18px]" />
+                </div>
+                <span className="text-[10px] font-semibold">Pedidos</span>
+              </>)}
+            </NavLink>
+
+            {/* FAB central */}
+            <div className="flex flex-col items-center" style={{ marginTop: -20 }}>
+              <button
+                onClick={() => navigate('/orders/new')}
+                className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                style={{ boxShadow: '0 4px 20px rgba(109,40,217,0.45)' }}
+              >
+                <Plus className="h-6 w-6" />
+              </button>
+              <span className="text-[10px] font-semibold text-on-surface-variant/60 mt-0.5">Novo</span>
+            </div>
+
+            {/* Clientes */}
+            <NavLink to="/clients" className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
+            }>
+              {({ isActive }) => (<>
+                <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
+                  <Users className="h-[18px] w-[18px]" />
+                </div>
+                <span className="text-[10px] font-semibold">Clientes</span>
+              </>)}
+            </NavLink>
+
+            {/* Produtos */}
+            <NavLink to="/products" className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
+            }>
+              {({ isActive }) => (<>
+                <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
+                  <Package className="h-[18px] w-[18px]" />
+                </div>
+                <span className="text-[10px] font-semibold">Produtos</span>
+              </>)}
+            </NavLink>
+
+          </div>
+        </nav>
       </div>
     </div>
   )

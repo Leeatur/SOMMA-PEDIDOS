@@ -150,54 +150,54 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
 // ─── Mobile Order Card ────────────────────────────────────────────────────────
 
 function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
+  const accent = o.status_color || '#9CA3AF'
   return (
     <div
       onClick={onClick}
-      className="bg-white border border-border-subtle rounded-xl p-4 flex flex-col gap-3 active:bg-surface-container-low transition-colors cursor-pointer"
+      className="bg-white rounded-2xl overflow-hidden active:scale-[0.98] transition-transform cursor-pointer"
+      style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04)' }}
     >
-      {/* Top row: number + status */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs text-outline font-medium uppercase tracking-wide">Pedido</p>
-          <p className="text-lg font-bold text-primary leading-none mt-0.5">{formatOrderNumber(o.order_number)}</p>
+      {/* Status top bar */}
+      <div className="h-1 w-full" style={{ background: accent }} />
+
+      <div className="p-4">
+        {/* Row 1: number + status pill */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[13px] font-bold text-primary font-mono">{formatOrderNumber(o.order_number)}</span>
+          {o.status_name ? (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: accent + '22', color: accent }}>
+              {o.status_name}
+            </span>
+          ) : null}
         </div>
-        {o.status_name && o.status_color ? (
-          <span
-            className="px-3 py-1 rounded-full text-xs font-bold uppercase"
-            style={{ backgroundColor: o.status_color + '22', color: o.status_color }}
-          >
-            {o.status_name}
-          </span>
-        ) : (
-          <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-surface-container text-on-surface-variant">
-            Sem status
-          </span>
-        )}
-      </div>
 
-      {/* Client */}
-      <div>
-        <p className="text-xs font-semibold text-on-surface leading-tight">{o.client_name}</p>
+        {/* Row 2: client name */}
+        <p className="text-[13px] font-semibold text-on-surface leading-tight truncate">{o.client_name}</p>
         {o.client_trade_name && (
-          <p className="text-xs text-on-surface-variant mt-0.5">{o.client_trade_name}</p>
+          <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">{o.client_trade_name}</p>
         )}
-        {o.client_city && (
-          <p className="text-xs text-outline mt-0.5">{o.client_city}</p>
-        )}
-      </div>
 
-      {/* Bottom row: date + value */}
-      <div className="flex items-center justify-between border-t border-border-subtle pt-2">
-        <div className="flex items-center gap-1.5 text-on-surface-variant">
-          <span className="text-xs">{formatDate(o.created_at)}</span>
+        {/* Row 3: meta */}
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           {o.factory_name && (
-            <>
-              <span className="text-outline/40">·</span>
-              <span className="text-xs text-outline truncate max-w-[120px]">{o.factory_name}</span>
-            </>
+            <span className="text-[10px] font-semibold bg-surface-container px-2 py-0.5 rounded-full text-outline">{o.factory_name}</span>
+          )}
+          {o.client_city && (
+            <span className="text-[10px] text-outline">{o.client_city}</span>
           )}
         </div>
-        <p className="text-xs font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
+
+        {/* Row 4: bottom — date + pieces + value */}
+        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
+          <div>
+            <p className="text-[10px] text-outline">{formatDate(o.created_at)}</p>
+            {o.total_pieces > 0 && (
+              <p className="text-[10px] text-outline/70">{o.total_pieces} peças</p>
+            )}
+          </div>
+          <p className="text-[15px] font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
+        </div>
       </div>
     </div>
   )
@@ -250,37 +250,38 @@ export function Orders() {
     <div className="flex flex-col h-full">
 
       {/* ══ MOBILE VIEW ══════════════════════════════════════════════════════ */}
-      <div className="lg:hidden flex flex-col h-full bg-surface-base">
+      <div className="lg:hidden flex flex-col h-full" style={{ background: '#F5F3FF' }}>
 
         {/* Mobile header */}
-        <div className="px-4 pt-4 pb-3 bg-surface border-b border-border-subtle">
+        <div className="px-4 pt-5 pb-3 bg-white" style={{ boxShadow: '0 1px 0 #E5E7EB' }}>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Pedidos</h2>
-            <span className="text-xs text-on-surface-variant">
-              {isLoading ? '' : `${total} pedido${total !== 1 ? 's' : ''}`}
-            </span>
+            <div>
+              <h2 className="text-[18px] font-bold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Pedidos</h2>
+              <p className="text-[11px] text-outline mt-0.5">
+                {isLoading ? '' : `${total} pedido${total !== 1 ? 's' : ''}`}
+              </p>
+            </div>
           </div>
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-outline/60" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por cliente, nº pedido, indústria, vendedor..."
-              className="w-full h-11 pl-10 pr-4 bg-white border border-border-subtle rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all shadow-sm"
+              placeholder="Cliente, nº pedido, indústria..."
+              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/40 rounded-2xl text-[11px] focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
             />
           </div>
         </div>
 
         {/* Status filter chips */}
         {statuses && statuses.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto px-4 py-2 bg-surface border-b border-border-subtle"
-               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="flex gap-2 overflow-x-auto px-4 py-2.5 bg-white border-b border-gray-100 scrollbar-hide">
             <button
               onClick={() => setStatusFilter('')}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-colors ${
-                statusFilter === '' ? 'bg-primary text-white' : 'bg-white border border-border-subtle text-on-surface-variant'
+              className={`flex-shrink-0 px-3.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all ${
+                statusFilter === '' ? 'bg-primary text-white shadow-md shadow-primary/30' : 'bg-surface-container text-on-surface-variant'
               }`}
             >
               Todos
@@ -289,11 +290,11 @@ export function Orders() {
               <button
                 key={s.id}
                 onClick={() => setStatusFilter(statusFilter === s.id ? '' : s.id)}
-                className="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-colors"
+                className="flex-shrink-0 px-3.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all"
                 style={
                   statusFilter === s.id
-                    ? { backgroundColor: s.color, color: '#fff' }
-                    : { backgroundColor: s.color + '18', color: s.color, border: `1px solid ${s.color}44` }
+                    ? { backgroundColor: s.color, color: '#fff', boxShadow: `0 2px 8px ${s.color}44` }
+                    : { backgroundColor: s.color + '18', color: s.color }
                 }
               >
                 {s.name}
@@ -308,16 +309,16 @@ export function Orders() {
             <div className="flex items-center justify-center py-16"><PageSpinner /></div>
           ) : total === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-8">
-              <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <ShoppingCart className="h-8 w-8 text-outline/50" />
+              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <ShoppingCart className="h-8 w-8 text-primary/50" />
               </div>
-              <p className="text-outline font-medium">Nenhum pedido encontrado</p>
-              <p className="text-xs text-outline/70 mt-1">
+              <p className="text-[13px] font-semibold text-on-surface">Nenhum pedido encontrado</p>
+              <p className="text-[11px] text-outline mt-1">
                 {search || statusFilter ? 'Tente ajustar os filtros.' : 'Crie o primeiro pedido.'}
               </p>
             </div>
           ) : (
-            <div className="p-4 space-y-1.5 pb-24">
+            <div className="px-4 pt-3 pb-28 space-y-2.5">
               {(orders || []).map(o => (
                 <MobileOrderCard
                   key={o.id}
