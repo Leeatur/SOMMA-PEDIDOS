@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, TrendingUp, Clock, CheckCircle, ArrowRight, Package } from 'lucide-react'
+import { ShoppingCart, TrendingUp, Clock, CheckCircle, ArrowRight, Package, Plus } from 'lucide-react'
 import { ordersApi, statusesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
-import { StatusBadge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
 import { formatCurrency, formatDate, formatOrderNumber } from '../utils/format'
 
@@ -48,136 +47,219 @@ export function Dashboard() {
   }
 
   return (
-    <div className="pb-28 lg:pb-8">
+    <div className="pb-28 lg:pb-10 min-h-full">
 
-      {/* ─── Page header ─────────────────────────────────────── */}
-      <div className="px-5 pt-6 pb-5 lg:px-8 lg:pt-8">
-        <p className="text-[12px] text-on-surface-variant">{greeting()},</p>
-        <h1 className="font-display text-[24px] font-bold text-on-surface leading-tight mt-0.5">{user?.name}</h1>
-        <p className="text-[12px] text-outline mt-1">
+      {/* ─── Hero header ─────────────────────────────────── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#003fa8] via-[#004ac6] to-[#1a6fd4] px-5 pt-8 pb-10 lg:px-8 lg:pt-10 lg:pb-12">
+        {/* decorative blobs */}
+        <div className="absolute -top-10 -right-10 w-52 h-52 bg-white/10 rounded-full pointer-events-none" />
+        <div className="absolute top-8 right-20 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
+        <div className="absolute -bottom-6 left-1/3 w-36 h-36 bg-white/5 rounded-full pointer-events-none" />
+
+        <p className="text-white/60 text-xs font-medium">{greeting()},</p>
+        <h1 className="font-display text-[26px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
+        <p className="text-white/50 text-xs mt-1.5">
           {isAdmin ? 'Administrador' : 'Representante'} &bull;{' '}
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
+
+        {/* FAB new order (desktop) */}
+        <button
+          onClick={() => navigate('/orders/new')}
+          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold px-4 py-2 rounded-xl border border-white/20 transition-all backdrop-blur-sm"
+        >
+          <Plus className="h-4 w-4" /> Novo pedido
+        </button>
       </div>
 
-      {/* ─── Stats — scroll horizontal no mobile, grid no desktop ─ */}
-      <div className="flex overflow-x-auto gap-3 px-5 lg:px-8 snap-x snap-mandatory scrollbar-hide
-                      lg:grid lg:overflow-visible lg:snap-none
-                      lg:grid-cols-4">
+      {/* ─── Stat cards — overlap hero ──────────────────── */}
+      <div className="px-4 lg:px-8 -mt-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
 
-        {/* Card 1 — Total Pedidos (destacado / azul no mobile) */}
-        <div className="flex-none w-[240px] snap-center lg:w-auto
-                        bg-primary rounded-2xl p-5 shadow-md shadow-primary/20 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <span className="p-2 bg-white/20 rounded-lg"><ShoppingCart className="h-5 w-5" /></span>
-          </div>
-          <p className="text-[10px] font-bold uppercase opacity-70 mb-1">Total Pedidos</p>
-          <p className="font-display text-[36px] font-bold leading-none">{allOrders.length}</p>
+          <StatCard
+            icon={<ShoppingCart className="h-4.5 w-4.5 text-primary" />}
+            iconBg="bg-blue-50"
+            label="Total de pedidos"
+            value={allOrders.length.toString()}
+            large
+          />
+
+          <StatCard
+            icon={<Clock className="h-4.5 w-4.5 text-emerald-600" />}
+            iconBg="bg-emerald-50"
+            label="Pedidos hoje"
+            value={todayOrders.length.toString()}
+            badge="HOJE"
+            badgeColor="emerald"
+            large
+          />
+
+          {isAdmin && (
+            <StatCard
+              icon={<TrendingUp className="h-4.5 w-4.5 text-violet-600" />}
+              iconBg="bg-violet-50"
+              label="Total faturado"
+              value={formatCurrency(totalValue)}
+            />
+          )}
+
+          {isAdmin && (
+            <StatCard
+              icon={<CheckCircle className="h-4.5 w-4.5 text-amber-600" />}
+              iconBg="bg-amber-50"
+              label="Faturado hoje"
+              value={formatCurrency(todayValue)}
+              badge="HOJE"
+              badgeColor="amber"
+            />
+          )}
         </div>
-
-        {/* Card 2 — Hoje */}
-        <div className="flex-none w-[240px] snap-center lg:w-auto
-                        bg-white rounded-2xl border border-outline-variant p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <span className="p-2 bg-emerald-100 rounded-lg text-emerald-600"><Clock className="h-5 w-5" /></span>
-            <span className="text-[10px] font-bold text-on-surface-variant">Hoje</span>
-          </div>
-          <p className="text-[10px] font-bold uppercase text-on-surface-variant mb-1">Pedidos Hoje</p>
-          <p className="font-display text-[36px] font-bold text-on-surface leading-none">{todayOrders.length}</p>
-        </div>
-
-        {isAdmin && <>
-          {/* Card 3 — Total */}
-          <div className="flex-none w-[240px] snap-center lg:w-auto
-                          bg-white rounded-2xl border border-outline-variant p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <span className="p-2 bg-purple-100 rounded-lg text-purple-600"><TrendingUp className="h-5 w-5" /></span>
-            </div>
-            <p className="text-[10px] font-bold uppercase text-on-surface-variant mb-1">Faturado Total</p>
-            <p className="font-display text-[26px] font-bold text-on-surface leading-none">{formatCurrency(totalValue)}</p>
-          </div>
-
-          {/* Card 4 — Hoje R$ */}
-          <div className="flex-none w-[240px] snap-center lg:w-auto
-                          bg-white rounded-2xl border border-outline-variant p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <span className="p-2 bg-amber-100 rounded-lg text-amber-600"><CheckCircle className="h-5 w-5" /></span>
-            </div>
-            <p className="text-[10px] font-bold uppercase text-on-surface-variant mb-1">Hoje (R$)</p>
-            <p className="font-display text-[26px] font-bold text-on-surface leading-none">{formatCurrency(todayValue)}</p>
-          </div>
-        </>}
       </div>
 
-      <div className="px-4 lg:px-8 mt-6 space-y-6">
+      <div className="px-4 lg:px-8 mt-5 space-y-5">
 
-        {/* ─── Status breakdown ───────────────────────────────── */}
+        {/* ─── Pipeline por status ──────────────────────── */}
         {statusCounts.length > 0 && (
-          <div>
-            <h2 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-2.5">Por Status</h2>
-            <div className="flex flex-wrap gap-2">
+          <section>
+            <SectionTitle>Pipeline de Pedidos</SectionTitle>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
               {statusCounts.map(s => (
                 <button
                   key={s.id}
                   onClick={() => navigate(`/orders?status_id=${s.id}`)}
-                  className="flex items-center gap-2 bg-white border border-outline-variant rounded-xl px-3 py-2 hover:border-primary/30 hover:shadow-sm transition-all"
+                  className="bg-white rounded-2xl p-4 text-left border border-outline-variant/40 hover:shadow-md hover:border-primary/20 active:scale-[0.98] transition-all group"
                 >
-                  <StatusBadge name={s.name} color={s.color} />
-                  <span className="text-[13px] font-bold text-on-surface">{s.count}</span>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                    <span className="text-[11px] font-semibold text-outline group-hover:text-on-surface transition-colors truncate">{s.name}</span>
+                  </div>
+                  <p className="font-display text-[30px] font-bold text-on-surface leading-none">{s.count}</p>
+                  <p className="text-[10px] text-outline mt-1">pedido{s.count !== 1 ? 's' : ''}</p>
                 </button>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* ─── Recent orders ─────────────────────────────────── */}
-        <div>
+        {/* ─── Pedidos recentes ────────────────────────── */}
+        <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Pedidos Recentes</h2>
-            <button onClick={() => navigate('/orders')} className="text-[12px] text-primary font-semibold flex items-center gap-1 hover:underline">
+            <SectionTitle className="mb-0">Pedidos Recentes</SectionTitle>
+            <button
+              onClick={() => navigate('/orders')}
+              className="text-[12px] text-primary font-semibold flex items-center gap-1 hover:gap-1.5 transition-all"
+            >
               Ver todos <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </div>
 
           {recentOrders.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-outline-variant shadow-sm p-8 flex flex-col items-center text-center">
+            <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-10 flex flex-col items-center text-center">
               <div className="w-14 h-14 bg-surface-container rounded-2xl flex items-center justify-center mb-3">
                 <Package className="h-7 w-7 text-outline" />
               </div>
-              <p className="text-[14px] text-on-surface-variant font-medium">Nenhum pedido ainda</p>
-              <button onClick={() => navigate('/orders/new')} className="mt-3 text-[13px] text-primary font-medium hover:underline">
-                Criar primeiro pedido
+              <p className="text-sm text-on-surface-variant font-medium">Nenhum pedido ainda</p>
+              <button
+                onClick={() => navigate('/orders/new')}
+                className="mt-3 text-[13px] text-primary font-semibold hover:underline"
+              >
+                Criar primeiro pedido →
               </button>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden divide-y divide-outline-variant/40">
-              {recentOrders.map(order => (
+            <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
+              {recentOrders.map((order, idx) => (
                 <div
                   key={order.id}
                   onClick={() => navigate(`/orders/${order.id}`)}
-                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-surface-container-low active:bg-surface-container cursor-pointer transition-colors"
+                  className={`flex items-center gap-3 px-4 py-3.5 hover:bg-blue-50/60 active:bg-blue-50 cursor-pointer transition-colors ${
+                    idx > 0 ? 'border-t border-gray-50' : ''
+                  }`}
                 >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <ShoppingCart className="h-4 w-4 text-primary" />
+                  {/* Status bar */}
+                  <div
+                    className="w-1 h-10 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: order.status_color || '#c3c6d7' }}
+                  />
+
+                  <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0">
+                    <ShoppingCart className="h-[17px] w-[17px] text-primary" />
                   </div>
+
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-[11px] font-bold text-primary font-mono">{formatOrderNumber(order.order_number)}</span>
-                      <span className="text-outline text-[12px]">·</span>
+                      <span className="text-outline/40">·</span>
                       <span className="text-[13px] font-semibold text-on-surface truncate">{order.client_name}</span>
                     </div>
                     <p className="text-[11px] text-outline truncate">{order.factory_name} · {formatDate(order.created_at)}</p>
                   </div>
+
                   <div className="flex-shrink-0 text-right space-y-1">
-                    {order.status_name && <StatusBadge name={order.status_name} color={order.status_color || '#737686'} />}
-                    <p className="text-[12px] font-bold text-on-surface">{formatCurrency(order.total_value)}</p>
+                    {order.status_name && (
+                      <span
+                        className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: (order.status_color || '#737686') + '22',
+                          color: order.status_color || '#737686',
+                        }}
+                      >
+                        {order.status_name}
+                      </span>
+                    )}
+                    <p className="text-[13px] font-bold text-on-surface">{formatCurrency(order.total_value)}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
+  )
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function StatCard({
+  icon, iconBg, label, value, badge, badgeColor, large,
+}: {
+  icon: React.ReactNode
+  iconBg: string
+  label: string
+  value: string
+  badge?: string
+  badgeColor?: 'emerald' | 'amber'
+  large?: boolean
+}) {
+  const badgeCls = badgeColor === 'emerald'
+    ? 'bg-emerald-50 text-emerald-600'
+    : 'bg-amber-50 text-amber-600'
+
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-lg shadow-black/[0.06] border border-outline-variant/30">
+      <div className="flex items-center justify-between mb-3">
+        <div className={`w-9 h-9 ${iconBg} rounded-xl flex items-center justify-center`}>
+          {icon}
+        </div>
+        {badge && (
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${badgeCls}`}>
+            {badge}
+          </span>
+        )}
+      </div>
+      <p className="text-[10px] font-bold uppercase text-outline tracking-wide mb-1">{label}</p>
+      <p className={`font-display font-bold text-on-surface leading-none ${large ? 'text-[32px]' : 'text-[22px]'}`}>
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function SectionTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <h2 className={`text-[11px] font-bold text-outline uppercase tracking-widest mb-3 ${className}`}>
+      {children}
+    </h2>
   )
 }

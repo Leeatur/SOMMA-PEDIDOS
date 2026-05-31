@@ -10,15 +10,13 @@ import {
   Settings,
   LogOut,
   PlusCircle,
-UserCog,
+  UserCog,
   Wifi,
   WifiOff,
   Menu,
   X,
   BarChart2,
   Trash2,
-  Bell,
-  HelpCircle,
   ChevronDown,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
@@ -120,11 +118,12 @@ export function AppLayout() {
       ════════════════════════════════════════ */}
       <aside
         className={`
-          fixed top-0 bottom-0 left-0 z-50 w-sidebar bg-on-surface flex flex-col
+          fixed top-0 bottom-0 left-0 z-50 w-sidebar flex flex-col
           transform transition-transform duration-200 ease-in-out
           lg:translate-x-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
+        style={{ background: 'linear-gradient(180deg, #0d1f3c 0%, #0b1c30 60%, #091629 100%)' }}
       >
         {/* Brand */}
         <div className="flex items-center justify-between px-5 py-5 mb-2">
@@ -208,27 +207,24 @@ export function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
 
         {/* ── Desktop TopBar ── */}
-        <header className="hidden lg:flex h-topbar sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-outline-variant items-center justify-between px-8">
+        <header className="hidden lg:flex h-topbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-outline-variant/60 items-center justify-between px-8 shadow-sm">
           <div className="flex-1 max-w-md">
             {/* placeholder — search is per-page */}
           </div>
-          <div className="flex items-center gap-4">
-            <button className="p-2 rounded-full hover:bg-surface-container transition-colors relative">
-              <Bell className="h-5 w-5 text-on-surface-variant" />
-            </button>
-            <button className="p-2 rounded-full hover:bg-surface-container transition-colors">
-              <HelpCircle className="h-5 w-5 text-on-surface-variant" />
-            </button>
-            <div className="h-6 w-px bg-outline-variant" />
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-px bg-outline-variant" />
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2.5 hover:bg-surface-container px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-2.5 hover:bg-surface-container px-3 py-1.5 rounded-xl transition-colors"
             >
-              <span className="text-[13px] font-medium text-on-surface-variant">{user?.name}</span>
-              <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-[10px] font-bold text-primary">{initials}</span>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span className="text-[11px] font-bold text-white">{initials}</span>
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-on-surface-variant" />
+              <div className="text-left">
+                <p className="text-[13px] font-semibold text-on-surface leading-none">{user?.name}</p>
+                <p className="text-[10px] text-outline mt-0.5">{user?.role === 'admin' ? 'Administrador' : 'Representante'}</p>
+              </div>
+              <ChevronDown className="h-3.5 w-3.5 text-outline" />
             </button>
           </div>
         </header>
