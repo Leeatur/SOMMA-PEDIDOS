@@ -64,8 +64,8 @@
     font-family: 'Plus Jakarta Sans', ui-sans-serif;
   }
 
-  /* Área de conteúdo principal — escala o visual sem tocar no sidebar */
+  /* Área de conteúdo principal */
   .main-content {
-    zoom: 0.88;
+    zoom: 1;
   }
 }

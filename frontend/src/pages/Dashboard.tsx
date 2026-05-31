@@ -56,9 +56,9 @@ export function Dashboard() {
         <div className="absolute top-8 right-20 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
         <div className="absolute -bottom-6 left-1/3 w-36 h-36 bg-white/5 rounded-full pointer-events-none" />
 
-        <p className="text-white/60 text-xs font-medium">{greeting()},</p>
-        <h1 className="font-display text-[26px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
-        <p className="text-white/50 text-xs mt-1.5">
+        <p className="text-white/70 text-sm font-medium">{greeting()},</p>
+        <h1 className="font-display text-[32px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
+        <p className="text-white/60 text-sm mt-1.5">
           {isAdmin ? 'Administrador' : 'Representante'} &bull;{' '}
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
@@ -130,11 +130,11 @@ export function Dashboard() {
                   className="bg-white rounded-2xl p-4 text-left border border-outline-variant/40 hover:shadow-md hover:border-primary/20 active:scale-[0.98] transition-all group"
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
-                    <span className="text-[11px] font-semibold text-outline group-hover:text-on-surface transition-colors truncate">{s.name}</span>
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                    <span className="text-[12px] font-semibold text-outline group-hover:text-on-surface transition-colors truncate">{s.name}</span>
                   </div>
-                  <p className="font-display text-[30px] font-bold text-on-surface leading-none">{s.count}</p>
-                  <p className="text-[10px] text-outline mt-1">pedido{s.count !== 1 ? 's' : ''}</p>
+                  <p className="font-display text-[36px] font-bold text-on-surface leading-none">{s.count}</p>
+                  <p className="text-[11px] text-outline mt-1">pedido{s.count !== 1 ? 's' : ''}</p>
                 </button>
               ))}
             </div>
@@ -188,17 +188,17 @@ export function Dashboard() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-[11px] font-bold text-primary font-mono">{formatOrderNumber(order.order_number)}</span>
+                      <span className="text-[12px] font-bold text-primary font-mono">{formatOrderNumber(order.order_number)}</span>
                       <span className="text-outline/40">·</span>
-                      <span className="text-[13px] font-semibold text-on-surface truncate">{order.client_name}</span>
+                      <span className="text-[14px] font-semibold text-on-surface truncate">{order.client_name}</span>
                     </div>
-                    <p className="text-[11px] text-outline truncate">{order.factory_name} · {formatDate(order.created_at)}</p>
+                    <p className="text-[12px] text-outline truncate">{order.factory_name} · {formatDate(order.created_at)}</p>
                   </div>
 
                   <div className="flex-shrink-0 text-right space-y-1">
                     {order.status_name && (
                       <span
-                        className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        className="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full"
                         style={{
                           backgroundColor: (order.status_color || '#737686') + '22',
                           color: order.status_color || '#737686',
@@ -207,7 +207,7 @@ export function Dashboard() {
                         {order.status_name}
                       </span>
                     )}
-                    <p className="text-[13px] font-bold text-on-surface">{formatCurrency(order.total_value)}</p>
+                    <p className="text-[14px] font-bold text-on-surface">{formatCurrency(order.total_value)}</p>
                   </div>
                 </div>
               ))}
@@ -248,8 +248,8 @@ function StatCard({
           </span>
         )}
       </div>
-      <p className="text-[10px] font-bold uppercase text-outline tracking-wide mb-1">{label}</p>
-      <p className={`font-display font-bold text-on-surface leading-none ${large ? 'text-[32px]' : 'text-[22px]'}`}>
+      <p className="text-[11px] font-bold uppercase text-outline tracking-wide mb-1.5">{label}</p>
+      <p className={`font-display font-bold text-on-surface leading-none ${large ? 'text-[38px]' : 'text-[26px]'}`}>
         {value}
       </p>
     </div>
@@ -258,7 +258,7 @@ function StatCard({
 
 function SectionTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <h2 className={`text-[11px] font-bold text-outline uppercase tracking-widest mb-3 ${className}`}>
+    <h2 className={`text-[13px] font-bold text-outline uppercase tracking-wider mb-3 ${className}`}>
       {children}
     </h2>
   )
