@@ -176,12 +176,14 @@ export function OrderPrint() {
         total: item.unit_price * (1 - actualDiscPct / 100) * qtde,
       })
     } else if (item.grade_configs && item.grade_configs.length > 0) {
-      // Pack: preço armazenado é por CAIXA; calcular preço por PEÇA
+      // Pack: preço armazenado é por CAIXA (unit_price)
+      // Exibe preço/caixa no R$ Tab. e distribui o total proporcionalmente por cor
       const totalPiecesPerBox = item.grade_configs.reduce((s, gc) => s + gc.total_pieces, 0)
-      const pricePerPiece = totalPiecesPerBox > 0 ? item.unit_price / totalPiecesPerBox : item.unit_price
+      const boxPrice     = item.unit_price                         // R$ por caixa
+      const boxDisc      = boxPrice * (1 - actualDiscPct / 100)   // R$ por caixa c/ desc
 
-      // Uma linha por cor
-      for (const gc of item.grade_configs) {
+      for (let gcIdx = 0; gcIdx < item.grade_configs.length; gcIdx++) {
+        const gc = item.grade_configs[gcIdx]
         seq++
         const qtde = gc.total_pieces * item.boxes_count
         const sizeCols: Record<string, number> = {}
@@ -189,6 +191,9 @@ export function OrderPrint() {
           sizeCols[s] = (gc.sizes[s] || 0) * item.boxes_count
         }
         const gradeLabel = sortSizes(Object.keys(gc.sizes)).join('/')
+        // Total proporcional por cor: (peças desta cor / total peças caixa) × preço caixa × qtd caixas
+        const ratio = totalPiecesPerBox > 0 ? gc.total_pieces / totalPiecesPerBox : 1 / item.grade_configs.length
+        const colorTotal = boxDisc * ratio * item.boxes_count
         rows.push({
           seq,
           reference: item.reference,
@@ -197,10 +202,11 @@ export function OrderPrint() {
           gradeLabel,
           sizeCols,
           qtde,
-          unitPriceBase: pricePerPiece,
-          unitPriceDisc: pricePerPiece * (1 - actualDiscPct / 100),
+          // Mostra preço/caixa apenas na 1ª cor; demais ficam 0 para não somar em duplicata
+          unitPriceBase: gcIdx === 0 ? boxPrice : 0,
+          unitPriceDisc: gcIdx === 0 ? boxDisc  : 0,
           discPct: actualDiscPct,
-          total: pricePerPiece * (1 - actualDiscPct / 100) * qtde,
+          total: colorTotal,
         })
       }
     } else {
@@ -230,7 +236,8 @@ export function OrderPrint() {
     sizeTotals[s] = rows.reduce((sum, r) => sum + (r.sizeCols[s] || 0), 0)
   }
   const totalQtde = rows.reduce((s, r) => s + r.qtde, 0)
-  const totalGross = rows.reduce((s, r) => s + r.unitPriceBase * r.qtde, 0)
+  // totalGross usa r.total / (1-desc) para respeitar packs que só têm preço na 1ª cor
+  const totalGross = rows.reduce((s, r) => s + (r.discPct < 100 ? r.total / (1 - r.discPct / 100) : 0), 0)
   const totalNet = rows.reduce((s, r) => s + r.total, 0)
   const totalDiscount = totalGross - totalNet
 
