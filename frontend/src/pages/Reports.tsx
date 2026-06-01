@@ -17,6 +17,12 @@ function todayStr() { return new Date().toISOString().split('T')[0] }
 function daysAgoStr(n: number) {
   const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]
 }
+// Handles both "YYYY-MM-DD" strings and ISO timestamps returned by pg
+function fmtDatePtBR(d: string | Date): string {
+  const iso = typeof d === 'string' ? d : (d as Date).toISOString()
+  const [y, m, day] = iso.substring(0, 10).split('-')
+  return `${day}/${m}/${y}`
+}
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -692,7 +698,7 @@ export function Reports() {
                       <tbody className="divide-y divide-gray-50">
                         {ordersQ.data.byDay.map(d => (
                           <tr key={d.date} className="hover:bg-surface-container-low/50">
-                            <Td>{new Date(d.date + 'T12:00:00').toLocaleDateString('pt-BR')}</Td>
+                            <Td>{fmtDatePtBR(d.date)}</Td>
                             <Td right>{d.order_count}</Td>
                             <Td right>{fmtN(d.total_pieces)}</Td>
                             <Td right bold>{fmtR(d.total_value)}</Td>
@@ -731,8 +737,7 @@ export function Reports() {
                 const rows = commissionsQ.data
                 const sum = (key: keyof CommissionRow) =>
                   rows.reduce((s, r) => s + Number(r[key] || 0), 0)
-                const fmtDate = (d: string) =>
-                  new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
+                const fmtDate = (d: string) => fmtDatePtBR(d)
                 const fmtPct = (v: number) => `${Number(v || 0).toFixed(2).replace('.', ',')}%`
                 return (
                   <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">

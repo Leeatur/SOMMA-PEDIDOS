@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, Plus, Edit2, Search, Upload, Trash2 } from 'lucide-react'
+import { Users, Plus, Edit2, Search, Upload, Trash2, X } from 'lucide-react'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
 import { clientsApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -152,7 +152,7 @@ export function Clients() {
   // Column config — rep only shown for admins
   const CLIENT_COL_DEFS: ColumnDef[] = [
     { id: 'name',       label: 'Nome',         alwaysVisible: true },
-    { id: 'trade_name', label: 'Nome Fantasia', defaultVisible: false },
+    { id: 'trade_name', label: 'Nome Fantasia' },
     { id: 'city',       label: 'Cidade / UF' },
     { id: 'phone',      label: 'Telefone' },
     { id: 'whatsapp',   label: 'WhatsApp',      defaultVisible: false },
@@ -288,8 +288,13 @@ export function Clients() {
               value={search}
               onChange={e => handleSearch(e.target.value)}
               placeholder="Nome, CNPJ, cidade, telefone..."
-              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-[11px] focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+              className="w-full h-11 pl-10 pr-10 bg-surface-container-low border border-outline-variant/60 rounded-xl text-[11px] focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
+            {search && (
+              <button onClick={() => handleSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline/50 hover:text-on-surface transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -429,6 +434,7 @@ export function Clients() {
           value={search}
           onChange={(e) => handleSearch(e.target.value)}
           leftIcon={<Search className="h-4 w-4" />}
+          onClear={() => handleSearch('')}
         />
       </div>
 

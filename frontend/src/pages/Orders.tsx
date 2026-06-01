@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ShoppingCart,
   Search,
+  X,
   Filter,
   ChevronDown,
   ChevronUp,
@@ -253,7 +254,7 @@ export function Orders() {
       <div className="lg:hidden flex flex-col h-full" style={{ background: '#F5F3FF' }}>
 
         {/* Mobile header */}
-        <div className="px-4 pt-4 pb-2 bg-white" style={{ boxShadow: '0 1px 0 #E5E7EB' }}>
+        <div className="sticky top-0 z-20 px-4 pt-4 pb-2 bg-white" style={{ boxShadow: '0 1px 0 #E5E7EB' }}>
           <div className="flex items-center justify-between mb-2">
             <div>
               <h2 className="text-[18px] font-bold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Pedidos</h2>
@@ -270,14 +271,19 @@ export function Orders() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Cliente, nº pedido, indústria..."
-              className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/40 rounded-2xl text-[11px] focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+              className="w-full h-11 pl-10 pr-10 bg-surface-container-low border border-outline-variant/40 rounded-2xl text-[11px] focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
             />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline/50 hover:text-on-surface transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
         {/* Status filter chips */}
         {statuses && statuses.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto px-4 py-2 bg-white border-b border-gray-100 scrollbar-hide">
+          <div className="sticky top-[108px] z-20 flex gap-2 overflow-x-auto px-4 py-2 bg-white border-b border-gray-100 scrollbar-hide">
             <button
               onClick={() => setStatusFilter('')}
               className={`flex-shrink-0 px-3.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all ${
@@ -335,7 +341,7 @@ export function Orders() {
       <div className="hidden lg:flex flex-col h-full">
 
         {/* Desktop Header */}
-        <div className="px-8 pt-4 pb-2 border-b border-outline-variant bg-white">
+        <div className="sticky top-0 z-20 px-8 pt-4 pb-2 border-b border-outline-variant bg-white">
           <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="font-display text-lg font-bold text-on-surface">Pedidos</h1>
@@ -369,6 +375,7 @@ export function Orders() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 leftIcon={<Search className="h-4 w-4" />}
+                onClear={() => setSearch('')}
               />
             </div>
           </div>
