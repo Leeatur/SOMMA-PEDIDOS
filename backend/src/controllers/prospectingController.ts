@@ -2,9 +2,44 @@ import { Response } from 'express'
 import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 
-// No Brasil o OSM tem poucos dados específicos — usamos busca ampla de
-// todos os estabelecimentos (shop, amenity comercial) e filtramos por nome/tipo.
-// A chave é buscar qualquer shop/comercio que tenha nome cadastrado.
+// ─── Google Places API (provedor principal) ───────────────────────────────────
+const GOOGLE_KEY = process.env.GOOGLE_PLACES_API_KEY
+
+const GOOGLE_SEGMENT_CONFIG: Record<string, { type: string; keyword: string }> = {
+  confeccao:     { type: 'clothing_store', keyword: 'confecção moda roupa vestuário' },
+  calcados:      { type: 'shoe_store',     keyword: 'calçado sapato sapataria' },
+  acessorios:    { type: 'jewelry_store',  keyword: 'acessórios bijuteria joias' },
+  alimentacao:   { type: 'restaurant',     keyword: 'restaurante café padaria lanchonete' },
+  comercio_geral:{ type: 'store',          keyword: 'loja comércio varejo' },
+}
+
+async function searchGooglePlaces(lat: number, lng: number, radiusM: number, segment: string) {
+  const cfg = GOOGLE_SEGMENT_CONFIG[segment] || GOOGLE_SEGMENT_CONFIG.comercio_geral
+  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json` +
+    `?location=${lat},${lng}&radius=${radiusM}&type=${cfg.type}` +
+    `&keyword=${encodeURIComponent(cfg.keyword)}&language=pt-BR&key=${GOOGLE_KEY}`
+
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
+  if (!res.ok) throw new Error(`Google Places error: ${res.status}`)
+  const data = await res.json() as { status: string; results: GooglePlace[] }
+  if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+    throw new Error(`Google Places status: ${data.status}`)
+  }
+  return data.results || []
+}
+
+interface GooglePlace {
+  place_id: string
+  name: string
+  vicinity: string
+  geometry: { location: { lat: number; lng: number } }
+  types: string[]
+  rating?: number
+  opening_hours?: { open_now: boolean }
+  business_status?: string
+}
+
+// ─── OpenStreetMap / Overpass (fallback quando não há chave Google) ───────────
 
 function buildOverpassQuery(lat: number, lng: number, radiusM: number, segment: string): string {
   const r = radiusM
@@ -69,44 +104,57 @@ export async function searchNearby(req: AuthRequest, res: Response) {
     return
   }
 
-  const overpassQuery = buildOverpassQuery(lat, lng, radius, segment)
+  // Busca contatos já salvos por este rep
+  const { rows: savedContacts } = await query(
+    `SELECT osm_id, id, status FROM prospecting_contacts WHERE rep_id = $1`,
+    [req.user!.id]
+  )
+  const savedOsmMap = new Map(savedContacts.map((c: { osm_id: string; id: string; status: string }) => [c.osm_id, c]))
 
   try {
-    // Overpass API requer User-Agent — GET é mais compatível que POST para evitar 406
-    const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
-    const response = await fetch(overpassUrl, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'SommaGestaoComercial/1.0 (contato@sommagestao.com.br)',
-        'Accept': 'application/json',
-      },
-      signal: AbortSignal.timeout(35000),
-    })
+    let prospects: unknown[]
 
-    if (!response.ok) throw new Error(`Overpass error: ${response.status}`)
-    const data = await response.json() as { elements: OverpassElement[] }
-
-    // Busca CNPJs já cadastrados como clientes para cross-reference
-    const { rows: existingClients } = await query(
-      `SELECT id, name, trade_name, cnpj, city FROM clients WHERE active = true AND cnpj IS NOT NULL`
-    )
-    const clientCnpjMap = new Map(existingClients.map(c => [c.cnpj?.replace(/\D/g, ''), c]))
-
-    // Busca contatos de prospecção já salvos por este rep
-    const { rows: savedContacts } = await query(
-      `SELECT osm_id, id, status FROM prospecting_contacts WHERE rep_id = $1`,
-      [req.user!.id]
-    )
-    const savedOsmMap = new Map(savedContacts.map(c => [c.osm_id, c]))
-
-    const elements = data.elements || []
-    const prospects = elements
-      .filter(el => el.tags?.name)
-      .map(el => {
+    if (GOOGLE_KEY) {
+      // ── Google Places API (dados ricos, cobertura excelente no Brasil) ──
+      const places = await searchGooglePlaces(lat, lng, radius, segment)
+      prospects = places
+        .filter(p => p.business_status !== 'CLOSED_PERMANENTLY')
+        .map(p => {
+          const placeId = `google_${p.place_id}`
+          const saved = savedOsmMap.get(placeId)
+          return {
+            osm_id: placeId,
+            name: p.name,
+            address: p.vicinity || null,
+            city: null,
+            phone: null,
+            website: null,
+            opening_hours: p.opening_hours?.open_now != null
+              ? (p.opening_hours.open_now ? 'Aberto agora' : 'Fechado agora')
+              : null,
+            lat: p.geometry.location.lat,
+            lng: p.geometry.location.lng,
+            segment,
+            rating: p.rating || null,
+            saved_contact_id: saved?.id || null,
+            saved_status: saved?.status || null,
+          }
+        })
+    } else {
+      // ── Fallback: OpenStreetMap / Overpass ──
+      const overpassQuery = buildOverpassQuery(lat, lng, radius, segment)
+      const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+      const response = await fetch(overpassUrl, {
+        headers: { 'User-Agent': 'SommaGestaoComercial/1.0', 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(35000),
+      })
+      if (!response.ok) throw new Error(`Overpass error: ${response.status}`)
+      const data = await response.json() as { elements: OverpassElement[] }
+      const elements = data.elements || []
+      prospects = elements.filter(el => el.tags?.name).map(el => {
         const elLat = el.type === 'node' ? el.lat : el.center?.lat
         const elLng = el.type === 'node' ? el.lon : el.center?.lon
-        const savedContact = savedOsmMap.get(String(el.id))
-
+        const saved = savedOsmMap.get(String(el.id))
         return {
           osm_id: String(el.id),
           name: el.tags.name,
@@ -115,15 +163,12 @@ export async function searchNearby(req: AuthRequest, res: Response) {
           phone: el.tags.phone || el.tags['contact:phone'] || null,
           website: el.tags.website || el.tags['contact:website'] || null,
           opening_hours: el.tags.opening_hours || null,
-          lat: elLat,
-          lng: elLng,
-          segment,
-          already_client: false,
-          client_id: null as string | null,
-          saved_contact_id: savedContact?.id || null,
-          saved_status: savedContact?.status || null,
+          lat: elLat, lng: elLng, segment,
+          saved_contact_id: saved?.id || null,
+          saved_status: saved?.status || null,
         }
       })
+    }
 
     res.json({ prospects, total: prospects.length })
   } catch (err) {
