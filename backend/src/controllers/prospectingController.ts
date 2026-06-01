@@ -186,17 +186,19 @@ export async function lookupCnpj(req: AuthRequest, res: Response) {
   }
 
   try {
-    const apiRes = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
-      signal: AbortSignal.timeout(10000),
+    // minhareceita.org — espelho gratuito da Receita Federal com todos os campos
+    const apiRes = await fetch(`https://minhareceita.org/${cnpj}`, {
+      headers: { 'User-Agent': 'SommaGestaoComercial/1.0' },
+      signal: AbortSignal.timeout(12000),
     })
 
     if (apiRes.status === 404) {
       res.status(404).json({ error: 'CNPJ não encontrado na Receita Federal' })
       return
     }
-    if (!apiRes.ok) throw new Error(`BrasilAPI error: ${apiRes.status}`)
+    if (!apiRes.ok) throw new Error(`minhareceita error: ${apiRes.status}`)
 
-    const data = await apiRes.json() as BrasilApiCnpj
+    const data = await apiRes.json() as MinhaReceita
 
     // Verifica se já é cliente
     const { rows: [existingClient] } = await query(
@@ -204,27 +206,36 @@ export async function lookupCnpj(req: AuthRequest, res: Response) {
       [`%${cnpj}%`]
     )
 
+    const phone = data.ddd_telefone_1
+      ? `(${data.ddd_telefone_1.toString().slice(0,2)}) ${data.ddd_telefone_1.toString().slice(2)}`
+      : null
+
     res.json({
       cnpj: data.cnpj,
       name: data.razao_social,
       trade_name: data.nome_fantasia || null,
-      address: [data.logradouro, data.numero].filter(Boolean).join(', '),
+      address: [data.logradouro, data.numero, data.complemento].filter(Boolean).join(', '),
       neighborhood: data.bairro || null,
       city: data.municipio || null,
       state: data.uf || null,
       zip: data.cep || null,
-      phone: data.ddd_telefone_1 ? `(${data.ddd_telefone_1}) ${data.telefone_1}` : null,
+      phone,
       email: data.email || null,
       capital_social: data.capital_social || null,
       porte: data.porte || null,
+      cnae_fiscal: data.cnae_fiscal || null,
       cnae_principal: data.cnae_fiscal_descricao || null,
+      cnaes_secundarios: data.cnaes_secundarios || [],
       situacao: data.descricao_situacao_cadastral || null,
       data_abertura: data.data_inicio_atividade || null,
+      socios: (data.qsa || []).map((s: { nome_socio: string; qualificacao_socio: string }) => ({
+        nome: s.nome_socio, qualificacao: s.qualificacao_socio
+      })),
       already_client: !!existingClient,
       client_id: existingClient?.id || null,
     })
   } catch (err) {
-    console.error('BrasilAPI error:', err)
+    console.error('CNPJ lookup error:', err)
     res.status(502).json({ error: 'Erro ao consultar CNPJ. Tente novamente.' })
   }
 }
@@ -329,22 +340,25 @@ interface OverpassElement {
   tags: Record<string, string>
 }
 
-interface BrasilApiCnpj {
+interface MinhaReceita {
   cnpj: string
   razao_social: string
   nome_fantasia: string
   logradouro: string
   numero: string
+  complemento: string
   bairro: string
   municipio: string
   uf: string
   cep: string
-  ddd_telefone_1: string
-  telefone_1: string
+  ddd_telefone_1: string | number
   email: string
   capital_social: number
   porte: string
+  cnae_fiscal: number
   cnae_fiscal_descricao: string
+  cnaes_secundarios: Array<{ codigo: number; descricao: string }>
   descricao_situacao_cadastral: string
   data_inicio_atividade: string
+  qsa: Array<{ nome_socio: string; qualificacao_socio: string }>
 }

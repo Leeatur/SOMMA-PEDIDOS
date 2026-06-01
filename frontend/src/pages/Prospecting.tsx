@@ -92,6 +92,7 @@ interface CnpjData {
   name: string
   trade_name: string | null
   address: string
+  neighborhood: string | null
   city: string | null
   state: string | null
   zip: string | null
@@ -99,9 +100,12 @@ interface CnpjData {
   email: string | null
   capital_social: number | null
   porte: string | null
+  cnae_fiscal: number | null
   cnae_principal: string | null
+  cnaes_secundarios: Array<{ codigo: number; descricao: string }>
   situacao: string | null
   data_abertura: string | null
+  socios: Array<{ nome: string; qualificacao: string }>
   already_client: boolean
   client_id: string | null
 }
@@ -460,25 +464,45 @@ export function Prospecting() {
             {cnpjError && <p className="text-red-500 text-xs mt-2">{cnpjError}</p>}
 
             {cnpjData && (
-              <div className="mt-4 border border-gray-100 rounded-lg p-3 space-y-1.5">
-                <p className="font-semibold text-gray-900">{cnpjData.name}</p>
-                {cnpjData.trade_name && <p className="text-sm text-gray-600">{cnpjData.trade_name}</p>}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 mt-2">
-                  {cnpjData.cnae_principal && <span className="col-span-2">📋 {cnpjData.cnae_principal}</span>}
-                  {cnpjData.city && <span>📍 {cnpjData.city}/{cnpjData.state}</span>}
-                  {cnpjData.phone && <span>📞 {cnpjData.phone}</span>}
+              <div className="mt-4 border border-gray-100 rounded-lg p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm leading-tight">{cnpjData.name}</p>
+                    {cnpjData.trade_name && cnpjData.trade_name !== cnpjData.name && (
+                      <p className="text-xs text-gray-500 mt-0.5">{cnpjData.trade_name}</p>
+                    )}
+                  </div>
                   {cnpjData.situacao && (
-                    <span className={cnpjData.situacao.toLowerCase().includes('ativa') ? 'text-green-600' : 'text-red-500'}>
-                      ● {cnpjData.situacao}
-                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      cnpjData.situacao.toLowerCase().includes('ativa') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                    }`}>{cnpjData.situacao}</span>
+                  )}
+                </div>
+
+                <div className="space-y-1 text-xs text-gray-600">
+                  <div className="font-mono text-gray-400 text-[10px]">CNPJ: {cnpjData.cnpj}</div>
+                  {cnpjData.address && <div>📍 {cnpjData.address}{cnpjData.neighborhood ? `, ${cnpjData.neighborhood}` : ''} — {cnpjData.city}/{cnpjData.state}</div>}
+                  {cnpjData.phone && <div>📞 <a href={`tel:${cnpjData.phone}`} className="text-blue-600">{cnpjData.phone}</a></div>}
+                  {cnpjData.email && <div>✉️ {cnpjData.email}</div>}
+                </div>
+
+                <div className="bg-purple-50 rounded-lg p-2 space-y-1 text-xs">
+                  {cnpjData.cnae_fiscal && (
+                    <div><span className="font-semibold text-purple-700">CNAE {cnpjData.cnae_fiscal}:</span> <span className="text-gray-700">{cnpjData.cnae_principal}</span></div>
                   )}
                   {cnpjData.capital_social != null && (
-                    <span>💰 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(cnpjData.capital_social)}</span>
+                    <div><span className="font-semibold text-purple-700">Capital social:</span> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(cnpjData.capital_social)}{cnpjData.porte ? ` (${cnpjData.porte})` : ''}</div>
                   )}
-                  {cnpjData.data_abertura && <span>📅 Desde {cnpjData.data_abertura}</span>}
+                  {cnpjData.data_abertura && (
+                    <div><span className="font-semibold text-purple-700">Abertura:</span> {cnpjData.data_abertura}</div>
+                  )}
+                  {cnpjData.socios?.length > 0 && (
+                    <div><span className="font-semibold text-purple-700">Sócios:</span> {cnpjData.socios.map(s => s.nome).join(', ')}</div>
+                  )}
                 </div>
+
                 {cnpjData.already_client && (
-                  <p className="text-xs text-green-600 font-semibold mt-2">✓ Já é cliente no Somma</p>
+                  <p className="text-xs text-green-600 font-semibold">✓ Já é cliente no Somma</p>
                 )}
                 {!cnpjData.already_client && (
                   <div className="mt-3 space-y-2">
