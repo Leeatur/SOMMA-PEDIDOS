@@ -80,6 +80,7 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
       c.name                                                         AS razao_social,
       c.trade_name                                                   AS cliente,
       c.city                                                         AS cidade,
+      c.state                                                        AS uf,
       (SELECT STRING_AGG(DISTINCT oi.reference, ', '
          ORDER BY oi.reference)
        FROM order_items oi WHERE oi.order_id = o.id)                AS items_refs,

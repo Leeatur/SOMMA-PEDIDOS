@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingCart, TrendingUp, Clock, CheckCircle, ArrowRight, Package, Plus } from 'lucide-react'
-import { ordersApi, statusesApi } from '../api/client'
+import { ordersApi, reportsApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { PageSpinner } from '../components/ui/Spinner'
 import { formatCurrency, formatDate, formatOrderNumber } from '../utils/format'
@@ -11,31 +11,46 @@ interface Order {
   total_value: number; total_pieces: number; status_name: string
   status_color: string; status_id: string; created_at: string; rep_name: string
 }
-interface Status { id: string; name: string; color: string }
+
+interface DaySaleRow {
+  id: string
+  order_number: number
+  data_venda: string
+  vendedor: string
+  industria: string
+  razao_social: string
+  cliente: string | null
+  cidade: string | null
+  uf: string | null
+  total_pieces: number
+  total_value: number
+  rep_commission_value: number
+  office_commission_value: number
+}
 
 export function Dashboard() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
 
+  const today = new Date().toISOString().split('T')[0]
+
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ['orders'],
     queryFn: () => ordersApi.list().then(r => r.data),
   })
-  const { data: statuses } = useQuery<Status[]>({
-    queryKey: ['statuses'],
-    queryFn: () => statusesApi.list().then(r => r.data),
+
+  const { data: todaysSales, isLoading: salesLoading } = useQuery<DaySaleRow[]>({
+    queryKey: ['dashboard-today-sales', today],
+    queryFn: () => reportsApi.commissions({ date_from: today, date_to: today }).then(r => r.data),
+    enabled: isAdmin,
   })
 
   if (isLoading) return <PageSpinner />
 
   const allOrders = orders || []
-  const today = new Date().toISOString().split('T')[0]
   const todayOrders = allOrders.filter(o => o.created_at.startsWith(today))
   const recentOrders = allOrders.slice(0, 8)
-  const statusCounts = (statuses || []).map(s => ({
-    ...s, count: allOrders.filter(o => o.status_id === s.id).length,
-  }))
   const totalValue = allOrders.reduce((s, o) => s + Number(o.total_value), 0)
   const todayValue = todayOrders.reduce((s, o) => s + Number(o.total_value), 0)
 
@@ -46,12 +61,20 @@ export function Dashboard() {
     return 'Boa noite'
   }
 
+  const fmtR = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0)
+
+  const sales = todaysSales || []
+  const salesTotalPcs   = sales.reduce((s, r) => s + Number(r.total_pieces), 0)
+  const salesTotalVal   = sales.reduce((s, r) => s + Number(r.total_value), 0)
+  const salesTotalRepCom = sales.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+  const salesTotalEscCom = sales.reduce((s, r) => s + Number(r.office_commission_value), 0)
+
   return (
     <div className="pb-24 lg:pb-8 min-h-full">
 
       {/* ─── Hero header ─────────────────────────────────── */}
       <div className="relative overflow-hidden bg-gradient-to-br from-[#2E1065] via-[#4C1D95] to-[#6D28D9] px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10">
-        {/* decorative blobs */}
         <div className="absolute -top-10 -right-10 w-52 h-52 bg-white/10 rounded-full pointer-events-none" />
         <div className="absolute top-8 right-20 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
         <div className="absolute -bottom-6 left-1/3 w-36 h-36 bg-white/5 rounded-full pointer-events-none" />
@@ -63,7 +86,6 @@ export function Dashboard() {
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
 
-        {/* FAB new order (desktop) */}
         <button
           onClick={() => navigate('/orders/new')}
           className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-[11px] font-semibold px-4 py-1 rounded-xl border border-white/20 transition-all backdrop-blur-sm"
@@ -120,28 +142,108 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-8 mt-3 space-y-1">
+      <div className="px-4 lg:px-8 mt-3 space-y-3">
 
-        {/* ─── Pipeline por status ──────────────────────── */}
-        {isAdmin && statusCounts.length > 0 && (
+        {/* ─── Resumo de vendas do dia — admin only ────── */}
+        {isAdmin && (
           <section>
-            <SectionTitle>Pipeline de Pedidos</SectionTitle>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {statusCounts.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => navigate(`/orders?status_id=${s.id}`)}
-                  className="bg-white rounded-2xl p-3 text-left border border-outline-variant/40 hover:shadow-md hover:border-primary/20 active:scale-[0.98] transition-all group"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
-                    <span className="text-[12px] font-semibold text-outline group-hover:text-on-surface transition-colors truncate">{s.name}</span>
-                  </div>
-                  <p className="font-display text-[32px] font-bold text-on-surface leading-none">{s.count}</p>
-                  <p className="text-[11px] text-outline mt-0.5">pedido{s.count !== 1 ? 's' : ''}</p>
-                </button>
-              ))}
-            </div>
+            <SectionTitle>Resumo de Vendas do Dia</SectionTitle>
+            {salesLoading ? (
+              <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-6 flex justify-center">
+                <PageSpinner />
+              </div>
+            ) : sales.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-8 flex flex-col items-center text-center">
+                <Package className="h-7 w-7 text-outline/40 mb-2" />
+                <p className="text-[11px] text-outline/70 font-medium">Nenhuma venda registrada hoje</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-[11px]">
+                    <thead className="bg-surface-container-low border-b border-outline-variant/50 sticky top-0">
+                      <tr>
+                        {[
+                          'Data','Representante','Marca','Razão Social','Cliente',
+                          'Cidade','UF','Qt. Peças','Valor Pedido',
+                          'Com. Rep (R$)','Com. Escr (R$)',
+                        ].map(h => (
+                          <th key={h} className="px-3 py-1.5 text-left font-semibold text-outline whitespace-nowrap">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {sales.map(r => (
+                        <tr
+                          key={r.id}
+                          onClick={() => navigate(`/orders/${r.id}`)}
+                          className="hover:bg-primary/5 cursor-pointer transition-colors"
+                        >
+                          <td className="px-3 py-1.5 whitespace-nowrap text-outline/70">
+                            {new Date(r.data_venda + 'T00:00:00').toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-3 py-1.5 whitespace-nowrap font-semibold text-primary">
+                            {r.vendedor}
+                          </td>
+                          <td className="px-3 py-1.5 whitespace-nowrap font-medium text-on-surface">
+                            {r.industria}
+                          </td>
+                          <td className="px-3 py-1.5 max-w-[160px]">
+                            <span className="block truncate font-medium text-on-surface" title={r.razao_social}>
+                              {r.razao_social}
+                            </span>
+                          </td>
+                          <td className="px-3 py-1.5 max-w-[130px]">
+                            <span className="block truncate text-on-surface-variant" title={r.cliente || ''}>
+                              {r.cliente || '—'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-1.5 whitespace-nowrap text-on-surface-variant">
+                            {r.cidade || '—'}
+                          </td>
+                          <td className="px-3 py-1.5 whitespace-nowrap text-on-surface-variant">
+                            {r.uf || '—'}
+                          </td>
+                          <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-on-surface">
+                            {Number(r.total_pieces).toLocaleString('pt-BR')}
+                          </td>
+                          <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-on-surface">
+                            {fmtR(r.total_value)}
+                          </td>
+                          <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-emerald-700">
+                            {fmtR(r.rep_commission_value)}
+                          </td>
+                          <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-blue-700">
+                            {fmtR(r.office_commission_value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[11px]">
+                        <td colSpan={7} className="px-3 py-1.5 text-on-surface-variant">
+                          {sales.length} pedido{sales.length !== 1 ? 's' : ''}
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-on-surface">
+                          {salesTotalPcs.toLocaleString('pt-BR')}
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-on-surface">
+                          {fmtR(salesTotalVal)}
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-emerald-700">
+                          {fmtR(salesTotalRepCom)}
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-blue-700">
+                          {fmtR(salesTotalEscCom)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -180,16 +282,13 @@ export function Dashboard() {
                     idx > 0 ? 'border-t border-gray-50' : ''
                   }`}
                 >
-                  {/* Status bar */}
                   <div
                     className="w-1 h-10 rounded-full flex-shrink-0"
                     style={{ backgroundColor: order.status_color || '#c3c6d7' }}
                   />
-
                   <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0">
                     <ShoppingCart className="h-[17px] w-[17px] text-primary" />
                   </div>
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-[12px] font-bold text-primary font-mono">{formatOrderNumber(order.order_number)}</span>
@@ -198,7 +297,6 @@ export function Dashboard() {
                     </div>
                     <p className="text-[12px] text-outline truncate">{order.factory_name} · {formatDate(order.created_at)}</p>
                   </div>
-
                   <div className="flex-shrink-0 text-right space-y-1">
                     {order.status_name && (
                       <span
@@ -250,7 +348,6 @@ function StatCard({
           : '0 8px 24px -4px rgba(0,0,0,0.10)',
       }}
     >
-      {/* colored top accent bar */}
       {accentColor && (
         <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: accentColor }} />
       )}
