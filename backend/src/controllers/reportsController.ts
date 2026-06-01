@@ -42,7 +42,7 @@ export async function ordersReport(req: AuthRequest, res: Response) {
         COALESCE(SUM(o.rep_commission_value), 0)::numeric      AS rep_commission_value,
         COALESCE(SUM(o.office_commission_value), 0)::numeric   AS office_commission_value
       FROM orders o
-      WHERE o.created_at BETWEEN $1 AND $2 ${cond}
+      WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
     `, [...params]),
     query(`
       SELECT
@@ -51,7 +51,7 @@ export async function ordersReport(req: AuthRequest, res: Response) {
         COALESCE(SUM(o.total_pieces), 0)::int                 AS total_pieces,
         COALESCE(SUM(o.total_value), 0)::numeric              AS total_value
       FROM orders o
-      WHERE o.created_at BETWEEN $1 AND $2 ${cond}
+      WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
       GROUP BY DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo')
       ORDER BY date
     `, [...params]),
@@ -132,7 +132,7 @@ export async function clientsReport(req: AuthRequest, res: Response) {
       COALESCE(SUM(o.total_value), 0)::numeric   AS total_value
     FROM orders o
     JOIN clients c ON c.id = o.client_id
-    WHERE o.created_at BETWEEN $1 AND $2 ${cond}
+    WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
     GROUP BY c.id, c.name, c.trade_name, c.city, c.state
     ORDER BY total_value DESC
   `, params)
@@ -243,7 +243,7 @@ export async function productsReport(req: AuthRequest, res: Response) {
       COALESCE(SUM(oi.subtotal), 0)::numeric           AS total_value
     FROM order_items oi
     JOIN orders o ON o.id = oi.order_id
-    WHERE o.created_at BETWEEN $1 AND $2 ${cond}
+    WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
     GROUP BY oi.reference
     ORDER BY total_pieces DESC
     LIMIT 100
