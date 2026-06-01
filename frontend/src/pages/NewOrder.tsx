@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import {
@@ -17,6 +17,7 @@ import {
   WifiOff,
   AlertCircle,
   Info,
+  X,
 } from 'lucide-react'
 import { clientsApi, priceTablesApi, productsApi, ordersApi, factoriesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -303,6 +304,7 @@ export function NewOrder() {
   const [typeFilter, setTypeFilter] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
+  const [quickAddProduct, setQuickAddProduct] = useState<Product | null>(null)
 
   // Step 4: Review
   const [discountPct, setDiscountPct] = useState<string>('0')
@@ -393,11 +395,6 @@ export function NewOrder() {
     }
   }, [cart, discountNum, findMatchingRule])
 
-  function addToCart(product: Product) {
-    if (cart.find((c) => c.product.id === product.id)) return
-    const sizes = product.type === 'regular' ? initSizes(product) : {}
-    setCart([...cart, { product, boxes_count: 1, sizes, unit_price: product.base_price }])
-  }
 
   function removeFromCart(productId: string) {
     setCart(cart.filter((c) => c.product.id !== productId))
@@ -703,15 +700,8 @@ export function NewOrder() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && products && products.length > 0) {
                       e.preventDefault()
-                      const first = products[0]
-                      addToCart(first)
-                      setExpandedGrade(first.id)
+                      setQuickAddProduct(products[0])
                       setProductSearch('')
-                      // Scroll até o produto expandido após render
-                      setTimeout(() => {
-                        document.getElementById(`product-card-${first.id}`)
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }, 150)
                     }
                   }}
                 />
@@ -833,7 +823,7 @@ export function NewOrder() {
                             )
                           ) : (
                             <button
-                              onClick={() => addToCart(p)}
+                              onClick={() => setQuickAddProduct(p)}
                               className="flex items-center gap-1 bg-primary text-white text-[12px] font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90"
                             >
                               <Plus className="h-3.5 w-3.5" /> Adicionar
@@ -1172,6 +1162,172 @@ export function NewOrder() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Modal de adição rápida (Enter na busca) ── */}
+      {quickAddProduct && (
+        <QuickAddModal
+          product={quickAddProduct}
+          cartItem={cart.find(c => c.product.id === quickAddProduct.id) || null}
+          onClose={() => setQuickAddProduct(null)}
+          onAdd={(p, sizes, boxes) => {
+            const exists = cart.find(c => c.product.id === p.id)
+            if (exists) {
+              setCart(cart.map(c => c.product.id === p.id ? { ...c, sizes, boxes_count: boxes } : c))
+            } else {
+              setCart([...cart, { product: p, boxes_count: boxes, sizes, unit_price: p.base_price }])
+            }
+            setQuickAddProduct(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── QuickAddModal ────────────────────────────────────────────────────────────
+function QuickAddModal({
+  product, cartItem, onClose, onAdd,
+}: {
+  product: Product
+  cartItem: CartItem | null
+  onClose: () => void
+  onAdd: (p: Product, sizes: Record<string, number>, boxes: number) => void
+}) {
+  const isPack = product.type === 'pack'
+  const allSizes = (() => {
+    if (isPack) return []
+    if (product.grade_configs?.length) {
+      const set = new Set<string>()
+      product.grade_configs.forEach(gc => Object.keys(gc.sizes).forEach(s => set.add(s)))
+      return sortSizes([...set])
+    }
+    return sortSizes(parseSizeRange(product.size_range || ''))
+  })()
+
+  const [sizes, setSizes] = useState<Record<string, number>>(
+    () => cartItem?.sizes || initSizes(product)
+  )
+  const [boxes, setBoxes] = useState(cartItem?.boxes_count || 1)
+
+  const totalPiecesPerBox = product.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
+  const totalPieces = isPack ? totalPiecesPerBox * boxes : Object.values(sizes).reduce((s, v) => s + v, 0)
+  const totalValue = Number(product.base_price) * totalPieces
+  const fmtR = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/30 flex-shrink-0">
+          <div>
+            <p className="font-bold text-on-surface text-base">{product.reference}</p>
+            {product.product_name && <p className="text-[12px] text-outline">{product.product_name}</p>}
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl text-outline hover:bg-surface-container">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {/* Foto */}
+          {product.image_url && (
+            <div className="w-full bg-surface-container-low flex items-center justify-center" style={{ maxHeight: 260 }}>
+              <img src={product.image_url} alt={product.reference}
+                className="w-full object-contain" style={{ maxHeight: 260 }} />
+            </div>
+          )}
+
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isPack ? 'bg-primary/10 text-primary' : 'bg-blue-50 text-blue-700'}`}>
+                {isPack ? 'PACK' : 'REGULAR'}
+              </span>
+              <p className="font-bold text-primary text-lg">{fmtR(Number(product.base_price))}<span className="text-[12px] text-outline font-normal">/pç</span></p>
+            </div>
+
+            {/* REGULAR: grade de tamanhos */}
+            {!isPack && allSizes.length > 0 && (
+              <div>
+                <p className="text-[12px] font-semibold text-outline uppercase tracking-wide mb-2">Quantidades por tamanho</p>
+                <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(allSizes.length, 5)}, 1fr)` }}>
+                  {allSizes.map(s => (
+                    <div key={s} className="text-center">
+                      <p className="text-[11px] font-bold text-outline mb-1">{s}</p>
+                      <input
+                        type="number" min="0"
+                        value={sizes[s] || ''}
+                        onChange={e => setSizes(prev => ({ ...prev, [s]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                        onFocus={e => e.target.select()}
+                        className="w-full text-center text-base font-bold border-2 border-outline-variant rounded-xl py-2 focus:border-primary focus:outline-none"
+                        placeholder="0"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* PACK: seletor de caixas */}
+            {isPack && (
+              <div>
+                <p className="text-[12px] font-semibold text-outline uppercase tracking-wide mb-2">
+                  Caixas ({totalPiecesPerBox} pç/cx)
+                </p>
+                {product.grade_configs && product.grade_configs.length > 0 && (
+                  <div className="bg-surface-container-low rounded-xl p-3 mb-3 space-y-1.5">
+                    {product.grade_configs.map((gc, i) => (
+                      <div key={i} className="flex items-center gap-2 flex-wrap">
+                        {gc.color && <span className="text-[12px] font-semibold text-on-surface-variant w-20 flex-shrink-0">{gc.color}</span>}
+                        {sortSizes(Object.keys(gc.sizes)).filter(s => (gc.sizes[s] || 0) > 0).map(s => (
+                          <span key={s} className="bg-white border border-outline-variant/50 px-2 py-0.5 rounded-lg text-[11px]">
+                            {s}:{gc.sizes[s]}
+                          </span>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-4 bg-surface-container-low rounded-xl p-4">
+                  <button onClick={() => setBoxes(Math.max(1, boxes - 1))}
+                    className="w-12 h-12 rounded-xl bg-white border border-outline-variant flex items-center justify-center shadow-sm active:scale-95">
+                    <Minus className="h-5 w-5 text-on-surface-variant" />
+                  </button>
+                  <div className="flex-1 text-center">
+                    <p className="text-3xl font-bold text-on-surface">{boxes}</p>
+                    <p className="text-[12px] text-outline">caixas · {totalPieces} peças</p>
+                  </div>
+                  <button onClick={() => setBoxes(boxes + 1)}
+                    className="w-12 h-12 rounded-xl bg-white border border-outline-variant flex items-center justify-center shadow-sm active:scale-95">
+                    <Plus className="h-5 w-5 text-on-surface-variant" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-outline-variant/30 flex-shrink-0 bg-surface-container-low">
+          {totalPieces > 0 && (
+            <p className="text-[12px] text-outline text-center mb-2">
+              {totalPieces} peças · <span className="font-bold text-primary">{fmtR(totalValue)}</span>
+            </p>
+          )}
+          <Button fullWidth size="lg" disabled={totalPieces === 0}
+            onClick={() => onAdd(product, sizes, boxes)}
+            icon={<Check className="h-5 w-5" />}>
+            {cartItem ? 'Atualizar no carrinho' : 'Adicionar ao pedido'}
+          </Button>
+        </div>
       </div>
     </div>
   )
