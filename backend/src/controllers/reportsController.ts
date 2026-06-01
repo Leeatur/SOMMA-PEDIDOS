@@ -145,8 +145,8 @@ export async function collectionsReport(req: AuthRequest, res: Response) {
   const [from, to] = dateRange(req)
   const factoryId = req.query.factory_id as string | undefined
   const isAdmin = req.user?.role === 'admin'
-  // Always show all sales — intentional indicator for all reps
-  const repId = isAdmin ? (req.query.rep_id as string | undefined) : undefined
+  // Admins can filter by rep; reps see only their own factories and sales
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
 
   // Constrói parâmetros e cláusulas em um único array sequencial
   const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
@@ -156,6 +156,13 @@ export async function collectionsReport(req: AuthRequest, res: Response) {
   if (repId)      { salesCond += ` AND o.rep_id = $${params.length + 1}`;      params.push(repId) }
   if (factoryId)  { salesCond += ` AND o.factory_id = $${params.length + 1}`;  params.push(factoryId)
                     ptWhere    =  ` AND pt.factory_id = $${params.length}` }
+
+  // Reps only see factories where they have at least one order
+  if (!isAdmin && !factoryId) {
+    const repIdx = params.length + 1
+    params.push(req.user!.id)
+    ptWhere += ` AND pt.factory_id IN (SELECT DISTINCT factory_id FROM orders WHERE rep_id = $${repIdx} AND deleted_at IS NULL)`
+  }
 
   const { rows } = await query(`
     SELECT
