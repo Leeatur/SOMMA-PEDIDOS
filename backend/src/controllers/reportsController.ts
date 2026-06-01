@@ -144,7 +144,8 @@ export async function collectionsReport(req: AuthRequest, res: Response) {
   const [from, to] = dateRange(req)
   const factoryId = req.query.factory_id as string | undefined
   const isAdmin = req.user?.role === 'admin'
-  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  // Always show all sales — intentional indicator for all reps
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : undefined
 
   // Constrói parâmetros e cláusulas em um único array sequencial
   const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
@@ -255,12 +256,19 @@ export async function productsReport(req: AuthRequest, res: Response) {
 export async function catalogReport(req: AuthRequest, res: Response) {
   const priceTableId = req.query.price_table_id as string | undefined
   const factoryId    = req.query.factory_id    as string | undefined
+  const isAdmin      = req.user?.role === 'admin'
 
   // Busca tabelas de preço disponíveis para montar o select
   const ptParams: unknown[] = []
   let ptWhere = ''
   if (priceTableId) { ptWhere += ` AND pt.id = $${ptParams.length + 1}`; ptParams.push(priceTableId) }
   else if (factoryId) { ptWhere += ` AND f.id = $${ptParams.length + 1}`; ptParams.push(factoryId) }
+
+  // Non-admins only see catalogs of factories where they have orders
+  if (!isAdmin) {
+    ptWhere += ` AND f.id IN (SELECT DISTINCT factory_id FROM orders WHERE rep_id = $${ptParams.length + 1} AND deleted_at IS NULL)`
+    ptParams.push(req.user!.id)
+  }
 
   const { rows } = await query(`
     SELECT

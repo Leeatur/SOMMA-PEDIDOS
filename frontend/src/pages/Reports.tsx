@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
-import { reportsApi, factoriesApi, priceTablesApi, usersApi } from '../api/client'
+import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
 
 // ─── formatters ──────────────────────────────────────────────────────────────
@@ -488,6 +488,23 @@ export function Reports() {
 
   const reps = (allUsers || []).filter(u => u.role === 'representante')
 
+  // For non-admins: derive catalog factory list from their own orders
+  const { data: repOrders } = useQuery<Array<{ factory_id: string; factory_name: string }>>({
+    queryKey: ['orders'],
+    queryFn: () => ordersApi.list().then(r => r.data),
+    enabled: !isAdmin,
+  })
+
+  const catalogFactories = useMemo(() => {
+    if (isAdmin) return factories || []
+    const seen = new Map<string, Factory>()
+    for (const o of repOrders || []) {
+      if (o.factory_id && !seen.has(o.factory_id))
+        seen.set(o.factory_id, { id: o.factory_id, name: o.factory_name })
+    }
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [isAdmin, repOrders, factories])
+
   // ─── report queries ────────────────────────────────────────────────────────
 
   const ordersQ = useQuery<{ summary: OrderSummary; byDay: OrderDay[] }>({
@@ -537,14 +554,14 @@ export function Reports() {
 
   // ─── tabs config ───────────────────────────────────────────────────────────
 
-  const TABS: { id: Tab; label: string }[] = [
+  const TABS: { id: Tab; label: string; adminOnly?: boolean }[] = [
     { id: 'orders',      label: 'Visão Geral' },
     { id: 'commissions', label: 'Comissões' },
     { id: 'clients',     label: 'Clientes' },
-    { id: 'products',    label: 'Produtos' },
+    { id: 'products',    label: 'Produtos',            adminOnly: true },
     { id: 'collections', label: 'Curva ABC de Produtos' },
     { id: 'catalog',     label: 'Catálogo de Coleção' },
-  ]
+  ].filter(t => !t.adminOnly || isAdmin)
 
   // ─── render ────────────────────────────────────────────────────────────────
 
@@ -898,7 +915,7 @@ export function Reports() {
                 className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as indústrias</option>
-                {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                {catalogFactories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
               <select
                 value={catalogPriceTableId}

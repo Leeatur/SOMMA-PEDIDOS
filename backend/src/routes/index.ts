@@ -73,6 +73,7 @@ router.get('/clients', authenticate, clients.listClients)
 router.get('/clients/:id', authenticate, clients.getClient)
 router.post('/clients', authenticate, clients.createClient)
 router.put('/clients/:id', authenticate, clients.updateClient)
+router.delete('/clients/:id', authenticate, clients.deleteClient)
 router.post('/clients/import/preview', authenticate, upload.single('file'), clientsImport.previewImport)
 router.post('/clients/import/confirm', authenticate, upload.single('file'), clientsImport.confirmImport)
 

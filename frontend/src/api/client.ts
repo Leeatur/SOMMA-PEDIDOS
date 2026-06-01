@@ -192,6 +192,7 @@ export const clientsApi = {
   create: (data: Partial<ClientPayload>) => apiClient.post('/clients', data),
   update: (id: string, data: Partial<ClientPayload>) =>
     apiClient.put(`/clients/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/clients/${id}`),
   importPreview: (file: File) => {
     const fd = new FormData()
     fd.append('file', file)

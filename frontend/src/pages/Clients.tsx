@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, Plus, Edit2, Search, Upload } from 'lucide-react'
+import { Users, Plus, Edit2, Search, Upload, Trash2 } from 'lucide-react'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
 import { clientsApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -97,6 +97,16 @@ export function Clients() {
     mutationFn: (data: FormState) => clientsApi.update(editing!.id, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['clients'] }); closeModal() },
   })
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => clientsApi.delete(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clients'] }); closeModal() },
+  })
+
+  function handleDelete(id: string, name: string) {
+    if (!window.confirm(`Excluir o cliente "${name}"? Esta ação não pode ser desfeita.`)) return
+    deleteMut.mutate(id)
+  }
 
   function openEdit(c: Client) {
     setEditing(c)
@@ -210,13 +220,21 @@ export function Clients() {
         )
       case '_edit':
         return (
-          <td key={id} className="px-2 pr-3 py-1 text-right w-10">
-            <button
-              onClick={(e) => { e.stopPropagation(); openEdit(c) }}
-              className="p-1.5 text-outline/50 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-            >
-              <Edit2 className="h-3.5 w-3.5" />
-            </button>
+          <td key={id} className="px-2 pr-3 py-1 text-right w-20">
+            <div className="flex items-center justify-end gap-0.5">
+              <button
+                onClick={(e) => { e.stopPropagation(); openEdit(c) }}
+                className="p-1.5 text-outline/50 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDelete(c.id, c.name) }}
+                className="p-1.5 text-outline/40 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </td>
         )
       default:
@@ -306,13 +324,21 @@ export function Clients() {
                           <p className="text-[11px] text-outline mt-0.5 font-mono">{c.cnpj}</p>
                         )}
                       </div>
-                      {/* Edit */}
-                      <button
-                        onClick={() => openEdit(c)}
-                        className="p-2 text-outline/50 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors flex-shrink-0"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
+                      {/* Edit / Delete */}
+                      <div className="flex gap-0.5 flex-shrink-0">
+                        <button
+                          onClick={() => openEdit(c)}
+                          className="p-2 text-outline/50 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c.id, c.name)}
+                          className="p-2 text-outline/40 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Contact bar */}
@@ -457,14 +483,26 @@ export function Clients() {
         title={editing ? 'Editar Cliente' : 'Novo Cliente'}
         size="lg"
         footer={
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={closeModal}>Cancelar</Button>
-            <Button
-              onClick={handleSubmit}
-              loading={createMut.isPending || updateMut.isPending}
-            >
-              {editing ? 'Salvar' : 'Cadastrar'}
-            </Button>
+          <div className="flex items-center gap-2">
+            {editing && (
+              <button
+                onClick={() => handleDelete(editing.id, editing.name)}
+                disabled={deleteMut.isPending}
+                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors mr-auto"
+                title="Excluir cliente"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={closeModal}>Cancelar</Button>
+              <Button
+                onClick={handleSubmit}
+                loading={createMut.isPending || updateMut.isPending}
+              >
+                {editing ? 'Salvar' : 'Cadastrar'}
+              </Button>
+            </div>
           </div>
         }
       >
