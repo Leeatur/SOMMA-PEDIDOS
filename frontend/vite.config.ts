@@ -12,7 +12,7 @@ export default defineConfig({
         name: 'Somma Pedidos',
         short_name: 'Somma',
         description: 'Sistema de Pedidos Somma Gestão Comercial',
-        theme_color: '#1e40af',
+        theme_color: '#6D28D9',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
