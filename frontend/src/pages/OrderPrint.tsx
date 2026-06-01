@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ordersApi, companyApi } from '../api/client'
 
@@ -87,6 +87,7 @@ interface Order {
 
 export function OrderPrint() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
 
   const { data: order } = useQuery<Order>({
     queryKey: ['order', id],
@@ -301,9 +302,16 @@ export function OrderPrint() {
         }
       `}</style>
 
-      {/* Botão flutuante discreto — some ao imprimir */}
+      {/* Botões flutuantes — somem ao imprimir */}
       <button className="print-btn" onClick={() => window.print()}>
         🖨️ Imprimir / PDF
+      </button>
+      <button
+        className="print-btn"
+        style={{ right: 'auto', left: 12, background: '#6b7280' }}
+        onClick={() => navigate(`/orders/${id}`)}
+      >
+        ← Voltar
       </button>
 
       <div className="page">

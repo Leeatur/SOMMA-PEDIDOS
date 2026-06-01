@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trash2, RotateCcw, AlertTriangle } from 'lucide-react'
+import { Trash2, RotateCcw, AlertTriangle, ArrowLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { ordersApi } from '../api/client'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -28,6 +29,7 @@ function fmtDate(d: string) {
 }
 
 export function OrdersTrash() {
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const [restoringId, setRestoringId] = useState<string | null>(null)
 
@@ -53,6 +55,9 @@ export function OrdersTrash() {
       {/* Header */}
       <div className="bg-white border-b border-outline-variant px-5 py-2.5 lg:px-8">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
+          <button onClick={() => navigate('/orders')} className="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
           <div className="w-9 h-9 bg-red-100 rounded-xl flex items-center justify-center">
             <Trash2 className="h-5 w-5 text-red-500" />
           </div>
