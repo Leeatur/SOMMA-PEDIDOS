@@ -83,6 +83,8 @@ interface Prospect {
   lat: number
   lng: number
   segment: string
+  rating?: number | null
+  place_id?: string | null   // Google Places ID (para buscar detalhes)
   saved_contact_id: string | null
   saved_status: string | null
 }
@@ -591,6 +593,24 @@ function ProspectDetail({
   const [cnpjLoading, setCnpjLoading] = useState(false)
   const [cnpjError, setCnpjError] = useState<string|null>(null)
 
+  // Auto-busca detalhes do Google Places (telefone, website) ao abrir
+  const [details, setDetails] = useState<{phone:string|null;website:string|null;hours:string[]|null;rating:number|null}|null>(null)
+  const [detailsLoading, setDetailsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!prospect.place_id) return
+    setDetailsLoading(true)
+    import('../api/client').then(({ prospectingApi }) =>
+      prospectingApi.getPlaceDetails(prospect.place_id!)
+        .then(r => setDetails(r.data))
+        .catch(() => {})
+        .finally(() => setDetailsLoading(false))
+    )
+  }, [prospect.place_id])
+
+  const phone = details?.phone || prospect.phone
+  const website = details?.website || prospect.website
+
   async function handleCnpjLookup() {
     const cnpj = cnpjInput.replace(/\D/g, '')
     if (cnpj.length !== 14) { setCnpjError('Digite 14 dígitos'); return }
@@ -622,7 +642,7 @@ function ProspectDetail({
         </div>
       )}
 
-      {/* Dados OSM */}
+      {/* Dados do prospecto (Google Places + detalhes) */}
       <div className="space-y-1 text-sm text-gray-700">
         {prospect.address && (
           <div className="flex items-start gap-2">
@@ -630,17 +650,25 @@ function ProspectDetail({
             <span className="text-xs">{prospect.address}</span>
           </div>
         )}
-        {prospect.phone && (
-          <div className="flex items-center gap-2">
-            <Phone className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-            <a href={`tel:${prospect.phone}`} className="text-blue-600 hover:underline text-xs">{prospect.phone}</a>
+        {detailsLoading && (
+          <div className="text-xs text-gray-400 flex items-center gap-1">
+            <RefreshCw className="h-3 w-3 animate-spin" /> Buscando contato...
           </div>
         )}
-        {prospect.website && (
+        {phone && (
+          <div className="flex items-center gap-2">
+            <Phone className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <a href={`tel:${phone}`} className="text-blue-600 hover:underline text-xs font-medium">{phone}</a>
+          </div>
+        )}
+        {website && (
           <div className="flex items-center gap-2">
             <Globe className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-            <a href={prospect.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate text-xs">{prospect.website}</a>
+            <a href={website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate text-xs">{website}</a>
           </div>
+        )}
+        {details?.rating && (
+          <div className="text-xs text-amber-600">⭐ {details.rating.toFixed(1)} no Google</div>
         )}
         {prospect.opening_hours && (
           <div className="flex items-start gap-2">
@@ -655,9 +683,19 @@ function ProspectDetail({
 
       {/* CNPJ lookup inline */}
       <div className="border border-gray-100 rounded-lg p-3 space-y-2 bg-gray-50">
-        <p className="text-xs font-semibold text-gray-600 flex items-center gap-1">
-          <FileText className="h-3.5 w-3.5" /> Enriquecer via CNPJ
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+            <FileText className="h-3.5 w-3.5" /> Buscar dados via CNPJ
+          </p>
+          {/* Abre pesquisa no Google para encontrar o CNPJ */}
+          <a
+            href={`https://www.google.com/search?q=${encodeURIComponent(prospect.name + ' CNPJ ' + (prospect.address?.split('-').pop()?.trim() || ''))}`}
+            target="_blank" rel="noopener noreferrer"
+            className="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5"
+          >
+            <Search className="h-3 w-3" /> Buscar CNPJ no Google
+          </a>
+        </div>
         <div className="flex gap-1.5">
           <input
             type="text"
@@ -669,7 +707,7 @@ function ProspectDetail({
           />
           <button onClick={handleCnpjLookup} disabled={cnpjLoading}
             className="px-2.5 py-1 bg-purple-600 text-white rounded text-xs font-semibold disabled:opacity-50">
-            {cnpjLoading ? '...' : 'OK'}
+            {cnpjLoading ? '...' : 'Buscar'}
           </button>
         </div>
         {cnpjError && <p className="text-red-500 text-xs">{cnpjError}</p>}

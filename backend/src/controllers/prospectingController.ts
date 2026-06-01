@@ -124,6 +124,7 @@ export async function searchNearby(req: AuthRequest, res: Response) {
           const saved = savedOsmMap.get(placeId)
           return {
             osm_id: placeId,
+            place_id: p.place_id,   // ID original do Google para buscar detalhes
             name: p.name,
             address: p.vicinity || null,
             city: null,
@@ -174,6 +175,34 @@ export async function searchNearby(req: AuthRequest, res: Response) {
   } catch (err) {
     console.error('Overpass error:', err)
     res.status(502).json({ error: 'Erro ao buscar empresas no mapa. Tente novamente.' })
+  }
+}
+
+// GET /api/prospecting/place/:place_id — busca detalhes do Google Places (telefone, website)
+export async function getPlaceDetails(req: AuthRequest, res: Response) {
+  if (!GOOGLE_KEY) { res.status(503).json({ error: 'Google Places não configurado' }); return }
+  const placeId = req.params.place_id
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_phone_number,international_phone_number,website,opening_hours,rating&language=pt-BR&key=${GOOGLE_KEY}`
+    const r = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    const data = await r.json() as { status: string; result?: Record<string, unknown> }
+    if (data.status !== 'OK' || !data.result) {
+      res.status(404).json({ error: 'Detalhes não encontrados' }); return
+    }
+    const d = data.result as {
+      name?: string; formatted_phone_number?: string; international_phone_number?: string
+      website?: string; rating?: number; opening_hours?: { weekday_text?: string[] }
+    }
+    res.json({
+      name: d.name,
+      phone: d.formatted_phone_number || null,
+      website: d.website || null,
+      rating: d.rating || null,
+      hours: d.opening_hours?.weekday_text || null,
+    })
+  } catch (err) {
+    console.error('Place details error:', err)
+    res.status(502).json({ error: 'Erro ao buscar detalhes' })
   }
 }
 

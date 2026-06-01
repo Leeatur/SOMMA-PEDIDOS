@@ -320,6 +320,8 @@ export const usersApi = {
 export const prospectingApi = {
   searchNearby: (lat: number, lng: number, radius: number, segment: string) =>
     apiClient.get('/prospecting/nearby', { params: { lat, lng, radius, segment } }),
+  getPlaceDetails: (placeId: string) =>
+    apiClient.get(`/prospecting/place/${placeId}`),
   lookupCnpj: (cnpj: string) =>
     apiClient.get(`/prospecting/cnpj/${cnpj.replace(/\D/g, '')}`),
   listContacts: () => apiClient.get('/prospecting/contacts'),
