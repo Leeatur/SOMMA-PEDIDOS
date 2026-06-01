@@ -1200,7 +1200,7 @@ function QuickAddModal({
   const isPack = product.type === 'pack'
 
   // Para packs: grade selecionada (cor)
-  const [selectedGradeIdx, setSelectedGradeIdx] = useState(0)
+  const [selectedGradeIdx, ] = useState(0)
   const grades = product.grade_configs || []
   const currentGrade = grades[selectedGradeIdx] || null
 
@@ -1249,10 +1249,10 @@ function QuickAddModal({
           <div className="flex items-start justify-between gap-4">
             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-[12px] flex-1">
               <span className="text-outline font-medium">Código</span>
-              <span className="font-bold text-on-surface">{product.reference}{selectedTable ? ` | \${selectedTable.factory_name}` : ''}</span>
+              <span className="font-bold text-on-surface">{product.reference}{selectedTable ? ' | ' + selectedTable.factory_name : ''}</span>
               {product.product_name && <>
                 <span className="text-outline font-medium">Descrição</span>
-                <span className="text-on-surface">{product.product_name}{product.model ? ` - \${product.model}` : ''}</span>
+                <span className="text-on-surface">{product.product_name}{product.model ? ' - ' + product.model : ''}</span>
               </>}
               {selectedTable && <>
                 <span className="text-outline font-medium">Tab. Preço</span>
@@ -1276,111 +1276,113 @@ function QuickAddModal({
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
-          {/* ── Seletor de Grade (PACK = cor, REG = range) ── */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 flex-1">
+          {/* ── PACK: tabela completa de cores × tamanhos ── */}
+          {isPack && grades.length > 0 && (() => {
+            const packSizes = sortSizes([...new Set(grades.flatMap(g => Object.keys(g.sizes).map(s => s.trim())))])
+            const grandTotal = grades.reduce((s, g) => s + g.total_pieces, 0)
+            return (
               <div>
-                <p className="text-[11px] text-outline font-medium mb-1">Qtde. Total</p>
-                <div className="min-w-[80px] px-3 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-center font-bold text-on-surface text-[14px]">
-                  {totalPieces}
+                <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Grade do Pack</p>
+                <div className="border border-outline-variant rounded-xl overflow-x-auto">
+                  <table className="min-w-full text-[12px]">
+                    <thead className="bg-surface-container-low">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-bold text-outline border-r border-outline-variant/40">COR</th>
+                        {packSizes.map(s => (
+                          <th key={s} className="px-2 py-2 text-center font-bold text-outline border-r border-outline-variant/30 last:border-r-0 min-w-[40px]">{s}</th>
+                        ))}
+                        <th className="px-3 py-2 text-center font-bold text-primary">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/20">
+                      {grades.map((g, i) => (
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-surface-container-low/30'}>
+                          <td className="px-3 py-2 font-semibold text-on-surface border-r border-outline-variant/30 whitespace-nowrap">{g.color || '—'}</td>
+                          {packSizes.map(s => (
+                            <td key={s} className="px-2 py-2 text-center text-on-surface-variant border-r border-outline-variant/20 last:border-r-0">
+                              {(g.sizes[s] || g.sizes[s + ' '] || 0) > 0 ? (g.sizes[s] || g.sizes[s + ' '] || 0) * boxes : '—'}
+                            </td>
+                          ))}
+                          <td className="px-3 py-2 text-center font-bold text-primary">{g.total_pieces * boxes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t-2 border-outline-variant">
+                      <tr className="bg-surface-container-low">
+                        <td className="px-3 py-2 font-bold text-on-surface border-r border-outline-variant/30">QT. PACK</td>
+                        {packSizes.map(s => (
+                          <td key={s} className="px-2 py-2 text-center font-semibold text-on-surface border-r border-outline-variant/20 last:border-r-0">
+                            {grades.reduce((sum, g) => sum + ((g.sizes[s] || g.sizes[s + ' '] || 0) * boxes), 0) || ''}
+                          </td>
+                        ))}
+                        <td className="px-3 py-2 text-center font-bold text-primary text-[14px]">{grandTotal * boxes}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
-              </div>
-              {isPack && grades.length > 0 && (
-                <div className="flex-1">
-                  <p className="text-[11px] text-outline font-medium mb-1">Grade (Cor)</p>
-                  <select
-                    value={selectedGradeIdx}
-                    onChange={e => setSelectedGradeIdx(Number(e.target.value))}
-                    className="w-full border border-outline-variant rounded-lg px-3 py-2 text-[12px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                  >
-                    {grades.map((g, i) => (
-                      <option key={i} value={i}>{g.color || 'Padrão'} ({g.total_pieces} pç/cx)</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {!isPack && product.size_range && (
-                <div>
-                  <p className="text-[11px] text-outline font-medium mb-1">Grade</p>
-                  <div className="px-3 py-2 border border-outline-variant rounded-lg text-[12px] text-on-surface bg-surface-container-low">
-                    {product.size_range}
+                <div className="flex items-center gap-4 mt-3">
+                  <p className="text-[12px] text-outline font-medium">Qtd. Caixas:</p>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setBoxes(Math.max(1, boxes - 1))}
+                      className="w-9 h-9 rounded-xl border border-outline-variant flex items-center justify-center hover:bg-surface-container active:scale-95">
+                      <Minus className="h-4 w-4 text-on-surface-variant" />
+                    </button>
+                    <input type="number" min="1" value={boxes}
+                      onChange={e => setBoxes(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-16 text-center border-2 border-outline-variant rounded-xl py-1.5 text-[15px] font-bold focus:outline-none focus:border-primary" />
+                    <button type="button" onClick={() => setBoxes(boxes + 1)}
+                      className="w-9 h-9 rounded-xl border border-outline-variant flex items-center justify-center hover:bg-surface-container active:scale-95">
+                      <Plus className="h-4 w-4 text-on-surface-variant" />
+                    </button>
                   </div>
+                  <span className="text-[13px] font-bold text-primary">{grandTotal * boxes} peças total</span>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Tabela de Quantidades ── */}
-          <div>
-            <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Quantidades</p>
-            <div className="border border-outline-variant rounded-xl overflow-hidden">
-              <table className="w-full" style={{ tableLayout: 'fixed' }}>
-                <thead className="bg-surface-container-low">
-                  <tr>
-                    {isPack
-                      ? sortSizes(Object.keys(currentGrade?.sizes || {})).map(s => (
-                          <th key={s} className="px-1 py-2 text-center text-[11px] font-bold text-outline border-r border-outline-variant/30 last:border-r-0">{s}</th>
-                        ))
-                      : allSizes.map(s => (
-                          <th key={s} className="px-1 py-2 text-center text-[11px] font-bold text-outline border-r border-outline-variant/30 last:border-r-0">{s}</th>
-                        ))
-                    }
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {isPack
-                      ? sortSizes(Object.keys(currentGrade?.sizes || {})).map(s => (
-                          <td key={s} className="border-r border-outline-variant/20 last:border-r-0 border-t border-outline-variant/20">
-                            <div className="text-center py-2 text-[12px] font-medium text-on-surface-variant">
-                              {(currentGrade?.sizes[s] || 0) * boxes}
-                            </div>
-                          </td>
-                        ))
-                      : allSizes.map((s, idx) => (
-                          <td key={s} className="border-r border-outline-variant/20 last:border-r-0 border-t border-outline-variant/20 p-0">
-                            <input
-                              type="number" min="0"
-                              value={sizes[s] || ''}
-                              onChange={e => setSizes(prev => ({ ...prev, [s]: Math.max(0, parseInt(e.target.value) || 0) }))}
-                              onFocus={e => e.target.select()}
-                              tabIndex={idx + 1}
-                              className="w-full text-center py-2.5 text-[13px] font-semibold text-on-surface focus:outline-none focus:bg-primary/5 bg-transparent"
-                              placeholder="0"
-                            />
-                          </td>
-                        ))
-                    }
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* ── Pack: contador de caixas ── */}
-          {isPack && (
-            <div className="flex items-center gap-4">
-              <p className="text-[12px] text-outline font-medium">Qtd. Caixas:</p>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setBoxes(Math.max(1, boxes - 1))}
-                  className="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-container active:scale-95">
-                  <Minus className="h-3.5 w-3.5 text-on-surface-variant" />
-                </button>
-                <input
-                  type="number" min="1" value={boxes}
-                  onChange={e => setBoxes(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-16 text-center border border-outline-variant rounded-lg py-1.5 text-[13px] font-bold focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <button onClick={() => setBoxes(boxes + 1)}
-                  className="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-container active:scale-95">
-                  <Plus className="h-3.5 w-3.5 text-on-surface-variant" />
-                </button>
               </div>
-              <span className="text-[12px] text-outline">{totalPieces} peças total</span>
+            )
+          })()}
+
+          {/* ── REGULAR: grade de tamanhos por input ── */}
+          {!isPack && allSizes.length > 0 && (
+            <div>
+              <div className="flex items-center gap-4 mb-2">
+                <div>
+                  <p className="text-[11px] text-outline font-medium mb-1">Qtde. Total</p>
+                  <div className="min-w-[70px] px-3 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-center font-bold text-on-surface text-[14px]">{totalPieces}</div>
+                </div>
+                {product.size_range && (
+                  <div>
+                    <p className="text-[11px] text-outline font-medium mb-1">Grade</p>
+                    <div className="px-3 py-2 border border-outline-variant rounded-lg text-[12px] text-on-surface bg-surface-container-low">{product.size_range}</div>
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Quantidades por tamanho</p>
+              <div className="border border-outline-variant rounded-xl overflow-hidden">
+                <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                  <thead className="bg-surface-container-low">
+                    <tr>{allSizes.map(s => (
+                      <th key={s} className="px-1 py-2 text-center text-[11px] font-bold text-outline border-r border-outline-variant/30 last:border-r-0">{s}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    <tr>{allSizes.map((s, idx) => (
+                      <td key={s} className="border-r border-outline-variant/20 last:border-r-0 border-t border-outline-variant/20 p-0">
+                        <input type="number" min="0"
+                          value={sizes[s] || ''}
+                          onChange={e => setSizes(prev => ({ ...prev, [s]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          onFocus={e => e.target.select()}
+                          tabIndex={idx + 1}
+                          className="w-full text-center py-2.5 text-[13px] font-semibold text-on-surface focus:outline-none focus:bg-primary/5 bg-transparent"
+                          placeholder="0" />
+                      </td>
+                    ))}</tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
-          {/* ── Totais ── */}
+                    {/* ── Totais ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[11px] text-outline font-medium mb-1">Preço Unit.</p>
