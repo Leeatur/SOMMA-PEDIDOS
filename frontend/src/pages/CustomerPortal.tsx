@@ -20,8 +20,42 @@ interface PriceTable {
   factory_id: string; factory_name: string; logo_url: string | null; products: Product[]
 }
 interface CartItem {
-  product: Product; grade: GradeConfig; boxes: number
-  unit_price: number; total_pieces: number; subtotal: number
+  product: Product
+  // Pack: grade com cor + boxes
+  grade: GradeConfig | null
+  boxes: number
+  // Regular: tamanhos escolhidos individualmente
+  sizes: Record<string, number>
+  unit_price: number
+  total_pieces: number
+  subtotal: number
+}
+
+const MIN_ORDER_VALUE = 2500
+const MIN_PIECES_PER_REF = 3
+
+const SIZE_ORDER = ['RN','PP','XP','P','M','G','GG','XG','EXG','2XG','3XG','4XG',
+  '34','36','38','40','42','44','46','48','50','52','54','56','58','60','U']
+
+function parseSizeRange(range: string): string[] {
+  if (!range || range === 'PACK' || range === 'UN') return []
+  // Formato "36-52" → expande de 2 em 2
+  const numRange = range.match(/^(\d+)-(\d+)$/)
+  if (numRange) {
+    const start = parseInt(numRange[1]); const end = parseInt(numRange[2])
+    const sizes: string[] = []
+    for (let s = start; s <= end; s += 2) sizes.push(String(s))
+    return sizes
+  }
+  // Formato "P,M,G,GG" ou "P-GG"
+  if (range.includes(',')) return range.split(',').map(s => s.trim())
+  // Formato "P-GG" (range de letras)
+  const letterRange = range.match(/^([A-Z]+)-([A-Z]+)$/)
+  if (letterRange) {
+    const si = SIZE_ORDER.indexOf(letterRange[1]); const ei = SIZE_ORDER.indexOf(letterRange[2])
+    if (si >= 0 && ei >= 0) return SIZE_ORDER.slice(si, ei + 1)
+  }
+  return [range]
 }
 interface ClientData {
   cnpj: string; razao_social: string; nome_fantasia: string | null
@@ -99,21 +133,43 @@ export function CustomerPortal() {
     } finally { setCnpjLoading(false) }
   }
 
-  function addToCart(product: Product, grade: GradeConfig, boxes: number) {
-    const existing = cart.findIndex(i => i.product.id === product.id && i.grade.color === grade.color)
-    const total_pieces = grade.total_pieces * boxes
+  function addToCart(
+    product: Product,
+    opts: { grade: GradeConfig; boxes: number } | { sizes: Record<string, number> }
+  ) {
+    let total_pieces: number; let sizes: Record<string, number>; let grade: GradeConfig | null; let boxes: number
+
+    if ('grade' in opts) {
+      // PACK
+      grade = opts.grade; boxes = opts.boxes
+      total_pieces = grade.total_pieces * boxes
+      sizes = {}
+    } else {
+      // REGULAR
+      grade = null; boxes = 1
+      sizes = opts.sizes
+      total_pieces = Object.values(sizes).reduce((s, v) => s + v, 0)
+    }
+
+    if (total_pieces < MIN_PIECES_PER_REF) {
+      alert(`Mínimo de ${MIN_PIECES_PER_REF} peças por referência.`)
+      return
+    }
+
     const subtotal = product.base_price * total_pieces
-    const item: CartItem = { product, grade, boxes, unit_price: product.base_price, total_pieces, subtotal }
+    const key = `${product.id}_${grade?.color || 'regular'}`
+    const existing = cart.findIndex(i => `${i.product.id}_${i.grade?.color || 'regular'}` === key)
+    const item: CartItem = { product, grade, boxes, sizes, unit_price: product.base_price, total_pieces, subtotal }
+
     if (existing >= 0) {
-      const updated = [...cart]; updated[existing] = item
-      setCart(updated)
+      const updated = [...cart]; updated[existing] = item; setCart(updated)
     } else {
       setCart([...cart, item])
     }
   }
 
-  function removeFromCart(productId: string, color: string | null) {
-    setCart(cart.filter(i => !(i.product.id === productId && i.grade.color === color)))
+  function removeFromCart(key: string) {
+    setCart(cart.filter(i => `${i.product.id}_${i.grade?.color || 'regular'}` !== key))
   }
 
   const cartTotal = cart.reduce((s, i) => s + i.subtotal, 0)
@@ -121,7 +177,11 @@ export function CustomerPortal() {
 
   async function handleSubmit() {
     if (!cart.length || !clientData || !selectedFactory) return
-    const table = catalog[0]
+    if (cartTotal < MIN_ORDER_VALUE) {
+      alert(`Pedido mínimo de ${fmtR(MIN_ORDER_VALUE)}. Seu pedido está em ${fmtR(cartTotal)}.`)
+      return
+    }
+    const table = catalog.find(t => cart.some(i => i.product.price_table_id === t.id)) || catalog[0]
     if (!table) return
     setSubmitting(true)
     try {
@@ -131,7 +191,8 @@ export function CustomerPortal() {
         unit_price: i.unit_price,
         boxes_count: i.boxes,
         total_pieces: i.total_pieces,
-        grade: [i.grade],
+        sizes: i.product.type === 'regular' ? i.sizes : undefined,
+        grade: i.grade ? [i.grade] : undefined,
       }))
       const r = await publicPortalApi.submitOrder(token!, {
         cnpj: clientData.cnpj,
@@ -315,7 +376,7 @@ export function CustomerPortal() {
                             <div className="border-t border-gray-100 p-3 grid grid-cols-2 gap-2">
                               {filtered.map(p => (
                                 <ProductCard key={p.id} product={p} onAdd={addToCart}
-                                  cartQty={cart.filter(i => i.product.id === p.id).reduce((s,i) => s+i.boxes, 0)} />
+                                  cartItems={cart.filter(i => i.product.id === p.id)} />
                               ))}
                             </div>
                           )}
@@ -344,12 +405,12 @@ export function CustomerPortal() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-bold text-sm text-gray-900">{item.product.reference}</p>
-                    {item.grade.color && <p className="text-xs text-gray-500">{item.grade.color}</p>}
-                    <p className="text-xs text-gray-400 mt-0.5">{item.total_pieces} peças · {item.boxes} cx</p>
+                    {item.grade?.color && <p className="text-xs text-gray-500">{item.grade.color}</p>}
+                    <p className="text-xs text-gray-400 mt-0.5">{item.total_pieces} peças{item.product.type === 'pack' ? ` · ${item.boxes} cx` : ''}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-purple-700 text-sm">{fmtR(item.subtotal)}</p>
-                    <button onClick={() => removeFromCart(item.product.id, item.grade.color)}
+                    <button onClick={() => removeFromCart(`${item.product.id}_${item.grade?.color || 'regular'}`)}
                       className="text-xs text-red-400 hover:text-red-600 mt-1">Remover</button>
                   </div>
                 </div>
@@ -359,6 +420,11 @@ export function CustomerPortal() {
               <span className="font-semibold text-gray-700">Total ({cartPieces} peças)</span>
               <span className="font-bold text-purple-700 text-lg">{fmtR(cartTotal)}</span>
             </div>
+            {cartTotal < MIN_ORDER_VALUE && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+                ⚠️ Pedido mínimo de <strong>{fmtR(MIN_ORDER_VALUE)}</strong>. Faltam {fmtR(MIN_ORDER_VALUE - cartTotal)} para atingir o mínimo.
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -388,62 +454,142 @@ export function CustomerPortal() {
 
 // ─── ProductCard ─────────────────────────────────────────────────────────────
 
-function ProductCard({ product, onAdd, cartQty }: {
+function ProductCard({ product, onAdd, cartItems }: {
   product: Product
-  onAdd: (p: Product, grade: GradeConfig, boxes: number) => void
-  cartQty: number
+  onAdd: (p: Product, opts: { grade: GradeConfig; boxes: number } | { sizes: Record<string, number> }) => void
+  cartItems: CartItem[]
 }) {
+  const isPack = product.type === 'pack' && product.grade_configs && product.grade_configs.length > 0
+  const fmtCur = (v: number) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
+
+  // ── PACK state ──
   const [boxes, setBoxes] = useState(1)
-  const [selectedGrade, setSelectedGrade] = useState<GradeConfig | null>(
-    product.grade_configs?.[0] || null
+  const [selectedGrade, setSelectedGrade] = useState<GradeConfig | null>(product.grade_configs?.[0] || null)
+
+  // ── REGULAR state ──
+  const availableSizes = isPack ? [] : parseSizeRange(product.size_range || '')
+  const [sizes, setSizes] = useState<Record<string, number>>(() =>
+    Object.fromEntries(availableSizes.map(s => [s, 0]))
   )
 
-  const totalPieces = selectedGrade ? selectedGrade.total_pieces * boxes : boxes
+  const packPieces = isPack && selectedGrade ? selectedGrade.total_pieces * boxes : 0
+  const regularPieces = Object.values(sizes).reduce((s, v) => s + v, 0)
+  const totalPieces = isPack ? packPieces : regularPieces
   const totalPrice = product.base_price * totalPieces
+
+  const inCart = cartItems.reduce((s, i) => s + i.total_pieces, 0)
+  const inCartBoxes = cartItems.reduce((s, i) => s + i.boxes, 0)
+
+  function handleAdd() {
+    if (isPack && selectedGrade) {
+      onAdd(product, { grade: selectedGrade, boxes })
+    } else {
+      onAdd(product, { sizes })
+    }
+  }
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-      {/* Image */}
-      <div className="aspect-square bg-gray-50 overflow-hidden">
+      {/* Imagem */}
+      <div className="aspect-square bg-gray-50 overflow-hidden relative">
         {product.image_url
-          ? <img src={product.image_url} alt={product.reference} className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-gray-300">
-              <Package className="h-8 w-8" />
-            </div>
+          ? <img src={product.image_url} alt={product.reference} className="w-full h-full object-cover" loading="lazy" />
+          : <div className="w-full h-full flex items-center justify-center text-gray-200"><Package className="h-10 w-10" /></div>
         }
-      </div>
-      <div className="p-2 space-y-1.5">
-        <p className="font-bold text-xs text-gray-900">{product.reference}</p>
-        {product.product_name && <p className="text-xs text-gray-500 truncate">{product.product_name}</p>}
-        <p className="font-bold text-purple-700 text-sm">{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(product.base_price)}/pç</p>
-
-        {/* Grade color selector */}
-        {product.grade_configs && product.grade_configs.length > 1 && (
-          <select value={selectedGrade?.color || ''} onChange={e => setSelectedGrade(product.grade_configs!.find(g=>g.color===e.target.value)||null)}
-            className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-purple-400">
-            {product.grade_configs.map(g => (
-              <option key={g.color} value={g.color||''}>{g.color || 'Padrão'} ({g.total_pieces}pç)</option>
-            ))}
-          </select>
+        {inCart > 0 && (
+          <div className="absolute top-1.5 right-1.5 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+            {isPack ? `${inCartBoxes}cx` : `${inCart}pç`}
+          </div>
         )}
+      </div>
 
-        {/* Qty selector */}
-        <div className="flex items-center gap-1.5">
-          <button onClick={() => setBoxes(Math.max(1,boxes-1))} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-            <Minus className="h-3 w-3 text-gray-600" />
-          </button>
-          <span className="text-xs font-semibold flex-1 text-center">{boxes} cx · {totalPieces}pç</span>
-          <button onClick={() => setBoxes(boxes+1)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-            <Plus className="h-3 w-3 text-gray-600" />
-          </button>
+      <div className="p-2.5 space-y-2">
+        <div>
+          <p className="font-bold text-sm text-gray-900">{product.reference}</p>
+          {product.product_name && <p className="text-xs text-gray-500">{product.product_name}</p>}
+          <p className="font-bold text-purple-700 mt-0.5">{fmtCur(product.base_price)}/pç</p>
         </div>
 
-        <button onClick={() => selectedGrade && onAdd(product, selectedGrade, boxes)}
-          className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-            cartQty > 0 ? 'bg-green-600 text-white' : 'bg-purple-600 text-white hover:bg-purple-700'
-          }`}>
-          {cartQty > 0 ? `✓ ${cartQty}cx no pedido` : `+ ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(totalPrice)}`}
-        </button>
+        {/* ── PACK: seletor de cor + caixas ── */}
+        {isPack && product.grade_configs && (
+          <div className="space-y-1.5">
+            <select
+              value={selectedGrade?.color || ''}
+              onChange={e => setSelectedGrade(product.grade_configs!.find(g => g.color === e.target.value) || null)}
+              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-purple-400 bg-white"
+            >
+              {product.grade_configs.map(g => (
+                <option key={g.color} value={g.color || ''}>
+                  {g.color || 'Padrão'} — {g.total_pieces} pç/cx
+                </option>
+              ))}
+            </select>
+            {/* Composição da grade */}
+            {selectedGrade && (
+              <div className="text-[10px] text-gray-400 flex flex-wrap gap-1">
+                {Object.entries(selectedGrade.sizes).filter(([,v])=>v>0).map(([s,v])=>(
+                  <span key={s} className="bg-gray-100 px-1.5 py-0.5 rounded">{s}:{v}</span>
+                ))}
+              </div>
+            )}
+            {/* Seletor de caixas */}
+            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-1.5">
+              <button onClick={() => setBoxes(Math.max(1, boxes - 1))}
+                className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm active:scale-95">
+                <Minus className="h-3.5 w-3.5 text-gray-600" />
+              </button>
+              <div className="flex-1 text-center">
+                <p className="font-bold text-sm text-gray-900">{boxes} cx</p>
+                <p className="text-[10px] text-gray-400">{packPieces} peças</p>
+              </div>
+              <button onClick={() => setBoxes(boxes + 1)}
+                className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm active:scale-95">
+                <Plus className="h-3.5 w-3.5 text-gray-600" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── REGULAR: grade de tamanhos ── */}
+        {!isPack && availableSizes.length > 0 && (
+          <div className="space-y-1">
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(availableSizes.length, 4)}, 1fr)` }}>
+              {availableSizes.map(s => (
+                <div key={s} className="text-center">
+                  <p className="text-[10px] font-semibold text-gray-500 mb-0.5">{s}</p>
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                    <button onClick={() => setSizes(prev => ({...prev, [s]: Math.max(0, (prev[s]||0)-1)}))}
+                      className="px-1.5 py-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-50 active:scale-95 text-xs">−</button>
+                    <input
+                      type="number" min="0" value={sizes[s] || ''}
+                      onChange={e => setSizes(prev => ({...prev, [s]: Math.max(0, parseInt(e.target.value)||0)}))}
+                      className="flex-1 text-center text-sm font-bold w-0 min-w-0 py-1 focus:outline-none bg-transparent"
+                      placeholder="0"
+                    />
+                    <button onClick={() => setSizes(prev => ({...prev, [s]: (prev[s]||0)+1}))}
+                      className="px-1.5 py-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-50 active:scale-95 text-xs">+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {regularPieces > 0 && (
+              <p className="text-xs text-gray-500 text-center">{regularPieces} peças · {fmtCur(totalPrice)}</p>
+            )}
+            {regularPieces > 0 && regularPieces < MIN_PIECES_PER_REF && (
+              <p className="text-[10px] text-amber-600 text-center">Mínimo {MIN_PIECES_PER_REF} peças</p>
+            )}
+          </div>
+        )}
+
+        {/* Botão adicionar */}
+        {totalPieces > 0 && (
+          <button onClick={handleAdd}
+            className={`w-full py-2 rounded-lg text-sm font-bold transition-all active:scale-95 ${
+              inCart > 0 ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'
+            }`}>
+            {inCart > 0 ? '✓ Atualizar' : `+ ${fmtCur(totalPrice)}`}
+          </button>
+        )}
       </div>
     </div>
   )
