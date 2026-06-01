@@ -58,10 +58,14 @@ export async function searchNearby(req: AuthRequest, res: Response) {
   const overpassQuery = buildOverpassQuery(lat, lng, radius, tags)
 
   try {
-    const response = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${encodeURIComponent(overpassQuery)}`,
+    // Overpass API requer User-Agent — GET é mais compatível que POST para evitar 406
+    const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+    const response = await fetch(overpassUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'SommaGestaoComercial/1.0 (contato@sommagestao.com.br)',
+        'Accept': 'application/json',
+      },
       signal: AbortSignal.timeout(35000),
     })
 
