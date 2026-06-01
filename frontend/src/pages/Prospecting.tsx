@@ -596,13 +596,30 @@ function ProspectDetail({
   // Auto-busca detalhes do Google Places (telefone, website) ao abrir
   const [details, setDetails] = useState<{phone:string|null;website:string|null;hours:string[]|null;rating:number|null}|null>(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
+  const [autoSearching, setAutoSearching] = useState(false)
 
   useEffect(() => {
     if (!prospect.place_id) return
     setDetailsLoading(true)
     import('../api/client').then(({ prospectingApi }) =>
       prospectingApi.getPlaceDetails(prospect.place_id!)
-        .then(r => setDetails(r.data))
+        .then(r => {
+          setDetails(r.data)
+          // Após obter os detalhes, tenta buscar CNPJ automaticamente
+          const d = r.data as { website?: string; phone?: string }
+          if (!cnpjData) {
+            setAutoSearching(true)
+            prospectingApi.findCnpj({
+              name: prospect.name,
+              city: prospect.city || prospect.address?.split(',').pop()?.trim() || '',
+              website: d.website || undefined,
+            }).then(res => {
+              setCnpjData(res.data)
+            }).catch(() => {
+              // Silencioso — não encontrou automaticamente
+            }).finally(() => setAutoSearching(false))
+          }
+        })
         .catch(() => {})
         .finally(() => setDetailsLoading(false))
     )
@@ -685,7 +702,12 @@ function ProspectDetail({
       <div className="border border-gray-100 rounded-lg p-3 space-y-2 bg-gray-50">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-gray-600 flex items-center gap-1">
-            <FileText className="h-3.5 w-3.5" /> Buscar dados via CNPJ
+            <FileText className="h-3.5 w-3.5" />
+            {autoSearching ? (
+              <span className="flex items-center gap-1 text-purple-600">
+                <RefreshCw className="h-3 w-3 animate-spin" /> Buscando CNPJ automaticamente...
+              </span>
+            ) : 'Dados via CNPJ'}
           </p>
           {/* Abre pesquisa no Google para encontrar o CNPJ */}
           <a

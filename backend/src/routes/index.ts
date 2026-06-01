@@ -111,6 +111,7 @@ router.delete('/company/logo', authenticate, requireAdmin, company.deleteLogo)
 // Prospecção
 router.get('/prospecting/nearby', authenticate, prospecting.searchNearby)
 router.get('/prospecting/place/:place_id', authenticate, prospecting.getPlaceDetails)
+router.get('/prospecting/find-cnpj', authenticate, prospecting.findCnpj)
 router.get('/prospecting/cnpj/:cnpj', authenticate, prospecting.lookupCnpj)
 router.get('/prospecting/contacts', authenticate, prospecting.listContacts)
 router.post('/prospecting/contacts', authenticate, prospecting.createContact)

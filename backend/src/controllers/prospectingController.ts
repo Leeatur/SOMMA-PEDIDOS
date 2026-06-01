@@ -206,6 +206,119 @@ export async function getPlaceDetails(req: AuthRequest, res: Response) {
   }
 }
 
+// ─── Valida dígito verificador do CNPJ ───────────────────────────────────────
+function isCnpjValid(cnpj: string): boolean {
+  if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false
+  const calc = (weights: number[]) =>
+    weights.reduce((s, w, i) => s + parseInt(cnpj[i]) * w, 0)
+  const d1 = calc([5,4,3,2,9,8,7,6,5,4,3,2]) % 11
+  const d2 = calc([6,5,4,3,2,9,8,7,6,5,4,3,2]) % 11
+  return parseInt(cnpj[12]) === (d1 < 2 ? 0 : 11 - d1)
+      && parseInt(cnpj[13]) === (d2 < 2 ? 0 : 11 - d2)
+}
+
+// GET /api/prospecting/find-cnpj — busca CNPJ automaticamente por nome+cidade ou site
+export async function findCnpj(req: AuthRequest, res: Response) {
+  const { name, city, uf, website } = req.query as Record<string, string>
+
+  const candidates: Array<{ cnpj: string; source: string }> = []
+
+  // ── 1. Extrai CNPJ do site da empresa (Lei brasileira exige exibição do CNPJ) ──
+  if (website && !website.includes('instagram') && !website.includes('facebook') && !website.includes('google')) {
+    try {
+      const r = await fetch(website, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SommaBot/1.0)' },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (r.ok) {
+        const html = await r.text()
+        // Padrão CNPJ formatado: XX.XXX.XXX/XXXX-XX
+        const matches = html.match(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g) || []
+        for (const m of matches) {
+          const clean = m.replace(/\D/g, '')
+          if (isCnpjValid(clean) && !candidates.find(c => c.cnpj === clean)) {
+            candidates.push({ cnpj: clean, source: 'site' })
+          }
+        }
+      }
+    } catch { /* ignora erros de site */ }
+  }
+
+  // ── 2. Brasil.io — base gratuita da Receita Federal (requer token) ──────────
+  const brasilIoToken = process.env.BRASIL_IO_TOKEN
+  if (candidates.length === 0 && brasilIoToken && name) {
+    try {
+      const params = new URLSearchParams({ search: name, page_size: '5' })
+      if (city) params.set('municipio', city.toUpperCase())
+      const r = await fetch(`https://brasil.io/api/dataset/socios-brasil/empresas/data/?${params}`, {
+        headers: { 'Authorization': `Token ${brasilIoToken}`, 'User-Agent': 'SommaApp/1.0' },
+        signal: AbortSignal.timeout(10000),
+      })
+      if (r.ok) {
+        const data = await r.json() as { results?: Array<{ cnpj: string; razao_social: string }> }
+        for (const co of data.results || []) {
+          const clean = co.cnpj.replace(/\D/g, '')
+          if (isCnpjValid(clean)) {
+            candidates.push({ cnpj: clean, source: 'receita' })
+          }
+        }
+      }
+    } catch { /* ignora */ }
+  }
+
+  if (candidates.length === 0) {
+    res.status(404).json({ error: 'CNPJ não encontrado automaticamente.' })
+    return
+  }
+
+  // Retorna o mais provável (primeiro candidato)
+  const best = candidates[0]
+  try {
+    // Já enriquece com dados da Receita Federal
+    const rfRes = await fetch(`https://minhareceita.org/${best.cnpj}`, {
+      headers: { 'User-Agent': 'SommaGestaoComercial/1.0' },
+      signal: AbortSignal.timeout(12000),
+    })
+    if (rfRes.ok) {
+      const data = await rfRes.json() as MinhaReceita
+      const { rows: [existingClient] } = await query(
+        `SELECT id, name FROM clients WHERE cnpj ILIKE $1 AND active = true LIMIT 1`,
+        [`%${best.cnpj}%`]
+      )
+      const phone = data.ddd_telefone_1
+        ? `(${data.ddd_telefone_1.toString().slice(0,2)}) ${data.ddd_telefone_1.toString().slice(2)}`
+        : null
+      res.json({
+        cnpj: data.cnpj,
+        name: data.razao_social,
+        trade_name: data.nome_fantasia || null,
+        address: [data.logradouro, data.numero, data.complemento].filter(Boolean).join(', '),
+        neighborhood: data.bairro || null,
+        city: data.municipio || null,
+        state: data.uf || null,
+        zip: data.cep || null,
+        phone,
+        email: data.email || null,
+        capital_social: data.capital_social || null,
+        porte: data.porte || null,
+        cnae_fiscal: data.cnae_fiscal || null,
+        cnae_principal: data.cnae_fiscal_descricao || null,
+        situacao: data.descricao_situacao_cadastral || null,
+        data_abertura: data.data_inicio_atividade || null,
+        socios: (data.qsa || []).map((s: { nome_socio: string; qualificacao_socio: string }) => ({
+          nome: s.nome_socio, qualificacao: s.qualificacao_socio
+        })),
+        source: best.source,
+        already_client: !!existingClient,
+        client_id: existingClient?.id || null,
+      })
+      return
+    }
+  } catch { /* se a RF falhar, retorna só o CNPJ */ }
+
+  res.json({ cnpj: best.cnpj, source: best.source })
+}
+
 // GET /api/prospecting/cnpj/:cnpj
 export async function lookupCnpj(req: AuthRequest, res: Response) {
   const cnpj = req.params.cnpj.replace(/\D/g, '')
