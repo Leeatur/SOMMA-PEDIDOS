@@ -195,7 +195,7 @@ export function PriceTables() {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-sm font-bold text-on-surface">Tabelas de Preço</h1>
-            <p className="text-[11px] text-outline mt-0.5">{tables.length} tabelas</p>
+            <p className="text-[13px] text-outline mt-0.5">{tables.length} tabelas</p>
           </div>
           <Button onClick={() => { resetImport(); setImportOpen(true) }} icon={<Upload className="h-4 w-4" />} size="sm">
             Importar Excel
@@ -218,7 +218,7 @@ export function PriceTables() {
             <div className="flex flex-col items-center py-8 text-center">
               <FileSpreadsheet className="h-10 w-10 text-outline/50 mb-3" />
               <p className="font-medium text-on-surface-variant">Nenhuma tabela de preço</p>
-              <p className="text-[11px] text-outline/70 mt-1">Importe uma planilha Excel para começar</p>
+              <p className="text-[13px] text-outline/70 mt-1">Importe uma planilha Excel para começar</p>
             </div>
           </Card>
         ) : (
@@ -232,7 +232,7 @@ export function PriceTables() {
                     </div>
                     <div>
                       <p className="font-semibold text-on-surface">{t.name}</p>
-                      <p className="text-[11px] text-outline">{t.factory_name}</p>
+                      <p className="text-[13px] text-outline">{t.factory_name}</p>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {t.collection && <Badge variant="info">{t.collection}</Badge>}
                         {t.season && <Badge variant="default">{t.season}</Badge>}
@@ -242,13 +242,13 @@ export function PriceTables() {
                           {t.product_count} produtos
                         </Badge>
                       </div>
-                      <p className="text-[11px] text-outline/70 mt-1.5">Importado em {formatDate(t.imported_at || t.created_at)}</p>
+                      <p className="text-[13px] text-outline/70 mt-1.5">Importado em {formatDate(t.imported_at || t.created_at)}</p>
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <button
                       onClick={() => openCatalogImport(t)}
-                      className="flex items-center gap-1 text-[11px] text-primary hover:text-primary bg-primary/10 hover:bg-primary/10 px-2 py-1.5 rounded-lg transition-colors"
+                      className="flex items-center gap-1 text-[13px] text-primary hover:text-primary bg-primary/10 hover:bg-primary/10 px-2 py-1.5 rounded-lg transition-colors"
                     >
                       <FileImage className="h-3.5 w-3.5" />
                       Catálogo
@@ -260,14 +260,14 @@ export function PriceTables() {
                         }
                       }}
                       disabled={clearImagesMut.isPending}
-                      className="flex items-center gap-1 text-[11px] text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1 text-[13px] text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                     >
                       <FileImage className="h-3.5 w-3.5" />
                       {clearImagesMut.isPending ? 'Limpando…' : 'Limpar Fotos'}
                     </button>
                     <button
                       onClick={() => setDeleteTable(t)}
-                      className="flex items-center gap-1 text-[11px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded-lg transition-colors"
+                      className="flex items-center gap-1 text-[13px] text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded-lg transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Excluir
@@ -325,13 +325,13 @@ export function PriceTables() {
         {/* Step 1: Upload */}
         {importStep === 1 && (
           <div className="space-y-1">
-            <p className="text-[11px] text-on-surface-variant">
+            <p className="text-[13px] text-on-surface-variant">
               Selecione a planilha Excel (.xlsx) exportada da fábrica com os produtos e preços.
             </p>
             {previewError && (
               <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
                 <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-[11px] text-red-700">{previewError}</p>
+                <p className="text-[13px] text-red-700">{previewError}</p>
               </div>
             )}
             <div
@@ -349,8 +349,8 @@ export function PriceTables() {
               ) : (
                 <>
                   <FileSpreadsheet className="h-10 w-10 text-outline/70 mx-auto mb-3" />
-                  <p className="text-[11px] font-medium text-on-surface-variant">Arraste o arquivo aqui ou clique para selecionar</p>
-                  <p className="text-[11px] text-outline/70 mt-1">Suporta .xlsx e .xls</p>
+                  <p className="text-[13px] font-medium text-on-surface-variant">Arraste o arquivo aqui ou clique para selecionar</p>
+                  <p className="text-[13px] text-outline/70 mt-1">Suporta .xlsx e .xls</p>
                 </>
               )}
             </div>
@@ -372,19 +372,19 @@ export function PriceTables() {
           <div className="space-y-1.5">
             {/* Preview summary */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-              <p className="text-[11px] font-semibold text-emerald-800 mb-2">Planilha lida com sucesso</p>
+              <p className="text-[13px] font-semibold text-emerald-800 mb-2">Planilha lida com sucesso</p>
               <div className="grid grid-cols-3 gap-3">
                 <div className="text-center">
-                  <p className="text-[11px] font-bold text-emerald-700">{preview.totalProducts}</p>
-                  <p className="text-[11px] text-emerald-600">Total</p>
+                  <p className="text-[13px] font-bold text-emerald-700">{preview.totalProducts}</p>
+                  <p className="text-[13px] text-emerald-600">Total</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[11px] font-bold text-primary">{preview.regularCount}</p>
-                  <p className="text-[11px] text-primary">Regular (TE)</p>
+                  <p className="text-[13px] font-bold text-primary">{preview.regularCount}</p>
+                  <p className="text-[13px] text-primary">Regular (TE)</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[11px] font-bold text-purple-700">{preview.packCount}</p>
-                  <p className="text-[11px] text-purple-600">Pack (PKTE)</p>
+                  <p className="text-[13px] font-bold text-purple-700">{preview.packCount}</p>
+                  <p className="text-[13px] text-purple-600">Pack (PKTE)</p>
                 </div>
               </div>
             </div>
@@ -428,16 +428,16 @@ export function PriceTables() {
             {/* Discount rules */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-medium text-on-surface-variant">Tabela Desconto × Comissão</p>
+                <p className="text-[13px] font-medium text-on-surface-variant">Tabela Desconto × Comissão</p>
                 <button
                   onClick={addDiscountRule}
-                  className="text-[11px] text-primary flex items-center gap-1 hover:text-primary"
+                  className="text-[13px] text-primary flex items-center gap-1 hover:text-primary"
                 >
                   <Plus className="h-3.5 w-3.5" /> Adicionar linha
                 </button>
               </div>
               <div className="space-y-1">
-                <div className="grid grid-cols-5 gap-1 text-[11px] font-medium text-outline px-1">
+                <div className="grid grid-cols-5 gap-1 text-[13px] font-medium text-outline px-1">
                   <span>Desc. %</span>
                   <span>Com. Total %</span>
                   <span>Com. Rep %</span>
@@ -455,7 +455,7 @@ export function PriceTables() {
                         max="100"
                         value={rule[field]}
                         onChange={(e) => updateRule(i, field, e.target.value)}
-                        className="border border-outline-variant rounded-lg px-2 py-1.5 text-[11px] text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="border border-outline-variant rounded-lg px-2 py-1.5 text-[13px] text-center focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                     ))}
                     <button
@@ -477,7 +477,7 @@ export function PriceTables() {
           <div className="space-y-1">
             <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 space-y-1">
               <p className="font-semibold text-blue-900">Resumo da Importação</p>
-              <div className="text-[11px] text-blue-800 space-y-1">
+              <div className="text-[13px] text-blue-800 space-y-1">
                 <p><span className="font-medium">Tabela:</span> {importForm.name}</p>
                 <p><span className="font-medium">Fábrica:</span> {factories?.find((f) => f.id === importForm.factory_id)?.name}</p>
                 {importForm.collection && <p><span className="font-medium">Coleção:</span> {importForm.collection}</p>}
@@ -487,9 +487,9 @@ export function PriceTables() {
             </div>
 
             <div>
-              <p className="text-[11px] font-medium text-on-surface-variant mb-2">Regras de comissão configuradas:</p>
+              <p className="text-[13px] font-medium text-on-surface-variant mb-2">Regras de comissão configuradas:</p>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-[11px] border border-outline-variant rounded-lg overflow-hidden">
+                <table className="min-w-full text-[13px] border border-outline-variant rounded-lg overflow-hidden">
                   <thead className="bg-surface-container-low">
                     <tr>
                       <th className="px-3 py-1 text-left text-on-surface-variant">Desconto</th>
@@ -514,7 +514,7 @@ export function PriceTables() {
 
             {importMut.isError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-[11px] text-red-700">Erro ao importar. Verifique os dados e tente novamente.</p>
+                <p className="text-[13px] text-red-700">Erro ao importar. Verifique os dados e tente novamente.</p>
               </div>
             )}
           </div>
@@ -544,11 +544,11 @@ export function PriceTables() {
         }
       >
         <div className="space-y-1.5">
-          <p className="text-[11px] text-on-surface-variant">
+          <p className="text-[13px] text-on-surface-variant">
             Tem certeza que deseja excluir a tabela{' '}
             <span className="font-semibold">"{deleteTable?.name}"</span>?
           </p>
-          <p className="text-[11px] text-outline">
+          <p className="text-[13px] text-outline">
             Os produtos e fotos desta tabela serão removidos. Os pedidos já realizados são mantidos no histórico com todos os valores intactos.
           </p>
         </div>
@@ -588,12 +588,12 @@ export function PriceTables() {
           <div className="space-y-1">
             {selectedTable && (
               <div className="bg-surface-container-low rounded-lg p-3">
-                <p className="text-[11px] text-outline">Tabela de preços:</p>
+                <p className="text-[13px] text-outline">Tabela de preços:</p>
                 <p className="font-medium text-on-surface">{selectedTable.name}</p>
-                <p className="text-[11px] text-outline">{selectedTable.product_count} produtos</p>
+                <p className="text-[13px] text-outline">{selectedTable.product_count} produtos</p>
               </div>
             )}
-            <p className="text-[11px] text-on-surface-variant">
+            <p className="text-[13px] text-on-surface-variant">
               O sistema irá extrair as fotos do catálogo PDF e associar automaticamente às referências da tabela de preços.
             </p>
             <div
@@ -605,14 +605,14 @@ export function PriceTables() {
               ) : catalogFile ? (
                 <div>
                   <FileImage className="h-8 w-8 text-primary/80 mx-auto mb-2" />
-                  <p className="text-[11px] font-medium text-on-surface-variant">{catalogFile.name}</p>
-                  <p className="text-[11px] text-outline/70">Clique para trocar</p>
+                  <p className="text-[13px] font-medium text-on-surface-variant">{catalogFile.name}</p>
+                  <p className="text-[13px] text-outline/70">Clique para trocar</p>
                 </div>
               ) : (
                 <>
                   <FileImage className="h-10 w-10 text-outline/70 mx-auto mb-3" />
-                  <p className="text-[11px] font-medium text-on-surface-variant">Selecione o catálogo PDF</p>
-                  <p className="text-[11px] text-outline/70 mt-1">Arquivo .pdf</p>
+                  <p className="text-[13px] font-medium text-on-surface-variant">Selecione o catálogo PDF</p>
+                  <p className="text-[13px] text-outline/70 mt-1">Arquivo .pdf</p>
                 </>
               )}
             </div>
@@ -638,15 +638,15 @@ export function PriceTables() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-emerald-50 rounded-xl p-3">
-                <p className="text-[11px] font-bold text-emerald-700">{catalogResult.matchedCount}</p>
-                <p className="text-[11px] text-emerald-600">Fotos vinculadas</p>
+                <p className="text-[13px] font-bold text-emerald-700">{catalogResult.matchedCount}</p>
+                <p className="text-[13px] text-emerald-600">Fotos vinculadas</p>
               </div>
               <div className="bg-amber-50 rounded-xl p-3">
-                <p className="text-[11px] font-bold text-amber-700">{catalogResult.unmatchedCount}</p>
-                <p className="text-[11px] text-amber-600">Sem foto</p>
+                <p className="text-[13px] font-bold text-amber-700">{catalogResult.unmatchedCount}</p>
+                <p className="text-[13px] text-amber-600">Sem foto</p>
               </div>
             </div>
-            <div className="text-[11px] text-outline/70 space-y-1">
+            <div className="text-[13px] text-outline/70 space-y-1">
               <p>{catalogResult.totalPages} páginas · {catalogResult.pagesWithText} com texto · {catalogResult.foundInPdfCount} refs no PDF</p>
               {catalogResult.matchedCount === 0 && catalogResult.pagesWithText === 0 && (
                 <p className="text-amber-500 font-medium">PDF escaneado — sem texto extraível. Use um PDF com texto pesquisável.</p>
@@ -655,7 +655,7 @@ export function PriceTables() {
                 <div className="text-left mt-2">
                   <p className="text-amber-500 font-semibold mb-1">{catalogResult.foundInPdfCount} refs encontradas no PDF mas nenhuma bate com esta tabela.</p>
                   <p className="text-outline mb-1">Refs extraídas do PDF (compare com os códigos da tabela):</p>
-                  <div className="bg-surface-container-low rounded-lg p-2 font-mono text-on-surface-variant text-[11px] leading-5 break-all">
+                  <div className="bg-surface-container-low rounded-lg p-2 font-mono text-on-surface-variant text-[13px] leading-5 break-all">
                     {catalogResult.foundInPdf.join(' · ')}
                   </div>
                 </div>

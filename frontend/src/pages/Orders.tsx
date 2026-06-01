@@ -84,7 +84,7 @@ const COL_META: Record<string, { align?: string; width?: string }> = {
 function OrderHeader({ id, label }: { id: string; label: string }) {
   const meta = COL_META[id] || {}
   return (
-    <th className={`px-2 py-1.5 text-[10px] font-semibold text-outline first:pl-3 last:pr-3 ${meta.width ?? ''} ${meta.align ?? ''}`}>
+    <th className={`px-2 py-1.5 text-[12px] font-semibold text-outline first:pl-3 last:pr-3 ${meta.width ?? ''} ${meta.align ?? ''}`}>
       {label}
     </th>
   )
@@ -93,55 +93,55 @@ function OrderHeader({ id, label }: { id: string; label: string }) {
 function OrderCell({ id, o }: { id: string; o: Order }) {
   switch (id) {
     case 'date':
-      return <td className="pl-3 pr-2 py-1 whitespace-nowrap"><span className="text-[11px] text-outline">{formatDate(o.created_at)}</span></td>
+      return <td className="pl-3 pr-2 py-1 whitespace-nowrap"><span className="text-[13px] text-outline">{formatDate(o.created_at)}</span></td>
     case 'number':
-      return <td className="px-2 py-1 whitespace-nowrap first:pl-3"><span className="text-[11px] font-bold text-primary">{formatOrderNumber(o.order_number)}</span></td>
+      return <td className="px-2 py-1 whitespace-nowrap first:pl-3"><span className="text-[13px] font-bold text-primary">{formatOrderNumber(o.order_number)}</span></td>
     case 'factory':
-      return <td className="px-2 py-1 max-w-[110px]"><span className="text-[11px] font-semibold text-on-surface-variant truncate block">{o.factory_name}</span></td>
+      return <td className="px-2 py-1 max-w-[110px]"><span className="text-[13px] font-semibold text-on-surface-variant truncate block">{o.factory_name}</span></td>
     case 'rep':
-      return <td className="px-2 py-1 max-w-[120px]"><span className="text-[11px] text-outline truncate block">{o.rep_name || '—'}</span></td>
+      return <td className="px-2 py-1 max-w-[120px]"><span className="text-[13px] text-outline truncate block">{o.rep_name || '—'}</span></td>
     case 'nr_rep':
-      return <td className="px-2 py-1 whitespace-nowrap"><span className="text-[11px] text-outline font-mono">{o.industry_order_number || '—'}</span></td>
+      return <td className="px-2 py-1 whitespace-nowrap"><span className="text-[13px] text-outline font-mono">{o.industry_order_number || '—'}</span></td>
     case 'razao_social':
       return <td className="px-2 py-1 max-w-[200px]"><p className="text-[12px] font-semibold text-on-surface truncate leading-tight">{o.client_name}</p></td>
     case 'client':
-      return <td className="px-2 py-1 max-w-[160px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.client_trade_name || '—'}</span></td>
+      return <td className="px-2 py-1 max-w-[160px]"><span className="text-[13px] text-on-surface-variant truncate block">{o.client_trade_name || '—'}</span></td>
     case 'city':
-      return <td className="px-2 py-1 max-w-[120px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.client_city || '—'}</span></td>
+      return <td className="px-2 py-1 max-w-[120px]"><span className="text-[13px] text-on-surface-variant truncate block">{o.client_city || '—'}</span></td>
     case 'items':
-      return <td className="px-2 py-1 text-center"><span className="text-[11px] font-medium text-on-surface-variant">{o.total_pieces > 0 ? o.total_pieces : '—'}</span></td>
+      return <td className="px-2 py-1 text-center"><span className="text-[13px] font-medium text-on-surface-variant">{o.total_pieces > 0 ? o.total_pieces : '—'}</span></td>
     case 'value':
       return <td className="px-2 py-1 text-right whitespace-nowrap"><span className="text-[12px] font-bold text-on-surface">{formatCurrency(o.total_value)}</span></td>
     case 'delivery':
       return <td className="px-2 py-1 whitespace-nowrap">
         {o.delivery_date
-          ? <span className="text-[11px] text-on-surface-variant">{new Date(o.delivery_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-          : <span className="text-[11px] text-outline/50">—</span>}
+          ? <span className="text-[13px] text-on-surface-variant">{new Date(o.delivery_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+          : <span className="text-[13px] text-outline/50">—</span>}
       </td>
     case 'payment':
-      return <td className="px-2 py-1 max-w-[130px]"><span className="text-[11px] text-on-surface-variant truncate block">{o.payment_terms || '—'}</span></td>
+      return <td className="px-2 py-1 max-w-[130px]"><span className="text-[13px] text-on-surface-variant truncate block">{o.payment_terms || '—'}</span></td>
     case 'commission':
       return <td className="px-2 py-1 text-right whitespace-nowrap">
         {o.rep_commission_value > 0
-          ? <span className="text-[11px] font-semibold text-emerald-600">{formatCurrency(o.rep_commission_value)}</span>
-          : <span className="text-[11px] text-outline/50">—</span>}
+          ? <span className="text-[13px] font-semibold text-emerald-600">{formatCurrency(o.rep_commission_value)}</span>
+          : <span className="text-[13px] text-outline/50">—</span>}
       </td>
     case 'discount':
       return <td className="px-2 py-1 text-right whitespace-nowrap last:pr-3">
         {o.discount_pct > 0
-          ? <span className="text-[11px] font-semibold text-emerald-600">-{o.discount_pct}%</span>
-          : <span className="text-[11px] text-outline/50">—</span>}
+          ? <span className="text-[13px] font-semibold text-emerald-600">-{o.discount_pct}%</span>
+          : <span className="text-[13px] text-outline/50">—</span>}
       </td>
     case 'table':
-      return <td className="px-2 py-1 max-w-[150px]"><span className="text-[11px] text-outline/70 truncate block">{o.price_table_name}</span></td>
+      return <td className="px-2 py-1 max-w-[150px]"><span className="text-[13px] text-outline/70 truncate block">{o.price_table_name}</span></td>
     case 'status':
       return <td className="px-2 pr-3 py-1">
         {o.status_name && o.status_color ? (
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color }} />
-            <span className="text-[11px] font-medium text-on-surface-variant truncate">{o.status_name}</span>
+            <span className="text-[13px] font-medium text-on-surface-variant truncate">{o.status_name}</span>
           </div>
-        ) : <span className="text-[11px] text-outline/50">—</span>}
+        ) : <span className="text-[13px] text-outline/50">—</span>}
       </td>
     default:
       return <td className="px-2 py-1" />
@@ -166,7 +166,7 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[13px] font-bold text-primary font-mono">{formatOrderNumber(o.order_number)}</span>
           {o.status_name ? (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            <span className="text-[12px] font-bold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: accent + '22', color: accent }}>
               {o.status_name}
             </span>
@@ -176,25 +176,25 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
         {/* Row 2: client name */}
         <p className="text-[13px] font-semibold text-on-surface leading-tight truncate">{o.client_name}</p>
         {o.client_trade_name && (
-          <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">{o.client_trade_name}</p>
+          <p className="text-[13px] text-on-surface-variant mt-0.5 truncate">{o.client_trade_name}</p>
         )}
 
         {/* Row 3: meta */}
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           {o.factory_name && (
-            <span className="text-[10px] font-semibold bg-surface-container px-2 py-0.5 rounded-full text-outline">{o.factory_name}</span>
+            <span className="text-[12px] font-semibold bg-surface-container px-2 py-0.5 rounded-full text-outline">{o.factory_name}</span>
           )}
           {o.client_city && (
-            <span className="text-[10px] text-outline">{o.client_city}</span>
+            <span className="text-[12px] text-outline">{o.client_city}</span>
           )}
         </div>
 
         {/* Row 4: bottom — date + pieces + value */}
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
           <div>
-            <p className="text-[10px] text-outline">{formatDate(o.created_at)}</p>
+            <p className="text-[12px] text-outline">{formatDate(o.created_at)}</p>
             {o.total_pieces > 0 && (
-              <p className="text-[10px] text-outline/70">{o.total_pieces} peças</p>
+              <p className="text-[12px] text-outline/70">{o.total_pieces} peças</p>
             )}
           </div>
           <p className="text-[14px] font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
@@ -258,7 +258,7 @@ export function Orders() {
           <div className="flex items-center justify-between mb-2">
             <div>
               <h2 className="text-[18px] font-bold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Pedidos</h2>
-              <p className="text-[11px] text-outline mt-0.5">
+              <p className="text-[13px] text-outline mt-0.5">
                 {isLoading ? '' : `${total} pedido${total !== 1 ? 's' : ''}`}
               </p>
             </div>
@@ -271,7 +271,7 @@ export function Orders() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Cliente, nº pedido, indústria..."
-              className="w-full h-11 pl-10 pr-10 bg-surface-container-low border border-outline-variant/40 rounded-2xl text-[11px] focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+              className="w-full h-11 pl-10 pr-10 bg-surface-container-low border border-outline-variant/40 rounded-2xl text-[13px] focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline/50 hover:text-on-surface transition-colors">
@@ -286,7 +286,7 @@ export function Orders() {
           <div className="sticky top-[108px] z-20 flex gap-2 overflow-x-auto px-4 py-2 bg-white border-b border-gray-100 scrollbar-hide">
             <button
               onClick={() => setStatusFilter('')}
-              className={`flex-shrink-0 px-3.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all ${
+              className={`flex-shrink-0 px-3.5 py-1 rounded-full text-[12px] font-bold uppercase tracking-wide transition-all ${
                 statusFilter === '' ? 'bg-primary text-white shadow-md shadow-primary/30' : 'bg-surface-container text-on-surface-variant'
               }`}
             >
@@ -296,7 +296,7 @@ export function Orders() {
               <button
                 key={s.id}
                 onClick={() => setStatusFilter(statusFilter === s.id ? '' : s.id)}
-                className="flex-shrink-0 px-3.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all"
+                className="flex-shrink-0 px-3.5 py-1 rounded-full text-[12px] font-bold uppercase tracking-wide transition-all"
                 style={
                   statusFilter === s.id
                     ? { backgroundColor: s.color, color: '#fff', boxShadow: `0 2px 8px ${s.color}44` }
@@ -319,7 +319,7 @@ export function Orders() {
                 <ShoppingCart className="h-8 w-8 text-primary/50" />
               </div>
               <p className="text-[13px] font-semibold text-on-surface">Nenhum pedido encontrado</p>
-              <p className="text-[11px] text-outline mt-1">
+              <p className="text-[13px] text-outline mt-1">
                 {search || statusFilter ? 'Tente ajustar os filtros.' : 'Crie o primeiro pedido.'}
               </p>
             </div>

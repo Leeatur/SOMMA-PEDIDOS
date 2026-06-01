@@ -473,14 +473,14 @@ export function Prospecting() {
                     )}
                   </div>
                   {cnpjData.situacao && (
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                    <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
                       cnpjData.situacao.toLowerCase().includes('ativa') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
                     }`}>{cnpjData.situacao}</span>
                   )}
                 </div>
 
                 <div className="space-y-1 text-xs text-gray-600">
-                  <div className="font-mono text-gray-400 text-[10px]">CNPJ: {cnpjData.cnpj}</div>
+                  <div className="font-mono text-gray-400 text-[12px]">CNPJ: {cnpjData.cnpj}</div>
                   {cnpjData.address && <div>📍 {cnpjData.address}{cnpjData.neighborhood ? `, ${cnpjData.neighborhood}` : ''} — {cnpjData.city}/{cnpjData.state}</div>}
                   {cnpjData.phone && <div>📞 <a href={`tel:${cnpjData.phone}`} className="text-blue-600">{cnpjData.phone}</a></div>}
                   {cnpjData.email && <div>✉️ {cnpjData.email}</div>}

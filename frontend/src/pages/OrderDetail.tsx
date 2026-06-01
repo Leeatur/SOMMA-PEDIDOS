@@ -161,9 +161,9 @@ function GradeDisplay({ configs, boxCount }: { configs: GradeConfig[]; boxCount:
         const sizes = Object.keys(gc.sizes).sort()
         return (
           <div key={i}>
-            {gc.color && <p className="text-[11px] font-medium text-on-surface-variant mb-1">{gc.color}</p>}
+            {gc.color && <p className="text-[13px] font-medium text-on-surface-variant mb-1">{gc.color}</p>}
             <div className="overflow-x-auto scrollbar-hide">
-              <table className="min-w-max text-[11px] border border-outline-variant rounded-lg overflow-hidden">
+              <table className="min-w-max text-[13px] border border-outline-variant rounded-lg overflow-hidden">
                 <thead className="bg-surface-container-low">
                   <tr>
                     {sizes.map((s) => (
@@ -444,7 +444,7 @@ export function OrderDetail() {
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-[11px] font-bold text-on-surface">{formatOrderNumber(order.order_number)}</h1>
+              <h1 className="text-[13px] font-bold text-on-surface">{formatOrderNumber(order.order_number)}</h1>
               {order.status_name && order.status_color && (
                 <StatusBadge name={order.status_name} color={order.status_color} />
               )}
@@ -471,12 +471,12 @@ export function OrderDetail() {
         <div className="bg-white border border-border-subtle rounded-xl p-3">
           <div className="flex justify-between items-start mb-2">
             <div>
-              <span className="text-[11px] font-bold text-outline uppercase tracking-wide">Pedido</span>
+              <span className="text-[13px] font-bold text-outline uppercase tracking-wide">Pedido</span>
               <p className="text-lg font-bold text-on-surface leading-tight mt-0.5">{formatOrderNumber(order.order_number)}</p>
             </div>
             {order.status_name && order.status_color ? (
               <span
-                className="px-3 py-1 rounded-full text-[11px] font-bold uppercase"
+                className="px-3 py-1 rounded-full text-[13px] font-bold uppercase"
                 style={{ backgroundColor: order.status_color + '22', color: order.status_color }}
               >
                 {order.status_name}
@@ -485,7 +485,7 @@ export function OrderDetail() {
               isAdmin && (
                 <button
                   onClick={() => { setStatusModal(true); setNewStatusId(order.status_id || '') }}
-                  className="px-3 py-1 rounded-full text-[11px] font-bold uppercase bg-surface-container text-on-surface-variant border border-outline-variant"
+                  className="px-3 py-1 rounded-full text-[13px] font-bold uppercase bg-surface-container text-on-surface-variant border border-outline-variant"
                 >
                   + Status
                 </button>
@@ -494,12 +494,12 @@ export function OrderDetail() {
           </div>
           <div className="flex items-center gap-2 text-on-surface-variant">
             <Clock className="h-4 w-4" />
-            <span className="text-[11px]">{formatDateTime(order.created_at)}</span>
+            <span className="text-[13px]">{formatDateTime(order.created_at)}</span>
           </div>
           {isAdmin && order.status_name && (
             <button
               onClick={() => { setStatusModal(true); setNewStatusId(order.status_id || '') }}
-              className="mt-2 text-[11px] text-primary font-medium flex items-center gap-1 hover:underline"
+              className="mt-2 text-[13px] text-primary font-medium flex items-center gap-1 hover:underline"
             >
               <RefreshCw className="h-3 w-3" /> Alterar status
             </button>
@@ -511,38 +511,38 @@ export function OrderDetail() {
         {/* Client + Meta */}
         <Card padding="md">
           <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Informações do Pedido</p>
+            <p className="text-[13px] font-semibold text-outline uppercase tracking-wide">Informações do Pedido</p>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-[11px] select-text">
+          <div className="grid grid-cols-2 gap-3 text-[13px] select-text">
             <div className="col-span-2">
-              <p className="text-[11px] text-outline mb-0.5">Cliente</p>
+              <p className="text-[13px] text-outline mb-0.5">Cliente</p>
               <p className="font-semibold text-on-surface">{order.client_name}</p>
               {order.client_city && (
-                <p className="text-[11px] text-outline">{order.client_city}</p>
+                <p className="text-[13px] text-outline">{order.client_city}</p>
               )}
               {order.client_phone && (
                 <a
                   href={`tel:${order.client_phone}`}
-                  className="text-[11px] text-primary hover:underline"
+                  className="text-[13px] text-primary hover:underline"
                 >
                   {order.client_phone}
                 </a>
               )}
             </div>
             <div>
-              <p className="text-[11px] text-outline mb-0.5 flex items-center gap-1">
+              <p className="text-[13px] text-outline mb-0.5 flex items-center gap-1">
                 <User className="h-3 w-3" /> Representante
               </p>
               <p className="font-medium text-on-surface">{order.rep_name}</p>
             </div>
             <div>
-              <p className="text-[11px] text-outline mb-0.5 flex items-center gap-1">
+              <p className="text-[13px] text-outline mb-0.5 flex items-center gap-1">
                 <Building2 className="h-3 w-3" /> Fábrica
               </p>
               <p className="font-medium text-on-surface">{order.factory_name}</p>
             </div>
             <div>
-              <p className="text-[11px] text-outline mb-0.5 flex items-center gap-1">
+              <p className="text-[13px] text-outline mb-0.5 flex items-center gap-1">
                 <Tag className="h-3 w-3" /> Tabela
               </p>
               <div className="flex items-center gap-2">
@@ -563,7 +563,7 @@ export function OrderDetail() {
               </div>
             </div>
             <div>
-              <p className="text-[11px] text-outline mb-0.5 flex items-center gap-1">
+              <p className="text-[13px] text-outline mb-0.5 flex items-center gap-1">
                 <Clock className="h-3 w-3" /> Emissão
               </p>
               <p className="font-medium text-on-surface">{formatDateTime(order.created_at)}</p>
@@ -572,7 +572,7 @@ export function OrderDetail() {
             {/* Campos de realização do pedido */}
             {order.delivery_date && (
               <div>
-                <p className="text-[11px] text-outline mb-0.5 flex items-center gap-1">
+                <p className="text-[13px] text-outline mb-0.5 flex items-center gap-1">
                   <CalendarDays className="h-3 w-3" /> Data de Entrega
                 </p>
                 <p className="font-medium text-on-surface">
@@ -582,7 +582,7 @@ export function OrderDetail() {
             )}
             {order.payment_terms && (
               <div>
-                <p className="text-[11px] text-outline mb-0.5 flex items-center gap-1">
+                <p className="text-[13px] text-outline mb-0.5 flex items-center gap-1">
                   <CreditCard className="h-3 w-3" /> Cond. de Pagamento
                 </p>
                 <p className="font-medium text-on-surface">{order.payment_terms}</p>
@@ -590,7 +590,7 @@ export function OrderDetail() {
             )}
             {order.freight_type && (
               <div>
-                <p className="text-[11px] text-outline mb-0.5 flex items-center gap-1">
+                <p className="text-[13px] text-outline mb-0.5 flex items-center gap-1">
                   <Truck className="h-3 w-3" /> Frete
                 </p>
                 <p className="font-medium text-on-surface">{order.freight_type}</p>
@@ -598,7 +598,7 @@ export function OrderDetail() {
             )}
             {order.buyer_name && (
               <div>
-                <p className="text-[11px] text-outline mb-0.5 flex items-center gap-1">
+                <p className="text-[13px] text-outline mb-0.5 flex items-center gap-1">
                   <User className="h-3 w-3" /> Comprador
                 </p>
                 <p className="font-medium text-on-surface">{order.buyer_name}</p>
@@ -606,7 +606,7 @@ export function OrderDetail() {
             )}
             {order.industry_order_number && (
               <div className="col-span-2">
-                <p className="text-[11px] text-outline mb-0.5 flex items-center gap-1">
+                <p className="text-[13px] text-outline mb-0.5 flex items-center gap-1">
                   <Tag className="h-3 w-3" /> N° Pedido Indústria
                 </p>
                 <p className="font-medium text-on-surface">{order.industry_order_number}</p>
@@ -615,10 +615,10 @@ export function OrderDetail() {
           </div>
           {order.notes && (
             <div className="mt-3 pt-3 border-t border-outline-variant/50">
-              <p className="text-[11px] text-outline flex items-center gap-1 mb-1">
+              <p className="text-[13px] text-outline flex items-center gap-1 mb-1">
                 <MessageSquare className="h-3 w-3" /> Observações
               </p>
-              <p className="text-[11px] text-on-surface-variant">{order.notes}</p>
+              <p className="text-[13px] text-on-surface-variant">{order.notes}</p>
             </div>
           )}
         </Card>
@@ -627,16 +627,16 @@ export function OrderDetail() {
         <Card padding="md">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="h-4 w-4 text-emerald-600" />
-            <h2 className="text-[11px] font-semibold text-on-surface">Resumo Financeiro</h2>
+            <h2 className="text-[13px] font-semibold text-on-surface">Resumo Financeiro</h2>
           </div>
-          <div className="space-y-1.5 text-[11px]">
+          <div className="space-y-1.5 text-[13px]">
             <div className="flex justify-between items-center text-on-surface-variant">
               <span>Desconto aplicado:</span>
               <div className="flex items-center gap-2">
                 <span className="font-medium">{formatPct(order.discount_pct)}</span>
               </div>
             </div>
-            <div className="flex justify-between font-bold text-on-surface text-[11px]">
+            <div className="flex justify-between font-bold text-on-surface text-[13px]">
               <span>Total do Pedido:</span>
               <span>{formatCurrency(order.total_value)}</span>
             </div>
@@ -667,7 +667,7 @@ export function OrderDetail() {
           }
         >
           <div className="space-y-1">
-            <p className="text-[11px] text-on-surface-variant">
+            <p className="text-[13px] text-on-surface-variant">
               O novo desconto será aplicado a todos os itens do pedido recalculando os valores.
               A tabela de preços permanece a mesma (<span className="font-medium text-on-surface">{order.price_table_name}</span>).
             </p>
@@ -681,7 +681,7 @@ export function OrderDetail() {
               hint="Use vírgula ou ponto. Ex: 4,61"
             />
             {editDiscountMut.isError && (
-              <p className="text-[11px] text-red-500">
+              <p className="text-[13px] text-red-500">
                 {(editDiscountMut.error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao alterar desconto'}
               </p>
             )}
@@ -690,7 +690,7 @@ export function OrderDetail() {
 
         {/* Items */}
         <div>
-          <h2 className="text-[11px] font-semibold text-on-surface-variant mb-2">
+          <h2 className="text-[13px] font-semibold text-on-surface-variant mb-2">
             Itens do Pedido ({order.items.length})
           </h2>
           <div className="space-y-1">
@@ -713,21 +713,21 @@ export function OrderDetail() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-on-surface text-[11px] select-text">{item.reference}</p>
+                        <p className="font-semibold text-on-surface text-[13px] select-text">{item.reference}</p>
                         {item.product_name && (
-                          <p className="text-[11px] text-outline truncate select-text">{item.product_name}</p>
+                          <p className="text-[13px] text-outline truncate select-text">{item.product_name}</p>
                         )}
                         {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
-                          <p className="text-[11px] text-outline mt-0.5">{item.total_pieces} peças</p>
+                          <p className="text-[13px] text-outline mt-0.5">{item.total_pieces} peças</p>
                         ) : (
-                          <p className="text-[11px] text-outline mt-0.5">
+                          <p className="text-[13px] text-outline mt-0.5">
                             {item.boxes_count} cx × {Math.round(item.total_pieces / Math.max(item.boxes_count,1))} pç/cx = {item.total_pieces} peças
                           </p>
                         )}
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-[11px] font-bold text-on-surface">{formatCurrency(item.subtotal)}</p>
-                        <p className="text-[11px] text-outline/70">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
+                        <p className="text-[13px] font-bold text-on-surface">{formatCurrency(item.subtotal)}</p>
+                        <p className="text-[13px] text-outline/70">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
                         <ChevronDown className={`h-3.5 w-3.5 text-outline/70 ml-auto mt-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </div>
                     </div>
@@ -739,7 +739,7 @@ export function OrderDetail() {
                       <div className="flex justify-end items-center mb-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); setRemoveItemId(item.id) }}
-                          className="flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
+                          className="flex items-center gap-1 text-[13px] text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
                         >
                           <Trash2 className="h-3 w-3" /> Remover item
                         </button>
@@ -748,9 +748,9 @@ export function OrderDetail() {
                       {/* Regular product sizes */}
                       {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
                         <>
-                          <p className="text-[11px] font-medium text-on-surface-variant mb-1.5">Quantidades por tamanho:</p>
+                          <p className="text-[13px] font-medium text-on-surface-variant mb-1.5">Quantidades por tamanho:</p>
                           <div className="overflow-x-auto scrollbar-hide">
-                              <table className="min-w-max text-[11px] border border-outline-variant rounded-lg overflow-hidden">
+                              <table className="min-w-max text-[13px] border border-outline-variant rounded-lg overflow-hidden">
                                 <thead className="bg-surface-container-low">
                                   <tr>{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s]||0) > 0)).map(s => (
                                     <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
@@ -766,7 +766,7 @@ export function OrderDetail() {
                         </>
                       ) : item.grade_configs && item.grade_configs.length > 0 ? (
                         <>
-                          <p className="text-[11px] font-medium text-on-surface-variant mb-1.5">Composição da grade:</p>
+                          <p className="text-[13px] font-medium text-on-surface-variant mb-1.5">Composição da grade:</p>
                           <GradeDisplay configs={item.grade_configs} boxCount={item.boxes_count} />
                         </>
                       ) : null}
@@ -781,7 +781,7 @@ export function OrderDetail() {
         {/* Status History */}
         {order.history.length > 0 && (
           <div>
-            <h2 className="text-[11px] font-semibold text-on-surface-variant mb-2">Histórico de Status</h2>
+            <h2 className="text-[13px] font-semibold text-on-surface-variant mb-2">Histórico de Status</h2>
             <div className="space-y-1">
               {order.history.map((h) => (
                 <div key={h.id} className="flex items-start gap-3">
@@ -797,14 +797,14 @@ export function OrderDetail() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <StatusBadge name={h.to_status_name} color={h.to_status_color} />
                       {h.from_status_name && (
-                        <span className="text-[11px] text-outline/70">← {h.from_status_name}</span>
+                        <span className="text-[13px] text-outline/70">← {h.from_status_name}</span>
                       )}
                     </div>
-                    <p className="text-[11px] text-outline mt-0.5">
+                    <p className="text-[13px] text-outline mt-0.5">
                       {h.changed_by_name} &bull; {formatDateTime(h.created_at)}
                     </p>
                     {h.notes && (
-                      <p className="text-[11px] text-on-surface-variant mt-0.5 italic">"{h.notes}"</p>
+                      <p className="text-[13px] text-on-surface-variant mt-0.5 italic">"{h.notes}"</p>
                     )}
                   </div>
                 </div>
@@ -822,7 +822,7 @@ export function OrderDetail() {
         size="lg"
         footer={
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[11px] text-outline">
+            <span className="text-[13px] text-outline">
               {addCart.length > 0 ? `${addCart.length} produto${addCart.length > 1 ? 's' : ''} selecionado${addCart.length > 1 ? 's' : ''}` : 'Selecione os produtos'}
             </span>
             <div className="flex gap-2">
@@ -851,7 +851,7 @@ export function OrderDetail() {
           {/* Carrinho temporário */}
           {addCart.length > 0 && (
             <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 space-y-1">
-              <p className="text-[11px] font-semibold text-primary uppercase tracking-wide">Itens a adicionar</p>
+              <p className="text-[13px] font-semibold text-primary uppercase tracking-wide">Itens a adicionar</p>
               {addCart.map(c => {
                 const isRegular = c.product.type === 'regular'
                 const piecesPerBox = c.product.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 1
@@ -862,15 +862,15 @@ export function OrderDetail() {
                   <div key={c.product.id} className="bg-white rounded-lg px-3 py-1 space-y-1">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-semibold text-on-surface">{c.product.reference}</p>
-                        <p className="text-[11px] text-outline">{totalPieces} pç</p>
+                        <p className="text-[13px] font-semibold text-on-surface">{c.product.reference}</p>
+                        <p className="text-[13px] text-outline">{totalPieces} pç</p>
                       </div>
                       {!isRegular && (
                         <div className="flex items-center gap-1">
                           <button onClick={() => updateAddCount(c.product.id, -1)} className="w-6 h-6 rounded bg-surface-container flex items-center justify-center hover:bg-surface-container-high">
                             <Minus className="h-3 w-3" />
                           </button>
-                          <span className="w-8 text-center text-[11px] font-bold">{c.boxes_count}</span>
+                          <span className="w-8 text-center text-[13px] font-bold">{c.boxes_count}</span>
                           <button onClick={() => updateAddCount(c.product.id, 1)} className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center hover:bg-indigo-200">
                             <Plus className="h-3 w-3 text-primary" />
                           </button>
@@ -882,7 +882,7 @@ export function OrderDetail() {
                     </div>
                     {isRegular && (
                       <div className="overflow-x-auto">
-                        <table className="text-[11px]">
+                        <table className="text-[13px]">
                           <thead>
                             <tr>{sortSizesDetail(Object.keys(c.sizes)).map(s => (
                               <th key={s} className="px-1 pb-0.5 text-center text-outline font-medium min-w-[34px]">{s}</th>
@@ -893,7 +893,7 @@ export function OrderDetail() {
                               <td key={s} className="px-0.5">
                                 <input type="number" min="0" value={c.sizes[s] || 0}
                                   onChange={e => updateAddSize(c.product.id, s, parseInt(e.target.value) || 0)}
-                                  className="w-8 h-6 text-center border border-outline-variant rounded text-[11px] font-bold focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                                  className="w-8 h-6 text-center border border-outline-variant rounded text-[13px] font-bold focus:outline-none focus:ring-1 focus:ring-blue-400" />
                               </td>
                             ))}<td className="px-1 pl-1 text-center font-bold text-primary">{totalPieces}</td></tr>
                           </tbody>
@@ -909,7 +909,7 @@ export function OrderDetail() {
           {/* Catálogo */}
           <div className="max-h-96 overflow-y-auto space-y-1 pr-1">
             {loadingAddProducts ? (
-              <div className="text-center py-6 text-[11px] text-outline/70">Carregando produtos…</div>
+              <div className="text-center py-6 text-[13px] text-outline/70">Carregando produtos…</div>
             ) : (addProducts || []).map(p => {
               const inCart = addCart.find(c => c.product.id === p.id)
               const piecesPerBox = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
@@ -927,13 +927,13 @@ export function OrderDetail() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-[11px] text-on-surface">{p.reference}</p>
-                      {p.product_name && <p className="text-[11px] text-outline truncate">{p.product_name}</p>}
+                      <p className="font-bold text-[13px] text-on-surface">{p.reference}</p>
+                      {p.product_name && <p className="text-[13px] text-outline truncate">{p.product_name}</p>}
                       <div className="flex items-center gap-2">
-                        <p className="text-[11px] font-semibold text-primary">R$ {Number(p.base_price).toFixed(2)}<span className="text-[11px] text-outline/70 font-normal">/pç</span></p>
+                        <p className="text-[13px] font-semibold text-primary">R$ {Number(p.base_price).toFixed(2)}<span className="text-[13px] text-outline/70 font-normal">/pç</span></p>
                         {/* pç/cx: só packs têm grade clicável */}
                         {piecesPerBox > 0 && p.type === 'pack' && (
-                          <button onClick={() => setExpandedGrade(isExpanded ? null : p.id)} className="text-[11px] text-outline/70 flex items-center gap-0.5 hover:text-on-surface-variant">
+                          <button onClick={() => setExpandedGrade(isExpanded ? null : p.id)} className="text-[13px] text-outline/70 flex items-center gap-0.5 hover:text-on-surface-variant">
                             <Info className="h-3 w-3" />{piecesPerBox} pç/cx
                           </button>
                         )}
@@ -949,7 +949,7 @@ export function OrderDetail() {
                           <button onClick={() => updateAddCount(p.id, -1)} className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center hover:bg-surface-container-high">
                             <Minus className="h-3.5 w-3.5" />
                           </button>
-                          <span className="w-8 text-center font-bold text-[11px]">{inCart.boxes_count}</span>
+                          <span className="w-8 text-center font-bold text-[13px]">{inCart.boxes_count}</span>
                           <button onClick={() => updateAddCount(p.id, 1)} className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-indigo-200">
                             <Plus className="h-3.5 w-3.5 text-primary" />
                           </button>
@@ -959,7 +959,7 @@ export function OrderDetail() {
                         </div>
                       )
                     ) : (
-                      <button onClick={() => addToCart(p)} className="flex-shrink-0 flex items-center gap-1 bg-primary text-white text-[11px] font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90">
+                      <button onClick={() => addToCart(p)} className="flex-shrink-0 flex items-center gap-1 bg-primary text-white text-[13px] font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90">
                         <Plus className="h-3.5 w-3.5" /> Add
                       </button>
                     )}
@@ -974,7 +974,7 @@ export function OrderDetail() {
               )
             })}
             {!loadingAddProducts && (addProducts || []).length === 0 && (
-              <p className="text-center text-[11px] text-outline/70 py-2.5">Nenhum produto encontrado</p>
+              <p className="text-center text-[13px] text-outline/70 py-2.5">Nenhum produto encontrado</p>
             )}
           </div>
         </div>
@@ -1008,7 +1008,7 @@ export function OrderDetail() {
           />
           {newStatusId && (
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-outline">Novo status:</span>
+              <span className="text-[13px] text-outline">Novo status:</span>
               {statuses?.find((s) => s.id === newStatusId) && (
                 <StatusBadge
                   name={statuses.find((s) => s.id === newStatusId)!.name}
@@ -1048,8 +1048,8 @@ export function OrderDetail() {
 
           {/* ── Trocar cliente ── */}
           <div>
-            <label className="block text-[11px] font-medium text-on-surface-variant mb-1">Cliente</label>
-            <div className="text-[11px] text-outline mb-1.5 bg-surface-container-low rounded-lg px-2 py-1">
+            <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Cliente</label>
+            <div className="text-[13px] text-outline mb-1.5 bg-surface-container-low rounded-lg px-2 py-1">
               Atual: <span className="font-semibold text-on-surface-variant">{order.client_name}</span>
             </div>
             <input
@@ -1057,10 +1057,10 @@ export function OrderDetail() {
               value={editInfoForm.client_search}
               onChange={e => setEditInfoForm(f => ({ ...f, client_search: e.target.value, client_id: '' }))}
               placeholder="Digite para buscar e trocar cliente..."
-              className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             />
             {editInfoForm.client_id && (
-              <p className="text-[11px] text-emerald-600 mt-1 flex items-center gap-1">
+              <p className="text-[13px] text-emerald-600 mt-1 flex items-center gap-1">
                 <Check className="h-3 w-3" />
                 Novo cliente: {clientResults?.find(c => c.id === editInfoForm.client_id)?.name}
               </p>
@@ -1071,10 +1071,10 @@ export function OrderDetail() {
                   <button
                     key={c.id}
                     onClick={() => setEditInfoForm(f => ({ ...f, client_id: c.id, client_search: c.name }))}
-                    className="w-full text-left px-3 py-1 hover:bg-primary/10 text-[11px] border-b border-gray-50 last:border-0"
+                    className="w-full text-left px-3 py-1 hover:bg-primary/10 text-[13px] border-b border-gray-50 last:border-0"
                   >
                     <p className="font-medium text-on-surface truncate">{c.name}</p>
-                    {c.trade_name && <p className="text-[11px] text-outline truncate">{c.trade_name} · {c.city}</p>}
+                    {c.trade_name && <p className="text-[13px] text-outline truncate">{c.trade_name} · {c.city}</p>}
                   </button>
                 ))}
               </div>
@@ -1084,11 +1084,11 @@ export function OrderDetail() {
           {/* ── Representante (admin only) ── */}
           {isAdmin && (
             <div>
-              <label className="block text-[11px] font-medium text-on-surface-variant mb-1">Representante</label>
+              <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Representante</label>
               <select
                 value={editInfoForm.rep_id}
                 onChange={e => setEditInfoForm(f => ({ ...f, rep_id: e.target.value }))}
-                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 {(usersList || []).filter(u => u.role === 'rep' || u.role === 'admin').map(u => (
                   <option key={u.id} value={u.id}>{u.name} {u.role === 'admin' ? '(Admin)' : ''}</option>
@@ -1101,84 +1101,84 @@ export function OrderDetail() {
             {/* ── Desconto (admin only) ── */}
             {isAdmin && (
               <div>
-                <label className="block text-[11px] font-medium text-on-surface-variant mb-1">Desconto (%)</label>
+                <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Desconto (%)</label>
                 <input
                   type="text"
                   inputMode="decimal"
                   value={editInfoForm.discount_pct}
                   onChange={e => setEditInfoForm(f => ({ ...f, discount_pct: e.target.value }))}
                   placeholder="0,00"
-                  className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                  className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
                 />
-                <p className="text-[11px] text-outline mt-0.5">Recalcula todos os itens</p>
+                <p className="text-[13px] text-outline mt-0.5">Recalcula todos os itens</p>
               </div>
             )}
             <div>
-              <label className="block text-[11px] font-medium text-on-surface-variant mb-1">Frete</label>
+              <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Frete</label>
               <select
                 value={editInfoForm.freight_type}
                 onChange={e => setEditInfoForm(f => ({ ...f, freight_type: e.target.value }))}
-                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="CIF">CIF</option>
                 <option value="FOB">FOB</option>
               </select>
             </div>
             <div className={isAdmin ? 'col-span-2' : ''}>
-              <label className="block text-[11px] font-medium text-on-surface-variant mb-1">Data de Entrega</label>
+              <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Data de Entrega</label>
               <input
                 type="date"
                 value={editInfoForm.delivery_date}
                 onChange={e => setEditInfoForm(f => ({ ...f, delivery_date: e.target.value }))}
-                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[11px] font-medium text-on-surface-variant mb-1">Cond. de Pagamento</label>
+            <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Cond. de Pagamento</label>
             <input
               type="text"
               value={editInfoForm.payment_terms}
               onChange={e => setEditInfoForm(f => ({ ...f, payment_terms: e.target.value }))}
               placeholder="Ex: 30/60/90 DDL, À vista, 28 DDL..."
-              className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-medium text-on-surface-variant mb-1">Comprador</label>
+              <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Comprador</label>
               <input
                 type="text"
                 value={editInfoForm.buyer_name}
                 onChange={e => setEditInfoForm(f => ({ ...f, buyer_name: e.target.value }))}
                 placeholder="Nome do comprador..."
-                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-medium text-on-surface-variant mb-1">Nº na Representada</label>
+              <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Nº na Representada</label>
               <input
                 type="text"
                 value={editInfoForm.industry_order_number}
                 onChange={e => setEditInfoForm(f => ({ ...f, industry_order_number: e.target.value }))}
                 placeholder="Número da indústria..."
-                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               />
             </div>
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-on-surface-variant mb-1">Observações</label>
+            <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Observações</label>
             <textarea
               value={editInfoForm.notes}
               onChange={e => setEditInfoForm(f => ({ ...f, notes: e.target.value }))}
               rows={3}
               placeholder="Observações do pedido..."
-              className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white resize-none"
+              className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white resize-none"
             />
           </div>
           {updateInfoMut.isError && (
-            <p className="text-[11px] text-red-500">
+            <p className="text-[13px] text-red-500">
               {(updateInfoMut.error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao salvar'}
             </p>
           )}
@@ -1204,7 +1204,7 @@ export function OrderDetail() {
           </div>
         }
       >
-        <p className="text-[11px] text-on-surface-variant">
+        <p className="text-[13px] text-on-surface-variant">
           Tem certeza que deseja remover este item do pedido?
           Os totais serão recalculados automaticamente.
         </p>
@@ -1224,7 +1224,7 @@ export function OrderDetail() {
             <button
               onClick={() => deleteMut.mutate()}
               disabled={deleteMut.isPending}
-              className="px-4 py-1 text-[11px] font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-colors"
+              className="px-4 py-1 text-[13px] font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-colors"
             >
               {deleteMut.isPending ? 'Excluindo…' : 'Excluir pedido'}
             </button>
@@ -1238,7 +1238,7 @@ export function OrderDetail() {
           <p className="text-on-surface-variant font-medium">
             Tem certeza que deseja excluir o pedido <span className="font-bold">{order && formatOrderNumber(order.order_number)}</span>?
           </p>
-          <p className="text-[11px] text-outline/70 mt-1">Esta ação não pode ser desfeita.</p>
+          <p className="text-[13px] text-outline/70 mt-1">Esta ação não pode ser desfeita.</p>
         </div>
       </Modal>
 
@@ -1266,7 +1266,7 @@ export function OrderDetail() {
           {/* Aviso */}
           <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5">
             <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-[11px] text-amber-800 leading-relaxed">
+            <p className="text-[13px] text-amber-800 leading-relaxed">
               Todos os preços dos itens serão recalculados com base na nova tabela.
               O desconto pode ser ajustado abaixo.
             </p>
@@ -1274,13 +1274,13 @@ export function OrderDetail() {
 
           {/* Seleção da nova tabela */}
           <div>
-            <label className="block text-[11px] font-medium text-on-surface-variant mb-1.5">
+            <label className="block text-[13px] font-medium text-on-surface-variant mb-1.5">
               Nova Tabela de Preços
             </label>
             <select
               value={newPriceTableId}
               onChange={e => setNewPriceTableId(e.target.value)}
-              className="w-full border border-outline-variant rounded-xl px-3 py-1.5 text-[11px] text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className="w-full border border-outline-variant rounded-xl px-3 py-1.5 text-[13px] text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             >
               <option value="">Selecione uma tabela…</option>
               {(factoryPriceTables || []).map(pt => (
@@ -1294,7 +1294,7 @@ export function OrderDetail() {
 
           {/* Desconto */}
           <div>
-            <label className="block text-[11px] font-medium text-on-surface-variant mb-1.5">
+            <label className="block text-[13px] font-medium text-on-surface-variant mb-1.5">
               Desconto (%)
             </label>
             <input
@@ -1305,7 +1305,7 @@ export function OrderDetail() {
               value={newDiscountPct}
               onChange={e => setNewDiscountPct(e.target.value)}
               placeholder="0"
-              className="w-full border border-outline-variant rounded-xl px-3 py-1.5 text-[11px] text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className="w-full border border-outline-variant rounded-xl px-3 py-1.5 text-[13px] text-on-surface bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />
           </div>
 
@@ -1314,11 +1314,11 @@ export function OrderDetail() {
             <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-1.5">
               <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-[11px] font-medium text-red-700">
+                <p className="text-[13px] font-medium text-red-700">
                   {(changePtMut.error as { response?: { data?: { error?: string; missing?: string[] } } })?.response?.data?.error || 'Erro ao trocar tabela'}
                 </p>
                 {(changePtMut.error as { response?: { data?: { missing?: string[] } } })?.response?.data?.missing && (
-                  <p className="text-[11px] text-red-600 mt-0.5">
+                  <p className="text-[13px] text-red-600 mt-0.5">
                     Referências não encontradas:{' '}
                     {((changePtMut.error as { response?: { data?: { missing?: string[] } } })?.response?.data?.missing || []).join(', ')}
                   </p>
@@ -1333,21 +1333,21 @@ export function OrderDetail() {
       <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white/95 border-t border-border-subtle px-4 py-2 flex gap-2" style={{ backdropFilter: 'blur(8px)' }}>
         <button
           onClick={() => setDeleteModal(true)}
-          className="flex-1 h-12 flex items-center justify-center border border-status-error text-status-error rounded-xl text-[11px] font-bold uppercase tracking-wide hover:bg-red-50 active:scale-95 transition-all"
+          className="flex-1 h-12 flex items-center justify-center border border-status-error text-status-error rounded-xl text-[13px] font-bold uppercase tracking-wide hover:bg-red-50 active:scale-95 transition-all"
         >
           Excluir
         </button>
         <button
           onClick={() => duplicateMut.mutate()}
           disabled={duplicateMut.isPending}
-          className="flex-1 h-12 flex items-center justify-center border border-primary text-primary rounded-xl text-[11px] font-bold uppercase tracking-wide gap-1.5 hover:bg-primary/5 active:scale-95 transition-all disabled:opacity-50"
+          className="flex-1 h-12 flex items-center justify-center border border-primary text-primary rounded-xl text-[13px] font-bold uppercase tracking-wide gap-1.5 hover:bg-primary/5 active:scale-95 transition-all disabled:opacity-50"
         >
           <Copy className="h-4 w-4" />
           {duplicateMut.isPending ? 'Duplicando…' : 'Duplicar Pedido'}
         </button>
         <button
           onClick={() => navigate(`/orders/${id}/edit`)}
-          className="flex-[2] h-12 flex items-center justify-center bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-wide shadow-sm active:opacity-80 active:scale-95 transition-all gap-1.5"
+          className="flex-[2] h-12 flex items-center justify-center bg-primary text-white rounded-xl text-[13px] font-bold uppercase tracking-wide shadow-sm active:opacity-80 active:scale-95 transition-all gap-1.5"
         >
           <Pencil className="h-4 w-4" />
           Editar

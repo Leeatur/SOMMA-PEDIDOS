@@ -129,7 +129,7 @@ export function AppLayout() {
             </div>
             <div>
               <p className="font-display text-[15px] font-bold text-white leading-none tracking-wide">Somma</p>
-              <p className="text-[9px] text-surface-variant/50 font-medium tracking-widest uppercase mt-0.5">Gestão Comercial</p>
+              <p className="text-[13px] text-surface-variant/50 font-medium tracking-widest uppercase mt-0.5">Gestão Comercial</p>
             </div>
           </div>
           <button className="lg:hidden p-1 text-surface-variant/50 hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
@@ -181,7 +181,7 @@ export function AppLayout() {
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-white truncate">{user?.name}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <p className="text-[10px] text-surface-variant/40">
+                <p className="text-[12px] text-surface-variant/40">
                   {user?.role === 'admin' ? 'Administrador' : 'Representante'}
                 </p>
                 {online
@@ -214,11 +214,11 @@ export function AppLayout() {
               className="flex items-center gap-2.5 hover:bg-surface-container px-3 py-1.5 rounded-xl transition-colors"
             >
               <div className="flex items-center justify-center flex-shrink-0 px-2.5 py-1 rounded-lg" style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)' }}>
-                <span className="text-[11px] font-bold text-white tracking-widest uppercase">Somma</span>
+                <span className="text-[13px] font-bold text-white tracking-widest uppercase">Somma</span>
               </div>
               <div className="text-left">
                 <p className="text-[13px] font-semibold text-on-surface leading-none">{user?.name}</p>
-                <p className="text-[10px] text-outline mt-0.5">{user?.role === 'admin' ? 'Administrador' : 'Representante'}</p>
+                <p className="text-[12px] text-outline mt-0.5">{user?.role === 'admin' ? 'Administrador' : 'Representante'}</p>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-outline" />
             </button>
@@ -261,7 +261,7 @@ export function AppLayout() {
                 <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
                   <LayoutDashboard className="h-[18px] w-[18px]" />
                 </div>
-                <span className="text-[10px] font-semibold">Início</span>
+                <span className="text-[12px] font-semibold">Início</span>
               </>)}
             </NavLink>
 
@@ -273,7 +273,7 @@ export function AppLayout() {
                 <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
                   <ShoppingCart className="h-[18px] w-[18px]" />
                 </div>
-                <span className="text-[10px] font-semibold">Pedidos</span>
+                <span className="text-[12px] font-semibold">Pedidos</span>
               </>)}
             </NavLink>
 
@@ -286,7 +286,7 @@ export function AppLayout() {
               >
                 <Plus className="h-6 w-6" />
               </button>
-              <span className="text-[10px] font-semibold text-on-surface-variant/60 mt-0.5">Novo</span>
+              <span className="text-[12px] font-semibold text-on-surface-variant/60 mt-0.5">Novo</span>
             </div>
 
             {/* Clientes */}
@@ -297,7 +297,7 @@ export function AppLayout() {
                 <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
                   <Users className="h-[18px] w-[18px]" />
                 </div>
-                <span className="text-[10px] font-semibold">Clientes</span>
+                <span className="text-[12px] font-semibold">Clientes</span>
               </>)}
             </NavLink>
 
@@ -309,7 +309,7 @@ export function AppLayout() {
                 <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
                   <Package className="h-[18px] w-[18px]" />
                 </div>
-                <span className="text-[10px] font-semibold">Produtos</span>
+                <span className="text-[12px] font-semibold">Produtos</span>
               </>)}
             </NavLink>
 

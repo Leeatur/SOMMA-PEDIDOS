@@ -78,16 +78,16 @@ export function Dashboard() {
         <div className="absolute top-8 right-20 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
         <div className="absolute -bottom-6 left-1/3 w-36 h-36 bg-white/5 rounded-full pointer-events-none" />
 
-        <p className="text-white/70 text-[11px] font-medium">{greeting()},</p>
+        <p className="text-white/70 text-[13px] font-medium">{greeting()},</p>
         <h1 className="font-display text-[32px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
-        <p className="text-white/60 text-[11px] mt-1.5">
+        <p className="text-white/60 text-[13px] mt-1.5">
           {isAdmin ? 'Administrador' : 'Representante'} &bull;{' '}
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
 
         <button
           onClick={() => navigate('/orders/new')}
-          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-[11px] font-semibold px-4 py-1 rounded-xl border border-white/20 transition-all backdrop-blur-sm"
+          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-[13px] font-semibold px-4 py-1 rounded-xl border border-white/20 transition-all backdrop-blur-sm"
         >
           <Plus className="h-4 w-4" /> Novo pedido
         </button>
@@ -154,12 +154,12 @@ export function Dashboard() {
             ) : sales.length === 0 ? (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-8 flex flex-col items-center text-center">
                 <Package className="h-7 w-7 text-outline/40 mb-2" />
-                <p className="text-[11px] text-outline/70 font-medium">Nenhuma venda registrada hoje</p>
+                <p className="text-[13px] text-outline/70 font-medium">Nenhuma venda registrada hoje</p>
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full text-[11px]">
+                  <table className="min-w-full text-[13px]">
                     <thead className="bg-surface-container-low border-b border-outline-variant/50 sticky top-0">
                       <tr>
                         {[
@@ -221,7 +221,7 @@ export function Dashboard() {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[11px]">
+                      <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[13px]">
                         <td colSpan={7} className="px-3 py-1.5 text-on-surface-variant">
                           {sales.length} pedido{sales.length !== 1 ? 's' : ''}
                         </td>
@@ -286,12 +286,12 @@ function StatCard({
           {icon}
         </div>
         {badge && (
-          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${badgeCls}`}>
+          <span className={`text-[13px] font-bold px-2 py-0.5 rounded-full ${badgeCls}`}>
             {badge}
           </span>
         )}
       </div>
-      <p className="text-[11px] font-bold uppercase text-outline tracking-wide mb-1.5">{label}</p>
+      <p className="text-[13px] font-bold uppercase text-outline tracking-wide mb-1.5">{label}</p>
       <p className={`font-display font-bold text-on-surface leading-none ${large ? 'text-[38px]' : 'text-[28px]'}`}>
         {value}
       </p>
@@ -301,7 +301,7 @@ function StatCard({
 
 function SectionTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <h2 className={`text-[11px] font-bold text-outline uppercase tracking-wider mb-2 ${className}`}>
+    <h2 className={`text-[13px] font-bold text-outline uppercase tracking-wider mb-2 ${className}`}>
       {children}
     </h2>
   )

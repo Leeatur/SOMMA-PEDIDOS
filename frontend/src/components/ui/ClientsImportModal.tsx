@@ -111,8 +111,8 @@ export function ClientsImportModal({ open, onClose }: Props) {
           const done = (step === 'mapping' && i === 0) || (step === 'result' && i < 2)
           return (
             <div key={s} className="flex items-center gap-2 flex-1">
-              <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${active ? 'text-primary' : done ? 'text-emerald-600' : 'text-outline/70'}`}>
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${active ? 'bg-primary/10 text-primary ring-2 ring-blue-300' : done ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-container text-outline/70'}`}>
+              <div className={`flex items-center gap-1.5 text-[13px] font-semibold ${active ? 'text-primary' : done ? 'text-emerald-600' : 'text-outline/70'}`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[13px] font-bold ${active ? 'bg-primary/10 text-primary ring-2 ring-blue-300' : done ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-container text-outline/70'}`}>
                   {done ? <CheckCircle2 className="h-3 w-3" /> : i + 1}
                 </div>
                 {labels[i]}
@@ -126,7 +126,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
       {/* ── STEP 1: Upload ── */}
       {step === 'upload' && (
         <div className="space-y-1">
-          <p className="text-[11px] text-on-surface-variant">
+          <p className="text-[13px] text-on-surface-variant">
             Exporte os clientes do seu sistema atual como Excel (.xlsx ou .xls) e faça o upload aqui.
             O sistema detecta as colunas automaticamente.
           </p>
@@ -141,16 +141,16 @@ export function ClientsImportModal({ open, onClose }: Props) {
             {previewMut.isPending ? (
               <div className="flex flex-col items-center gap-3 text-primary">
                 <Loader2 className="h-10 w-10 animate-spin" />
-                <p className="text-[11px] font-medium">Lendo arquivo...</p>
+                <p className="text-[13px] font-medium">Lendo arquivo...</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3 text-outline">
                 <FileSpreadsheet className="h-12 w-12 text-emerald-500" />
                 <div>
                   <p className="font-semibold text-on-surface-variant">Arraste o arquivo aqui</p>
-                  <p className="text-[11px]">ou clique para selecionar</p>
+                  <p className="text-[13px]">ou clique para selecionar</p>
                 </div>
-                <p className="text-[11px] text-outline/70">Suporta .xlsx e .xls</p>
+                <p className="text-[13px] text-outline/70">Suporta .xlsx e .xls</p>
               </div>
             )}
           </div>
@@ -164,13 +164,13 @@ export function ClientsImportModal({ open, onClose }: Props) {
           />
 
           {previewMut.isError && (
-            <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-1 flex items-center gap-2">
+            <p className="text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-1 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               {(previewMut.error as any)?.response?.data?.error || 'Erro ao ler o arquivo'}
             </p>
           )}
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-[11px] text-amber-800 space-y-1">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-[13px] text-amber-800 space-y-1">
             <p className="font-semibold">💡 Formatos suportados automaticamente:</p>
             <p>• Planilha padrão Somma (colunas: Cidade, Razão Social, Endereço, Número…)</p>
             <p>• Exportação do suasvendas.com: Clientes → Exportar → Excel</p>
@@ -185,16 +185,16 @@ export function ClientsImportModal({ open, onClose }: Props) {
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-semibold text-on-surface">
+              <p className="text-[13px] font-semibold text-on-surface">
                 {preview.totalRows} clientes encontrados
               </p>
-              <p className="text-[11px] text-outline">
+              <p className="text-[13px] text-outline">
                 Arquivo: <strong>{file?.name}</strong> · {preview.headers.length} colunas detectadas
               </p>
             </div>
             <button
               onClick={() => { setStep('upload'); setFile(null) }}
-              className="text-[11px] text-outline hover:text-on-surface-variant flex items-center gap-1"
+              className="text-[13px] text-outline hover:text-on-surface-variant flex items-center gap-1"
             >
               <RefreshCw className="h-3 w-3" /> Trocar arquivo
             </button>
@@ -203,7 +203,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
           {/* Preview tabela bruta */}
           {preview.sampleRaw.length > 0 && (
             <div className="border border-outline-variant rounded-lg overflow-auto max-h-36">
-              <table className="min-w-max text-[11px]">
+              <table className="min-w-max text-[13px]">
                 <thead className="bg-surface-container-low sticky top-0">
                   <tr>
                     {preview.sampleRaw[0].map((h, i) => (
@@ -230,24 +230,24 @@ export function ClientsImportModal({ open, onClose }: Props) {
 
           {/* Mapeamento de campos */}
           <div className="space-y-1">
-            <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">
+            <p className="text-[13px] font-semibold text-outline uppercase tracking-wide">
               Confirme o mapeamento de colunas
             </p>
             <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
               {FIELDS.map(f => (
                 <div key={f.key} className="flex items-center gap-3">
                   <label className="w-44 flex-shrink-0">
-                    <span className="text-[11px] text-on-surface-variant">
+                    <span className="text-[13px] text-on-surface-variant">
                       {f.label}
                       {f.required && <span className="text-red-500 ml-0.5">*</span>}
                     </span>
-                    {f.hint && <span className="block text-[10px] text-outline/70 leading-tight">{f.hint}</span>}
+                    {f.hint && <span className="block text-[12px] text-outline/70 leading-tight">{f.hint}</span>}
                   </label>
                   <ArrowRight className="h-3.5 w-3.5 text-outline/50 flex-shrink-0" />
                   <select
                     value={mapping[f.key] || ''}
                     onChange={e => setMapping(m => ({ ...m, [f.key]: e.target.value }))}
-                    className={`flex-1 text-[11px] border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                    className={`flex-1 text-[13px] border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
                       f.required && !mapping[f.key]
                         ? 'border-red-300 bg-red-50'
                         : mapping[f.key] ? 'border-emerald-300 bg-emerald-50' : 'border-outline-variant'
@@ -264,7 +264,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
           </div>
 
           {unmappedRequired.length > 0 && (
-            <p className="text-[11px] text-red-600 flex items-center gap-1">
+            <p className="text-[13px] text-red-600 flex items-center gap-1">
               <AlertTriangle className="h-3.5 w-3.5" />
               Campo obrigatório sem coluna: {unmappedRequired.map(f => f.label).join(', ')}
             </p>
@@ -292,31 +292,31 @@ export function ClientsImportModal({ open, onClose }: Props) {
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
               <p className="text-2xl font-bold text-emerald-700">{result.imported}</p>
-              <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Importados</p>
+              <p className="text-[13px] text-emerald-600 font-medium mt-0.5">Importados</p>
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
               <p className="text-2xl font-bold text-amber-700">{result.skipped}</p>
-              <p className="text-[11px] text-amber-600 font-medium mt-0.5">Já existiam</p>
+              <p className="text-[13px] text-amber-600 font-medium mt-0.5">Já existiam</p>
             </div>
             <div className={`border rounded-xl p-4 text-center ${result.errors.length ? 'bg-red-50 border-red-200' : 'bg-surface-container-low border-outline-variant'}`}>
               <p className={`text-2xl font-bold ${result.errors.length ? 'text-red-700' : 'text-outline/70'}`}>
                 {result.errors.length}
               </p>
-              <p className={`text-[11px] font-medium mt-0.5 ${result.errors.length ? 'text-red-600' : 'text-outline'}`}>Erros</p>
+              <p className={`text-[13px] font-medium mt-0.5 ${result.errors.length ? 'text-red-600' : 'text-outline'}`}>Erros</p>
             </div>
           </div>
 
           {result.imported > 0 && (
             <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
               <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-              <p className="text-[11px] font-medium">
+              <p className="text-[13px] font-medium">
                 {result.imported} cliente{result.imported !== 1 ? 's' : ''} importado{result.imported !== 1 ? 's' : ''} com sucesso!
               </p>
             </div>
           )}
 
           {result.skipped > 0 && (
-            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1">
+            <p className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1">
               {result.skipped} cliente{result.skipped !== 1 ? 's' : ''} ignorado{result.skipped !== 1 ? 's' : ''} por já existirem no sistema (mesmo CNPJ).
             </p>
           )}
@@ -325,7 +325,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
             <div className="border border-red-200 rounded-lg overflow-hidden">
               <button
                 onClick={() => setShowErrors(e => !e)}
-                className="w-full flex items-center justify-between px-3 py-1 bg-red-50 text-[11px] font-medium text-red-700"
+                className="w-full flex items-center justify-between px-3 py-1 bg-red-50 text-[13px] font-medium text-red-700"
               >
                 <span>Ver {result.errors.length} erros</span>
                 {showErrors ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -333,7 +333,7 @@ export function ClientsImportModal({ open, onClose }: Props) {
               {showErrors && (
                 <ul className="divide-y divide-red-100 max-h-40 overflow-y-auto">
                   {result.errors.map((e, i) => (
-                    <li key={i} className="px-3 py-1.5 text-[11px] text-red-600">{e}</li>
+                    <li key={i} className="px-3 py-1.5 text-[13px] text-red-600">{e}</li>
                   ))}
                 </ul>
               )}

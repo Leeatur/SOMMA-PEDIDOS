@@ -20,7 +20,7 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium',
+        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] font-medium',
         variants[variant],
         className
       )}
@@ -45,7 +45,7 @@ export function StatusBadge({ name, color, className }: StatusBadgeProps) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-semibold',
         className
       )}
       style={{

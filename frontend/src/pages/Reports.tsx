@@ -98,14 +98,14 @@ function EmptyState({ label }: { label: string }) {
   return (
     <div className="text-center py-16">
       <BarChart2 className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-      <p className="text-[11px] text-outline/70">{label}</p>
+      <p className="text-[13px] text-outline/70">{label}</p>
     </div>
   )
 }
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
-    <th className={`px-4 py-1.5 text-[11px] font-semibold text-outline ${right ? 'text-right' : 'text-left'}`}>
+    <th className={`px-4 py-1.5 text-[13px] font-semibold text-outline ${right ? 'text-right' : 'text-left'}`}>
       {children}
     </th>
   )
@@ -113,7 +113,7 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
 
 function Td({ children, right, bold }: { children: React.ReactNode; right?: boolean; bold?: boolean }) {
   return (
-    <td className={`px-4 py-2 text-[11px] ${right ? 'text-right' : ''} ${bold ? 'font-bold text-on-surface' : 'text-on-surface-variant'}`}>
+    <td className={`px-4 py-2 text-[13px] ${right ? 'text-right' : ''} ${bold ? 'font-bold text-on-surface' : 'text-on-surface-variant'}`}>
       {children}
     </td>
   )
@@ -197,11 +197,11 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
         <input
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Buscar referência, nome..."
-          className="flex-1 border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+          className="flex-1 border border-outline-variant rounded-lg px-3 py-1 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <button
           onClick={toggleAll}
-          className="text-[11px] text-primary underline whitespace-nowrap"
+          className="text-[13px] text-primary underline whitespace-nowrap"
         >
           {allExpanded ? 'Recolher tudo' : 'Expandir tudo'}
         </button>
@@ -225,12 +225,12 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
               }
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-on-surface text-[11px]">{row.table_name}</span>
-                  <span className="text-[11px] text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">{row.factory_name}</span>
-                  {label && <span className="text-[11px] text-outline">{label}</span>}
+                  <span className="font-semibold text-on-surface text-[13px]">{row.table_name}</span>
+                  <span className="text-[13px] text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">{row.factory_name}</span>
+                  {label && <span className="text-[13px] text-outline">{label}</span>}
                 </div>
               </div>
-              <span className="text-[11px] text-outline/70 flex-shrink-0">{row.products.length} ref.</span>
+              <span className="text-[13px] text-outline/70 flex-shrink-0">{row.products.length} ref.</span>
             </button>
 
             {/* Product Cards */}
@@ -247,28 +247,28 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
                             ? <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" loading="lazy" />
                             : <div className="flex flex-col items-center gap-1 text-outline/30">
                                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                <span className="text-[9px]">Sem foto</span>
+                                <span className="text-[13px]">Sem foto</span>
                               </div>
                           }
                         </div>
                         {/* Info */}
                         <div className="p-2">
                           <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <span className="font-mono text-[10px] font-bold text-on-surface truncate">{p.reference}</span>
+                            <span className="font-mono text-[12px] font-bold text-on-surface truncate">{p.reference}</span>
                             {p.type === 'pack'
-                              ? <span className="text-[9px] font-bold bg-orange-100 text-orange-700 px-1 rounded flex-shrink-0">PACK</span>
-                              : <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-1 rounded flex-shrink-0">REG</span>
+                              ? <span className="text-[13px] font-bold bg-orange-100 text-orange-700 px-1 rounded flex-shrink-0">PACK</span>
+                              : <span className="text-[13px] font-bold bg-blue-50 text-blue-600 px-1 rounded flex-shrink-0">REG</span>
                             }
                           </div>
-                          {p.product_name && <p className="text-[10px] text-on-surface-variant leading-tight line-clamp-2">{p.product_name}</p>}
-                          {p.model && <p className="text-[9px] text-outline mt-0.5 truncate">{p.model}</p>}
-                          <p className="text-[11px] font-bold text-primary mt-1">{fmtR(p.base_price)}</p>
+                          {p.product_name && <p className="text-[12px] text-on-surface-variant leading-tight line-clamp-2">{p.product_name}</p>}
+                          {p.model && <p className="text-[13px] text-outline mt-0.5 truncate">{p.model}</p>}
+                          <p className="text-[13px] font-bold text-primary mt-1">{fmtR(p.base_price)}</p>
                           {sizes.length > 0 && (
                             <div className="flex flex-wrap gap-0.5 mt-1">
                               {sizes.slice(0, 8).map(s => (
-                                <span key={s} className="px-1 py-0.5 text-[9px] font-semibold bg-primary/10 text-primary rounded">{s}</span>
+                                <span key={s} className="px-1 py-0.5 text-[13px] font-semibold bg-primary/10 text-primary rounded">{s}</span>
                               ))}
-                              {sizes.length > 8 && <span className="text-[9px] text-outline">+{sizes.length - 8}</span>}
+                              {sizes.length > 8 && <span className="text-[13px] text-outline">+{sizes.length - 8}</span>}
                             </div>
                           )}
                         </div>
@@ -314,7 +314,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
           if (e.target.value) setExpanded(new Set(data.map(c => c.price_table_id)))
           else setExpanded(new Set())
         }}
-        className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-400"
       />
 
       {data.map(col => {
@@ -345,11 +345,11 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-[11px] font-bold text-on-surface">{col.factory_name}</span>
-                  <span className="text-[11px] text-outline/70">—</span>
-                  <span className="text-[11px] text-on-surface-variant truncate">{col.collection}</span>
+                  <span className="text-[13px] font-bold text-on-surface">{col.factory_name}</span>
+                  <span className="text-[13px] text-outline/70">—</span>
+                  <span className="text-[13px] text-on-surface-variant truncate">{col.collection}</span>
                   {col.season && (
-                    <span className="text-[11px] text-primary font-medium">
+                    <span className="text-[13px] text-primary font-medium">
                       {col.season}{col.year ? ` ${col.year}` : ''}
                     </span>
                   )}
@@ -359,26 +359,26 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
               {/* totais resumo */}
               <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
                 <div className="text-right">
-                  <p className="text-[11px] text-outline/70">Refs vendidas</p>
-                  <p className="text-[11px] font-bold text-on-surface-variant">
+                  <p className="text-[13px] text-outline/70">Refs vendidas</p>
+                  <p className="text-[13px] font-bold text-on-surface-variant">
                     {soldCount}
-                    <span className="text-[11px] text-outline/70 font-normal"> / {products.length}</span>
+                    <span className="text-[13px] text-outline/70 font-normal"> / {products.length}</span>
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] text-outline/70">Peças</p>
-                  <p className="text-[11px] font-bold text-on-surface-variant">{fmtN(totalPcs)}</p>
+                  <p className="text-[13px] text-outline/70">Peças</p>
+                  <p className="text-[13px] font-bold text-on-surface-variant">{fmtN(totalPcs)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] text-outline/70">Valor</p>
-                  <p className="text-[11px] font-bold text-primary">{fmtR(totalVal)}</p>
+                  <p className="text-[13px] text-outline/70">Valor</p>
+                  <p className="text-[13px] font-bold text-primary">{fmtR(totalVal)}</p>
                 </div>
               </div>
             </button>
 
             {/* ── Linha de totais mobile ── */}
             {!isOpen && (
-              <div className="sm:hidden flex items-center gap-4 px-11 pb-2 text-[11px] text-outline">
+              <div className="sm:hidden flex items-center gap-4 px-11 pb-2 text-[13px] text-outline">
                 <span>{soldCount}/{products.length} refs</span>
                 <span>{fmtN(totalPcs)} pç</span>
                 <span className="font-semibold text-primary">{fmtR(totalVal)}</span>
@@ -405,13 +405,13 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                           key={p.product_id}
                           className={`hover:bg-surface-container-low/50 ${p.total_pieces === 0 ? 'opacity-50' : ''}`}
                         >
-                          <td className="px-4 py-1.5 font-mono text-[11px] font-bold text-on-surface whitespace-nowrap">
+                          <td className="px-4 py-1.5 font-mono text-[13px] font-bold text-on-surface whitespace-nowrap">
                             {p.reference}
                             {p.type === 'pack' && (
-                              <span className="ml-1 text-[10px] text-amber-600 font-sans font-medium bg-amber-50 px-1 rounded">pack</span>
+                              <span className="ml-1 text-[12px] text-amber-600 font-sans font-medium bg-amber-50 px-1 rounded">pack</span>
                             )}
                           </td>
-                          <td className="px-4 py-1.5 text-[11px] text-on-surface-variant max-w-[200px] truncate">
+                          <td className="px-4 py-1.5 text-[13px] text-on-surface-variant max-w-[200px] truncate">
                             {p.product_name || '—'}
                           </td>
                           <Td right>{p.order_count > 0 ? p.order_count : '—'}</Td>
@@ -423,14 +423,14 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
                     {totalPcs > 0 && (
                       <tfoot>
                         <tr className="bg-surface-container-low border-t border-outline-variant">
-                          <td colSpan={2} className="px-4 py-1 text-[11px] font-bold text-on-surface-variant">
+                          <td colSpan={2} className="px-4 py-1 text-[13px] font-bold text-on-surface-variant">
                             {soldCount} ref{soldCount !== 1 ? 's' : ''} vendida{soldCount !== 1 ? 's' : ''} de {products.length}
                           </td>
-                          <td className="px-4 py-1 text-right text-[11px] font-bold text-on-surface-variant">
+                          <td className="px-4 py-1 text-right text-[13px] font-bold text-on-surface-variant">
                             {products.reduce((s, p) => s + p.order_count, 0)}
                           </td>
-                          <td className="px-4 py-1 text-right text-[11px] font-bold text-on-surface-variant">{fmtN(totalPcs)}</td>
-                          <td className="px-4 py-1 text-right text-[11px] font-bold text-primary">{fmtR(totalVal)}</td>
+                          <td className="px-4 py-1 text-right text-[13px] font-bold text-on-surface-variant">{fmtN(totalPcs)}</td>
+                          <td className="px-4 py-1 text-right text-[13px] font-bold text-primary">{fmtR(totalVal)}</td>
                         </tr>
                       </tfoot>
                     )}
@@ -584,12 +584,12 @@ export function Reports() {
             {/* date inputs */}
             <input
               type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border border-outline-variant rounded-lg px-3 py-1 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <span className="text-outline/70 text-[11px]">–</span>
+            <span className="text-outline/70 text-[13px]">–</span>
             <input
               type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+              className="border border-outline-variant rounded-lg px-3 py-1 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary"
             />
 
             {/* quick range buttons */}
@@ -597,7 +597,7 @@ export function Reports() {
               {[{ label: '7d', d: 7 }, { label: '30d', d: 30 }, { label: '90d', d: 90 }].map(r => (
                 <button
                   key={r.label} onClick={() => setRange(r.d)}
-                  className="px-2.5 py-1.5 text-[11px] font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg transition-colors"
+                  className="px-2.5 py-1.5 text-[13px] font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg transition-colors"
                 >
                   {r.label}
                 </button>
@@ -608,7 +608,7 @@ export function Reports() {
             {(
               <select
                 value={factoryId} onChange={e => setFactoryId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as fábricas</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -619,7 +619,7 @@ export function Reports() {
             {isAdmin && tab !== 'products' && (
               <select
                 value={repId} onChange={e => setRepId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos os representantes</option>
                 {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -632,7 +632,7 @@ export function Reports() {
             {TABS.map(t => (
               <button
                 key={t.id} onClick={() => setTab(t.id)}
-                className={`px-4 py-1.5 text-[11px] font-medium border-b-2 transition-colors -mb-px ${
+                className={`px-4 py-1.5 text-[13px] font-medium border-b-2 transition-colors -mb-px ${
                   tab === t.id
                     ? 'border-blue-600 text-primary'
                     : 'border-transparent text-outline hover:text-on-surface-variant'
@@ -663,10 +663,10 @@ export function Reports() {
                 { label: 'Com. Rep',    value: fmtR(ordersQ.data.summary.rep_commission_value), color: 'bg-emerald-50', text: 'text-emerald-700' },
               ].map(c => (
                 <div key={c.label} className={`${c.color} rounded-xl border border-outline-variant/50 p-4`}>
-                  <p className="text-[11px] text-outline mb-1">{c.label}</p>
-                  <p className={`text-[11px] font-bold ${c.text}`}>{c.value}</p>
+                  <p className="text-[13px] text-outline mb-1">{c.label}</p>
+                  <p className={`text-[13px] font-bold ${c.text}`}>{c.value}</p>
                   {c.label === 'Com. Rep' && isAdmin && (
-                    <p className="text-[11px] text-outline/70 mt-0.5">
+                    <p className="text-[13px] text-outline/70 mt-0.5">
                       Esc: {fmtR(ordersQ.data.summary.office_commission_value)}
                     </p>
                   )}
@@ -679,7 +679,7 @@ export function Reports() {
               ? <EmptyState label="Nenhum pedido no período" />
               : (
                 <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
-                  <p className="px-4 py-2 text-[11px] font-semibold text-on-surface border-b border-outline-variant/50">Por dia</p>
+                  <p className="px-4 py-2 text-[13px] font-semibold text-on-surface border-b border-outline-variant/50">Por dia</p>
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
                       <thead className="bg-surface-container-low">
@@ -702,14 +702,14 @@ export function Reports() {
                       </tbody>
                       <tfoot>
                         <tr className="bg-surface-container-low border-t border-outline-variant">
-                          <td className="px-4 py-1.5 text-[11px] font-bold text-on-surface-variant">Total</td>
-                          <td className="px-4 py-1.5 text-right text-[11px] font-bold text-on-surface-variant">
+                          <td className="px-4 py-1.5 text-[13px] font-bold text-on-surface-variant">Total</td>
+                          <td className="px-4 py-1.5 text-right text-[13px] font-bold text-on-surface-variant">
                             {ordersQ.data.byDay.reduce((s, d) => s + d.order_count, 0)}
                           </td>
-                          <td className="px-4 py-1.5 text-right text-[11px] font-bold text-on-surface-variant">
+                          <td className="px-4 py-1.5 text-right text-[13px] font-bold text-on-surface-variant">
                             {fmtN(ordersQ.data.byDay.reduce((s, d) => s + d.total_pieces, 0))}
                           </td>
-                          <td className="px-4 py-1.5 text-right text-[11px] font-bold text-on-surface">
+                          <td className="px-4 py-1.5 text-right text-[13px] font-bold text-on-surface">
                             {fmtR(ordersQ.data.byDay.reduce((s, d) => s + Number(d.total_value), 0))}
                           </td>
                         </tr>
@@ -737,7 +737,7 @@ export function Reports() {
                 return (
                   <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-[11px]">
+                      <table className="w-full text-[13px]">
                         <thead className="bg-surface-container-low">
                           <tr>
                             <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Data</th>
@@ -773,12 +773,12 @@ export function Reports() {
                               <td className="px-2 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>
                               <td className="px-2 py-1 text-right whitespace-nowrap">
                                 <span className="font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</span>
-                                <span className="text-emerald-600/70 ml-0.5 text-[10px]">({fmtPct(r.rep_commission_pct)})</span>
+                                <span className="text-emerald-600/70 ml-0.5 text-[12px]">({fmtPct(r.rep_commission_pct)})</span>
                               </td>
                               {isAdmin && (
                                 <td className="px-2 py-1 text-right whitespace-nowrap">
                                   <span className="font-bold text-blue-700">{fmtR(r.office_commission_value)}</span>
-                                  <span className="text-blue-600/70 ml-0.5 text-[10px]">({fmtPct(r.office_commission_pct)})</span>
+                                  <span className="text-blue-600/70 ml-0.5 text-[12px]">({fmtPct(r.office_commission_pct)})</span>
                                 </td>
                               )}
                               <td className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
@@ -803,7 +803,7 @@ export function Reports() {
                         </tfoot>
                       </table>
                     </div>
-                    <div className="px-4 py-1.5 bg-surface-container-lowest border-t border-outline-variant/50 text-[11px] text-outline/70">
+                    <div className="px-4 py-1.5 bg-surface-container-lowest border-t border-outline-variant/50 text-[13px] text-outline/70">
                       * Valor Faturado = pedidos com status <strong>final</strong>. Falta Faturar = demais pedidos.
                     </div>
                   </div>
@@ -833,13 +833,13 @@ export function Reports() {
                     <tbody className="divide-y divide-gray-50">
                       {clientsQ.data.map((c, i) => (
                         <tr key={c.id} className="hover:bg-surface-container-low/50">
-                          <td className="px-4 py-2 text-[11px] text-outline/70 w-8">{i + 1}</td>
+                          <td className="px-4 py-2 text-[13px] text-outline/70 w-8">{i + 1}</td>
                           <td className="px-4 py-2">
-                            <p className="text-[11px] font-semibold text-on-surface truncate max-w-[220px]">
+                            <p className="text-[13px] font-semibold text-on-surface truncate max-w-[220px]">
                               {c.trade_name || c.name}
                             </p>
                             {c.city && (
-                              <p className="text-[11px] text-outline/70">
+                              <p className="text-[13px] text-outline/70">
                                 {c.city}{c.state ? ` / ${c.state}` : ''}
                               </p>
                             )}
@@ -887,8 +887,8 @@ export function Reports() {
                     <tbody className="divide-y divide-gray-50">
                       {productsQ.data.map((p, i) => (
                         <tr key={p.reference} className="hover:bg-surface-container-low/50">
-                          <td className="px-4 py-2 text-[11px] text-outline/70 w-8">{i + 1}</td>
-                          <td className="px-4 py-2 font-mono text-[11px] font-bold text-on-surface">
+                          <td className="px-4 py-2 text-[13px] text-outline/70 w-8">{i + 1}</td>
+                          <td className="px-4 py-2 font-mono text-[13px] font-bold text-on-surface">
                             {p.reference}
                           </td>
                           <Td right>{p.order_count}</Td>
@@ -911,7 +911,7 @@ export function Reports() {
               <select
                 value={catalogFactoryId}
                 onChange={e => { setCatalogFactoryId(e.target.value); setCatalogPriceTableId('') }}
-                className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as indústrias</option>
                 {catalogFactories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -919,7 +919,7 @@ export function Reports() {
               <select
                 value={catalogPriceTableId}
                 onChange={e => setCatalogPriceTableId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todas as coleções</option>
                 {(catalogPriceTables || []).map(pt => (
