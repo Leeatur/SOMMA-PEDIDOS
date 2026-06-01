@@ -2,44 +2,59 @@ import { Response } from 'express'
 import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 
-// Configuração de segmentos → tags OSM
-const SEGMENT_TAGS: Record<string, string[][]> = {
-  confeccao: [
-    ['shop', 'clothes'],
-    ['shop', 'fabric'],
-    ['craft', 'tailor'],
-    ['shop', 'fashion'],
-    ['shop', 'wholesale'],
-  ],
-  calcados: [
-    ['shop', 'shoes'],
-  ],
-  acessorios: [
-    ['shop', 'jewelry'],
-    ['shop', 'accessories'],
-    ['shop', 'watches'],
-  ],
-  comercio_geral: [
-    ['shop', 'department_store'],
-    ['shop', 'supermarket'],
-    ['shop', 'mall'],
-  ],
-  alimentacao: [
-    ['amenity', 'restaurant'],
-    ['amenity', 'cafe'],
-    ['shop', 'bakery'],
-    ['shop', 'butcher'],
-    ['shop', 'food'],
-  ],
-}
+// No Brasil o OSM tem poucos dados específicos — usamos busca ampla de
+// todos os estabelecimentos (shop, amenity comercial) e filtramos por nome/tipo.
+// A chave é buscar qualquer shop/comercio que tenha nome cadastrado.
 
-function buildOverpassQuery(lat: number, lng: number, radiusM: number, tags: string[][]): string {
-  const filters = tags.map(([k, v]) =>
-    `node["${k}"="${v}"](around:${radiusM},${lat},${lng});\n` +
-    `way["${k}"="${v}"](around:${radiusM},${lat},${lng});`
-  ).join('\n')
+function buildOverpassQuery(lat: number, lng: number, radiusM: number, segment: string): string {
+  const r = radiusM
+  const coord = `${lat},${lng}`
 
-  return `[out:json][timeout:30];\n(\n${filters}\n);\nout center;`
+  // Confecção: lojas de roupa + qualquer comércio varejista (Brasil usa shop genérico)
+  if (segment === 'confeccao') {
+    return `[out:json][timeout:30];
+(
+  nwr["shop"~"clothes|fabric|tailor|fashion|wholesale|boutique|textil|moda|confec"](around:${r},${coord});
+  nwr["shop"]["name"~"confec|roupa|moda|vestuário|boutique|textil|tecido|malha",i](around:${r},${coord});
+  nwr["shop"~"yes|general|variety_store|gift|department_store"](around:${r},${coord});
+);
+out center;`
+  }
+
+  if (segment === 'calcados') {
+    return `[out:json][timeout:30];
+(
+  nwr["shop"~"shoes|footwear|calcado|sapato|tenis"](around:${r},${coord});
+  nwr["shop"]["name"~"calçado|sapato|tenis|chinelo|sapataria|shoe",i](around:${r},${coord});
+);
+out center;`
+  }
+
+  if (segment === 'acessorios') {
+    return `[out:json][timeout:30];
+(
+  nwr["shop"~"jewelry|accessories|watches|gift|bag|leather"](around:${r},${coord});
+  nwr["shop"]["name"~"joias|relogio|acessorio|bolsa|bijou|otica",i](around:${r},${coord});
+);
+out center;`
+  }
+
+  if (segment === 'alimentacao') {
+    return `[out:json][timeout:30];
+(
+  nwr["amenity"~"restaurant|cafe|bar|fast_food|bakery|food_court"](around:${r},${coord});
+  nwr["shop"~"bakery|butcher|food|supermarket|convenience"](around:${r},${coord});
+);
+out center;`
+  }
+
+  // comercio_geral — todos os estabelecimentos com nome
+  return `[out:json][timeout:30];
+(
+  nwr["shop"](around:${r},${coord});
+  nwr["amenity"~"marketplace|pharmacy|bank|hospital|clinic"](around:${r},${coord});
+);
+out center;`
 }
 
 // GET /api/prospecting/nearby?lat=&lng=&radius=&segment=
@@ -54,8 +69,7 @@ export async function searchNearby(req: AuthRequest, res: Response) {
     return
   }
 
-  const tags = SEGMENT_TAGS[segment] || SEGMENT_TAGS.confeccao
-  const overpassQuery = buildOverpassQuery(lat, lng, radius, tags)
+  const overpassQuery = buildOverpassQuery(lat, lng, radius, segment)
 
   try {
     // Overpass API requer User-Agent — GET é mais compatível que POST para evitar 406
