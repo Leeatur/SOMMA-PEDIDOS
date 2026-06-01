@@ -44,16 +44,28 @@ export async function updateStatus(req: AuthRequest, res: Response) {
 }
 
 export async function deleteStatus(req: AuthRequest, res: Response) {
-  // Verifica se está em uso por pedidos ativos (não excluídos)
-  const { rows } = await query(
-    'SELECT COUNT(*) FROM orders WHERE status_id=$1 AND deleted_at IS NULL',
-    [req.params.id]
-  )
-  if (parseInt(rows[0].count) > 0) {
-    res.status(400).json({ error: 'Status em uso por pedidos ativos. Desative-o em vez de excluir.' }); return
+  try {
+    const id = req.params.id
+
+    // Bloqueia se houver pedidos ATIVOS (não excluídos) com este status
+    const { rows: active } = await query(
+      'SELECT COUNT(*) FROM orders WHERE status_id=$1 AND deleted_at IS NULL', [id]
+    )
+    if (parseInt(active[0].count) > 0) {
+      res.status(400).json({ error: 'Status em uso por pedidos ativos. Desative-o em vez de excluir.' })
+      return
+    }
+
+    // Limpa dependências antes de deletar
+    await query('DELETE FROM order_status_history WHERE from_status_id=$1 OR to_status_id=$1', [id])
+    await query('UPDATE orders SET status_id=NULL WHERE status_id=$1 AND deleted_at IS NOT NULL', [id])
+
+    await query('DELETE FROM order_statuses WHERE id=$1', [id])
+    res.json({ message: 'Status excluído' })
+  } catch (err) {
+    console.error('deleteStatus error:', err)
+    res.status(500).json({ error: 'Erro ao excluir status. Tente novamente.' })
   }
-  await query('DELETE FROM order_statuses WHERE id=$1', [req.params.id])
-  res.json({ message: 'Status excluído' })
 }
 
 export async function reorderStatuses(req: AuthRequest, res: Response) {
