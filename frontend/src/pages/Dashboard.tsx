@@ -80,9 +80,9 @@ export function Dashboard() {
             icon={<ShoppingCart className="h-4.5 w-4.5 text-blue-600" />}
             iconBg="bg-blue-100"
             label="Total de pedidos"
-            value={allOrders.length.toString()}
+            value={isAdmin ? allOrders.length.toString() : formatCurrency(totalValue)}
             accentColor="#3B82F6"
-            large
+            large={isAdmin}
           />
 
           <StatCard
@@ -123,7 +123,7 @@ export function Dashboard() {
       <div className="px-4 lg:px-8 mt-3 space-y-1">
 
         {/* ─── Pipeline por status ──────────────────────── */}
-        {statusCounts.length > 0 && (
+        {isAdmin && statusCounts.length > 0 && (
           <section>
             <SectionTitle>Pipeline de Pedidos</SectionTitle>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
