@@ -386,18 +386,20 @@ export function NewOrder() {
       totalPieces += itemPieces
       grossValue += item.unit_price * itemPieces
     }
-    const totalValue = grossValue * (1 - effectiveDiscountNum / 100)
+    // Desconto à vista NÃO mexe na comissão — comissão é sobre o desconto da tabela
+    const tableDiscountedValue = grossValue * (1 - discountNum / 100)
+    const totalValue = tableDiscountedValue * (1 - cashDiscountNum / 100)
     const rule = findMatchingRule(discountNum)
     return {
       totalPieces,
       grossValue,
       totalValue,
-      repCommission: rule ? totalValue * rule.rep_commission_pct / 100 : 0,
-      officeCommission: rule ? totalValue * rule.office_commission_pct / 100 : 0,
-      totalCommission: rule ? totalValue * rule.total_commission_pct / 100 : 0,
+      repCommission: rule ? tableDiscountedValue * rule.rep_commission_pct / 100 : 0,
+      officeCommission: rule ? tableDiscountedValue * rule.office_commission_pct / 100 : 0,
+      totalCommission: rule ? tableDiscountedValue * rule.total_commission_pct / 100 : 0,
       rule,
     }
-  }, [cart, effectiveDiscountNum, discountNum, findMatchingRule])
+  }, [cart, effectiveDiscountNum, discountNum, cashDiscountNum, findMatchingRule])
 
 
   function removeFromCart(productId: string) {

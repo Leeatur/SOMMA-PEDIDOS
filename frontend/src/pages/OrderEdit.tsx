@@ -6,7 +6,7 @@ import {
   Loader2, Eye, Printer, Check,
 } from 'lucide-react'
 import {
-  ordersApi, clientsApi, usersApi, statusesApi, productsApi,
+  ordersApi, clientsApi, usersApi, statusesApi, productsApi, priceTablesApi,
 } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { formatCurrency, formatOrderNumber } from '../utils/format'
@@ -217,6 +217,15 @@ export default function OrderEdit() {
     enabled: isAdmin,
   })
 
+  // Detalhes da tabela de preço (para pegar regras de desconto)
+  const { data: priceTableDetail } = useQuery({
+    queryKey: ['price-table-detail', order?.price_table_id],
+    queryFn: () => priceTablesApi.get(order!.price_table_id).then(r => r.data),
+    enabled: !!order?.price_table_id,
+  })
+  const discountRules: Array<{id:string;discount_pct:number;rep_commission_pct:number;office_commission_pct:number}> =
+    (priceTableDetail as {discount_rules?: typeof discountRules})?.discount_rules || []
+
   // ── form header ──────────────────────────────────────────────────────────────
 
   const [form, setForm] = useState({
@@ -233,6 +242,7 @@ export default function OrderEdit() {
     discount_pct: '',
     notes: '',
   })
+  const [cashDiscountPct, setCashDiscountPct] = useState('0')
 
   // ── itens editáveis ──────────────────────────────────────────────────────────
 
@@ -666,15 +676,67 @@ export default function OrderEdit() {
                 placeholder="Número na fábrica" />
             </div>
 
-            {/* Desconto (admin only) */}
-            {isAdmin && (
-              <div>
-                <label className={labelCls}>Desconto %</label>
+            {/* Desconto — picker de regras + desconto à vista */}
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className={labelCls}>Desconto</label>
+
+              {discountRules.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {discountRules.map(rule => {
+                      const currentDisc = parseFloat(form.discount_pct.replace(',', '.')) || 0
+                      const isSelected = Math.abs(currentDisc - rule.discount_pct) < 0.01
+                      const grossVal = allItems.reduce((s, it) => s + calcSubtotal(it), 0)
+                      const discountedVal = grossVal * (1 - rule.discount_pct / 100)
+                      return (
+                        <button key={rule.id} type="button"
+                          onClick={() => setForm(f => ({ ...f, discount_pct: String(rule.discount_pct) }))}
+                          className={`text-left p-3 rounded-xl border transition-colors ${
+                            isSelected ? 'border-primary bg-primary/10 ring-1 ring-primary/40' : 'border-outline-variant bg-surface-container-low hover:bg-white'
+                          }`}>
+                          <p className="font-bold text-on-surface text-[12px]">{rule.discount_pct.toFixed(1)}%</p>
+                          <p className="text-[12px] text-outline mt-0.5">{formatCurrency(discountedVal)}</p>
+                          {isAdmin && rule.rep_commission_pct > 0 && (
+                            <p className="text-[12px] text-emerald-600 mt-0.5">com. {rule.rep_commission_pct.toFixed(1)}%</p>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2 text-[12px] text-outline">
+                    <span>Ou personalizado:</span>
+                    <input className="w-24 border border-outline-variant rounded-lg px-2 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
+                      value={form.discount_pct} inputMode="decimal"
+                      onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))}
+                      placeholder="0,00" />
+                    <span>%</span>
+                  </div>
+                </div>
+              ) : (
                 <input className={inputCls} value={form.discount_pct} inputMode="decimal"
                   onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))}
                   placeholder="0,00" />
+              )}
+
+              {/* Desconto à Vista */}
+              <div className="mt-3 pt-3 border-t border-outline-variant/40">
+                <label className="text-[11px] text-outline font-medium block mb-1.5">Desconto à Vista (%)</label>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center border border-outline-variant rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary" style={{ width: 110 }}>
+                    <input type="number" min="0" max="100" step="0.5"
+                      value={parseFloat(cashDiscountPct)||0 === 0 ? '' : parseFloat(cashDiscountPct)||0}
+                      onChange={e => { const v=parseFloat(e.target.value); setCashDiscountPct(isNaN(v)?'0':String(v)) }}
+                      onFocus={e => e.target.select()}
+                      placeholder="0"
+                      className="flex-1 text-right text-[14px] font-bold text-on-surface bg-transparent focus:outline-none px-3 py-2 w-0 min-w-0" />
+                    <span className="pr-3 text-[14px] font-semibold text-outline select-none">%</span>
+                  </div>
+                  {(parseFloat(cashDiscountPct)||0) > 0 && (
+                    <span className="text-[12px] text-emerald-600 font-medium">Não afeta comissão</span>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
 
             {/* Observações */}
             <div className="sm:col-span-2 lg:col-span-3">
