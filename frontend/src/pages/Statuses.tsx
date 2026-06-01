@@ -79,9 +79,15 @@ export function Statuses() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['statuses'] }),
   })
 
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
   const deleteMut = useMutation({
     mutationFn: (id: string) => statusesApi.delete(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['statuses'] }); setDeleteOpen(null) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['statuses'] }); setDeleteOpen(null); setDeleteError(null) },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setDeleteError(msg || 'Erro ao excluir status.')
+    },
   })
 
   function openNew() {
@@ -288,11 +294,11 @@ export function Statuses() {
       {/* Delete confirm */}
       <Modal
         open={!!deleteOpen}
-        onClose={() => setDeleteOpen(null)}
+        onClose={() => { setDeleteOpen(null); setDeleteError(null) }}
         title="Excluir Status"
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setDeleteOpen(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setDeleteOpen(null); setDeleteError(null) }}>Cancelar</Button>
             <Button
               variant="danger"
               onClick={() => deleteOpen && deleteMut.mutate(deleteOpen.id)}
@@ -307,6 +313,11 @@ export function Statuses() {
           Tem certeza que deseja excluir o status{' '}
           <strong>{deleteOpen?.name}</strong>? Pedidos com este status não serão afetados, mas o status não estará mais disponível.
         </p>
+        {deleteError && (
+          <p className="mt-3 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            ⚠️ {deleteError}
+          </p>
+        )}
       </Modal>
     </div>
   )

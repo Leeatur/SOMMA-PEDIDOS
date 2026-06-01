@@ -44,10 +44,13 @@ export async function updateStatus(req: AuthRequest, res: Response) {
 }
 
 export async function deleteStatus(req: AuthRequest, res: Response) {
-  // Verifica se está em uso
-  const { rows } = await query('SELECT COUNT(*) FROM orders WHERE status_id=$1', [req.params.id])
+  // Verifica se está em uso por pedidos ativos (não excluídos)
+  const { rows } = await query(
+    'SELECT COUNT(*) FROM orders WHERE status_id=$1 AND deleted_at IS NULL',
+    [req.params.id]
+  )
   if (parseInt(rows[0].count) > 0) {
-    res.status(400).json({ error: 'Status em uso por pedidos. Desative-o em vez de excluir.' }); return
+    res.status(400).json({ error: 'Status em uso por pedidos ativos. Desative-o em vez de excluir.' }); return
   }
   await query('DELETE FROM order_statuses WHERE id=$1', [req.params.id])
   res.json({ message: 'Status excluído' })
