@@ -554,14 +554,15 @@ export function Reports() {
 
   // ─── tabs config ───────────────────────────────────────────────────────────
 
-  const TABS: { id: Tab; label: string; adminOnly?: boolean }[] = [
+  const ALL_TABS: { id: Tab; label: string; adminOnly?: boolean }[] = [
     { id: 'orders',      label: 'Visão Geral' },
     { id: 'commissions', label: 'Comissões' },
     { id: 'clients',     label: 'Clientes' },
     { id: 'products',    label: 'Produtos',            adminOnly: true },
     { id: 'collections', label: 'Curva ABC de Produtos' },
     { id: 'catalog',     label: 'Catálogo de Coleção' },
-  ].filter(t => !t.adminOnly || isAdmin)
+  ]
+  const TABS = ALL_TABS.filter(t => !t.adminOnly || isAdmin)
 
   // ─── render ────────────────────────────────────────────────────────────────
 
