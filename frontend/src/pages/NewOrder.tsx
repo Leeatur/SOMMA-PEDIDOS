@@ -1200,9 +1200,7 @@ function QuickAddModal({
   const isPack = product.type === 'pack'
 
   // Para packs: grade selecionada (cor)
-  const [selectedGradeIdx, ] = useState(0)
   const grades = product.grade_configs || []
-  const currentGrade = grades[selectedGradeIdx] || null
 
   // Para regulares: tamanhos
   const allSizes = (() => {
@@ -1219,7 +1217,8 @@ function QuickAddModal({
   const [boxes, setBoxes] = useState(cartItem?.boxes_count || 1)
   const [observation, setObservation] = useState(cartItem?.observation || '')
 
-  const totalPiecesPerBox = currentGrade ? currentGrade.total_pieces : (grades.reduce((s, g) => s + g.total_pieces, 0))
+  // Pack: total = TODAS as cores × caixas (ex: 6 cores × 6 pç/cor = 36 pç/cx)
+  const totalPiecesPerBox = grades.reduce((s, g) => s + g.total_pieces, 0) || 0
   const totalPieces = isPack
     ? totalPiecesPerBox * boxes
     : Object.values(sizes).reduce((s, v) => s + v, 0)
