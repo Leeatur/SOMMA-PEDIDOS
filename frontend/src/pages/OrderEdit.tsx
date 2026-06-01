@@ -602,14 +602,6 @@ export default function OrderEdit() {
                 placeholder="Nome do comprador" />
             </div>
 
-            {/* Transportadora */}
-            <div>
-              <label className={labelCls}>Transportadora</label>
-              <input className={inputCls} value={form.transportadora}
-                onChange={e => setForm(f => ({ ...f, transportadora: e.target.value }))}
-                placeholder="Nome da transportadora" />
-            </div>
-
             {/* Frete */}
             <div>
               <label className={labelCls}>Frete</label>
