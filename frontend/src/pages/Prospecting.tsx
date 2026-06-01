@@ -754,15 +754,29 @@ function ProspectDetail({
         )}
       </div>
 
-      <a
-        href={`https://www.google.com/maps/dir/?api=1&destination=${prospect.lat},${prospect.lng}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 w-full py-2 text-sm font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
-      >
-        <Navigation className="h-4 w-4" />
-        Como chegar
-      </a>
+      <div className="flex gap-2">
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${prospect.lat},${prospect.lng}`}
+          target="_blank" rel="noopener noreferrer"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+        >
+          <Navigation className="h-4 w-4" />
+          Maps
+        </a>
+        <a
+          href={`https://waze.com/ul?ll=${prospect.lat},${prospect.lng}&navigate=yes`}
+          target="_blank" rel="noopener noreferrer"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-[#33CCFF] border border-[#33CCFF]/30 rounded-lg hover:bg-[#33CCFF]/10 transition-colors"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1.5C6.2 1.5 1.5 6.2 1.5 12c0 3.5 1.7 6.7 4.3 8.7l-.8 2.3 2.5-.6C8.7 22.8 10.3 23 12 23c5.8 0 10.5-4.7 10.5-10.5S17.8 1.5 12 1.5zm0 19.2c-1.5 0-3-.4-4.3-1l-.3-.2-2 .5.5-1.9-.2-.3C4 16.5 3.3 14.3 3.3 12c0-4.8 3.9-8.7 8.7-8.7S20.7 7.2 20.7 12s-3.9 8.7-8.7 8.7z"/>
+            <circle cx="9" cy="14" r="1.2"/>
+            <circle cx="15" cy="14" r="1.2"/>
+            <path d="M8.5 11c.3-1.5 1.5-2.5 3.5-2.5s3.2 1 3.5 2.5"/>
+          </svg>
+          Waze
+        </a>
+      </div>
 
       {!saved ? (
         <div className="space-y-2 pt-2 border-t border-gray-100">
