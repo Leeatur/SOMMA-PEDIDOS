@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -124,6 +125,7 @@ interface SavedContact {
 }
 
 export function Prospecting() {
+  const navigate = useNavigate()
   const qc = useQueryClient()
 
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
@@ -258,7 +260,7 @@ export function Prospecting() {
   const defaultCenter: [number, number] = userPos || [-29.1684, -51.1794] // Caxias do Sul
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] lg:h-[calc(100vh-57px)]">
+    <div className="flex flex-col lg:h-[calc(100vh-57px)]" style={{ height: 'calc(100vh - 64px)' }}>
 
       {/* ── Header ── */}
       <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 flex-wrap">
@@ -266,7 +268,7 @@ export function Prospecting() {
           {/* Botão voltar (mobile) */}
           <button
             type="button"
-            onClick={() => window.history.back()}
+            onClick={() => navigate('/dashboard')}
             className="lg:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 active:scale-95 flex-shrink-0"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -352,7 +354,7 @@ export function Prospecting() {
 
       {/* ════ TAB: MAPA ════ */}
       {activeTab === 'map' && (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden lg:pb-0 pb-16">
 
           {/* Map */}
           <div className="flex-1 relative">
