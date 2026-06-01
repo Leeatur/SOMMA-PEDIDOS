@@ -194,13 +194,13 @@ export function Clients() {
     switch (id) {
       case 'name':
         return (
-          <td key={id} className="pl-3 pr-2 py-1 max-w-[220px]">
+          <td key={id} className="pl-3 pr-2 py-0.5 max-w-[220px]">
             <p className="text-[11px] font-semibold text-on-surface truncate">{c.name}</p>
           </td>
         )
       case 'trade_name':
         return (
-          <td key={id} className="px-2 py-1 max-w-[180px]">
+          <td key={id} className="px-2 py-0.5 max-w-[180px]">
             <span className="text-[11px] text-outline truncate block">
               {c.trade_name && c.trade_name !== c.name ? c.trade_name : '—'}
             </span>
@@ -208,7 +208,7 @@ export function Clients() {
         )
       case 'city':
         return (
-          <td key={id} className="px-2 py-1 max-w-[150px]">
+          <td key={id} className="px-2 py-0.5 max-w-[150px]">
             <span className="text-[11px] text-on-surface-variant truncate block">
               {[c.city, c.state].filter(Boolean).join(' / ') || '—'}
             </span>
@@ -216,37 +216,37 @@ export function Clients() {
         )
       case 'phone':
         return (
-          <td key={id} className="px-2 py-1 whitespace-nowrap">
+          <td key={id} className="px-2 py-0.5 whitespace-nowrap">
             <span className="text-[11px] text-on-surface-variant">{c.phone || '—'}</span>
           </td>
         )
       case 'whatsapp':
         return (
-          <td key={id} className="px-2 py-1 whitespace-nowrap">
+          <td key={id} className="px-2 py-0.5 whitespace-nowrap">
             <span className="text-[11px] text-on-surface-variant">{c.whatsapp || '—'}</span>
           </td>
         )
       case 'email':
         return (
-          <td key={id} className="px-2 py-1 max-w-[180px]">
+          <td key={id} className="px-2 py-0.5 max-w-[180px]">
             <span className="text-[11px] text-outline truncate block">{c.email || '—'}</span>
           </td>
         )
       case 'cnpj':
         return (
-          <td key={id} className="px-2 py-1 whitespace-nowrap">
+          <td key={id} className="px-2 py-0.5 whitespace-nowrap">
             <span className="text-[11px] text-outline/70">{c.cnpj || '—'}</span>
           </td>
         )
       case 'rep':
         return (
-          <td key={id} className="px-2 py-1 max-w-[120px]">
+          <td key={id} className="px-2 py-0.5 max-w-[120px]">
             <span className="text-[11px] text-primary font-medium truncate block">{c.rep_name || '—'}</span>
           </td>
         )
       case '_edit':
         return (
-          <td key={id} className="px-2 pr-3 py-1 text-right w-20">
+          <td key={id} className="px-2 pr-3 py-0.5 text-right w-20">
             <div className="flex items-center justify-end gap-0.5">
               <button
                 onClick={(e) => { e.stopPropagation(); openEdit(c) }}
@@ -338,13 +338,13 @@ export function Clients() {
               </p>
             </div>
           ) : (
-            <div className="p-3 space-y-1.5 pb-28">
+            <div className="p-2 space-y-1 pb-28">
               {(clients || []).map(c => {
                 const [bg, fg] = avatarColor(c.name)
                 const initials = c.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
                 return (
-                  <div key={c.id} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden active:bg-surface-container-low transition-colors">
-                    <div className="flex items-start gap-3 p-3">
+                  <div key={c.id} className="bg-white rounded-xl border border-outline-variant/40 shadow-sm overflow-hidden active:bg-surface-container-low transition-colors">
+                    <div className="flex items-start gap-2 p-2">
                       {/* Avatar */}
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-[11px]"
                            style={{ backgroundColor: bg, color: fg }}>
@@ -502,7 +502,7 @@ export function Clients() {
                     <th
                       key={col.id}
                       onClick={sortable ? () => handleSort(col.id) : undefined}
-                      className={`px-2 py-1 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${col.id === '_edit' ? 'w-10' : ''} ${sortable ? 'cursor-pointer select-none hover:text-on-surface' : ''}`}
+                      className={`px-2 py-1.5 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${col.id === '_edit' ? 'w-10' : ''} ${sortable ? 'cursor-pointer select-none hover:text-on-surface' : ''}`}
                     >
                       <span className="inline-flex items-center gap-0.5">
                         {col.label}

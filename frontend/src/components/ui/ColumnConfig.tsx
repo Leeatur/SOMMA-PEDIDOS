@@ -16,7 +16,7 @@ export interface ColState {
 }
 
 function storageKey(pageKey: string) {
-  return `somma-cols-v2-${pageKey}`
+  return `somma-cols-v3-${pageKey}`
 }
 
 export function useColumnConfig(pageKey: string, defs: ColumnDef[]) {
