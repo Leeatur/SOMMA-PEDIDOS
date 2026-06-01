@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, TrendingUp, Clock, CheckCircle, ArrowRight, Package, Plus } from 'lucide-react'
+import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus } from 'lucide-react'
 import { ordersApi, reportsApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { PageSpinner } from '../components/ui/Spinner'
-import { formatCurrency, formatDate, formatOrderNumber } from '../utils/format'
+import { formatCurrency } from '../utils/format'
 
 interface Order {
   id: string; order_number: number; client_name: string; factory_name: string
@@ -50,7 +50,6 @@ export function Dashboard() {
 
   const allOrders = orders || []
   const todayOrders = allOrders.filter(o => o.created_at.startsWith(today))
-  const recentOrders = allOrders.slice(0, 8)
   const totalValue = allOrders.reduce((s, o) => s + Number(o.total_value), 0)
   const todayValue = todayOrders.reduce((s, o) => s + Number(o.total_value), 0)
 
@@ -247,75 +246,6 @@ export function Dashboard() {
           </section>
         )}
 
-        {/* ─── Pedidos recentes ────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <SectionTitle className="mb-0">Pedidos Recentes</SectionTitle>
-            <button
-              onClick={() => navigate('/orders')}
-              className="text-[12px] text-primary font-semibold flex items-center gap-1 hover:gap-1.5 transition-all"
-            >
-              Ver todos <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {recentOrders.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-10 flex flex-col items-center text-center">
-              <div className="w-14 h-14 bg-surface-container rounded-2xl flex items-center justify-center mb-3">
-                <Package className="h-7 w-7 text-outline" />
-              </div>
-              <p className="text-[11px] text-on-surface-variant font-medium">Nenhum pedido ainda</p>
-              <button
-                onClick={() => navigate('/orders/new')}
-                className="mt-3 text-[11px] text-primary font-semibold hover:underline"
-              >
-                Criar primeiro pedido →
-              </button>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
-              {recentOrders.map((order, idx) => (
-                <div
-                  key={order.id}
-                  onClick={() => navigate(`/orders/${order.id}`)}
-                  className={`flex items-center gap-3 px-4 py-2 hover:bg-blue-50/60 active:bg-blue-50 cursor-pointer transition-colors ${
-                    idx > 0 ? 'border-t border-gray-50' : ''
-                  }`}
-                >
-                  <div
-                    className="w-1 h-10 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: order.status_color || '#c3c6d7' }}
-                  />
-                  <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0">
-                    <ShoppingCart className="h-[17px] w-[17px] text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-[12px] font-bold text-primary font-mono">{formatOrderNumber(order.order_number)}</span>
-                      <span className="text-outline/40">·</span>
-                      <span className="text-[11px] font-semibold text-on-surface truncate">{order.client_name}</span>
-                    </div>
-                    <p className="text-[12px] text-outline truncate">{order.factory_name} · {formatDate(order.created_at)}</p>
-                  </div>
-                  <div className="flex-shrink-0 text-right space-y-1">
-                    {order.status_name && (
-                      <span
-                        className="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: (order.status_color || '#737686') + '22',
-                          color: order.status_color || '#737686',
-                        }}
-                      >
-                        {order.status_name}
-                      </span>
-                    )}
-                    <p className="text-[11px] font-bold text-on-surface">{formatCurrency(order.total_value)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
       </div>
     </div>
   )
