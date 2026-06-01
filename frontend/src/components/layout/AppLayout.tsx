@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useRegisterSW } from 'virtual:pwa-register/react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -94,9 +93,6 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background flex">
-
-      {/* ── PWA update banner — admin only ── */}
-      {isAdmin && <PWAUpdateBanner />}
 
       {/* ── Offline banner ── */}
       {!online && (
@@ -322,22 +318,3 @@ export function AppLayout() {
   )
 }
 
-// ── PWA Update Banner ─────────────────────────────────────────────────────────
-
-function PWAUpdateBanner() {
-  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
-
-  if (!needRefresh) return null
-
-  return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[#1C0A4A] text-white text-[12px] font-semibold px-5 py-3 rounded-2xl shadow-2xl border border-white/10 animate-fade-in">
-      <span>🚀 Nova versão disponível</span>
-      <button
-        onClick={() => updateServiceWorker(true)}
-        className="bg-primary hover:bg-primary/80 text-white text-[11px] font-bold px-3 py-1 rounded-lg transition-colors"
-      >
-        Atualizar agora
-      </button>
-    </div>
-  )
-}
