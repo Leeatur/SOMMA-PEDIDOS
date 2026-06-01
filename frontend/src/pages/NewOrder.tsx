@@ -310,6 +310,7 @@ export function NewOrder() {
   // Step 4: Review
   const [discountPct, setDiscountPct] = useState<string>('0')
   const [customDiscount, setCustomDiscount] = useState(false)
+  const [cashDiscountPct, setCashDiscountPct] = useState<string>('0') // desconto à vista
   const [notes, setNotes] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('')
   const [freightType, setFreightType] = useState('CIF')
@@ -357,6 +358,8 @@ export function NewOrder() {
 
   // Calculations
   const discountNum = parseDecimal(discountPct) || 0
+  const cashDiscountNum = parseDecimal(cashDiscountPct) || 0
+  const effectiveDiscountNum = discountNum + cashDiscountNum   // total = tabela + à vista
   const discountRules = tableDetail?.discount_rules || []
 
   const findMatchingRule = useCallback((discount: number): DiscountRule | null => {
@@ -383,7 +386,7 @@ export function NewOrder() {
       totalPieces += itemPieces
       grossValue += item.unit_price * itemPieces
     }
-    const totalValue = grossValue * (1 - discountNum / 100)
+    const totalValue = grossValue * (1 - effectiveDiscountNum / 100)
     const rule = findMatchingRule(discountNum)
     return {
       totalPieces,
@@ -394,7 +397,7 @@ export function NewOrder() {
       totalCommission: rule ? totalValue * rule.total_commission_pct / 100 : 0,
       rule,
     }
-  }, [cart, discountNum, findMatchingRule])
+  }, [cart, effectiveDiscountNum, discountNum, findMatchingRule])
 
 
   function removeFromCart(productId: string) {
@@ -434,7 +437,7 @@ export function NewOrder() {
           unit_price: c.unit_price,
           sizes: c.product.type === 'regular' ? c.sizes : undefined,
         })),
-        discount_pct: discountNum,
+        discount_pct: effectiveDiscountNum,
         notes: notes || undefined,
         payment_terms: paymentTerms || undefined,
         freight_type: freightType || 'CIF',
@@ -942,7 +945,7 @@ export function NewOrder() {
                   const totalPieces = isRegular
                     ? Object.values(item.sizes).reduce((s, v) => s + (v || 0), 0)
                     : item.boxes_count * piecesPerBox
-                  const subtotal = item.unit_price * totalPieces * (1 - discountNum / 100)
+                  const subtotal = item.unit_price * totalPieces * (1 - effectiveDiscountNum / 100)
                   return (
                     <div key={item.product.id} className="bg-white rounded-xl border border-outline-variant p-3">
                       <div className="flex items-start justify-between gap-2">
@@ -1114,6 +1117,33 @@ export function NewOrder() {
                 )}
               </div>
 
+              {/* Desconto à Vista */}
+              <div className="p-3 border-b border-outline-variant/50">
+                <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">
+                  Desconto à Vista (%)
+                </h3>
+                <div className="flex items-center gap-3">
+                  <div className="w-36">
+                    <MaskedInput
+                      mask="percent"
+                      value={cashDiscountPct}
+                      onChangeValue={(v) => setCashDiscountPct(v)}
+                      placeholder="0,00%"
+                    />
+                  </div>
+                  {cashDiscountNum > 0 && (
+                    <div className="text-[12px] text-emerald-700 font-medium">
+                      Desconto à vista: −{formatCurrency(totals.grossValue * cashDiscountNum / 100)}
+                    </div>
+                  )}
+                  {effectiveDiscountNum > 0 && cashDiscountNum > 0 && (
+                    <div className="text-[12px] text-primary font-semibold">
+                      Total desconto: {formatPct(effectiveDiscountNum)}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Resumo financeiro */}
               <div className="p-3 space-y-1 text-[12px] bg-surface-container-low">
                 <div className="flex justify-between text-outline">
@@ -1122,8 +1152,14 @@ export function NewOrder() {
                 </div>
                 {discountNum > 0 && (
                   <div className="flex justify-between text-orange-600">
-                    <span>Desconto ({formatPct(discountNum)}):</span>
+                    <span>Desconto tabela ({formatPct(discountNum)}):</span>
                     <span>−{formatCurrency(totals.grossValue * discountNum / 100)}</span>
+                  </div>
+                )}
+                {cashDiscountNum > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Desconto à vista ({formatPct(cashDiscountNum)}):</span>
+                    <span>−{formatCurrency(totals.grossValue * cashDiscountNum / 100)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-on-surface text-[12px] pt-1.5 border-t border-outline-variant">
