@@ -276,9 +276,9 @@ export function OrderPrint() {
         .company-name { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
         .logo-area { width: 160px; text-align: right; flex-shrink: 0; }
         .logo-area img { max-width: 80px; max-height: 60px; object-fit: contain; }
-        .items-table { table-layout: fixed; }
-        .items-table th { font-size: 10px; padding: 2px 3px; white-space: nowrap; overflow: hidden; }
-        .items-table td { font-size: 10px; padding: 2px 3px; white-space: nowrap; overflow: hidden; }
+        .items-table { table-layout: auto; width: 100%; }
+        .items-table th { font-size: 9px; padding: 1px 2px; white-space: nowrap; }
+        .items-table td { font-size: 9px; padding: 1px 2px; white-space: nowrap; }
         .items-table .ref { font-weight: bold; }
         .items-table .num { text-align: right; }
         .items-table .ctr { text-align: center; }
@@ -385,16 +385,16 @@ export function OrderPrint() {
         <table className="items-table" style={{ marginTop: 6 }}>
           <thead>
             <tr>
-              <th style={{ width: 18 }}>#</th>
-              <th style={{ width: 68 }}>Cód.</th>
-              <th style={{ width: 130 }}>Produto</th>
-              <th style={{ width: 105 }}>Cor</th>
-              {sizes.map(s => <th key={s} style={{ width: 18 }}>{s}</th>)}
-              <th style={{ width: 22 }}>Qtde</th>
-              <th style={{ width: 42 }}>R$ Tab.</th>
-              <th style={{ width: 46 }}>R$ c/Desc.</th>
-              <th style={{ width: 28 }}>Desc%</th>
-              <th style={{ width: 48 }}>R$ Total</th>
+              <th style={{ width: '2%' }}>#</th>
+              <th style={{ width: '8%' }}>Cód.</th>
+              <th style={{ width: '15%' }}>Produto</th>
+              <th style={{ width: '10%' }}>Cor</th>
+              {sizes.map(s => <th key={s}>{s}</th>)}
+              <th style={{ width: '4%' }}>Qtde</th>
+              <th style={{ width: '6%' }}>R$ Tab.</th>
+              <th style={{ width: '7%' }}>R$ c/Desc.</th>
+              <th style={{ width: '4%' }}>Desc%</th>
+              <th style={{ width: '7%' }}>R$ Total</th>
             </tr>
           </thead>
           <tbody>
