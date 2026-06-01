@@ -181,7 +181,7 @@ export function Dashboard() {
                           className="hover:bg-primary/5 cursor-pointer transition-colors"
                         >
                           <td className="px-3 py-1.5 whitespace-nowrap text-outline/70">
-                            {new Date(r.data_venda + 'T00:00:00').toLocaleDateString('pt-BR')}
+                            {(() => { const s = String(r.data_venda).substring(0,10); const [y,m,d] = s.split('-'); return `${d}/${m}/${y}` })()}
                           </td>
                           <td className="px-3 py-1.5 whitespace-nowrap font-semibold text-primary">
                             {r.vendedor}

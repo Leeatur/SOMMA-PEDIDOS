@@ -281,6 +281,7 @@ export async function catalogReport(req: AuthRequest, res: Response) {
       p.base_price,
       p.type,
       p.observation,
+      p.image_url,
       pt.id           AS price_table_id,
       pt.name         AS table_name,
       pt.collection,

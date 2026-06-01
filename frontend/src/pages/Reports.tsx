@@ -83,7 +83,7 @@ interface CatalogGradeConfig { color: string | null; sizes: Record<string, numbe
 interface CatalogProduct {
   product_id: string; reference: string; product_name: string | null; model: string | null
   size_range: string | null; base_price: number; type: 'regular' | 'pack'
-  observation: string | null; grade_configs: CatalogGradeConfig[]
+  observation: string | null; image_url: string | null; grade_configs: CatalogGradeConfig[]
 }
 interface CatalogRow {
   price_table_id: string; factory_name: string; table_name: string
@@ -232,54 +232,49 @@ function CatalogTab({ data }: { data: CatalogRow[] }) {
               <span className="text-[11px] text-outline/70 flex-shrink-0">{row.products.length} ref.</span>
             </button>
 
-            {/* Table */}
+            {/* Product Cards */}
             {isOpen && (
-              <div className="border-t border-outline-variant/50 overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="bg-surface-container-low">
-                    <tr>
-                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-left w-24">Referência</th>
-                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-left">Nome / Modelo</th>
-                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-left">Tamanhos</th>
-                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-right w-28">Preço</th>
-                      <th className="px-3 py-1 text-[11px] font-semibold text-outline text-left w-32">Tipo</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {row.products.map(p => {
-                      const sizes = catGetSizes(p)
-                      return (
-                        <tr key={p.product_id} className="hover:bg-primary/10/30">
-                          <td className="px-3 py-1.5">
-                            <span className="font-mono text-[11px] font-bold text-on-surface">{p.reference}</span>
-                          </td>
-                          <td className="px-3 py-1.5">
-                            <p className="text-[11px] text-on-surface leading-tight">{p.product_name || '—'}</p>
-                            {p.model && <p className="text-[11px] text-outline/70">{p.model}</p>}
-                          </td>
-                          <td className="px-3 py-1.5">
-                            <div className="flex flex-wrap gap-1">
-                              {sizes.map(s => (
-                                <span key={s} className="px-1.5 py-0.5 text-[11px] font-semibold bg-primary/10 text-primary rounded border border-indigo-100">
-                                  {s}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-3 py-1.5 text-right">
-                            <span className="text-[11px] font-bold text-on-surface">{fmtR(p.base_price)}</span>
-                          </td>
-                          <td className="px-3 py-1.5">
+              <div className="border-t border-outline-variant/50 p-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                  {row.products.map(p => {
+                    const sizes = catGetSizes(p)
+                    return (
+                      <div key={p.product_id} className="bg-white border border-outline-variant/60 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                        {/* Imagem */}
+                        <div className="aspect-square bg-surface-container-low flex items-center justify-center overflow-hidden">
+                          {p.image_url
+                            ? <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" loading="lazy" />
+                            : <div className="flex flex-col items-center gap-1 text-outline/30">
+                                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                <span className="text-[9px]">Sem foto</span>
+                              </div>
+                          }
+                        </div>
+                        {/* Info */}
+                        <div className="p-2">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="font-mono text-[10px] font-bold text-on-surface truncate">{p.reference}</span>
                             {p.type === 'pack'
-                              ? <span className="px-2 py-0.5 text-[11px] font-semibold bg-orange-100 text-orange-700 rounded-full">Pack</span>
-                              : <span className="px-2 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-600 rounded-full">Regular</span>
+                              ? <span className="text-[9px] font-bold bg-orange-100 text-orange-700 px-1 rounded flex-shrink-0">PACK</span>
+                              : <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-1 rounded flex-shrink-0">REG</span>
                             }
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                          </div>
+                          {p.product_name && <p className="text-[10px] text-on-surface-variant leading-tight line-clamp-2">{p.product_name}</p>}
+                          {p.model && <p className="text-[9px] text-outline mt-0.5 truncate">{p.model}</p>}
+                          <p className="text-[11px] font-bold text-primary mt-1">{fmtR(p.base_price)}</p>
+                          {sizes.length > 0 && (
+                            <div className="flex flex-wrap gap-0.5 mt-1">
+                              {sizes.slice(0, 8).map(s => (
+                                <span key={s} className="px-1 py-0.5 text-[9px] font-semibold bg-primary/10 text-primary rounded">{s}</span>
+                              ))}
+                              {sizes.length > 8 && <span className="text-[9px] text-outline">+{sizes.length - 8}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -564,7 +559,6 @@ export function Reports() {
     { id: 'orders',      label: 'Visão Geral' },
     { id: 'commissions', label: 'Comissões' },
     { id: 'clients',     label: 'Clientes' },
-    { id: 'products',    label: 'Produtos',            adminOnly: true },
     { id: 'collections', label: 'Curva ABC de Produtos' },
     { id: 'catalog',     label: 'Catálogo de Coleção' },
   ]

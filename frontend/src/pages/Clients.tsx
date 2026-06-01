@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Users, Plus, Edit2, Search, Upload, Trash2, X } from 'lucide-react'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
@@ -82,6 +82,31 @@ export function Clients() {
     queryFn: () => clientsApi.list(debouncedSearch || undefined).then((r) => r.data),
     retry: 1,
   })
+
+  const [sortCol, setSortCol] = useState<string>('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  function handleSort(col: string) {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+  }
+
+  const sortedClients = useMemo(() => {
+    if (!clients) return []
+    const colMap: Record<string, (c: Client) => string> = {
+      name:       c => (c.name || '').toLowerCase(),
+      trade_name: c => (c.trade_name || c.name || '').toLowerCase(),
+      city:       c => (c.city || '').toLowerCase(),
+      phone:      c => (c.phone || '').toLowerCase(),
+      rep:        c => (c.rep_name || '').toLowerCase(),
+    }
+    const fn = colMap[sortCol]
+    if (!fn) return clients
+    return [...clients].sort((a, b) => {
+      const cmp = fn(a) < fn(b) ? -1 : fn(a) > fn(b) ? 1 : 0
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [clients, sortCol, sortDir])
 
   const { data: users } = useQuery<User[]>({
     queryKey: ['users'],
@@ -470,18 +495,26 @@ export function Clients() {
           <table className="w-full min-w-[360px] text-left">
             <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
               <tr>
-                {visibleCols.map(col => (
-                  <th
-                    key={col.id}
-                    className={`px-2 py-1 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${col.id === '_edit' ? 'w-10' : ''}`}
-                  >
-                    {col.label}
-                  </th>
-                ))}
+                {visibleCols.map(col => {
+                  const sortable = ['name','trade_name','city','phone','rep'].includes(col.id)
+                  const active = sortCol === col.id
+                  return (
+                    <th
+                      key={col.id}
+                      onClick={sortable ? () => handleSort(col.id) : undefined}
+                      className={`px-2 py-1 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${col.id === '_edit' ? 'w-10' : ''} ${sortable ? 'cursor-pointer select-none hover:text-on-surface' : ''}`}
+                    >
+                      <span className="inline-flex items-center gap-0.5">
+                        {col.label}
+                        {sortable && <span className={`text-[10px] ${active ? 'text-primary' : 'text-outline/30'}`}>{active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>}
+                      </span>
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
-              {(clients || []).map(c => (
+              {sortedClients.map(c => (
                 <tr key={c.id} className="border-b border-outline-variant/50 hover:bg-primary/5 transition-colors">
                   {visibleCols.map(col => renderClientCell(col.id, c))}
                 </tr>

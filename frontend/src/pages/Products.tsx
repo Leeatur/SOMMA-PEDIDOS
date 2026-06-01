@@ -740,6 +740,32 @@ export function Products() {
       }).then(r => r.data),
   })
 
+  const [sortCol, setSortCol] = useState<string>('reference')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  function handleSort(col: string) {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+  }
+
+  const sortedProducts = useMemo(() => {
+    if (!products) return []
+    const colMap: Record<string, (p: Product) => string | number> = {
+      reference:   p => p.reference?.toLowerCase() ?? '',
+      name:        p => (p.product_name || p.model || '').toLowerCase(),
+      price:       p => p.base_price ?? 0,
+      factory:     p => (p.factory_name || '').toLowerCase(),
+      table:       p => (p.price_table_name || '').toLowerCase(),
+    }
+    const fn = colMap[sortCol]
+    if (!fn) return products
+    return [...products].sort((a, b) => {
+      const av = fn(a), bv = fn(b)
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [products, sortCol, sortDir])
+
   const { orderedDefs, config, save, reset } = useColumnConfig('products', PRODUCT_COL_DEFS)
   const visibleCols = orderedDefs.filter(c => c.visible)
 
@@ -939,18 +965,26 @@ export function Products() {
           <table className="w-full text-left">
             <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
               <tr>
-                {visibleCols.map(col => (
-                  <th
-                    key={col.id}
-                    className={`px-2 py-1.5 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''}`}
-                  >
-                    {col.label}
-                  </th>
-                ))}
+                {visibleCols.map(col => {
+                  const sortable = ['reference','name','price','factory','table'].includes(col.id)
+                  const active = sortCol === col.id
+                  return (
+                    <th
+                      key={col.id}
+                      onClick={sortable ? () => handleSort(col.id) : undefined}
+                      className={`px-2 py-1.5 text-[11px] font-semibold text-outline first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''} ${sortable ? 'cursor-pointer select-none hover:text-on-surface' : ''}`}
+                    >
+                      <span className="inline-flex items-center gap-0.5">
+                        {col.label}
+                        {sortable && <span className={`text-[10px] ${active ? 'text-primary' : 'text-outline/30'}`}>{active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>}
+                      </span>
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
-              {(products || []).map(p => (
+              {sortedProducts.map(p => (
                 <ProductRow key={p.id} p={p} visibleCols={visibleCols} onOpenDetail={setDetailProduct} />
               ))}
             </tbody>
