@@ -89,11 +89,11 @@ export function Dashboard() {
             icon={<Clock className="h-4.5 w-4.5 text-emerald-600" />}
             iconBg="bg-emerald-100"
             label="Pedidos hoje"
-            value={todayOrders.length.toString()}
+            value={isAdmin ? todayOrders.length.toString() : formatCurrency(todayValue)}
             badge="HOJE"
             badgeColor="emerald"
             accentColor="#10B981"
-            large
+            large={isAdmin}
           />
 
           {isAdmin && (
