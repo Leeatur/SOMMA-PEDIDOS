@@ -219,12 +219,13 @@ export default function OrderEdit() {
 
   // Detalhes da tabela de preço (para pegar regras de desconto)
   const { data: priceTableDetail } = useQuery({
-    queryKey: ['price-table-detail', order?.price_table_id],
+    queryKey: ['price-table-detail-edit', order?.price_table_id],
     queryFn: () => priceTablesApi.get(order!.price_table_id).then(r => r.data),
     enabled: !!order?.price_table_id,
   })
-  const discountRules: Array<{id:string;discount_pct:number;rep_commission_pct:number;office_commission_pct:number}> =
-    (priceTableDetail as {discount_rules?: typeof discountRules})?.discount_rules || []
+  interface DiscountRule { id: string; discount_pct: number; rep_commission_pct: number; office_commission_pct: number }
+  const discountRules: DiscountRule[] =
+    (priceTableDetail as { discount_rules?: DiscountRule[] } | undefined)?.discount_rules || []
 
   // ── form header ──────────────────────────────────────────────────────────────
 
@@ -724,7 +725,7 @@ export default function OrderEdit() {
                 <div className="flex items-center gap-2">
                   <div className="flex items-center border border-outline-variant rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary" style={{ width: 110 }}>
                     <input type="number" min="0" max="100" step="0.5"
-                      value={parseFloat(cashDiscountPct)||0 === 0 ? '' : parseFloat(cashDiscountPct)||0}
+                      value={(parseFloat(cashDiscountPct) || 0) === 0 ? '' : (parseFloat(cashDiscountPct) || 0)}
                       onChange={e => { const v=parseFloat(e.target.value); setCashDiscountPct(isNaN(v)?'0':String(v)) }}
                       onFocus={e => e.target.select()}
                       placeholder="0"
