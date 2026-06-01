@@ -130,10 +130,10 @@ export function Statuses() {
     <div className="pb-24 lg:pb-0">
       {/* Header */}
       <div className="bg-white border-b border-outline-variant px-5 py-2.5 lg:px-8">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
           <div>
             <h1 className="font-display text-lg font-bold text-on-surface">Status de Pedidos</h1>
-            <p className="text-[13px] text-outline mt-0.5">{list.length} status configurados</p>
+            <p className="text-[12px] text-outline mt-0.5">{list.length} status configurados</p>
           </div>
           <Button onClick={openNew} icon={<Plus className="h-4 w-4" />} size="sm">
             Novo Status
@@ -141,7 +141,7 @@ export function Statuses() {
         </div>
       </div>
 
-      <div className="px-4 py-3 lg:px-8 max-w-2xl mx-auto">
+      <div className="px-4 py-3 lg:px-8 w-full">
         {list.length === 0 ? (
           <EmptyState
             icon={<GripVertical className="h-8 w-8" />}
@@ -165,13 +165,13 @@ export function Statuses() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mt-0.5">
                       {s.is_initial && (
-                        <span className="text-[13px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">inicial</span>
+                        <span className="text-[12px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">inicial</span>
                       )}
                       {s.is_final && (
-                        <span className="text-[13px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full">final</span>
+                        <span className="text-[12px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full">final</span>
                       )}
                       {!s.active && (
-                        <span className="text-[13px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full">inativo</span>
+                        <span className="text-[12px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full">inativo</span>
                       )}
                     </div>
                   </div>
@@ -232,7 +232,7 @@ export function Statuses() {
 
           {/* Color picker */}
           <div>
-            <label className="block text-[13px] font-medium text-on-surface-variant mb-2">Cor</label>
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-2">Cor</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {PRESET_COLORS.map((c) => (
                 <button
@@ -256,7 +256,7 @@ export function Statuses() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[13px] text-outline">Preview:</span>
+              <span className="text-[12px] text-outline">Preview:</span>
               <StatusBadge name={form.name || 'Status'} color={form.color} />
             </div>
           </div>
@@ -271,8 +271,8 @@ export function Statuses() {
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_initial ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <p className="text-[13px] font-medium text-on-surface-variant">Status inicial</p>
-                <p className="text-[13px] text-outline">Aplicado automaticamente a novos pedidos</p>
+                <p className="text-[12px] font-medium text-on-surface-variant">Status inicial</p>
+                <p className="text-[12px] text-outline">Aplicado automaticamente a novos pedidos</p>
               </div>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -283,8 +283,8 @@ export function Statuses() {
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${form.is_final ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <p className="text-[13px] font-medium text-on-surface-variant">Status final</p>
-                <p className="text-[13px] text-outline">Indica pedidos concluídos/cancelados</p>
+                <p className="text-[12px] font-medium text-on-surface-variant">Status final</p>
+                <p className="text-[12px] text-outline">Indica pedidos concluídos/cancelados</p>
               </div>
             </label>
           </div>
@@ -309,12 +309,12 @@ export function Statuses() {
           </div>
         }
       >
-        <p className="text-[13px] text-on-surface-variant">
+        <p className="text-[12px] text-on-surface-variant">
           Tem certeza que deseja excluir o status{' '}
           <strong>{deleteOpen?.name}</strong>? Pedidos com este status não serão afetados, mas o status não estará mais disponível.
         </p>
         {deleteError && (
-          <p className="mt-3 text-[13px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <p className="mt-3 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
             ⚠️ {deleteError}
           </p>
         )}

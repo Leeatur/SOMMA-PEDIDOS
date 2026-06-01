@@ -155,9 +155,9 @@ function GradePreview({ configs, boxCount }: { configs: GradeConfig[]; boxCount:
         const sizes = sortSizes(Object.keys(gc.sizes))
         return (
           <div key={i}>
-            {gc.color && <p className="text-[13px] font-medium text-on-surface-variant">{gc.color}</p>}
+            {gc.color && <p className="text-[12px] font-medium text-on-surface-variant">{gc.color}</p>}
             <div className="overflow-x-auto scrollbar-hide">
-              <table className="min-w-max text-[13px] border border-outline-variant rounded-lg overflow-hidden">
+              <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
                 <thead className="bg-surface-container-low">
                   <tr>
                     {sizes.map((s) => (
@@ -199,16 +199,16 @@ function SizeGrid({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[13px] font-medium text-on-surface-variant">Qtd por tamanho:</span>
+        <span className="text-[12px] font-medium text-on-surface-variant">Qtd por tamanho:</span>
         <button
           onClick={onRemove}
-          className="text-red-400 hover:text-red-600 flex items-center gap-1 text-[13px]"
+          className="text-red-400 hover:text-red-600 flex items-center gap-1 text-[12px]"
         >
           <Trash2 className="h-3 w-3" /> Remover
         </button>
       </div>
       <div className="overflow-x-auto">
-        <table className="text-[13px] size-grid-table">
+        <table className="text-[12px] size-grid-table">
           <thead>
             <tr>
               {sizeKeys.map(s => (
@@ -239,11 +239,11 @@ function SizeGrid({
                         if (next) { e.preventDefault(); next.focus() }
                       }
                     }}
-                    className="w-9 h-7 text-center border border-outline-variant rounded text-[13px] font-bold focus:outline-none focus:ring-1 focus:ring-primary focus:border-indigo-400 bg-white"
+                    className="w-9 h-7 text-center border border-outline-variant rounded text-[12px] font-bold focus:outline-none focus:ring-1 focus:ring-primary focus:border-indigo-400 bg-white"
                   />
                 </td>
               ))}
-              <td className="px-1 pl-2 text-center font-bold text-primary text-[13px]">{total}</td>
+              <td className="px-1 pl-2 text-center font-bold text-primary text-[12px]">{total}</td>
             </tr>
           </tbody>
         </table>
@@ -256,11 +256,11 @@ function SizeGrid({
 function SizeDisplay({ sizes }: { sizes: Record<string, number> }) {
   const sizeKeys = sortSizes(Object.keys(sizes).filter(s => (sizes[s] || 0) > 0))
   const total = Object.values(sizes).reduce((s, v) => s + (v || 0), 0)
-  if (sizeKeys.length === 0) return <p className="text-[13px] text-outline/70 italic">Nenhum tamanho preenchido</p>
+  if (sizeKeys.length === 0) return <p className="text-[12px] text-outline/70 italic">Nenhum tamanho preenchido</p>
 
   return (
     <div className="overflow-x-auto scrollbar-hide">
-      <table className="min-w-max text-[13px] border border-outline-variant rounded-lg overflow-hidden">
+      <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
         <thead className="bg-surface-container-low">
           <tr>
             {sizeKeys.map(s => (
@@ -478,7 +478,7 @@ export function NewOrder() {
     <div className="pb-24 lg:pb-0 min-h-screen bg-surface-container-low">
       {/* Header */}
       <div className="bg-white border-b border-outline-variant px-4 py-2 lg:px-8 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto">
+        <div className="w-full">
           <div className="flex items-center gap-3 mb-2">
             <button
               onClick={() => {
@@ -496,7 +496,7 @@ export function NewOrder() {
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-[13px] font-bold text-on-surface">Novo Pedido</h1>
+            <h1 className="text-[12px] font-bold text-on-surface">Novo Pedido</h1>
           </div>
 
           {/* Step indicator */}
@@ -504,14 +504,14 @@ export function NewOrder() {
             {STEPS.map((s, i) => (
               <div key={i} className="flex items-center flex-1">
                 <div className={`flex-1 flex flex-col items-center gap-1 ${i <= step ? 'text-primary' : 'text-outline/50'}`}>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold transition-colors ${
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold transition-colors ${
                     i < step ? 'bg-primary text-white' :
                     i === step ? 'bg-primary/10 text-primary ring-2 ring-blue-300' :
                     'bg-surface-container text-outline/70'
                   }`}>
                     {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
                   </div>
-                  <span className="text-[13px] font-medium hidden sm:block">{s.label}</span>
+                  <span className="text-[12px] font-medium hidden sm:block">{s.label}</span>
                 </div>
                 {i < STEPS.length - 1 && (
                   <div className={`h-0.5 flex-1 transition-colors ${i < step ? 'bg-primary' : 'bg-surface-container-high'}`} />
@@ -522,18 +522,18 @@ export function NewOrder() {
         </div>
       </div>
 
-      <div className="px-4 py-3 lg:px-8 max-w-2xl mx-auto">
+      <div className="px-4 py-3 lg:px-8 w-full">
         {/* STEP 0: Select Client */}
         {step === 0 && (
           <div className="space-y-1">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-[13px] font-semibold text-on-surface mb-1">Selecionar Cliente</h2>
-                <p className="text-[13px] text-outline">Escolha o cliente para este pedido</p>
+                <h2 className="text-[12px] font-semibold text-on-surface mb-1">Selecionar Cliente</h2>
+                <p className="text-[12px] text-outline">Escolha o cliente para este pedido</p>
               </div>
               <button
                 onClick={() => setShowNewClient(true)}
-                className="flex-shrink-0 flex items-center gap-1.5 text-[13px] font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-3 py-1.5 transition-colors"
+                className="flex-shrink-0 flex items-center gap-1.5 text-[12px] font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-3 py-1.5 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Novo Cliente
@@ -564,13 +564,13 @@ export function NewOrder() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <span className="text-[13px] font-bold text-emerald-700">
+                        <span className="text-[12px] font-bold text-emerald-700">
                           {c.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-on-surface truncate">{c.name}</p>
-                        {c.city && <p className="text-[13px] text-outline">{c.city}</p>}
+                        {c.city && <p className="text-[12px] text-outline">{c.city}</p>}
                       </div>
                       <ChevronRight className="h-4 w-4 text-outline/50 flex-shrink-0" />
                     </div>
@@ -578,10 +578,10 @@ export function NewOrder() {
                 ))}
                 {clients?.length === 0 && (
                   <div className="text-center py-6 space-y-1.5">
-                    <p className="text-[13px] text-outline">Nenhum cliente encontrado</p>
+                    <p className="text-[12px] text-outline">Nenhum cliente encontrado</p>
                     <button
                       onClick={() => setShowNewClient(true)}
-                      className="inline-flex items-center gap-2 text-[13px] font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-4 py-1 transition-colors"
+                      className="inline-flex items-center gap-2 text-[12px] font-semibold text-primary bg-primary/10 hover:bg-primary/10 border border-primary/30 rounded-lg px-4 py-1 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                       Cadastrar novo cliente
@@ -607,9 +607,9 @@ export function NewOrder() {
         {step === 1 && (
           <div className="space-y-1">
             <div>
-              <h2 className="text-[13px] font-semibold text-on-surface mb-1">Tabela de Preços</h2>
+              <h2 className="text-[12px] font-semibold text-on-surface mb-1">Tabela de Preços</h2>
               {selectedClient && (
-                <p className="text-[13px] text-outline">Cliente: <strong>{selectedClient.name}</strong></p>
+                <p className="text-[12px] text-outline">Cliente: <strong>{selectedClient.name}</strong></p>
               )}
             </div>
 
@@ -654,7 +654,7 @@ export function NewOrder() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-on-surface truncate">{t.name}</p>
-                        <p className="text-[13px] text-outline">{t.factory_name}</p>
+                        <p className="text-[12px] text-outline">{t.factory_name}</p>
                         <div className="flex gap-1.5 mt-1 flex-wrap">
                           {t.collection && <Badge variant="info">{t.collection}</Badge>}
                           {t.season && <Badge variant="default">{t.season}</Badge>}
@@ -666,7 +666,7 @@ export function NewOrder() {
                   </Card>
                 ))}
                 {priceTables?.length === 0 && (
-                  <p className="text-center text-[13px] text-outline py-2.5">Nenhuma tabela disponível</p>
+                  <p className="text-center text-[12px] text-outline py-2.5">Nenhuma tabela disponível</p>
                 )}
               </div>
             )}
@@ -678,8 +678,8 @@ export function NewOrder() {
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-[13px] font-semibold text-on-surface">Produtos</h2>
-                <p className="text-[13px] text-outline">{selectedTable?.name} — {selectedTable?.factory_name}</p>
+                <h2 className="text-[12px] font-semibold text-on-surface">Produtos</h2>
+                <p className="text-[12px] text-outline">{selectedTable?.name} — {selectedTable?.factory_name}</p>
               </div>
               {cart.length > 0 && (
                 <div className="flex items-center gap-2">
@@ -704,7 +704,7 @@ export function NewOrder() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="border border-outline-variant rounded-lg px-2 py-1.5 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                className="border border-outline-variant rounded-lg px-2 py-1.5 text-[12px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
                 <option value="">Todos</option>
                 <option value="regular">Regular</option>
@@ -744,21 +744,21 @@ export function NewOrder() {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-1.5">
-                            <p className="font-bold text-on-surface text-[13px]">{p.reference}</p>
-                            <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[13px] flex-shrink-0">
+                            <p className="font-bold text-on-surface text-[12px]">{p.reference}</p>
+                            <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[12px] flex-shrink-0">
                               {p.type === 'pack' ? 'PACK' : 'REG'}
                             </Badge>
                           </div>
-                          {p.product_name && <p className="text-[13px] text-outline truncate">{p.product_name}</p>}
+                          {p.product_name && <p className="text-[12px] text-outline truncate">{p.product_name}</p>}
                           <p className="text-[12px] text-primary/70 font-medium truncate">{selectedTable?.name}</p>
-                          <p className="text-[13px] font-semibold text-primary">
-                            R$ {Number(p.base_price).toFixed(2)}<span className="text-[13px] text-outline/70 font-normal">/pç</span>
+                          <p className="text-[12px] font-semibold text-primary">
+                            R$ {Number(p.base_price).toFixed(2)}<span className="text-[12px] text-outline/70 font-normal">/pç</span>
                           </p>
                           {/* Para packs: exibe pç/cx com toggle de grade */}
                           {!isRegular && totalPiecesPerBox > 0 && (
                             <button
                               onClick={() => setExpandedGrade(isExpanded ? null : p.id)}
-                              className="flex items-center gap-1 text-[13px] text-outline/70 hover:text-on-surface-variant mt-0.5"
+                              className="flex items-center gap-1 text-[12px] text-outline/70 hover:text-on-surface-variant mt-0.5"
                             >
                               <Info className="h-3 w-3" />
                               {totalPiecesPerBox} pç/cx
@@ -766,7 +766,7 @@ export function NewOrder() {
                           )}
                           {/* Para regulares: exibe range de tamanhos */}
                           {isRegular && p.grade_configs && p.grade_configs.length > 0 && (
-                            <p className="text-[13px] text-outline/70 mt-0.5">
+                            <p className="text-[12px] text-outline/70 mt-0.5">
                               Tam: {sortSizes(Object.keys(p.grade_configs[0].sizes)).join(' · ')}
                             </p>
                           )}
@@ -778,7 +778,7 @@ export function NewOrder() {
                             isRegular ? (
                               /* Regular: mostra total de peças + botão remover */
                               <div className="flex flex-col items-end gap-1">
-                                <span className="text-[13px] font-bold text-primary">{cartTotal} pç</span>
+                                <span className="text-[12px] font-bold text-primary">{cartTotal} pç</span>
                                 <button
                                   onClick={() => removeFromCart(p.id)}
                                   className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center"
@@ -800,7 +800,7 @@ export function NewOrder() {
                                   min="1"
                                   value={cartItem.boxes_count}
                                   onChange={(e) => setBoxCountDirect(p.id, parseInt(e.target.value) || 1)}
-                                  className="w-10 h-7 text-center border border-outline-variant rounded-lg text-[13px] font-bold focus:outline-none focus:ring-1 focus:ring-primary"
+                                  className="w-10 h-7 text-center border border-outline-variant rounded-lg text-[12px] font-bold focus:outline-none focus:ring-1 focus:ring-primary"
                                 />
                                 <button
                                   onClick={() => updateBoxCount(p.id, 1)}
@@ -819,14 +819,14 @@ export function NewOrder() {
                           ) : (
                             <button
                               onClick={() => addToCart(p)}
-                              className="flex items-center gap-1 bg-primary text-white text-[13px] font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90"
+                              className="flex items-center gap-1 bg-primary text-white text-[12px] font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90"
                             >
                               <Plus className="h-3.5 w-3.5" /> Adicionar
                             </button>
                           )}
                           {/* Total de peças para packs */}
                           {cartItem && !isRegular && (
-                            <p className="text-[13px] text-outline">
+                            <p className="text-[12px] text-outline">
                               {cartTotal} pç total
                             </p>
                           )}
@@ -847,7 +847,7 @@ export function NewOrder() {
                       )}
                       {isExpanded && !isRegular && p.grade_configs && (
                         <div className="px-3 pb-3 border-t border-outline-variant/50 pt-2">
-                          <p className="text-[13px] font-medium text-on-surface-variant mb-1.5">Composição da grade:</p>
+                          <p className="text-[12px] font-medium text-on-surface-variant mb-1.5">Composição da grade:</p>
                           <GradePreview
                             configs={p.grade_configs}
                             boxCount={cartItem?.boxes_count || 1}
@@ -858,7 +858,7 @@ export function NewOrder() {
                   )
                 })}
                 {products?.length === 0 && (
-                  <p className="text-center text-[13px] text-outline py-2.5">Nenhum produto encontrado</p>
+                  <p className="text-center text-[12px] text-outline py-2.5">Nenhum produto encontrado</p>
                 )}
               </div>
             )}
@@ -869,8 +869,8 @@ export function NewOrder() {
                 <Card padding="md" className="shadow-lg border-primary/30 bg-primary/10">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[13px] font-semibold text-blue-900">{cart.length} produto{cart.length > 1 ? 's' : ''} no carrinho</p>
-                      <p className="text-[13px] text-primary">{totals.totalPieces} peças</p>
+                      <p className="text-[12px] font-semibold text-blue-900">{cart.length} produto{cart.length > 1 ? 's' : ''} no carrinho</p>
+                      <p className="text-[12px] text-primary">{totals.totalPieces} peças</p>
                     </div>
                     <Button onClick={() => setStep(3)} size="sm">
                       Revisar <ChevronRight className="h-4 w-4" />
@@ -886,15 +886,15 @@ export function NewOrder() {
         {step === 3 && (
           <div className="space-y-1.5">
             <div>
-              <h2 className="text-[13px] font-semibold text-on-surface">Revisão do Pedido</h2>
-              <p className="text-[13px] text-outline">Confirme os dados antes de enviar</p>
+              <h2 className="text-[12px] font-semibold text-on-surface">Revisão do Pedido</h2>
+              <p className="text-[12px] text-outline">Confirme os dados antes de enviar</p>
             </div>
 
             {/* Offline warning */}
             {!online && (
               <div className="flex items-start gap-2 bg-orange-50 border border-orange-200 rounded-xl p-3">
                 <WifiOff className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5" />
-                <p className="text-[13px] text-orange-800">
+                <p className="text-[12px] text-orange-800">
                   Sem conexão. O pedido será salvo localmente e sincronizado quando você voltar online.
                 </p>
               </div>
@@ -902,7 +902,7 @@ export function NewOrder() {
 
             {/* Client + Table summary */}
             <Card padding="sm">
-              <div className="space-y-1 text-[13px]">
+              <div className="space-y-1 text-[12px]">
                 <div className="flex justify-between">
                   <span className="text-outline">Cliente:</span>
                   <span className="font-medium text-on-surface">{selectedClient?.name}</span>
@@ -921,10 +921,10 @@ export function NewOrder() {
             {/* Items */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-[13px] font-semibold text-on-surface-variant">Itens ({cart.length})</h3>
+                <h3 className="text-[12px] font-semibold text-on-surface-variant">Itens ({cart.length})</h3>
                 <button
                   onClick={() => setStep(2)}
-                  className="text-[13px] text-primary hover:text-primary"
+                  className="text-[12px] text-primary hover:text-primary"
                 >
                   Editar
                 </button>
@@ -941,20 +941,20 @@ export function NewOrder() {
                     <div key={item.product.id} className="bg-white rounded-xl border border-outline-variant p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-[13px] text-on-surface">{item.product.reference}</p>
+                          <p className="font-semibold text-[12px] text-on-surface">{item.product.reference}</p>
                           <p className="text-[12px] text-primary/70 font-medium">{selectedTable?.name}</p>
-                          <p className="text-[13px] text-outline">{item.product.product_name}</p>
+                          <p className="text-[12px] text-outline">{item.product.product_name}</p>
                           {isRegular ? (
-                            <p className="text-[13px] text-outline mt-0.5">{totalPieces} peças</p>
+                            <p className="text-[12px] text-outline mt-0.5">{totalPieces} peças</p>
                           ) : (
-                            <p className="text-[13px] text-outline mt-0.5">
+                            <p className="text-[12px] text-outline mt-0.5">
                               {item.boxes_count} cx × {piecesPerBox} pç/cx = {totalPieces} peças
                             </p>
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-[13px] font-bold text-on-surface">{formatCurrency(subtotal)}</p>
-                          <p className="text-[13px] text-outline/70">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
+                          <p className="text-[12px] font-bold text-on-surface">{formatCurrency(subtotal)}</p>
+                          <p className="text-[12px] text-outline/70">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
                         </div>
                       </div>
                       {/* Grade display */}
@@ -976,7 +976,7 @@ export function NewOrder() {
             {/* Campos do pedido */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={paymentTerms.trim() ? 'block text-[13px] font-medium text-on-surface-variant mb-1' : 'block text-[13px] font-semibold text-amber-600 mb-1'}>
+                <label className={paymentTerms.trim() ? 'block text-[12px] font-medium text-on-surface-variant mb-1' : 'block text-[12px] font-semibold text-amber-600 mb-1'}>
                   Condição de Pagamento {!paymentTerms.trim() && <span className="text-amber-500">⚠</span>}
                 </label>
                 <input
@@ -985,16 +985,16 @@ export function NewOrder() {
                   onChange={(e) => setPaymentTerms(e.target.value)}
                   placeholder="Ex: 30/60/90 dias"
                   className={paymentTerms.trim()
-                    ? 'w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary'
-                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-1.5 text-[13px] bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
+                    ? 'w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary'
+                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-1.5 text-[12px] bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
                 />
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-on-surface-variant mb-1">Tipo de Frete</label>
+                <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Tipo de Frete</label>
                 <select
                   value={freightType}
                   onChange={(e) => setFreightType(e.target.value)}
-                  className="w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="CIF">CIF</option>
                   <option value="FOB">FOB</option>
@@ -1007,7 +1007,7 @@ export function NewOrder() {
                 onChange={(e) => setDeliveryDate(e.target.value)}
               />
               <div>
-                <label className={buyerName.trim() ? 'block text-[13px] font-medium text-on-surface-variant mb-1' : 'block text-[13px] font-semibold text-amber-600 mb-1'}>
+                <label className={buyerName.trim() ? 'block text-[12px] font-medium text-on-surface-variant mb-1' : 'block text-[12px] font-semibold text-amber-600 mb-1'}>
                   Comprador {!buyerName.trim() && <span className="text-amber-500">⚠</span>}
                 </label>
                 <input
@@ -1016,8 +1016,8 @@ export function NewOrder() {
                   onChange={(e) => setBuyerName(e.target.value)}
                   placeholder="Nome do comprador"
                   className={buyerName.trim()
-                    ? 'w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary'
-                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-1.5 text-[13px] bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
+                    ? 'w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary'
+                    : 'w-full border-2 border-amber-400 rounded-lg px-3 py-1.5 text-[12px] bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
                 />
               </div>
               <div className="col-span-2">
@@ -1044,7 +1044,7 @@ export function NewOrder() {
 
               {/* Desconto */}
               <div className="p-3 border-b border-outline-variant/50">
-                <h3 className="text-[13px] font-semibold text-on-surface-variant mb-2">Desconto</h3>
+                <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">Desconto</h3>
                 {discountRules.length > 0 && !customDiscount ? (
                   <div className="space-y-1">
                     <div className="grid grid-cols-2 gap-2">
@@ -1063,14 +1063,14 @@ export function NewOrder() {
                           >
                             <div className="flex items-start justify-between gap-1">
                               <div className="min-w-0">
-                                <p className="font-bold text-on-surface text-[13px] leading-tight">
+                                <p className="font-bold text-on-surface text-[12px] leading-tight">
                                   {formatPct(rule.discount_pct)}
                                 </p>
-                                <p className="text-[13px] text-outline mt-0.5 leading-tight">
+                                <p className="text-[12px] text-outline mt-0.5 leading-tight">
                                   {formatCurrency(discountedTotal)}
                                 </p>
                                 {isAdmin && rule.rep_commission_pct > 0 && (
-                                  <p className="text-[13px] text-emerald-600 mt-0.5 leading-tight">
+                                  <p className="text-[12px] text-emerald-600 mt-0.5 leading-tight">
                                     com. {formatPct(rule.rep_commission_pct)}
                                   </p>
                                 )}
@@ -1083,7 +1083,7 @@ export function NewOrder() {
                     </div>
                     <button
                       onClick={() => setCustomDiscount(true)}
-                      className="text-[13px] text-primary hover:text-primary"
+                      className="text-[12px] text-primary hover:text-primary"
                     >
                       Digitar desconto personalizado
                     </button>
@@ -1099,7 +1099,7 @@ export function NewOrder() {
                     {discountRules.length > 0 && (
                       <button
                         onClick={() => setCustomDiscount(false)}
-                        className="text-[13px] text-primary hover:text-primary"
+                        className="text-[12px] text-primary hover:text-primary"
                       >
                         Ver descontos configurados
                       </button>
@@ -1109,7 +1109,7 @@ export function NewOrder() {
               </div>
 
               {/* Resumo financeiro */}
-              <div className="p-3 space-y-1 text-[13px] bg-surface-container-low">
+              <div className="p-3 space-y-1 text-[12px] bg-surface-container-low">
                 <div className="flex justify-between text-outline">
                   <span>Subtotal:</span>
                   <span>{formatCurrency(totals.grossValue)}</span>
@@ -1120,11 +1120,11 @@ export function NewOrder() {
                     <span>−{formatCurrency(totals.grossValue * discountNum / 100)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-on-surface text-[13px] pt-1.5 border-t border-outline-variant">
+                <div className="flex justify-between font-bold text-on-surface text-[12px] pt-1.5 border-t border-outline-variant">
                   <span>Total do pedido:</span>
                   <span>{formatCurrency(totals.totalValue)}</span>
                 </div>
-                <div className="flex justify-between text-outline/70 text-[13px]">
+                <div className="flex justify-between text-outline/70 text-[12px]">
                   <span>Peças:</span>
                   <span>{totals.totalPieces} pç</span>
                 </div>
@@ -1141,7 +1141,7 @@ export function NewOrder() {
                 {createMut.isError && (
                   <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 mb-3">
                     <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-[13px] text-red-700">Erro ao criar pedido. Tente novamente.</p>
+                    <p className="text-[12px] text-red-700">Erro ao criar pedido. Tente novamente.</p>
                   </div>
                 )}
                 <Button

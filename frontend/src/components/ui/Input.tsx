@@ -20,7 +20,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-[13px] font-medium text-on-surface mb-1.5">
+          <label htmlFor={inputId} className="block text-[12px] font-medium text-on-surface mb-1.5">
             {label}
           </label>
         )}
@@ -80,7 +80,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-[13px] font-medium text-on-surface mb-1.5">
+          <label htmlFor={inputId} className="block text-[12px] font-medium text-on-surface mb-1.5">
             {label}
           </label>
         )}
@@ -119,7 +119,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-[13px] font-medium text-on-surface mb-1.5">
+          <label htmlFor={inputId} className="block text-[12px] font-medium text-on-surface mb-1.5">
             {label}
           </label>
         )}

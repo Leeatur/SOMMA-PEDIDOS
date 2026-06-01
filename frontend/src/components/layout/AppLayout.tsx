@@ -129,7 +129,7 @@ export function AppLayout() {
             </div>
             <div>
               <p className="font-display text-[15px] font-bold text-white leading-none tracking-wide">Somma</p>
-              <p className="text-[13px] text-surface-variant/50 font-medium tracking-widest uppercase mt-0.5">Gestão Comercial</p>
+              <p className="text-[12px] text-surface-variant/50 font-medium tracking-widest uppercase mt-0.5">Gestão Comercial</p>
             </div>
           </div>
           <button className="lg:hidden p-1 text-surface-variant/50 hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
@@ -179,7 +179,7 @@ export function AppLayout() {
               <span className="text-xs font-bold text-primary-fixed-dim">{initials}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-white truncate">{user?.name}</p>
+              <p className="text-[12px] font-semibold text-white truncate">{user?.name}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <p className="text-[12px] text-surface-variant/40">
                   {user?.role === 'admin' ? 'Administrador' : 'Representante'}
@@ -214,10 +214,10 @@ export function AppLayout() {
               className="flex items-center gap-2.5 hover:bg-surface-container px-3 py-1.5 rounded-xl transition-colors"
             >
               <div className="flex items-center justify-center flex-shrink-0 px-2.5 py-1 rounded-lg" style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)' }}>
-                <span className="text-[13px] font-bold text-white tracking-widest uppercase">Somma</span>
+                <span className="text-[12px] font-bold text-white tracking-widest uppercase">Somma</span>
               </div>
               <div className="text-left">
-                <p className="text-[13px] font-semibold text-on-surface leading-none">{user?.name}</p>
+                <p className="text-[12px] font-semibold text-on-surface leading-none">{user?.name}</p>
                 <p className="text-[12px] text-outline mt-0.5">{user?.role === 'admin' ? 'Administrador' : 'Representante'}</p>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-outline" />

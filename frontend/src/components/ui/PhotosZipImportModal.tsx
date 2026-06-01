@@ -222,7 +222,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
             <CheckCircle className="h-8 w-8 text-emerald-500 flex-shrink-0" />
             <div>
               <p className="font-semibold text-on-surface">Importação concluída!</p>
-              <p className="text-[13px] text-outline">
+              <p className="text-[12px] text-outline">
                 {result.total} foto{result.total !== 1 ? 's' : ''} encontrada{result.total !== 1 ? 's' : ''} no ZIP
               </p>
             </div>
@@ -231,55 +231,55 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-emerald-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-emerald-600">{result.matched}</p>
-              <p className="text-[13px] text-emerald-700">Vinculadas</p>
+              <p className="text-[12px] text-emerald-700">Vinculadas</p>
             </div>
             <div className={`rounded-xl p-3 text-center ${result.skipped > 0 ? 'bg-surface-container-low' : 'bg-surface-container-low'}`}>
               <p className="text-2xl font-bold text-outline/70">{result.skipped}</p>
-              <p className="text-[13px] text-outline">Ignoradas*</p>
+              <p className="text-[12px] text-outline">Ignoradas*</p>
             </div>
             <div className={`rounded-xl p-3 text-center ${result.notFound > 0 ? 'bg-amber-50' : 'bg-surface-container-low'}`}>
               <p className={`text-2xl font-bold ${result.notFound > 0 ? 'text-amber-600' : 'text-outline/70'}`}>
                 {result.notFound}
               </p>
-              <p className={`text-[13px] ${result.notFound > 0 ? 'text-amber-700' : 'text-outline'}`}>
+              <p className={`text-[12px] ${result.notFound > 0 ? 'text-amber-700' : 'text-outline'}`}>
                 Ref. não encontrada
               </p>
             </div>
           </div>
 
           {result.skipped > 0 && (
-            <p className="text-[13px] text-outline/70 text-center">
+            <p className="text-[12px] text-outline/70 text-center">
               * Ignoradas = já tinham foto e "sobreescrever" estava desativado
             </p>
           )}
 
           {result.notFound > 0 && (
-            <p className="text-[13px] text-amber-600 text-center">
+            <p className="text-[12px] text-amber-600 text-center">
               ⚠ Verifique se a tabela de preços selecionada está correta
             </p>
           )}
 
           {result.errors.length > 0 && (
             <div className="bg-red-50 rounded-lg p-3">
-              <p className="text-[13px] font-semibold text-red-700 mb-1">
+              <p className="text-[12px] font-semibold text-red-700 mb-1">
                 {result.errors.length} erro{result.errors.length > 1 ? 's' : ''} ao processar:
               </p>
-              <p className="text-[13px] text-red-600 font-mono">{result.errors.join(', ')}</p>
+              <p className="text-[12px] text-red-600 font-mono">{result.errors.join(', ')}</p>
             </div>
           )}
         </div>
       ) : (
         /* ── Formulário ── */
         <div className="space-y-1">
-          <div className="bg-blue-50 rounded-xl p-3 text-[13px] text-blue-700">
+          <div className="bg-blue-50 rounded-xl p-3 text-[12px] text-blue-700">
             <p className="font-semibold mb-1">Como funciona:</p>
-            <ol className="list-decimal list-inside space-y-0.5 text-[13px]">
+            <ol className="list-decimal list-inside space-y-0.5 text-[12px]">
               <li>Abra a pasta de fotos no Google Drive</li>
               <li>Clique em "Baixar tudo" → o Drive gera um <strong>.zip</strong></li>
               <li>Selecione a tabela de preços correspondente</li>
               <li>Faça upload do .zip aqui</li>
             </ol>
-            <p className="text-[13px] mt-1.5 text-blue-600">
+            <p className="text-[12px] mt-1.5 text-blue-600">
               As fotos são identificadas pela referência no nome do arquivo<br/>
               (ex: <code>001 TE10308-791.jpg</code> → vincula a <strong>TE10308</strong>)
             </p>
@@ -287,13 +287,13 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
 
           {/* Tabela de preços */}
           <div>
-            <label className="block text-[13px] font-medium text-on-surface-variant mb-1">
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-1">
               Tabela de Preços *
             </label>
             <select
               value={priceTableId}
               onChange={e => setPriceTableId(e.target.value)}
-              className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[13px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full border border-outline-variant rounded-lg px-3 py-1 text-[12px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             >
               <option value="">Selecione a tabela...</option>
               {(tables || []).map(t => (
@@ -306,7 +306,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
 
           {/* Arquivo ZIP */}
           <div>
-            <label className="block text-[13px] font-medium text-on-surface-variant mb-1">
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-1">
               Arquivo ZIP *
             </label>
             <div
@@ -316,14 +316,14 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
               {file ? (
                 <div className="flex items-center justify-center gap-2 text-primary">
                   <Archive className="h-5 w-5" />
-                  <span className="text-[13px] font-medium">{file.name}</span>
-                  <span className="text-[13px] text-outline/70">({(file.size / 1024 / 1024).toFixed(0)} MB)</span>
+                  <span className="text-[12px] font-medium">{file.name}</span>
+                  <span className="text-[12px] text-outline/70">({(file.size / 1024 / 1024).toFixed(0)} MB)</span>
                 </div>
               ) : (
                 <div className="text-outline/70">
                   <Upload className="h-8 w-8 mx-auto mb-2" />
-                  <p className="text-[13px]">Clique para selecionar o arquivo .zip</p>
-                  <p className="text-[13px] mt-0.5 text-outline/50">Qualquer tamanho — processado localmente</p>
+                  <p className="text-[12px]">Clique para selecionar o arquivo .zip</p>
+                  <p className="text-[12px] mt-0.5 text-outline/50">Qualquer tamanho — processado localmente</p>
                 </div>
               )}
             </div>
@@ -344,13 +344,13 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
               onChange={e => setOverwrite(e.target.checked)}
               className="rounded border-outline-variant text-primary focus:ring-primary"
             />
-            <span className="text-[13px] text-on-surface-variant">Sobreescrever fotos já existentes</span>
+            <span className="text-[12px] text-on-surface-variant">Sobreescrever fotos já existentes</span>
           </label>
 
           {/* Progresso */}
           {processing && (
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[13px] text-primary">
+              <div className="flex items-center gap-2 text-[12px] text-primary">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>
                   {phase === 'reading'
@@ -371,7 +371,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
 
           {/* Erro */}
           {error && (
-            <div className="flex items-start gap-2 bg-red-50 rounded-xl p-3 text-[13px] text-red-600">
+            <div className="flex items-start gap-2 bg-red-50 rounded-xl p-3 text-[12px] text-red-600">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>

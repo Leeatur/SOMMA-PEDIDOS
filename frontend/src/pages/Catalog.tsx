@@ -319,7 +319,7 @@ export function Catalog() {
     <div className="pb-24 lg:pb-0">
       {/* Header */}
       <div className="bg-white border-b border-outline-variant px-5 py-4 lg:px-8 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto">
+        <div className="w-full">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold text-on-surface">Catálogo de Produtos</h1>
             <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export function Catalog() {
         </div>
       </div>
 
-      <div className="px-4 py-5 lg:px-8 max-w-5xl mx-auto">
+      <div className="px-4 py-5 lg:px-8 w-full">
         {!selectedTable ? (
           <EmptyState
             icon={<Package className="h-8 w-8" />}

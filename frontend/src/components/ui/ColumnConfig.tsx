@@ -116,7 +116,7 @@ export function ColumnConfigModal({
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={handleReset}
-            className="text-[13px] text-primary hover:text-primary"
+            className="text-[12px] text-primary hover:text-primary"
           >
             Restaurar padrão
           </button>
@@ -127,7 +127,7 @@ export function ColumnConfigModal({
         </div>
       }
     >
-      <p className="text-[13px] text-outline/70 mb-3">
+      <p className="text-[12px] text-outline/70 mb-3">
         Ative/desative colunas e use ▲▼ para reordenar.
       </p>
       <div className="divide-y divide-outline-variant/50">
@@ -159,7 +159,7 @@ export function ColumnConfigModal({
               </button>
 
               {/* Label */}
-              <span className={`flex-1 text-[13px] ${col.visible ? 'font-medium text-on-surface' : 'text-outline/70'}`}>
+              <span className={`flex-1 text-[12px] ${col.visible ? 'font-medium text-on-surface' : 'text-outline/70'}`}>
                 {def.label}
               </span>
 

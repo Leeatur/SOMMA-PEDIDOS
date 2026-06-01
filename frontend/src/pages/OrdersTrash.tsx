@@ -54,7 +54,7 @@ export function OrdersTrash() {
     <div className="pb-24 lg:pb-0">
       {/* Header */}
       <div className="bg-white border-b border-outline-variant px-5 py-2.5 lg:px-8">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+        <div className="w-full flex items-center gap-3">
           <button onClick={() => navigate('/orders')} className="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -63,7 +63,7 @@ export function OrdersTrash() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-on-surface">Lixeira de Pedidos</h1>
-            <p className="text-[13px] text-outline mt-0.5">
+            <p className="text-[12px] text-outline mt-0.5">
               {orders.length === 0
                 ? 'Nenhum pedido excluído'
                 : `${orders.length} pedido${orders.length > 1 ? 's' : ''} na lixeira`}
@@ -72,7 +72,7 @@ export function OrdersTrash() {
         </div>
       </div>
 
-      <div className="px-4 py-5 lg:px-8 max-w-4xl mx-auto">
+      <div className="px-4 py-5 lg:px-8 w-full">
         {orders.length === 0 ? (
           <Card padding="md">
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -80,12 +80,12 @@ export function OrdersTrash() {
                 <Trash2 className="h-7 w-7 text-outline/50" />
               </div>
               <p className="text-outline font-medium">Lixeira vazia</p>
-              <p className="text-[13px] text-outline/70 mt-1">Pedidos excluídos aparecerão aqui</p>
+              <p className="text-[12px] text-outline/70 mt-1">Pedidos excluídos aparecerão aqui</p>
             </div>
           </Card>
         ) : (
           <div className="space-y-1.5">
-            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[13px] text-amber-700">
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[12px] text-amber-700">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>Pedidos na lixeira podem ser restaurados a qualquer momento. Clique em <strong>Restaurar</strong> para devolver ao sistema.</span>
             </div>
@@ -96,21 +96,21 @@ export function OrdersTrash() {
                   <div className="flex-1 min-w-0">
                     {/* Número e cliente */}
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[13px] font-bold text-outline/70">#{order.order_number}</span>
-                      <span className="text-[13px] font-semibold text-on-surface truncate">{order.client_name}</span>
+                      <span className="text-[12px] font-bold text-outline/70">#{order.order_number}</span>
+                      <span className="text-[12px] font-semibold text-on-surface truncate">{order.client_name}</span>
                       {order.client_city && (
-                        <span className="text-[13px] text-outline/70">— {order.client_city}</span>
+                        <span className="text-[12px] text-outline/70">— {order.client_city}</span>
                       )}
                     </div>
                     {/* Detalhes */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[13px] text-outline">
+                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[12px] text-outline">
                       <span>{order.factory_name}</span>
                       <span>Rep: {order.rep_name}</span>
                       <span>{order.total_pieces} peças</span>
                       <span className="font-medium text-on-surface-variant">R$ {fmt(order.total_value)}</span>
                     </div>
                     {/* Datas */}
-                    <div className="flex gap-4 mt-1.5 text-[13px] text-outline/70">
+                    <div className="flex gap-4 mt-1.5 text-[12px] text-outline/70">
                       <span>Criado em {fmtDate(order.created_at)}</span>
                       <span className="text-red-400">Excluído em {fmtDate(order.deleted_at)}</span>
                     </div>

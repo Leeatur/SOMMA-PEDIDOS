@@ -55,26 +55,26 @@ export function Login() {
             </span>
           </div>
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Plus Jakarta Sans' }}>Somma</h1>
-          <p className="text-[13px] text-outline-variant/80 mt-1 uppercase tracking-widest font-medium">Gestão Comercial</p>
+          <p className="text-[12px] text-outline-variant/80 mt-1 uppercase tracking-widest font-medium">Gestão Comercial</p>
         </div>
 
         {/* Card */}
         <div className="bg-white w-full rounded-xl p-8 border border-border-subtle shadow-2xl">
           <div className="mb-6 text-center">
             <h2 className="text-lg font-semibold text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans' }}>Bem-vindo de volta</h2>
-            <p className="text-[13px] text-on-surface-variant mt-1">Acesse sua conta para continuar</p>
+            <p className="text-[12px] text-on-surface-variant mt-1">Acesse sua conta para continuar</p>
           </div>
 
           {error && (
             <div className="mb-4 bg-error-container border border-error/20 rounded-xl px-4 py-2">
-              <p className="text-[13px] text-error">{error}</p>
+              <p className="text-[12px] text-error">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-1">
             {/* Email */}
             <div className="space-y-1">
-              <label className="text-[13px] font-semibold text-on-surface tracking-wide" htmlFor="email">Email</label>
+              <label className="text-[12px] font-semibold text-on-surface tracking-wide" htmlFor="email">Email</label>
               <div className="relative flex items-center">
                 <span
                   className="absolute left-3 text-outline text-xl select-none"
@@ -90,14 +90,14 @@ export function Login() {
                   placeholder="seu@email.com"
                   autoComplete="email"
                   autoFocus
-                  className="w-full h-12 pl-10 pr-4 bg-surface-container-low border border-border-subtle rounded-lg text-[13px] text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full h-12 pl-10 pr-4 bg-surface-container-low border border-border-subtle rounded-lg text-[12px] text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
               </div>
             </div>
 
             {/* Senha */}
             <div className="space-y-1">
-              <label className="text-[13px] font-semibold text-on-surface tracking-wide" htmlFor="password">Senha</label>
+              <label className="text-[12px] font-semibold text-on-surface tracking-wide" htmlFor="password">Senha</label>
               <div className="relative flex items-center">
                 <span
                   className="absolute left-3 text-outline text-xl select-none"
@@ -112,7 +112,7 @@ export function Login() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="w-full h-12 pl-10 pr-12 bg-surface-container-low border border-border-subtle rounded-lg text-[13px] text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full h-12 pl-10 pr-12 bg-surface-container-low border border-border-subtle rounded-lg text-[12px] text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 />
                 <button
                   type="button"
@@ -128,7 +128,7 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-primary-container text-on-primary font-semibold text-[13px] rounded-lg shadow-md hover:bg-primary transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
+              className="w-full h-12 bg-primary-container text-on-primary font-semibold text-[12px] rounded-lg shadow-md hover:bg-primary transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
             >
               {loading ? (
                 <span
@@ -154,7 +154,7 @@ export function Login() {
 
         {/* Footer */}
         <footer className="mt-6 text-center">
-          <p className="text-[13px] text-outline-variant/60">
+          <p className="text-[12px] text-outline-variant/60">
             © {new Date().getFullYear()} Somma Gestão Comercial
           </p>
         </footer>
