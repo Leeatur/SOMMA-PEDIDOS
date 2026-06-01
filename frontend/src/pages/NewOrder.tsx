@@ -543,7 +543,7 @@ export function NewOrder() {
               value={clientSearch}
               onChange={(e) => setClientSearch(e.target.value)}
               leftIcon={<Search className="h-4 w-4" />}
-              autoFocus
+              onClear={() => setClientSearch('')}
             />
 
             {loadingClients ? (

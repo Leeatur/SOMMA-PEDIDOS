@@ -45,6 +45,7 @@ export function Button({
 
   return (
     <button
+      type="button"
       disabled={disabled || loading}
       className={clsx(base, variants[variant], sizes[size], fullWidth && 'w-full', className)}
       {...props}
