@@ -695,10 +695,20 @@ export function NewOrder() {
             <div className="flex gap-2">
               <div className="flex-1">
                 <Input
-                  placeholder="Referência, nome..."
+                  placeholder="Referência, nome... (Enter para adicionar)"
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   leftIcon={<Search className="h-4 w-4" />}
+                  onClear={() => setProductSearch('')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && products && products.length > 0) {
+                      e.preventDefault()
+                      const first = products[0]
+                      addToCart(first)
+                      setExpandedGrade(first.id)
+                      setProductSearch('')
+                    }
+                  }}
                 />
               </div>
               <select
