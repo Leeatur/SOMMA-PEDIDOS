@@ -24,12 +24,14 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https?:\/\/.*\/api\//,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-cache-v2',
+              cacheName: 'api-cache-v3',
               networkTimeoutSeconds: 5,
               expiration: { maxEntries: 500, maxAgeSeconds: 1 * 24 * 60 * 60 },
             },
