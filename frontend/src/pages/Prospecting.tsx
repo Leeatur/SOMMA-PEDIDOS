@@ -422,6 +422,7 @@ export function Prospecting() {
           {selectedProspect && (
             <div ref={detailRef} className="w-80 border-l border-gray-200 bg-white overflow-y-auto flex-shrink-0">
               <ProspectDetail
+                key={selectedProspect.osm_id}
                 prospect={selectedProspect}
                 onClose={() => setSelectedProspect(null)}
                 onSave={handleSaveProspect}
@@ -599,31 +600,39 @@ function ProspectDetail({
   const [autoSearching, setAutoSearching] = useState(false)
 
   useEffect(() => {
-    if (!prospect.place_id) return
-    setDetailsLoading(true)
-    import('../api/client').then(({ prospectingApi }) =>
-      prospectingApi.getPlaceDetails(prospect.place_id!)
-        .then(r => {
-          setDetails(r.data)
-          // Após obter os detalhes, tenta buscar CNPJ automaticamente
-          const d = r.data as { website?: string; phone?: string }
-          if (!cnpjData) {
+    // Extrai cidade do endereço do Google (formato: "Rua X, N - Bairro, Cidade - UF, CEP")
+    const cityFromAddress = prospect.address
+      ? prospect.address.replace(/\s*-\s*[A-Z]{2}.*$/, '').split(/,|-/).filter(Boolean).pop()?.trim() || ''
+      : ''
+    const city = prospect.city || cityFromAddress
+
+    // 1. Se tem place_id do Google, busca detalhes (telefone/website)
+    if (prospect.place_id) {
+      setDetailsLoading(true)
+      import('../api/client').then(({ prospectingApi }) => {
+        prospectingApi.getPlaceDetails(prospect.place_id!)
+          .then(r => {
+            setDetails(r.data)
+            const website = (r.data as { website?: string }).website
+            // 2. Após obter website, tenta achar CNPJ automaticamente
             setAutoSearching(true)
-            prospectingApi.findCnpj({
-              name: prospect.name,
-              city: prospect.city || prospect.address?.split(',').pop()?.trim() || '',
-              website: d.website || undefined,
-            }).then(res => {
-              setCnpjData(res.data)
-            }).catch(() => {
-              // Silencioso — não encontrou automaticamente
-            }).finally(() => setAutoSearching(false))
-          }
-        })
-        .catch(() => {})
-        .finally(() => setDetailsLoading(false))
-    )
-  }, [prospect.place_id])
+            return prospectingApi.findCnpj({ name: prospect.name, city, website: website || undefined })
+          })
+          .then(res => setCnpjData(res.data))
+          .catch(() => {})
+          .finally(() => { setDetailsLoading(false); setAutoSearching(false) })
+      })
+    } else {
+      // Sem place_id: tenta direto pelo nome (brasil.io)
+      setAutoSearching(true)
+      import('../api/client').then(({ prospectingApi }) =>
+        prospectingApi.findCnpj({ name: prospect.name, city })
+          .then(res => setCnpjData(res.data))
+          .catch(() => {})
+          .finally(() => setAutoSearching(false))
+      )
+    }
+  }, [prospect.osm_id])
 
   const phone = details?.phone || prospect.phone
   const website = details?.website || prospect.website
