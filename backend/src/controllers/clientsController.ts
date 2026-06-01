@@ -5,6 +5,7 @@ import { AuthRequest } from '../middleware/auth'
 export async function listClients(req: AuthRequest, res: Response) {
   const { search } = req.query
 
+  // All authenticated users see all active clients (no rep_id filter)
   let sql = `
     SELECT c.*, u.name as rep_name
     FROM clients c

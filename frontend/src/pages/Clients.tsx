@@ -77,9 +77,10 @@ export function Clients() {
     }, 350)
   }
 
-  const { data: clients, isLoading } = useQuery<Client[]>({
+  const { data: clients, isLoading, isError } = useQuery<Client[]>({
     queryKey: ['clients', debouncedSearch],
     queryFn: () => clientsApi.list(debouncedSearch || undefined).then((r) => r.data),
+    retry: 1,
   })
 
   const { data: users } = useQuery<User[]>({
@@ -243,6 +244,16 @@ export function Clients() {
   }
 
   const total = clients?.length || 0
+
+  if (isError) return (
+    <div className="flex flex-col items-center justify-center h-full py-24 text-center px-8">
+      <p className="text-red-500 font-semibold text-sm mb-2">Erro ao carregar clientes</p>
+      <p className="text-[11px] text-outline/70">Verifique sua conexão e tente novamente.</p>
+      <button onClick={() => window.location.reload()} className="mt-4 text-[11px] text-primary underline">
+        Recarregar
+      </button>
+    </div>
+  )
 
   // Gera cor de avatar baseada no nome
   function avatarColor(name: string) {
