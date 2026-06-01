@@ -81,7 +81,7 @@ interface Product {
   grade_configs: GradeConfig[] | null
 }
 
-interface ClientOption { id: string; name: string; trade_name: string | null; city: string | null }
+interface ClientOption { id: string; name: string; trade_name: string | null; city: string | null; cnpj: string | null }
 interface UserOption { id: string; name: string; role: string }
 interface StatusOption { id: string; name: string; color: string }
 

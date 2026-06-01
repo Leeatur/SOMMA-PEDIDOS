@@ -876,21 +876,21 @@ export function NewOrder() {
 
             {/* Floating cart summary */}
             {cart.length > 0 && (
-              <div className="fixed bottom-16 lg:bottom-6 left-0 right-0 lg:left-auto lg:right-8 lg:max-w-xs px-3 lg:px-0 z-40">
+              <div className="fixed bottom-16 lg:bottom-6 left-0 right-0 lg:left-auto lg:right-8 lg:max-w-sm px-3 lg:px-0 z-40 space-y-1.5">
+                {/* Info bar */}
+                <div className="bg-black/70 backdrop-blur-sm text-white rounded-xl px-4 py-2 flex items-center justify-between text-sm">
+                  <span className="text-white/70">{cart.length} item{cart.length > 1 ? 'ns' : ''} · {totals.totalPieces} pç</span>
+                  <span className="font-bold text-base">{formatCurrency(totals.totalValue)}</span>
+                </div>
+                {/* Botão Fechar Pedido */}
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="w-full flex items-center justify-between bg-green-600 hover:bg-green-700 active:scale-[0.98] text-white rounded-2xl shadow-2xl px-5 py-3.5 transition-all"
+                  className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 active:scale-[0.98] text-white rounded-2xl shadow-2xl py-4 text-base font-bold transition-all"
                   style={{ boxShadow: '0 8px 32px rgba(22,163,74,0.5)' }}
                 >
-                  <div className="text-left">
-                    <p className="text-xs font-medium text-green-100">{cart.length} item{cart.length > 1 ? 'ns' : ''} · {totals.totalPieces} pç</p>
-                    <p className="text-lg font-bold leading-tight">{formatCurrency(totals.totalValue)}</p>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2">
-                    <span className="text-sm font-bold">Fechar Pedido</span>
-                    <ChevronRight className="h-5 w-5" />
-                  </div>
+                  Fechar Pedido
+                  <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
             )}
@@ -1282,7 +1282,7 @@ function QuickAddModal({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && totalPieces > 0) {
+      if (e.key === 'Enter' && totalPieces > 0 && !(e.target instanceof HTMLTextAreaElement)) {
         onAdd(product, sizes, boxes, observation)
       }
     }
