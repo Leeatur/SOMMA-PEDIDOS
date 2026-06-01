@@ -301,15 +301,15 @@ export function AppLayout() {
               </>)}
             </NavLink>
 
-            {/* Produtos */}
-            <NavLink to="/products" className={({ isActive }) =>
+            {/* Prospecção */}
+            <NavLink to="/prospecting" className={({ isActive }) =>
               `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
             }>
               {({ isActive }) => (<>
                 <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
-                  <Package className="h-[18px] w-[18px]" />
+                  <MapPin className="h-[18px] w-[18px]" />
                 </div>
-                <span className="text-[12px] font-semibold">Produtos</span>
+                <span className="text-[10px] font-semibold">Prospecção</span>
               </>)}
             </NavLink>
 

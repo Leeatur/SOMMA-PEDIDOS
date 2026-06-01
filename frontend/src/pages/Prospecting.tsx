@@ -261,10 +261,20 @@ export function Prospecting() {
     <div className="flex flex-col h-[calc(100vh-64px)] lg:h-[calc(100vh-57px)]">
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-wrap">
+      <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-1 min-w-0">
+          {/* Botão voltar (mobile) */}
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="lg:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 active:scale-95 flex-shrink-0"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
           <MapPin className="h-5 w-5 text-purple-600 flex-shrink-0" />
-          <h1 className="text-lg font-bold text-gray-900">Prospecção</h1>
+          <h1 className="text-base font-bold text-gray-900">Prospecção</h1>
         </div>
 
         {/* Segment */}
