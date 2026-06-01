@@ -1120,25 +1120,35 @@ export function NewOrder() {
               {/* Desconto à Vista */}
               <div className="p-3 border-b border-outline-variant/50">
                 <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">
-                  Desconto à Vista (%)
+                  Desconto à Vista
                 </h3>
                 <div className="flex items-center gap-3">
-                  <div className="w-36">
-                    <MaskedInput
-                      mask="percent"
-                      value={cashDiscountPct}
-                      onChangeValue={(v) => setCashDiscountPct(v)}
-                      placeholder="0,00%"
+                  {/* Input numérico simples com % inline */}
+                  <div className="flex items-center border border-outline-variant rounded-xl overflow-hidden bg-surface-container-lowest focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-all" style={{ width: 110 }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={cashDiscountNum === 0 ? '' : cashDiscountNum}
+                      onChange={e => {
+                        const v = parseFloat(e.target.value)
+                        setCashDiscountPct(isNaN(v) ? '0' : String(v))
+                      }}
+                      onFocus={e => e.target.select()}
+                      placeholder="0"
+                      className="flex-1 text-right text-[14px] font-bold text-on-surface bg-transparent focus:outline-none px-3 py-2 w-0 min-w-0"
                     />
+                    <span className="pr-3 text-[14px] font-semibold text-outline select-none">%</span>
                   </div>
                   {cashDiscountNum > 0 && (
                     <div className="text-[12px] text-emerald-700 font-medium">
-                      Desconto à vista: −{formatCurrency(totals.grossValue * cashDiscountNum / 100)}
+                      −{formatCurrency(totals.grossValue * cashDiscountNum / 100)}
                     </div>
                   )}
                   {effectiveDiscountNum > 0 && cashDiscountNum > 0 && (
                     <div className="text-[12px] text-primary font-semibold">
-                      Total desconto: {formatPct(effectiveDiscountNum)}
+                      Total: {formatPct(effectiveDiscountNum)}
                     </div>
                   )}
                 </div>
