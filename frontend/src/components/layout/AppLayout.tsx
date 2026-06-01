@@ -211,8 +211,8 @@ export function AppLayout() {
               onClick={handleLogout}
               className="flex items-center gap-2.5 hover:bg-surface-container px-3 py-1.5 rounded-xl transition-colors"
             >
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm" style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)' }}>
-                <span className="text-[11px] font-bold text-white">{initials}</span>
+              <div className="flex items-center justify-center flex-shrink-0 px-2.5 py-1 rounded-lg" style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)' }}>
+                <span className="text-[11px] font-bold text-white tracking-widest uppercase">Somma</span>
               </div>
               <div className="text-left">
                 <p className="text-[13px] font-semibold text-on-surface leading-none">{user?.name}</p>
