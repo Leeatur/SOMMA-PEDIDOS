@@ -12,8 +12,8 @@ const SIZE_ORDER = [
 
 function sortSizes(sizes: string[]) {
   return [...sizes].sort((a, b) => {
-    const ai = SIZE_ORDER.indexOf(a.toUpperCase())
-    const bi = SIZE_ORDER.indexOf(b.toUpperCase())
+    const ai = SIZE_ORDER.indexOf(a.trim().toUpperCase())
+    const bi = SIZE_ORDER.indexOf(b.trim().toUpperCase())
     if (ai === -1 && bi === -1) return a.localeCompare(b)
     if (ai === -1) return 1
     if (bi === -1) return -1
@@ -119,11 +119,11 @@ export function OrderPrint() {
   for (const item of order.items) {
     // Produto regular: usa item.sizes
     if (item.sizes && Object.keys(item.sizes).length > 0) {
-      Object.keys(item.sizes).forEach(s => allSizes.add(s))
+      Object.keys(item.sizes).forEach(s => allSizes.add(s.trim()))
     } else if (item.grade_configs) {
       // Pack: usa grade_configs
       for (const gc of item.grade_configs) {
-        Object.keys(gc.sizes).forEach(s => allSizes.add(s))
+        Object.keys(gc.sizes).forEach(s => allSizes.add(s.trim()))
       }
     }
   }
@@ -185,7 +185,9 @@ export function OrderPrint() {
         const qtde = gc.total_pieces * item.boxes_count
         const sizeCols: Record<string, number> = {}
         for (const s of sizes) {
-          sizeCols[s] = (gc.sizes[s] || 0) * item.boxes_count
+          // grade_configs pode ter chaves com espaços: "P " → trim para "P"
+          const rawVal = gc.sizes[s] ?? gc.sizes[s + ' '] ?? gc.sizes[' ' + s] ?? 0
+          sizeCols[s] = rawVal * item.boxes_count
         }
         const gradeLabel = sortSizes(Object.keys(gc.sizes)).join('/')
         rows.push({
