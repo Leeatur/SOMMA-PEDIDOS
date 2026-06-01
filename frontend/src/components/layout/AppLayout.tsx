@@ -18,6 +18,7 @@ import {
   BarChart2,
   Trash2,
   ChevronDown,
+  MapPin,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -37,6 +38,7 @@ const navMain: NavItem[] = [
   { to: '/clients',      label: 'Clientes',   icon: <Users className="h-5 w-5" /> },
   { to: '/products',     label: 'Produtos',   icon: <Package className="h-5 w-5" /> },
   { to: '/reports',      label: 'Relatórios', icon: <BarChart2 className="h-5 w-5" /> },
+  { to: '/prospecting',  label: 'Prospecção', icon: <MapPin className="h-5 w-5" /> },
 { to: '/price-tables', label: 'Tabelas',    icon: <Tags className="h-5 w-5" />, adminOnly: true },
   { to: '/factories',    label: 'Fábricas',   icon: <Building2 className="h-5 w-5" />, adminOnly: true },
   { to: '/statuses',     label: 'Status',     icon: <Package className="h-5 w-5" />, adminOnly: true },

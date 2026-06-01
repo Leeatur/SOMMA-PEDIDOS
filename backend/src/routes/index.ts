@@ -12,6 +12,7 @@ import * as statuses from '../controllers/statusController'
 import * as clientsImport from '../controllers/clientsImportController'
 import * as company from '../controllers/companyController'
 import * as reports from '../controllers/reportsController'
+import * as prospecting from '../controllers/prospectingController'
 
 const router = Router()
 
@@ -106,6 +107,14 @@ router.get('/company', authenticate, company.getSettings)
 router.put('/company', authenticate, requireAdmin, company.updateSettings)
 router.post('/company/logo', authenticate, requireAdmin, upload.single('logo'), company.uploadLogo)
 router.delete('/company/logo', authenticate, requireAdmin, company.deleteLogo)
+
+// Prospecção
+router.get('/prospecting/nearby', authenticate, prospecting.searchNearby)
+router.get('/prospecting/cnpj/:cnpj', authenticate, prospecting.lookupCnpj)
+router.get('/prospecting/contacts', authenticate, prospecting.listContacts)
+router.post('/prospecting/contacts', authenticate, prospecting.createContact)
+router.patch('/prospecting/contacts/:id', authenticate, prospecting.updateContact)
+router.delete('/prospecting/contacts/:id', authenticate, prospecting.deleteContact)
 
 // Status
 router.get('/statuses', authenticate, statuses.listStatuses)

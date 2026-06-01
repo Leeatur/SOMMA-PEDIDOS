@@ -233,7 +233,32 @@ END $$;
 ALTER TABLE order_items ADD CONSTRAINT order_items_product_id_fkey
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
 
+-- Prospecção de clientes
+CREATE TABLE IF NOT EXISTS prospecting_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rep_id UUID NOT NULL REFERENCES users(id),
+  osm_id VARCHAR(50),
+  name VARCHAR(255) NOT NULL,
+  trade_name VARCHAR(255),
+  cnpj VARCHAR(20),
+  address TEXT,
+  city VARCHAR(100),
+  state VARCHAR(2),
+  phone VARCHAR(30),
+  lat DECIMAL(10,7),
+  lng DECIMAL(10,7),
+  segment VARCHAR(100),
+  status VARCHAR(30) NOT NULL DEFAULT 'prospecto' CHECK (status IN ('prospecto','contatado','visita_agendada','visitado','convertido','descartado')),
+  notes TEXT,
+  contacted_at TIMESTAMPTZ,
+  client_id UUID REFERENCES clients(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_prospecting_rep ON prospecting_contacts(rep_id);
+CREATE INDEX IF NOT EXISTS idx_prospecting_status ON prospecting_contacts(status);
 CREATE INDEX IF NOT EXISTS idx_products_price_table ON products(price_table_id);
 CREATE INDEX IF NOT EXISTS idx_products_reference ON products(reference);
 CREATE INDEX IF NOT EXISTS idx_grade_configs_product ON grade_configs(product_id);

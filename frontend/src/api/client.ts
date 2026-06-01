@@ -316,3 +316,16 @@ export const usersApi = {
     apiClient.put(`/users/${id}`, data),
   delete: (id: string) => apiClient.delete(`/users/${id}`),
 }
+
+export const prospectingApi = {
+  searchNearby: (lat: number, lng: number, radius: number, segment: string) =>
+    apiClient.get('/prospecting/nearby', { params: { lat, lng, radius, segment } }),
+  lookupCnpj: (cnpj: string) =>
+    apiClient.get(`/prospecting/cnpj/${cnpj.replace(/\D/g, '')}`),
+  listContacts: () => apiClient.get('/prospecting/contacts'),
+  createContact: (data: Record<string, unknown>) =>
+    apiClient.post('/prospecting/contacts', data),
+  updateContact: (id: string, data: Record<string, unknown>) =>
+    apiClient.patch(`/prospecting/contacts/${id}`, data),
+  deleteContact: (id: string) => apiClient.delete(`/prospecting/contacts/${id}`),
+}
