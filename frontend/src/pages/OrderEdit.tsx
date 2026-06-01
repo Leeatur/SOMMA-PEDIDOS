@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Save, X, Search, Trash2, AlertTriangle,
-  Loader2, Eye, Printer,
+  Loader2, Eye, Printer, Check,
 } from 'lucide-react'
 import {
   ordersApi, clientsApi, usersApi, statusesApi, productsApi,
@@ -260,6 +260,7 @@ export default function OrderEdit() {
   const [prodSearch, setProdSearch] = useState('')
   const [prodResults, setProdResults] = useState<Product[]>([])
   const [showProdDropdown, setShowProdDropdown] = useState(false)
+  const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null)
   const [searching, setSearching] = useState(false)
 
   const searchProducts = useCallback(async (val: string) => {
@@ -363,14 +364,17 @@ export default function OrderEdit() {
   }
 
   const addProduct = (prod: Product) => {
-    // Verifica se já existe (não removido)
     const existsActive = items.some(it => it.product_id === prod.id && !it.removed)
     const existsNew = newItems.some(it => it.product_id === prod.id)
     if (existsActive || existsNew) {
-      setShowProdDropdown(false)
-      setProdSearch('')
-      return
+      setShowProdDropdown(false); setProdSearch(''); return
     }
+    setShowProdDropdown(false); setProdSearch('')
+    // Abre modal para preencher grade/tamanhos antes de adicionar
+    setQuickEditProduct(prod)
+  }
+
+  const confirmAddProduct = (prod: Product, sizes: Record<string, number>, boxes: number) => {
     const newItem: NewItem = {
       tempId: `new-${Date.now()}`,
       product_id: prod.id,
@@ -382,13 +386,12 @@ export default function OrderEdit() {
       blocked_sizes: prod.blocked_sizes || null,
       unit_price: prod.base_price,
       grade_configs: prod.grade_configs || null,
-      draftSizes: initSizes(prod),
-      draftBoxes: 1,
-      draftGrade: initDraftGradeFromProduct(prod),
+      draftSizes: prod.type === 'regular' ? sizes : {},
+      draftBoxes: boxes,
+      draftGrade: prod.type === 'pack' ? initDraftGradeFromProduct(prod) : [],
     }
     setNewItems(prev => [...prev, newItem])
-    setShowProdDropdown(false)
-    setProdSearch('')
+    setQuickEditProduct(null)
   }
 
   // ── totais calculados ────────────────────────────────────────────────────────
@@ -500,7 +503,7 @@ export default function OrderEdit() {
 
   // ── render ────────────────────────────────────────────────────────────────────
 
-  return (
+  return (<>
     <div className="min-h-screen bg-surface-container-lowest">
 
       {/* Topbar */}
@@ -827,6 +830,161 @@ export default function OrderEdit() {
           </button>
         </div>
 
+      </div>
+    </div>
+
+    {/* Modal de adição de produto */}
+    {quickEditProduct && (
+      <OrderEditQuickModal
+        product={quickEditProduct}
+        onClose={() => setQuickEditProduct(null)}
+        onAdd={confirmAddProduct}
+      />
+    )}
+    </>
+  )
+}
+
+// ── OrderEditQuickModal ─────────────────────────────────────────────────────────
+function OrderEditQuickModal({
+  product, onClose, onAdd,
+}: {
+  product: Product
+  onClose: () => void
+  onAdd: (p: Product, sizes: Record<string,number>, boxes: number) => void
+}) {
+  const isPack = product.type === 'pack'
+  const grades = product.grade_configs || []
+  const SIZE_ORD = ['RN','PP','XP','P','M','G','GG','XG','EXG','2XG','3XG','4XG','34','36','38','40','42','44','46','48','50','52','54','56','58','60','U']
+  const sort = (s: string[]) => [...s].sort((a,b)=>{const ai=SIZE_ORD.indexOf(a.trim().toUpperCase()),bi=SIZE_ORD.indexOf(b.trim().toUpperCase()); if(ai===-1&&bi===-1)return a.localeCompare(b); if(ai===-1)return 1; if(bi===-1)return -1; return ai-bi})
+  const parseRange = (r: string) => { const m=r.match(/^(\d+)-(\d+)$/); if(m){const s=parseInt(m[1]),e=parseInt(m[2]),arr=[]; for(let i=s;i<=e;i+=2)arr.push(String(i)); return arr} return r.includes(',')?r.split(',').map(x=>x.trim()):[r] }
+
+  const allSizes = isPack ? [] : (() => { if(grades.length){const s=new Set<string>(); grades.forEach(g=>Object.keys(g.sizes).forEach(k=>s.add(k.trim()))); return sort([...s])} return sort(parseRange(product.size_range||'')) })()
+
+  const [sizes, setSizes] = useState<Record<string,number>>(() => Object.fromEntries(allSizes.map(s=>[s,0])))
+  const [boxes, setBoxes] = useState(1)
+
+  const totalPiecesPerBox = grades.reduce((s,g)=>s+g.total_pieces,0)||0
+  const totalPieces = isPack ? totalPiecesPerBox*boxes : Object.values(sizes).reduce((s,v)=>s+v,0)
+  const totalValue = Number(product.base_price)*totalPieces
+  const fmtR=(v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
+  const fmtN=(v:number)=>new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2}).format(v)
+
+  useEffect(()=>{
+    const h=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose()}
+    window.addEventListener('keydown',h); return()=>window.removeEventListener('keydown',h)
+  },[onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose}/>
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[92vh] overflow-hidden">
+        {/* Header */}
+        <div className="bg-surface-container-low px-4 py-3 border-b border-outline-variant flex items-start justify-between gap-3 flex-shrink-0">
+          <div className="flex gap-3 flex-1 min-w-0">
+            {product.image_url && <img src={product.image_url} alt={product.reference} className="w-16 h-16 object-cover rounded-xl flex-shrink-0"/>}
+            <div className="min-w-0">
+              <p className="font-bold text-on-surface">{product.reference}</p>
+              {product.product_name && <p className="text-[12px] text-outline truncate">{product.product_name}</p>}
+              <p className="font-bold text-primary">{fmtR(Number(product.base_price))}/pç</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-outline hover:bg-surface-container flex-shrink-0"><X className="h-5 w-5"/></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          {/* PACK */}
+          {isPack && grades.length > 0 && (()=>{
+            const packSizes=sort([...new Set(grades.flatMap(g=>Object.keys(g.sizes).map(s=>s.trim())))])
+            const grand=grades.reduce((s,g)=>s+g.total_pieces,0)
+            return (
+              <div>
+                <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Grade do Pack</p>
+                <div className="border border-outline-variant rounded-xl overflow-x-auto mb-3">
+                  <table className="min-w-full text-[12px]">
+                    <thead className="bg-surface-container-low">
+                      <tr>
+                        <th className="px-2 py-2 text-left font-bold text-outline border-r border-outline-variant/30">COR</th>
+                        {packSizes.map(s=><th key={s} className="px-2 py-2 text-center font-bold text-outline border-r border-outline-variant/20 last:border-r-0">{s}</th>)}
+                        <th className="px-2 py-2 text-center font-bold text-primary">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/20">
+                      {grades.map((g,i)=>(
+                        <tr key={i} className={i%2===0?'bg-white':'bg-surface-container-low/30'}>
+                          <td className="px-2 py-1.5 font-semibold text-on-surface border-r border-outline-variant/30 whitespace-nowrap">{g.color||'—'}</td>
+                          {packSizes.map(s=><td key={s} className="px-2 py-1.5 text-center text-on-surface-variant border-r border-outline-variant/20 last:border-r-0">{(g.sizes[s]||g.sizes[s+' ']||0)>0?(g.sizes[s]||g.sizes[s+' ']||0)*boxes:'—'}</td>)}
+                          <td className="px-2 py-1.5 text-center font-bold text-primary">{g.total_pieces*boxes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t-2 border-outline-variant">
+                      <tr className="bg-surface-container-low">
+                        <td className="px-2 py-1.5 font-bold text-on-surface border-r border-outline-variant/30">QT. PACK</td>
+                        {packSizes.map(s=><td key={s} className="px-2 py-1.5 text-center font-semibold border-r border-outline-variant/20 last:border-r-0">{grades.reduce((sum,g)=>sum+(g.sizes[s]||g.sizes[s+' ']||0)*boxes,0)||''}</td>)}
+                        <td className="px-2 py-1.5 text-center font-bold text-primary">{grand*boxes}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-[12px] text-outline font-medium">Qtd. Caixas:</p>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={()=>setBoxes(Math.max(1,boxes-1))} className="w-9 h-9 rounded-xl border border-outline-variant flex items-center justify-center hover:bg-surface-container active:scale-95">
+                      <span className="text-lg font-bold text-on-surface-variant leading-none">−</span>
+                    </button>
+                    <input type="number" min="1" value={boxes} onChange={e=>setBoxes(Math.max(1,parseInt(e.target.value)||1))}
+                      className="w-16 text-center border-2 border-outline-variant rounded-xl py-1.5 text-[15px] font-bold focus:outline-none focus:border-primary"/>
+                    <button type="button" onClick={()=>setBoxes(boxes+1)} className="w-9 h-9 rounded-xl border border-outline-variant flex items-center justify-center hover:bg-surface-container active:scale-95">
+                      <span className="text-lg font-bold text-on-surface-variant leading-none">+</span>
+                    </button>
+                  </div>
+                  <span className="text-[13px] font-bold text-primary">{grand*boxes} pç total</span>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* REGULAR */}
+          {!isPack && allSizes.length > 0 && (
+            <div>
+              <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Quantidades por tamanho</p>
+              <div className="border border-outline-variant rounded-xl overflow-hidden">
+                <table className="w-full" style={{tableLayout:'fixed'}}>
+                  <thead className="bg-surface-container-low">
+                    <tr>{allSizes.map(s=><th key={s} className="px-1 py-2 text-center text-[11px] font-bold text-outline border-r border-outline-variant/30 last:border-r-0">{s}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    <tr>{allSizes.map((s,idx)=>(
+                      <td key={s} className="border-r border-outline-variant/20 last:border-r-0 border-t border-outline-variant/20 p-0">
+                        <input type="number" min="0" value={sizes[s]||''} placeholder="0" tabIndex={idx+1}
+                          onChange={e=>setSizes(prev=>({...prev,[s]:Math.max(0,parseInt(e.target.value)||0)}))}
+                          onFocus={e=>e.target.select()}
+                          className="w-full text-center py-2.5 text-[13px] font-semibold text-on-surface focus:outline-none focus:bg-primary/5 bg-transparent"/>
+                      </td>
+                    ))}</tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Totais */}
+          <div className="grid grid-cols-2 gap-3">
+            <div><p className="text-[11px] text-outline mb-1">Preço Unit.</p><div className="px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg text-[12px] font-semibold">{fmtN(Number(product.base_price))}</div></div>
+            <div><p className="text-[11px] text-outline mb-1">Total</p><div className="px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg text-[12px] font-bold text-primary">{fmtN(totalValue)}</div></div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-outline-variant flex items-center justify-end gap-3 bg-surface-container-low flex-shrink-0">
+          <button type="button" onClick={onClose} className="text-[12px] text-outline hover:text-on-surface px-4 py-2">Cancelar</button>
+          <button type="button" disabled={totalPieces===0}
+            onClick={()=>onAdd(product,sizes,boxes)}
+            className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-xl font-semibold text-[12px] disabled:opacity-50 hover:bg-primary/90 active:scale-95">
+            <Check className="h-4 w-4"/> Adicionar
+          </button>
+        </div>
       </div>
     </div>
   )

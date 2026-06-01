@@ -874,18 +874,22 @@ export function NewOrder() {
 
             {/* Floating cart summary */}
             {cart.length > 0 && (
-              <div className="fixed bottom-20 lg:bottom-6 left-4 right-4 lg:left-auto lg:right-8 lg:max-w-sm">
-                <Card padding="md" className="shadow-lg border-primary/30 bg-primary/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[12px] font-semibold text-blue-900">{cart.length} produto{cart.length > 1 ? 's' : ''} no carrinho</p>
-                      <p className="text-[12px] text-primary">{totals.totalPieces} peças</p>
-                    </div>
-                    <Button onClick={() => setStep(3)} size="sm">
-                      Revisar <ChevronRight className="h-4 w-4" />
-                    </Button>
+              <div className="fixed bottom-16 lg:bottom-6 left-0 right-0 lg:left-auto lg:right-8 lg:max-w-xs px-3 lg:px-0 z-40">
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="w-full flex items-center justify-between bg-green-600 hover:bg-green-700 active:scale-[0.98] text-white rounded-2xl shadow-2xl px-5 py-3.5 transition-all"
+                  style={{ boxShadow: '0 8px 32px rgba(22,163,74,0.5)' }}
+                >
+                  <div className="text-left">
+                    <p className="text-xs font-medium text-green-100">{cart.length} item{cart.length > 1 ? 'ns' : ''} · {totals.totalPieces} pç</p>
+                    <p className="text-lg font-bold leading-tight">{formatCurrency(totals.totalValue)}</p>
                   </div>
-                </Card>
+                  <div className="flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2">
+                    <span className="text-sm font-bold">Fechar Pedido</span>
+                    <ChevronRight className="h-5 w-5" />
+                  </div>
+                </button>
               </div>
             )}
           </div>
