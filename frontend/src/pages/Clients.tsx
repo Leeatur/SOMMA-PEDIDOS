@@ -194,13 +194,13 @@ export function Clients() {
     switch (id) {
       case 'name':
         return (
-          <td key={id} className="pl-3 pr-2 py-0.5 max-w-[220px]">
-            <p className="text-[11px] font-semibold text-on-surface truncate">{c.name}</p>
+          <td key={id} className="pl-3 pr-2 py-0 max-w-[220px]">
+            <p className="text-[11px] font-semibold text-on-surface truncate leading-none">{c.name}</p>
           </td>
         )
       case 'trade_name':
         return (
-          <td key={id} className="px-2 py-0.5 max-w-[180px]">
+          <td key={id} className="px-2 py-0 max-w-[180px]">
             <span className="text-[11px] text-outline truncate block">
               {c.trade_name && c.trade_name !== c.name ? c.trade_name : '—'}
             </span>
@@ -208,7 +208,7 @@ export function Clients() {
         )
       case 'city':
         return (
-          <td key={id} className="px-2 py-0.5 max-w-[150px]">
+          <td key={id} className="px-2 py-0 max-w-[150px]">
             <span className="text-[11px] text-on-surface-variant truncate block">
               {[c.city, c.state].filter(Boolean).join(' / ') || '—'}
             </span>
@@ -216,49 +216,49 @@ export function Clients() {
         )
       case 'phone':
         return (
-          <td key={id} className="px-2 py-0.5 whitespace-nowrap">
+          <td key={id} className="px-2 py-0 whitespace-nowrap">
             <span className="text-[11px] text-on-surface-variant">{c.phone || '—'}</span>
           </td>
         )
       case 'whatsapp':
         return (
-          <td key={id} className="px-2 py-0.5 whitespace-nowrap">
+          <td key={id} className="px-2 py-0 whitespace-nowrap">
             <span className="text-[11px] text-on-surface-variant">{c.whatsapp || '—'}</span>
           </td>
         )
       case 'email':
         return (
-          <td key={id} className="px-2 py-0.5 max-w-[180px]">
+          <td key={id} className="px-2 py-0 max-w-[180px]">
             <span className="text-[11px] text-outline truncate block">{c.email || '—'}</span>
           </td>
         )
       case 'cnpj':
         return (
-          <td key={id} className="px-2 py-0.5 whitespace-nowrap">
+          <td key={id} className="px-2 py-0 whitespace-nowrap">
             <span className="text-[11px] text-outline/70">{c.cnpj || '—'}</span>
           </td>
         )
       case 'rep':
         return (
-          <td key={id} className="px-2 py-0.5 max-w-[120px]">
+          <td key={id} className="px-2 py-0 max-w-[120px]">
             <span className="text-[11px] text-primary font-medium truncate block">{c.rep_name || '—'}</span>
           </td>
         )
       case '_edit':
         return (
-          <td key={id} className="px-2 pr-3 py-0.5 text-right w-20">
-            <div className="flex items-center justify-end gap-0.5">
+          <td key={id} className="px-1 pr-2 py-0 text-right w-16">
+            <div className="flex items-center justify-end gap-0">
               <button
                 onClick={(e) => { e.stopPropagation(); openEdit(c) }}
-                className="p-1.5 text-outline/50 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                className="p-1 text-outline/50 hover:text-primary hover:bg-primary/10 rounded transition-colors"
               >
-                <Edit2 className="h-3.5 w-3.5" />
+                <Edit2 className="h-3 w-3" />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleDelete(c.id, c.name) }}
-                className="p-1.5 text-outline/40 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                className="p-1 text-outline/40 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3 w-3" />
               </button>
             </div>
           </td>
@@ -515,7 +515,7 @@ export function Clients() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
               {sortedClients.map(c => (
-                <tr key={c.id} className="border-b border-outline-variant/50 hover:bg-primary/5 transition-colors">
+                <tr key={c.id} className="border-b border-outline-variant/30 hover:bg-primary/5 transition-colors h-7">
                   {visibleCols.map(col => renderClientCell(col.id, c))}
                 </tr>
               ))}
