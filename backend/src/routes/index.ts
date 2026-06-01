@@ -13,6 +13,7 @@ import * as clientsImport from '../controllers/clientsImportController'
 import * as company from '../controllers/companyController'
 import * as reports from '../controllers/reportsController'
 import * as prospecting from '../controllers/prospectingController'
+import * as portal from '../controllers/portalController'
 
 const router = Router()
 
@@ -124,5 +125,17 @@ router.post('/statuses', authenticate, requireAdmin, statuses.createStatus)
 router.put('/statuses/:id', authenticate, requireAdmin, statuses.updateStatus)
 router.delete('/statuses/:id', authenticate, requireAdmin, statuses.deleteStatus)
 router.post('/statuses/reorder', authenticate, requireAdmin, statuses.reorderStatuses)
+
+// ── Portal de Pedidos (autenticado — gerenciamento pelo rep)
+router.get('/portals', authenticate, portal.listPortals)
+router.post('/portals', authenticate, portal.createPortal)
+router.put('/portals/:id', authenticate, portal.updatePortal)
+router.delete('/portals/:id', authenticate, portal.deletePortal)
+
+// ── Portal de Pedidos (PÚBLICO — cliente sem login)
+router.get('/public/portal/:token', portal.getPortalInfo)
+router.post('/public/portal/:token/lookup-cnpj', portal.portalLookupCnpj)
+router.get('/public/portal/:token/catalog', portal.getPortalCatalog)
+router.post('/public/portal/:token/order', portal.submitPortalOrder)
 
 export default router

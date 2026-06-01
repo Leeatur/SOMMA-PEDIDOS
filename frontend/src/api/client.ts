@@ -333,3 +333,19 @@ export const prospectingApi = {
     apiClient.patch(`/prospecting/contacts/${id}`, data),
   deleteContact: (id: string) => apiClient.delete(`/prospecting/contacts/${id}`),
 }
+
+export const portalsApi = {
+  list: () => apiClient.get('/portals'),
+  create: (data: { name: string; factory_ids: string[]; expires_at?: string }) => apiClient.post('/portals', data),
+  update: (id: string, data: object) => apiClient.put(`/portals/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/portals/${id}`),
+}
+
+// API pública (sem autenticação) para o portal do cliente
+export const publicPortalApi = {
+  getInfo: (token: string) => apiClient.get(`/public/portal/${token}`),
+  lookupCnpj: (token: string, cnpj: string) => apiClient.post(`/public/portal/${token}/lookup-cnpj`, { cnpj }),
+  getCatalog: (token: string, params?: { factory_id?: string; price_table_id?: string }) =>
+    apiClient.get(`/public/portal/${token}/catalog`, { params }),
+  submitOrder: (token: string, data: object) => apiClient.post(`/public/portal/${token}/order`, data),
+}

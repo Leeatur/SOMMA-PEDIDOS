@@ -256,6 +256,21 @@ CREATE TABLE IF NOT EXISTS prospecting_contacts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Portal de pedidos para clientes (link compartilhável)
+CREATE TABLE IF NOT EXISTS customer_portals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rep_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  factory_ids UUID[] NOT NULL DEFAULT '{}',
+  token VARCHAR(64) UNIQUE NOT NULL,
+  name VARCHAR(200) NOT NULL DEFAULT 'Catálogo',
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_customer_portals_token ON customer_portals(token);
+CREATE INDEX IF NOT EXISTS idx_customer_portals_rep ON customer_portals(rep_id);
+
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_prospecting_rep ON prospecting_contacts(rep_id);
 CREATE INDEX IF NOT EXISTS idx_prospecting_status ON prospecting_contacts(status);

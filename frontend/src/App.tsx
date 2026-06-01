@@ -18,6 +18,7 @@ import { Reports } from './pages/Reports'
 import { OrdersTrash } from './pages/OrdersTrash'
 import OrderEdit from './pages/OrderEdit'
 import { Prospecting } from './pages/Prospecting'
+import { CustomerPortal } from './pages/CustomerPortal'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuthStore()
@@ -104,6 +105,9 @@ export function App() {
           </RequireAuth>
         }
       />
+
+      {/* Portal público de pedidos para clientes — sem autenticação */}
+      <Route path="/portal/:token" element={<CustomerPortal />} />
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
