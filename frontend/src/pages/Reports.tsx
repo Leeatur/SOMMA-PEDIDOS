@@ -45,6 +45,7 @@ interface CommissionRow {
   razao_social: string
   cliente: string | null
   cidade: string | null
+  uf: string | null
   items_refs: string | null
   items_count: number
   total_pieces: number
@@ -645,7 +646,7 @@ export function Reports() {
       </div>
 
       {/* ── tab content ── */}
-      <div className="px-4 py-3 lg:px-8 max-w-5xl mx-auto">
+      <div className={`px-4 py-3 lg:px-6 ${tab === 'commissions' ? '' : 'max-w-5xl mx-auto'}`}>
 
         {/* ═══ VISÃO GERAL ══════════════════════════════════════════════════ */}
         {tab === 'orders' && (
@@ -736,54 +737,52 @@ export function Reports() {
                 return (
                   <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                     <div className="overflow-x-auto">
-                      <table className="min-w-full text-[11px]">
+                      <table className="w-full text-[11px]">
                         <thead className="bg-surface-container-low">
                           <tr>
-                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Dt. Venda</th>
-                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Indústria</th>
-                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Vendedor</th>
-                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nr. Ped. Fábrica</th>
-                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Razão Social</th>
-                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nome Fantasia</th>
-                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Cidade</th>
-                            <th className="px-3 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Ítens</th>
-                            <th className="px-3 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Valor</th>
-                            <th className="px-3 py-1.5 text-right font-semibold text-emerald-700 whitespace-nowrap">Com. Vendedor</th>
-                            {isAdmin && <th className="px-3 py-1.5 text-right font-semibold text-blue-700 whitespace-nowrap">Com. Escrit.</th>}
-                            <th className="px-3 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Vlr. Faturado</th>
-                            <th className="px-3 py-1.5 text-right font-semibold text-orange-600 whitespace-nowrap">Falta Faturar</th>
+                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Data</th>
+                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Vendedor</th>
+                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Indústria</th>
+                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nr. Fábrica</th>
+                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant">Razão Social</th>
+                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant">Nome Fantasia</th>
+                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Cidade</th>
+                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">UF</th>
+                            <th className="px-2 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Valor</th>
+                            <th className="px-2 py-1.5 text-right font-semibold text-emerald-700 whitespace-nowrap">Com. Rep</th>
+                            {isAdmin && <th className="px-2 py-1.5 text-right font-semibold text-blue-700 whitespace-nowrap">Com. Escr.</th>}
+                            <th className="px-2 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Faturado</th>
+                            <th className="px-2 py-1.5 text-right font-semibold text-orange-600 whitespace-nowrap">A Faturar</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                           {rows.map(r => (
-                            <tr key={r.id} className="hover:bg-surface-container-low/50">
-                              <td className="px-3 py-1 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>
-                              <td className="px-3 py-1 whitespace-nowrap font-medium text-on-surface">{r.industria}</td>
-                              <td className="px-3 py-1 whitespace-nowrap text-on-surface-variant">{r.vendedor}</td>
-                              <td className="px-3 py-1 whitespace-nowrap text-on-surface-variant">{r.nr_ped_fabrica || '—'}</td>
-                              <td className="px-3 py-1 max-w-[160px]">
+                            <tr key={r.id} className="hover:bg-surface-container-low/50 cursor-pointer" onClick={() => window.open(`/orders/${r.id}`, '_self')}>
+                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>
+                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.vendedor}</td>
+                              <td className="px-2 py-1 whitespace-nowrap font-medium text-on-surface">{r.industria}</td>
+                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.nr_ped_fabrica || '—'}</td>
+                              <td className="px-2 py-1 max-w-[160px]">
                                 <span className="block truncate text-on-surface font-medium" title={r.razao_social}>{r.razao_social}</span>
                               </td>
-                              <td className="px-3 py-1 max-w-[140px]">
+                              <td className="px-2 py-1 max-w-[130px]">
                                 <span className="block truncate text-on-surface-variant" title={r.cliente || ''}>{r.cliente || '—'}</span>
                               </td>
-                              <td className="px-3 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>
-                              <td className="px-3 py-1 max-w-[180px]">
-                                <span className="block truncate text-on-surface-variant" title={r.items_refs || ''}>{r.items_refs || '—'}</span>
-                              </td>
-                              <td className="px-3 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>
-                              <td className="px-3 py-1 text-right whitespace-nowrap">
+                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>
+                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.uf || '—'}</td>
+                              <td className="px-2 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>
+                              <td className="px-2 py-1 text-right whitespace-nowrap">
                                 <span className="font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</span>
-                                <span className="text-emerald-600/70 ml-1">({fmtPct(r.rep_commission_pct)})</span>
+                                <span className="text-emerald-600/70 ml-0.5 text-[10px]">({fmtPct(r.rep_commission_pct)})</span>
                               </td>
                               {isAdmin && (
-                                <td className="px-3 py-1 text-right whitespace-nowrap">
+                                <td className="px-2 py-1 text-right whitespace-nowrap">
                                   <span className="font-bold text-blue-700">{fmtR(r.office_commission_value)}</span>
-                                  <span className="text-blue-600/70 ml-1">({fmtPct(r.office_commission_pct)})</span>
+                                  <span className="text-blue-600/70 ml-0.5 text-[10px]">({fmtPct(r.office_commission_pct)})</span>
                                 </td>
                               )}
-                              <td className="px-3 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
-                              <td className="px-3 py-1 text-right whitespace-nowrap">
+                              <td className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
+                              <td className="px-2 py-1 text-right whitespace-nowrap">
                                 {Number(r.falta_faturar) > 0
                                   ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span>
                                   : <span className="text-on-surface-variant/50">—</span>
@@ -794,12 +793,12 @@ export function Reports() {
                         </tbody>
                         <tfoot>
                           <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
-                            <td className="px-3 py-1.5 text-on-surface-variant" colSpan={8}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
-                            <td className="px-3 py-1.5 text-right text-on-surface">{fmtR(sum('total_value'))}</td>
-                            <td className="px-3 py-1.5 text-right text-emerald-700">{fmtR(sum('rep_commission_value'))}</td>
-                            {isAdmin && <td className="px-3 py-1.5 text-right text-blue-700">{fmtR(sum('office_commission_value'))}</td>}
-                            <td className="px-3 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
-                            <td className="px-3 py-1.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
+                            <td className="px-2 py-1.5 text-on-surface-variant" colSpan={isAdmin ? 9 : 8}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
+                            <td className="px-2 py-1.5 text-right text-on-surface">{fmtR(sum('total_value'))}</td>
+                            <td className="px-2 py-1.5 text-right text-emerald-700">{fmtR(sum('rep_commission_value'))}</td>
+                            {isAdmin && <td className="px-2 py-1.5 text-right text-blue-700">{fmtR(sum('office_commission_value'))}</td>}
+                            <td className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
+                            <td className="px-2 py-1.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
                           </tr>
                         </tfoot>
                       </table>
