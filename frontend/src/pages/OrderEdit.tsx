@@ -323,6 +323,13 @@ export default function OrderEdit() {
     setItems(prev => prev.map(it => it.id === itemId ? { ...it, removed: true } : it))
   }
 
+  const updateExistingPrice = (itemId: string, val: number) => {
+    setItems(prev => prev.map(it => it.id === itemId ? { ...it, unit_price: val } : it))
+  }
+  const updateNewPrice = (tempId: string, val: number) => {
+    setNewItems(prev => prev.map(it => it.tempId === tempId ? { ...it, unit_price: val } : it))
+  }
+
   const updateNewSize = (tempId: string, size: string, val: number) => {
     setNewItems(prev => prev.map(it =>
       it.tempId === tempId ? { ...it, draftSizes: { ...it.draftSizes, [size]: val } } : it
@@ -754,6 +761,7 @@ export default function OrderEdit() {
                     onSizeChange={(size, val) => updateSize(it.id, size, val)}
                     onBoxesChange={val => updateBoxes(it.id, val)}
                     onGradeChange={(colorIdx, size, val) => updateGrade(it.id, colorIdx, size, val)}
+                    onPriceChange={val => updateExistingPrice(it.id, val)}
                     onRemove={() => removeItem(it.id)}
                     priceTableName={order?.price_table_name}
                   />
@@ -776,6 +784,7 @@ export default function OrderEdit() {
                     onSizeChange={(size, val) => updateNewSize(it.tempId, size, val)}
                     onBoxesChange={val => updateNewBoxes(it.tempId, val)}
                     onGradeChange={(colorIdx, size, val) => updateNewGrade(it.tempId, colorIdx, size, val)}
+                    onPriceChange={val => updateNewPrice(it.tempId, val)}
                     onRemove={() => removeNewItem(it.tempId)}
                     isNew
                     priceTableName={order?.price_table_name}
@@ -1000,6 +1009,7 @@ interface ItemRowProps {
   onSizeChange: (size: string, val: number) => void
   onBoxesChange: (val: number) => void
   onGradeChange: (colorIdx: number, size: string, val: number) => void
+  onPriceChange?: (val: number) => void
   onRemove: () => void
   isNew?: boolean
   priceTableName?: string | null
@@ -1008,7 +1018,7 @@ interface ItemRowProps {
 function ItemRow({
   index, reference, productName, imageUrl, type, unitPrice,
   gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
-  onSizeChange, onGradeChange, onRemove, isNew, priceTableName,
+  onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
 
@@ -1046,9 +1056,18 @@ function ItemRow({
         </div>
       </td>
 
-      {/* Preço tabela */}
-      <td className="px-3 py-2 text-right text-[12px] text-on-surface-variant whitespace-nowrap align-middle">
-        {formatCurrency(unitPrice)}
+      {/* Preço unit. — editável */}
+      <td className="px-3 py-2 text-right text-[12px] align-middle whitespace-nowrap">
+        <div className="flex items-center gap-0.5 justify-end">
+          <span className="text-outline/60 text-[11px]">R$</span>
+          <input
+            type="number" min="0" step="0.01"
+            value={Number(unitPrice).toFixed(2)}
+            onChange={e => { const v=parseFloat(e.target.value); if(!isNaN(v)&&v>=0) onPriceChange?.(v) }}
+            onFocus={e => e.target.select()}
+            className="w-20 text-right text-[12px] font-semibold text-primary border border-outline-variant/50 rounded-lg px-1.5 py-1 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 bg-white"
+          />
+        </div>
       </td>
 
       {/* Grade / Quantidades */}

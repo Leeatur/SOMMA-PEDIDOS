@@ -971,9 +971,27 @@ export function NewOrder() {
                             </p>
                           )}
                         </div>
-                        <div className="text-right flex-shrink-0">
+                        <div className="text-right flex-shrink-0 space-y-1">
                           <p className="text-[12px] font-bold text-on-surface">{formatCurrency(subtotal)}</p>
-                          <p className="text-[12px] text-outline/70">R$ {Number(item.unit_price).toFixed(2)}/pç</p>
+                          {/* Preço editável */}
+                          <div className="flex items-center gap-1 justify-end">
+                            <span className="text-[11px] text-outline/70">R$</span>
+                            <input
+                              type="number" min="0" step="0.01"
+                              value={Number(item.unit_price).toFixed(2)}
+                              onChange={e => {
+                                const v = parseFloat(e.target.value)
+                                if (!isNaN(v) && v >= 0) {
+                                  setCart(prev => prev.map(c =>
+                                    c.product.id === item.product.id ? { ...c, unit_price: v } : c
+                                  ))
+                                }
+                              }}
+                              onFocus={e => e.target.select()}
+                              className="w-20 text-right text-[12px] font-semibold text-primary border border-outline-variant/50 rounded-lg px-1.5 py-0.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 bg-white"
+                            />
+                            <span className="text-[11px] text-outline/70">/pç</span>
+                          </div>
                         </div>
                       </div>
                       {/* Grade display */}
@@ -1065,11 +1083,15 @@ export function NewOrder() {
               <div className="p-3 border-b border-outline-variant/50">
                 <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">Desconto</h3>
                 {discountRules.length > 0 && !customDiscount ? (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       {discountRules.map((rule) => {
                         const isSelected = parseDecimal(discountPct) === rule.discount_pct
                         const discountedTotal = totals.grossValue * (1 - rule.discount_pct / 100)
+                        // Admin: mostra total commission como "X% escrit."
+                        const adminCommLabel = isAdmin
+                          ? `${formatPct(rule.total_commission_pct)} escrit.`
+                          : rule.rep_commission_pct > 0 ? `com. ${formatPct(rule.rep_commission_pct)}` : null
                         return (
                           <button
                             key={rule.id}
@@ -1088,9 +1110,9 @@ export function NewOrder() {
                                 <p className="text-[12px] text-outline mt-0.5 leading-tight">
                                   {formatCurrency(discountedTotal)}
                                 </p>
-                                {isAdmin && rule.rep_commission_pct > 0 && (
+                                {adminCommLabel && (
                                   <p className="text-[12px] text-emerald-600 mt-0.5 leading-tight">
-                                    com. {formatPct(rule.rep_commission_pct)}
+                                    {adminCommLabel}
                                   </p>
                                 )}
                               </div>
@@ -1099,13 +1121,33 @@ export function NewOrder() {
                           </button>
                         )
                       })}
+
+                      {/* Card DESC. ESPECIAIS — desconto livre */}
+                      {(() => {
+                        const specialSelected = customDiscount || (parseDecimal(discountPct) > 0 && !discountRules.some(r => r.discount_pct === parseDecimal(discountPct)))
+                        return (
+                          <button
+                            onClick={() => setCustomDiscount(true)}
+                            className={`text-left p-3 rounded-xl border transition-colors ${
+                              specialSelected
+                                ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-400'
+                                : 'border-outline-variant bg-surface-container-low hover:bg-white'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-1">
+                              <div className="min-w-0">
+                                <p className="font-bold text-amber-700 text-[12px] leading-tight">DESC. ESPECIAL</p>
+                                <p className="text-[12px] text-outline mt-0.5 leading-tight">% livre</p>
+                                {specialSelected && parseDecimal(discountPct) > 0 && (
+                                  <p className="text-[12px] text-amber-600 mt-0.5">{formatPct(parseDecimal(discountPct))}</p>
+                                )}
+                              </div>
+                              {specialSelected && <Check className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />}
+                            </div>
+                          </button>
+                        )
+                      })()}
                     </div>
-                    <button
-                      onClick={() => setCustomDiscount(true)}
-                      className="text-[12px] text-primary hover:text-primary"
-                    >
-                      Digitar desconto personalizado
-                    </button>
                   </div>
                 ) : (
                   <div className="space-y-1">
