@@ -144,15 +144,15 @@ async function run() {
       if (packProducts.length > 0) {
         const packIds = packProducts.map((p: { id: string }) => p.id)
 
-        // 2. Atualiza subtotal: unit_price × boxes_count (preço da caixa × qtd caixas)
+        // 2. Atualiza subtotal: unit_price × total_pieces (preço por PEÇA × total de peças)
         const { rowCount: itemsFixed } = await client.query(
           `UPDATE order_items oi
-           SET subtotal = oi.unit_price * (1 - o.discount_pct / 100.0) * oi.boxes_count
+           SET subtotal = oi.unit_price * (1 - o.discount_pct / 100.0) * oi.total_pieces
            FROM orders o
            WHERE oi.order_id = o.id
              AND oi.product_id = ANY($1)
-             AND oi.boxes_count > 0
-             AND ABS(oi.subtotal - oi.unit_price * (1 - o.discount_pct / 100.0) * oi.boxes_count) > 0.01`,
+             AND oi.total_pieces > 0
+             AND ABS(oi.subtotal - oi.unit_price * (1 - o.discount_pct / 100.0) * oi.total_pieces) > 0.01`,
           [packIds]
         )
         console.log(`   ${itemsFixed ?? 0} order_items corrigidos`)
