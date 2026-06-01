@@ -390,16 +390,20 @@ export function NewOrder() {
     const tableDiscountedValue = grossValue * (1 - discountNum / 100)
     const totalValue = tableDiscountedValue * (1 - cashDiscountNum / 100)
     const rule = findMatchingRule(discountNum)
+    // Admin: 100% comissão vai para escritório, 0% para rep
+    const repCommPct = (isAdmin && rule) ? 0 : (rule?.rep_commission_pct || 0)
+    const offCommPct = (isAdmin && rule) ? rule.total_commission_pct : (rule?.office_commission_pct || 0)
     return {
       totalPieces,
       grossValue,
       totalValue,
-      repCommission: rule ? tableDiscountedValue * rule.rep_commission_pct / 100 : 0,
-      officeCommission: rule ? tableDiscountedValue * rule.office_commission_pct / 100 : 0,
+      repCommission: tableDiscountedValue * repCommPct / 100,
+      officeCommission: tableDiscountedValue * offCommPct / 100,
       totalCommission: rule ? tableDiscountedValue * rule.total_commission_pct / 100 : 0,
       rule,
+      isAdminOrder: isAdmin,
     }
-  }, [cart, effectiveDiscountNum, discountNum, cashDiscountNum, findMatchingRule])
+  }, [cart, effectiveDiscountNum, discountNum, cashDiscountNum, findMatchingRule, isAdmin])
 
 
   function removeFromCart(productId: string) {
@@ -1187,9 +1191,26 @@ export function NewOrder() {
                   <span>{totals.totalPieces} pç</span>
                 </div>
                 {isAdmin && totals.rule && (
-                  <div className="flex justify-between text-emerald-600 pt-1 border-t border-outline-variant">
-                    <span>Comissão rep ({formatPct(totals.rule.rep_commission_pct)}):</span>
-                    <span className="font-semibold">{formatCurrency(totals.repCommission)}</span>
+                  <div className="pt-1 border-t border-outline-variant space-y-0.5">
+                    {totals.isAdminOrder ? (
+                      // Admin cria: 100% vai pro escritório
+                      <div className="flex justify-between text-blue-600">
+                        <span>Com. Escritório ({formatPct(totals.rule.total_commission_pct)}):</span>
+                        <span className="font-semibold">{formatCurrency(totals.officeCommission)}</span>
+                      </div>
+                    ) : (
+                      // Rep cria: split normal
+                      <>
+                        <div className="flex justify-between text-emerald-600">
+                          <span>Com. Rep ({formatPct(totals.rule.rep_commission_pct)}):</span>
+                          <span className="font-semibold">{formatCurrency(totals.repCommission)}</span>
+                        </div>
+                        <div className="flex justify-between text-blue-600">
+                          <span>Com. Escritório ({formatPct(totals.rule.office_commission_pct)}):</span>
+                          <span className="font-semibold">{formatCurrency(totals.officeCommission)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

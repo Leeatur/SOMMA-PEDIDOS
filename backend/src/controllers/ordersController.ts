@@ -212,6 +212,15 @@ export async function createOrder(req: AuthRequest, res: Response) {
     const disc = parseFloat(discount_pct) || 0
     const totals = await computeOrderTotals(items, disc, price_table_id, dbClient as any)
 
+    // Admin cria pedido: comissão 100% para o escritório, 0% para rep
+    const isAdminOrder = req.user!.role === 'admin'
+    const repCommPct   = isAdminOrder ? 0 : totals.repCommissionPct
+    const offCommPct   = isAdminOrder ? totals.totalCommissionPct : totals.officeCommissionPct
+    const repCommVal   = isAdminOrder ? 0 : totals.repCommissionValue
+    const offCommVal   = isAdminOrder
+      ? Math.round(totals.totalValue * totals.totalCommissionPct / 100 * 100) / 100
+      : totals.officeCommissionValue
+
     const { rows: [order] } = await dbClient.query(
       `INSERT INTO orders
        (offline_id, client_id, rep_id, factory_id, price_table_id, status_id,
@@ -223,8 +232,8 @@ export async function createOrder(req: AuthRequest, res: Response) {
        RETURNING *`,
       [offline_id||null, client_id, req.user!.id, factory_id, price_table_id,
        initStatus?.id||null, disc,
-       totals.totalCommissionPct, totals.repCommissionPct, totals.officeCommissionPct,
-       totals.totalPieces, totals.totalValue, totals.repCommissionValue, totals.officeCommissionValue,
+       totals.totalCommissionPct, repCommPct, offCommPct,
+       totals.totalPieces, totals.totalValue, repCommVal, offCommVal,
        notes||null, payment_terms||null, freight_type||'CIF',
        delivery_date||null, industry_order_number||null, buyer_name||null]
     )
@@ -518,6 +527,18 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
     )
     const totals = await computeOrderTotals(updatedItems, disc, price_table_id, dbClient as any)
 
+    // Verifica se o rep do pedido é admin → comissão 100% escritório
+    const { rows: [repUser] } = await dbClient.query(
+      'SELECT role FROM users WHERE id=(SELECT rep_id FROM orders WHERE id=$1)', [orderId]
+    )
+    const isAdminRep = repUser?.role === 'admin'
+    const repCommPct2   = isAdminRep ? 0 : totals.repCommissionPct
+    const offCommPct2   = isAdminRep ? totals.totalCommissionPct : totals.officeCommissionPct
+    const repCommVal2   = isAdminRep ? 0 : totals.repCommissionValue
+    const offCommVal2   = isAdminRep
+      ? Math.round(totals.totalValue * totals.totalCommissionPct / 100 * 100) / 100
+      : totals.officeCommissionValue
+
     await dbClient.query(
       `UPDATE orders SET
          price_table_id=$1, discount_pct=$2,
@@ -528,9 +549,9 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
        WHERE id=$10`,
       [
         price_table_id, disc,
-        totals.totalCommissionPct, totals.repCommissionPct, totals.officeCommissionPct,
+        totals.totalCommissionPct, repCommPct2, offCommPct2,
         totals.totalPieces, totals.totalValue,
-        totals.repCommissionValue, totals.officeCommissionValue,
+        repCommVal2, offCommVal2,
         orderId,
       ]
     )
