@@ -100,7 +100,7 @@ export function Dashboard() {
             <StatCard
               icon={<TrendingUp className="h-4.5 w-4.5 text-violet-600" />}
               iconBg="bg-violet-100"
-              label="Total faturado"
+              label="Total vendas"
               value={formatCurrency(totalValue)}
               accentColor="#7C3AED"
             />
@@ -110,7 +110,7 @@ export function Dashboard() {
             <StatCard
               icon={<CheckCircle className="h-4.5 w-4.5 text-amber-600" />}
               iconBg="bg-amber-100"
-              label="Faturado hoje"
+              label="Vendido hoje"
               value={formatCurrency(todayValue)}
               badge="HOJE"
               badgeColor="amber"
