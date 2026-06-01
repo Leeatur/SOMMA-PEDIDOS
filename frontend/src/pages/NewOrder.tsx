@@ -707,6 +707,11 @@ export function NewOrder() {
                       addToCart(first)
                       setExpandedGrade(first.id)
                       setProductSearch('')
+                      // Scroll até o produto expandido após render
+                      setTimeout(() => {
+                        document.getElementById(`product-card-${first.id}`)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }, 150)
                     }
                   }}
                 />
@@ -738,7 +743,7 @@ export function NewOrder() {
                     : 0
 
                   return (
-                    <div key={p.id} className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+                    <div key={p.id} id={`product-card-${p.id}`} className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden">
                       <div className="flex gap-3 p-3">
                         {/* Image */}
                         <div className="w-14 h-14 bg-surface-container rounded-lg flex-shrink-0 overflow-hidden">
