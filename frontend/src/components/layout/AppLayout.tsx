@@ -200,7 +200,7 @@ export function AppLayout() {
       {/* ════════════════════════════════════════
           MAIN AREA
       ════════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar overflow-x-hidden" style={{ maxWidth: 'calc(100vw - 0px)' }}>
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
 
         {/* ── Desktop TopBar ── */}
         <header className="hidden lg:flex h-topbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-outline-variant/60 items-center justify-between px-8 shadow-sm">
