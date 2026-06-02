@@ -977,14 +977,19 @@ export function NewOrder() {
                           <div className="flex items-center gap-1 justify-end">
                             <span className="text-[11px] text-outline/70">R$</span>
                             <input
-                              type="number" min="0" step="0.01"
-                              value={Number(item.unit_price).toFixed(2)}
-                              onChange={e => {
-                                const v = parseFloat(e.target.value)
-                                if (!isNaN(v) && v >= 0) {
+                              type="text" inputMode="decimal"
+                              defaultValue={Number(item.unit_price).toFixed(2).replace('.', ',')}
+                              key={`np-${item.product.id}-${item.unit_price}`}
+                              onBlur={e => {
+                                const raw = e.target.value.replace(',', '.')
+                                const v = parseFloat(raw)
+                                if (!isNaN(v) && v > 0) {
                                   setCart(prev => prev.map(c =>
                                     c.product.id === item.product.id ? { ...c, unit_price: v } : c
                                   ))
+                                  e.target.value = v.toFixed(2).replace('.', ',')
+                                } else {
+                                  e.target.value = Number(item.unit_price).toFixed(2).replace('.', ',')
                                 }
                               }}
                               onFocus={e => e.target.select()}

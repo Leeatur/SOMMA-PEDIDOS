@@ -1061,9 +1061,19 @@ function ItemRow({
         <div className="flex items-center gap-0.5 justify-end">
           <span className="text-outline/60 text-[11px]">R$</span>
           <input
-            type="number" min="0" step="0.01"
-            value={Number(unitPrice).toFixed(2)}
-            onChange={e => { const v=parseFloat(e.target.value); if(!isNaN(v)&&v>=0) onPriceChange?.(v) }}
+            type="text" inputMode="decimal"
+            defaultValue={Number(unitPrice).toFixed(2).replace('.', ',')}
+            key={`price-${unitPrice}`}
+            onBlur={e => {
+              const raw = e.target.value.replace(',', '.')
+              const v = parseFloat(raw)
+              if (!isNaN(v) && v > 0) {
+                onPriceChange?.(v)
+                e.target.value = v.toFixed(2).replace('.', ',')
+              } else {
+                e.target.value = Number(unitPrice).toFixed(2).replace('.', ',')
+              }
+            }}
             onFocus={e => e.target.select()}
             className="w-20 text-right text-[12px] font-semibold text-primary border border-outline-variant/50 rounded-lg px-1.5 py-1 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 bg-white"
           />
