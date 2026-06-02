@@ -343,10 +343,10 @@ export function CustomerPortal() {
               </div>
             )}
 
-            {/* Factory selector */}
-            {!selectedFactory && (
+            {/* Fluxo legado: seleção de fábrica (só quando não há price_table_ids) */}
+            {!selectedFactory && factories.length > 0 && (
               <div className="p-4 space-y-3">
-                <h3 className="font-bold text-gray-800">Escolha a coleção:</h3>
+                <h3 className="font-bold text-gray-800">Escolha a marca:</h3>
                 {factories.map(f => (
                   <button key={f.id} onClick={() => setSelectedFactory(f)}
                     className="w-full bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3 hover:border-purple-400 hover:bg-purple-50 transition-all">
@@ -361,17 +361,25 @@ export function CustomerPortal() {
               </div>
             )}
 
-            {selectedFactory && (
+            {/* Catálogo direto (price_table_ids) OU após selecionar fábrica */}
+            {(selectedFactory || factories.length === 0) && (
               <div>
-                {/* Factory header */}
-                <div className="bg-white border-b px-4 py-3 flex items-center gap-3">
-                  <button onClick={() => { setSelectedFactory(null); setCatalog([]) }}
-                    className="p-1 text-gray-400 hover:text-gray-600"><ArrowLeft className="h-4 w-4" /></button>
-                  <span className="font-bold text-gray-800">{selectedFactory.name}</span>
-                </div>
+                {/* Header com voltar (só no fluxo com fábrica selecionada) */}
+                {selectedFactory && (
+                  <div className="bg-white border-b px-4 py-3 flex items-center gap-3">
+                    <button onClick={() => { setSelectedFactory(null); setCatalog([]) }}
+                      className="p-1 text-gray-400 hover:text-gray-600"><ArrowLeft className="h-4 w-4" /></button>
+                    <span className="font-bold text-gray-800">{selectedFactory.name}</span>
+                  </div>
+                )}
 
                 {catalogLoading ? (
                   <div className="flex justify-center py-16"><RefreshCw className="h-7 w-7 text-purple-500 animate-spin" /></div>
+                ) : catalog.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                    <p className="text-gray-500 font-medium">Nenhum produto disponível</p>
+                    <p className="text-gray-400 text-sm mt-1">Entre em contato com o representante</p>
+                  </div>
                 ) : (
                   <div className="p-3 space-y-2">
                     {/* Search */}
