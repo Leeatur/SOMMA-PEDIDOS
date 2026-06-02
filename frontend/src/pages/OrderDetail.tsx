@@ -25,6 +25,10 @@ import {
   RefreshCw,
   AlertTriangle,
   Copy,
+  Share2,
+  Mail,
+  Phone,
+  X,
 } from 'lucide-react'
 import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -76,6 +80,8 @@ interface OrderDetail {
   client_name: string
   client_city: string | null
   client_phone: string | null
+  client_whatsapp: string | null
+  client_email: string | null
   rep_id: string
   rep_name: string
   factory_id: string
@@ -206,6 +212,7 @@ export function OrderDetail() {
   const [addCart, setAddCart] = useState<AddCartItem[]>([])
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
   const [deleteModal, setDeleteModal] = useState(false)
+  const [shareModal, setShareModal] = useState(false)
   const [editInfoModal, setEditInfoModal] = useState(false)
   const [editInfoForm, setEditInfoForm] = useState<EditInfoForm>({
     payment_terms: '',
@@ -416,7 +423,7 @@ export function OrderDetail() {
 
   const statusOptions = (statuses || []).map((s) => ({ value: s.id, label: s.name }))
 
-  return (
+  return (<>
     <div className="pb-24 lg:pb-0">
       {/* ── Mobile Header ── */}
       <div className="lg:hidden bg-white/90 border-b border-border-subtle px-4 py-2 sticky top-0 z-10" style={{ backdropFilter: 'blur(8px)' }}>
@@ -452,6 +459,9 @@ export function OrderDetail() {
           </div>
           <button onClick={() => window.open(`/orders/${id}/print`, '_blank')} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors" title="Imprimir pedido">
             <Printer className="h-4.5 w-4.5" />
+          </button>
+          <button onClick={() => setShareModal(true)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-emerald-600 transition-colors" title="Compartilhar pedido">
+            <Share2 className="h-4.5 w-4.5" />
           </button>
           <Button size="sm" variant="outline" onClick={() => duplicateMut.mutate()} icon={<Copy className="h-3.5 w-3.5" />} disabled={duplicateMut.isPending}>
             {duplicateMut.isPending ? 'Duplicando…' : 'Duplicar Pedido'}
@@ -1354,5 +1364,73 @@ export function OrderDetail() {
         </button>
       </div>
     </div>
-  )
+
+    {/* ── Modal Compartilhar Pedido ── */}
+
+    {shareModal && order && (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShareModal(false)} />
+        <div className="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-on-surface text-base">Compartilhar Pedido #{order.order_number}</h3>
+            <button onClick={() => setShareModal(false)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="text-[12px] text-outline bg-surface-container-low rounded-xl p-3">
+            <p className="font-semibold text-on-surface">{order.client_name}</p>
+            {order.client_whatsapp && <p>WhatsApp: {order.client_whatsapp}</p>}
+            {order.client_email && <p>E-mail: {order.client_email}</p>}
+          </div>
+
+          {/* WhatsApp */}
+          {order.client_whatsapp && (
+            <a
+              href={`https://wa.me/55${order.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
+                `Olá! Segue o pedido #${String(order.order_number).padStart(4,'0')} da ${order.factory_name} no valor de ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(order.total_value)}.\n\nVisualize aqui: ${window.location.origin}/orders/${id}/print`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              Enviar pelo WhatsApp
+            </a>
+          )}
+
+          {/* E-mail */}
+          {order.client_email && (
+            <a
+              href={`mailto:${order.client_email}?subject=${encodeURIComponent(`Pedido #${String(order.order_number).padStart(4,'0')} - ${order.factory_name}`)}&body=${encodeURIComponent(
+                `Olá,\n\nSegue o pedido #${String(order.order_number).padStart(4,'0')} da ${order.factory_name}.\n\nValor Total: ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(order.total_value)}\nItens: ${order.total_pieces} peças\n\nVisualize aqui: ${window.location.origin}/orders/${id}/print\n\nAtenciosamente,\n${order.rep_name}`
+              )}`}
+              className="flex items-center gap-3 w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors"
+            >
+              <Mail className="h-5 w-5" />
+              Enviar por E-mail
+            </a>
+          )}
+
+          {/* Ligar */}
+          {order.client_phone && (
+            <a
+              href={`tel:${order.client_phone}`}
+              className="flex items-center gap-3 w-full border border-outline-variant hover:bg-surface-container text-on-surface rounded-2xl px-4 py-3 font-semibold text-sm transition-colors"
+            >
+              <Phone className="h-5 w-5 text-outline" />
+              Ligar para o cliente
+            </a>
+          )}
+
+          {(!order.client_whatsapp && !order.client_email && !order.client_phone) && (
+            <p className="text-[12px] text-outline text-center py-2">
+              Nenhum contato cadastrado para este cliente.<br/>
+              <a href={`/clients`} className="text-primary underline">Edite o cadastro do cliente</a> para adicionar.
+            </p>
+          )}
+        </div>
+      </div>
+    )}
+  </>)
 }

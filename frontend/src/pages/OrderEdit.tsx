@@ -415,6 +415,11 @@ export default function OrderEdit() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
 
+  const handleSaveAndBack = async () => {
+    await handleSave()
+    navigate('/orders')
+  }
+
   const handleSave = async () => {
     if (!order) return
     setSaving(true)
@@ -545,11 +550,17 @@ export default function OrderEdit() {
             className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-lg border border-outline-variant text-[12px] text-on-surface-variant hover:bg-surface-container shrink-0">
             <X size={15} /> Cancelar
           </button>
-          {/* Salvar */}
+          {/* Salvar e Voltar */}
+          <button onClick={handleSaveAndBack} disabled={saving}
+            className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60 shrink-0">
+            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+            {saving ? 'Salvando...' : 'Salvar e Voltar'}
+          </button>
+          {/* Salvar (fica na tela) */}
           <button onClick={handleSave} disabled={saving}
             className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60 shrink-0">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            {saving ? 'Salvando...' : 'Salvar'}
+            {saving ? '...' : 'Salvar'}
           </button>
         </div>
         {saveError && (
@@ -827,9 +838,14 @@ export default function OrderEdit() {
             <Eye size={16} /> Visualizar
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-2 rounded-xl bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60">
+            className="sm:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            {saving ? 'Salvando...' : 'Salvar Pedido'}
+            {saving ? '...' : 'Salvar'}
+          </button>
+          <button onClick={handleSaveAndBack} disabled={saving}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60">
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {saving ? 'Salvando...' : 'Salvar e Voltar'}
           </button>
         </div>
 
