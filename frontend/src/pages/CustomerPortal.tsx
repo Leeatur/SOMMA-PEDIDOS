@@ -93,24 +93,38 @@ export function CustomerPortal() {
   const [submitting, setSubmitting] = useState(false)
   const [orderResult, setOrderResult] = useState<{ order_number: number; total_value: number } | null>(null)
 
-  // Load portal info
+  // Load portal info — se tem price_tables, carrega catálogo direto
   useEffect(() => {
     if (!token) return
     publicPortalApi.getInfo(token)
       .then(r => {
         setPortalInfo(r.data.portal)
-        setFactories(r.data.factories)
-        setStep('cnpj')
+        const pts = r.data.price_tables || []
+        const facs = r.data.factories || []
+        if (pts.length > 0) {
+          // Novo fluxo: tabelas específicas → carrega catálogo direto
+          setCatalogLoading(true)
+          publicPortalApi.getCatalog(token).then(cat => {
+            setCatalog(cat.data.price_tables || [])
+            setCatalogLoading(false)
+          }).catch(() => setCatalogLoading(false))
+          setFactories([])
+          setStep('cnpj')
+        } else {
+          // Fluxo legado: seleciona fábrica
+          setFactories(facs)
+          setStep('cnpj')
+        }
       })
       .catch(() => { setErrorMsg('Link inválido ou expirado.'); setStep('error') })
   }, [token])
 
-  // Load catalog when factory selected
+  // Load catalog when factory selected (fluxo legado)
   useEffect(() => {
     if (!selectedFactory || !token) return
     setCatalogLoading(true)
     publicPortalApi.getCatalog(token, { factory_id: selectedFactory.id })
-      .then(r => { setCatalog(r.data.price_tables); setCatalogLoading(false) })
+      .then(r => { setCatalog(r.data.price_tables || []); setCatalogLoading(false) })
       .catch(() => setCatalogLoading(false))
   }, [selectedFactory, token])
 
@@ -176,13 +190,18 @@ export function CustomerPortal() {
   const cartPieces = cart.reduce((s, i) => s + i.total_pieces, 0)
 
   async function handleSubmit() {
-    if (!cart.length || !clientData || !selectedFactory) return
+    if (!cart.length || !clientData) return
     if (cartTotal < MIN_ORDER_VALUE) {
       alert(`Pedido mínimo de ${fmtR(MIN_ORDER_VALUE)}. Seu pedido está em ${fmtR(cartTotal)}.`)
       return
     }
+    // Pega a tabela de preço do primeiro item do carrinho
     const table = catalog.find(t => cart.some(i => i.product.price_table_id === t.id)) || catalog[0]
-    if (!table) return
+    if (!table) { alert('Erro: tabela de preço não encontrada.'); return }
+    // factory_id vem da tabela de preço
+    const factoryId = (table as PriceTable & { factory_id?: string }).factory_id || selectedFactory?.id
+    if (!factoryId) { alert('Erro: fábrica não identificada.'); return }
+
     setSubmitting(true)
     try {
       const items = cart.map(i => ({
@@ -205,13 +224,16 @@ export function CustomerPortal() {
         phone: clientData.phone,
         email: clientData.email,
         price_table_id: table.id,
-        factory_id: selectedFactory.id,
+        factory_id: factoryId,
         discount_pct: 0,
         items,
       })
       setOrderResult(r.data)
       setStep('success')
-    } catch { alert('Erro ao enviar pedido. Tente novamente.') }
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+      alert(msg || 'Erro ao enviar pedido. Tente novamente.')
+    }
     finally { setSubmitting(false) }
   }
 
@@ -234,16 +256,23 @@ export function CustomerPortal() {
   )
 
   if (step === 'success') return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
-        <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-gray-900">Pedido enviado!</h2>
-        <p className="text-gray-500 text-sm mt-2">
-          Pedido <strong>#{orderResult?.order_number}</strong> recebido com sucesso.
-        </p>
-        <p className="text-lg font-bold text-purple-700 mt-3">{fmtR(orderResult?.total_value || 0)}</p>
-        <p className="text-sm text-gray-400 mt-2">
-          Nosso representante confirmará em breve.
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center p-6">
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center" style={{ boxShadow: '0 20px 60px rgba(5,150,105,0.15)' }}>
+        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
+          <CheckCircle className="h-10 w-10 text-emerald-600" />
+        </div>
+        <h2 className="text-2xl font-black text-gray-900">Pedido enviado! 🎉</h2>
+        <div className="bg-gray-50 rounded-2xl p-4 mt-4 space-y-1">
+          <p className="text-[12px] text-gray-500">Número do pedido</p>
+          <p className="text-2xl font-black text-purple-700">#{String(orderResult?.order_number || 0).padStart(4, '0')}</p>
+          <p className="text-lg font-bold text-gray-800 mt-1">{fmtR(orderResult?.total_value || 0)}</p>
+        </div>
+        <div className="mt-4 bg-blue-50 rounded-xl p-3 text-[12px] text-blue-700 text-left">
+          <p className="font-semibold mb-1">📋 O que acontece agora?</p>
+          <p>Seu pedido foi recebido e está em análise. Nosso representante entrará em contato para confirmar os detalhes e prazo de entrega.</p>
+        </div>
+        <p className="text-[11px] text-gray-400 mt-4">
+          Guarde o número do pedido para referência
         </p>
       </div>
     </div>
@@ -430,22 +459,52 @@ export function CustomerPortal() {
       </div>
 
       {/* ── Bottom bar ── */}
-      {step === 'catalog' && selectedFactory && cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 safe-bottom">
-          <button onClick={() => setStep('cart')}
-            className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2">
-            <ShoppingCart className="h-5 w-5" />
-            Ver pedido · {cartPieces} pç · {fmtR(cartTotal)}
-          </button>
+      {/* Barra flutuante — catálogo com itens */}
+      {step === 'catalog' && cart.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 safe-bottom">
+          <div className="bg-white border-t border-gray-200 px-4 pt-3 pb-1 flex items-center justify-between">
+            <div className="text-[12px] text-gray-500">
+              <span className="font-bold text-gray-800">{cart.length} referência{cart.length !== 1 ? 's' : ''}</span>
+              {' · '}{cartPieces} peças
+            </div>
+            <span className="font-bold text-[16px] text-purple-700">{fmtR(cartTotal)}</span>
+          </div>
+          <div className="bg-white px-4 pb-4">
+            <button onClick={() => setStep('cart')}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all"
+              style={{ boxShadow: '0 4px 20px rgba(109,40,217,0.4)' }}>
+              <ShoppingCart className="h-5 w-5" />
+              Ver Carrinho e Finalizar
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Confirmar Pedido */}
       {step === 'cart' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 safe-bottom">
-          <button onClick={handleSubmit} disabled={submitting || !cart.length}
-            className="w-full bg-green-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50">
-            {submitting ? <RefreshCw className="h-5 w-5 animate-spin" /> : <CheckCircle className="h-5 w-5" />}
-            {submitting ? 'Enviando pedido...' : 'Confirmar Pedido'}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-3 pb-4 safe-bottom space-y-2">
+          {cartTotal < MIN_ORDER_VALUE && (
+            <p className="text-center text-[12px] text-amber-600 font-medium">
+              ⚠️ Mínimo {fmtR(MIN_ORDER_VALUE)} · faltam {fmtR(MIN_ORDER_VALUE - cartTotal)}
+            </p>
+          )}
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !cart.length || cartTotal < MIN_ORDER_VALUE}
+            className="w-full text-white py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: 'linear-gradient(135deg, #059669, #047857)',
+              boxShadow: '0 4px 20px rgba(5,150,105,0.4)'
+            }}
+          >
+            {submitting
+              ? <><RefreshCw className="h-5 w-5 animate-spin" /> Enviando pedido...</>
+              : <><CheckCircle className="h-5 w-5" /> Finalizar e Enviar Pedido</>
+            }
           </button>
+          <p className="text-center text-[11px] text-gray-400">
+            Após confirmar, o pedido vai para análise do representante
+          </p>
         </div>
       )}
     </div>
