@@ -19,6 +19,7 @@ import {
   Trash2,
   ChevronDown,
   MapPin,
+  Link2,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -39,7 +40,8 @@ const navMain: NavItem[] = [
   { to: '/products',     label: 'Produtos',   icon: <Package className="h-5 w-5" /> },
   { to: '/reports',      label: 'Relatórios', icon: <BarChart2 className="h-5 w-5" /> },
   { to: '/prospecting',  label: 'Prospecção', icon: <MapPin className="h-5 w-5" /> },
-{ to: '/price-tables', label: 'Tabelas',    icon: <Tags className="h-5 w-5" />, adminOnly: true },
+  { to: '/portals',      label: 'Portal Cliente', icon: <Link2 className="h-5 w-5" /> },
+  { to: '/price-tables', label: 'Tabelas',    icon: <Tags className="h-5 w-5" />, adminOnly: true },
   { to: '/factories',    label: 'Fábricas',   icon: <Building2 className="h-5 w-5" />, adminOnly: true },
   { to: '/statuses',     label: 'Status',     icon: <Package className="h-5 w-5" />, adminOnly: true },
   { to: '/users',        label: 'Usuários',   icon: <UserCog className="h-5 w-5" />, adminOnly: true },
