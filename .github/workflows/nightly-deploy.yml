@@ -1,0 +1,57 @@
+name: 🌙 Deploy Noturno — develop → main
+
+on:
+  # Roda todo dia às 23h (horário de Brasília = 02:00 UTC)
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Permite disparar manualmente pelo GitHub Actions
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Motivo do deploy manual'
+        required: false
+        default: 'Deploy manual solicitado'
+
+jobs:
+  merge-to-production:
+    name: Merge develop → main
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configurar Git
+        run: |
+          git config user.name "Somma Deploy Bot"
+          git config user.email "deploy@sommagestao.com.br"
+
+      - name: Verificar se develop tem commits novos
+        id: check
+        run: |
+          git fetch origin
+          BEHIND=$(git rev-list --count origin/main..origin/develop)
+          echo "commits_ahead=$BEHIND" >> $GITHUB_OUTPUT
+          if [ "$BEHIND" -gt "0" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "✅ develop tem $BEHIND commit(s) novo(s) para enviar para produção"
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Nenhum commit novo — produção já está atualizada"
+          fi
+
+      - name: Merge develop → main (deploy para produção)
+        if: steps.check.outputs.has_changes == 'true'
+        run: |
+          git checkout main
+          git merge origin/develop --no-ff -m "🌙 Deploy noturno automático: $(date +'%d/%m/%Y %H:%M') (Brasília)"
+          git push origin main
+          echo "🚀 Deploy enviado! Railway irá atualizar a produção em ~3 minutos."
+
+      - name: Sem mudanças
+        if: steps.check.outputs.has_changes == 'false'
+        run: echo "✅ Produção já está na versão mais recente. Nenhuma ação necessária."
