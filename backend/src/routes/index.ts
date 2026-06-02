@@ -141,7 +141,7 @@ router.get('/public/portal/:token/catalog', portal.getPortalCatalog)
 router.post('/public/portal/:token/order', portal.submitPortalOrder)
 
 // ── Metas ──────────────────────────────────────────────────────────────────────
-router.get('/goals', authenticate, requireAdmin, goals.listGoals)
+router.get('/goals', authenticate, goals.listGoals)                        // reps veem metas relevantes
 router.post('/goals', authenticate, requireAdmin, goals.createGoal)
 router.put('/goals/:id', authenticate, requireAdmin, goals.updateGoal)
 router.delete('/goals/:id', authenticate, requireAdmin, goals.deleteGoal)

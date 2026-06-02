@@ -3,6 +3,22 @@ import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 
 export async function listGoals(req: AuthRequest, res: Response) {
+  const isAdmin = req.user!.role === 'admin'
+  const repId   = req.user!.id
+
+  // Admin vê todas; rep vê metas de fábrica + suas próprias metas de rep
+  const whereClause = isAdmin
+    ? 'WHERE g.active = true'
+    : `WHERE g.active = true AND (g.type = 'factory' OR g.rep_id = $1)`
+  const params = isAdmin ? [] : [repId]
+
+  // Para rep, o achieved_pieces é filtrado pelo rep atual
+  const achievedFilter = isAdmin
+    ? `AND (g.factory_id IS NULL OR pt.factory_id = g.factory_id)
+       AND (g.rep_id IS NULL OR o.rep_id = g.rep_id)`
+    : `AND (g.factory_id IS NULL OR pt.factory_id = g.factory_id)
+       AND o.rep_id = '${repId}'`
+
   const { rows } = await query(`
     SELECT g.*,
       f.name as factory_name,
@@ -14,15 +30,14 @@ export async function listGoals(req: AuthRequest, res: Response) {
         JOIN products p ON p.id = oi.product_id
         JOIN price_tables pt ON pt.id = p.price_table_id
         WHERE o.deleted_at IS NULL
-          AND (g.factory_id IS NULL OR pt.factory_id = g.factory_id)
-          AND (g.rep_id IS NULL OR o.rep_id = g.rep_id)
+          ${achievedFilter}
       ), 0)::int AS achieved_pieces
     FROM goals g
     LEFT JOIN factories f ON f.id = g.factory_id
     LEFT JOIN users u ON u.id = g.rep_id
-    WHERE g.active = true
+    ${whereClause}
     ORDER BY g.type, g.label
-  `)
+  `, params)
   res.json(rows)
 }
 
