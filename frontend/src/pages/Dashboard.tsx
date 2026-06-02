@@ -593,49 +593,6 @@ export function Dashboard() {
               </div>
             </section>
 
-            {/* Metas do representante */}
-            {goals.length > 0 && (
-              <section>
-                <SectionTitle>🎯 Minhas Metas</SectionTitle>
-                <div className="space-y-2">
-                  {goals.map(g => {
-                    const pct = g.target_pieces > 0 ? Math.min(100, (g.achieved_pieces / g.target_pieces) * 100) : 0
-                    const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : pct >= 40 ? '#3B82F6' : '#EF4444'
-                    return (
-                      <div key={g.id} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <Target className="h-4.5 w-4.5 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-bold text-on-surface">{g.label}</p>
-                            <p className="text-[11px] text-outline">{g.factory_name || g.rep_name}{g.period_label ? ` · ${g.period_label}` : ''}</p>
-                          </div>
-                          <span className="text-[14px] font-bold flex-shrink-0" style={{ color }}>{pct.toFixed(0)}%</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="w-full bg-surface-container-low rounded-full h-3 overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
-                          </div>
-                          <div className="flex items-center justify-between text-[12px]">
-                            <span className="font-bold text-on-surface">{g.achieved_pieces.toLocaleString('pt-BR')} peças</span>
-                            <span className="text-outline">meta: {g.target_pieces.toLocaleString('pt-BR')} pç</span>
-                          </div>
-                          {pct < 100 && (
-                            <p className="text-[11px] text-outline/70">
-                              Faltam <span className="font-semibold text-on-surface">{(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} peças</span> para atingir a meta
-                            </p>
-                          )}
-                          {pct >= 100 && (
-                            <p className="text-[11px] text-emerald-600 font-semibold">✅ Meta atingida!</p>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
-            )}
 
           </div>
         )}
