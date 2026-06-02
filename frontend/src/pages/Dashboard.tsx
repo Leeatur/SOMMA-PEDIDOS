@@ -58,12 +58,34 @@ export function Dashboard() {
   const totalValue  = allOrders.reduce((s, o) => s + Number(o.total_value), 0)
   const todayValue  = todayOrders.reduce((s, o) => s + Number(o.total_value), 0)
 
-  // Rep-specific metrics
+  // Métricas compartilhadas
   const totalPieces      = allOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
-  const totalCommission  = allOrders.reduce((s, o) => s + Number(o.rep_commission_value || 0), 0)
+  const totalRepComm     = allOrders.reduce((s, o) => s + Number(o.rep_commission_value || 0), 0)
+  const totalOfficeComm  = allOrders.reduce((s, o) => s + Number((o as Order & {office_commission_value?:number}).office_commission_value || 0), 0)
+  const ticketMedio      = allOrders.length > 0 ? totalValue / allOrders.length : 0
   const uniqueClients    = new Set(allOrders.map(o => o.client_name)).size
   const recentOrders     = [...allOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
   const pendingOrders    = allOrders.filter(o => o.status_name && !['Entregue','Cancelado','Faturado'].includes(o.status_name))
+
+  // Admin: ranking de reps e status
+  const repRanking = isAdmin ? Object.entries(
+    allOrders.reduce((acc, o) => {
+      const k = o.rep_name || 'N/A'
+      acc[k] = (acc[k] || 0) + Number(o.total_value)
+      return acc
+    }, {} as Record<string, number>)
+  ).sort((a, b) => b[1] - a[1]).slice(0, 5) : []
+
+  const statusSummary = isAdmin ? Object.entries(
+    allOrders.reduce((acc, o) => {
+      const k = o.status_name || 'Sem status'
+      if (!acc[k]) acc[k] = { count: 0, color: o.status_color || '#9CA3AF' }
+      acc[k].count++
+      return acc
+    }, {} as Record<string, { count: number; color: string }>)
+  ).sort((a, b) => b[1].count - a[1].count) : []
+
+  const totalCommission  = isAdmin ? totalOfficeComm : totalRepComm
 
   const greeting = () => {
     const h = new Date().getHours()
@@ -153,7 +175,93 @@ export function Dashboard() {
         </div>
       </div>
 
+      {/* ─── Cards extras Admin ──────────────────────────── */}
+      {isAdmin && (
+        <div className="px-4 lg:px-8 mt-2">
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+            <StatCard
+              icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
+              iconBg="bg-emerald-100"
+              label="Comissão Escritório"
+              value={formatCurrency(totalOfficeComm)}
+              accentColor="#10B981"
+            />
+            <StatCard
+              icon={<Package className="h-4.5 w-4.5 text-violet-600" />}
+              iconBg="bg-violet-100"
+              label="Total de Peças"
+              value={totalPieces.toLocaleString('pt-BR')}
+              accentColor="#7C3AED"
+            />
+            <StatCard
+              icon={<TrendingUp className="h-4.5 w-4.5 text-blue-600" />}
+              iconBg="bg-blue-100"
+              label="Ticket Médio"
+              value={formatCurrency(ticketMedio)}
+              accentColor="#3B82F6"
+            />
+            <StatCard
+              icon={<Users className="h-4.5 w-4.5 text-amber-600" />}
+              iconBg="bg-amber-100"
+              label="Clientes Atendidos"
+              value={uniqueClients.toString()}
+              accentColor="#F59E0B"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="px-4 lg:px-8 mt-3 space-y-3">
+
+        {/* ─── Admin: Status e Ranking ─────────────────── */}
+        {isAdmin && (statusSummary.length > 0 || repRanking.length > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+
+            {/* Pedidos por Status */}
+            {statusSummary.length > 0 && (
+              <section>
+                <SectionTitle>Pedidos por Status</SectionTitle>
+                <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4 space-y-2">
+                  {statusSummary.map(([name, { count, color }]) => (
+                    <div key={name} className="flex items-center gap-3">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                      <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${(count/allOrders.length*100)}%`, backgroundColor: color }} />
+                        </div>
+                        <span className="text-[12px] font-bold text-on-surface w-6 text-right">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Ranking de Representantes */}
+            {repRanking.length > 0 && (
+              <section>
+                <SectionTitle>🏆 Ranking de Representantes</SectionTitle>
+                <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4 space-y-2">
+                  {repRanking.map(([name, value], i) => (
+                    <div key={name} className="flex items-center gap-3">
+                      <span className={`text-[12px] font-bold w-5 text-center ${i === 0 ? 'text-amber-500' : i === 1 ? 'text-gray-400' : 'text-amber-700'}`}>
+                        {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}º`}
+                      </span>
+                      <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${(value/repRanking[0][1]*100)}%` }} />
+                        </div>
+                        <span className="text-[12px] font-bold text-primary">{formatCurrency(value)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
 
         {/* ─── Seção do Representante ──────────────────── */}
         {!isAdmin && (
