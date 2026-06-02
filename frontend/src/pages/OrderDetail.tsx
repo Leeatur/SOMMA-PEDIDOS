@@ -429,7 +429,7 @@ export function OrderDetail() {
       <div className="lg:hidden bg-white/90 border-b border-border-subtle px-4 py-2 sticky top-0 z-10" style={{ backdropFilter: 'blur(8px)' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors active:scale-95">
+            <button onClick={() => navigate('/orders')} className="w-10 h-10 flex items-center justify-center rounded-full text-primary hover:bg-surface-container transition-colors active:scale-95">
               <ChevronLeft className="h-5 w-5" />
             </button>
             <h1 className="text-lg font-bold text-primary" style={{ fontFamily: 'Plus Jakarta Sans' }}>Detalhes do Pedido</h1>
@@ -446,8 +446,12 @@ export function OrderDetail() {
       {/* ── Desktop Header ── */}
       <div className="hidden lg:block bg-white border-b border-outline-variant px-8 py-2 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container">
-            <ChevronLeft className="h-5 w-5" />
+          <button
+            onClick={() => navigate('/orders')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant text-[12px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Pedidos
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1361,6 +1365,15 @@ export function OrderDetail() {
         >
           <Pencil className="h-4 w-4" />
           Editar
+        </button>
+      </div>
+      {/* Botão Voltar fixo acima do nav inferior */}
+      <div className="lg:hidden px-4 pb-3">
+        <button
+          onClick={() => navigate('/orders')}
+          className="w-full h-10 flex items-center justify-center gap-2 border border-outline-variant rounded-xl text-[12px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" /> Voltar à lista de pedidos
         </button>
       </div>
     </div>
