@@ -115,7 +115,7 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
     case 'delivery':
       return <td className="px-2 py-1 whitespace-nowrap">
         {o.delivery_date
-          ? <span className="text-[12px] text-on-surface-variant">{new Date(o.delivery_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+          ? <span className="text-[12px] text-on-surface-variant">{(() => { const [y,m,d] = String(o.delivery_date).substring(0,10).split('-'); return `${d}/${m}/${y}` })()}</span>
           : <span className="text-[12px] text-outline/50">—</span>}
       </td>
     case 'payment':
