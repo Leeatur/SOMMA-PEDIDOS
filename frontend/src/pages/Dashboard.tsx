@@ -526,16 +526,18 @@ export function Dashboard() {
                 accentColor="#3B82F6"
               />
               {(() => {
-                const totalTarget = goals.reduce((s, g) => s + g.target_pieces, 0)
-                const totalDone   = goals.reduce((s, g) => s + g.achieved_pieces, 0)
+                // Somente a meta pessoal do representante (type='rep')
+                const repGoals = goals.filter(g => g.type === 'rep')
+                const totalTarget = repGoals.reduce((s, g) => s + g.target_pieces, 0)
+                const totalDone   = repGoals.reduce((s, g) => s + g.achieved_pieces, 0)
                 const pct = totalTarget > 0 ? Math.min(100, Math.round((totalDone / totalTarget) * 100)) : 0
                 const metaColor = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : '#7C3AED'
                 return (
                   <StatCard
                     icon={<Target className="h-4.5 w-4.5" style={{ color: metaColor }} />}
                     iconBg={pct >= 100 ? 'bg-emerald-100' : pct >= 70 ? 'bg-amber-100' : 'bg-violet-100'}
-                    label="Minhas metas"
-                    value={goals.length === 0 ? '—' : `${pct}%`}
+                    label="Minha meta"
+                    value={repGoals.length === 0 ? '—' : `${pct}%`}
                     accentColor={metaColor}
                   />
                 )
