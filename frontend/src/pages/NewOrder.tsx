@@ -91,6 +91,7 @@ interface Client {
   name: string
   trade_name: string | null
   city: string | null
+  state: string | null
   cnpj: string | null
   phone: string | null
   buyer_name: string | null
@@ -578,8 +579,18 @@ export function NewOrder() {
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-on-surface truncate">{c.name}</p>
-                        {c.city && <p className="text-[12px] text-outline">{c.city}</p>}
+                        <p className="font-semibold text-on-surface text-[13px] truncate">{c.name}</p>
+                        {c.trade_name && c.trade_name !== c.name && (
+                          <p className="text-[11px] text-outline/70 truncate italic">{c.trade_name}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {c.cnpj && (
+                            <span className="text-[11px] text-outline font-mono">{c.cnpj}</span>
+                          )}
+                          {c.city && (
+                            <span className="text-[11px] text-outline">{c.city}{c.state ? `/${c.state}` : ''}</span>
+                          )}
+                        </div>
                       </div>
                       <ChevronRight className="h-4 w-4 text-outline/50 flex-shrink-0" />
                     </div>
