@@ -439,7 +439,7 @@ export function Orders() {
           </div>
         ) : (
           <div className="flex-1 overflow-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left" style={{ minWidth: 900 }}>
               <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
                 <tr>
                   {visibleCols.map(col => <OrderHeader key={col.id} id={col.id} label={col.label} />)}

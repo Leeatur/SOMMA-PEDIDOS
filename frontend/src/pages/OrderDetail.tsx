@@ -84,6 +84,7 @@ interface OrderDetail {
   client_email: string | null
   rep_id: string
   rep_name: string
+  rep_email: string | null
   factory_id: string
   factory_name: string
   price_table_name: string
@@ -1412,16 +1413,24 @@ export function OrderDetail() {
             </a>
           )}
 
-          {/* E-mail */}
+          {/* E-mail — rep sempre no CC */}
           {order.client_email && (
             <a
-              href={`mailto:${order.client_email}?subject=${encodeURIComponent(`Pedido #${String(order.order_number).padStart(4,'0')} - ${order.factory_name}`)}&body=${encodeURIComponent(
-                `Olá,\n\nSegue o pedido #${String(order.order_number).padStart(4,'0')} da ${order.factory_name}.\n\nValor Total: ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(order.total_value)}\nItens: ${order.total_pieces} peças\n\nVisualize aqui: ${window.location.origin}/orders/${id}/print\n\nAtenciosamente,\n${order.rep_name}`
-              )}`}
+              href={(() => {
+                const subject = encodeURIComponent(`Pedido #${String(order.order_number).padStart(4,'0')} - ${order.factory_name}`)
+                const body = encodeURIComponent(
+                  `Olá,\n\nSegue o pedido #${String(order.order_number).padStart(4,'0')} da ${order.factory_name}.\n\nValor Total: ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(order.total_value)}\nItens: ${order.total_pieces} peças\n\nVisualize aqui: ${window.location.origin}/orders/${id}/print\n\nAtenciosamente,\n${order.rep_name}${order.rep_email ? '\n'+order.rep_email : ''}`
+                )
+                const cc = order.rep_email ? `&cc=${encodeURIComponent(order.rep_email)}` : ''
+                return `mailto:${order.client_email}?subject=${subject}${cc}&body=${body}`
+              })()}
               className="flex items-center gap-3 w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors"
             >
               <Mail className="h-5 w-5" />
-              Enviar por E-mail
+              <div className="text-left">
+                <div>Enviar por E-mail</div>
+                {order.rep_email && <div className="text-xs text-blue-100">Rep em cópia: {order.rep_email}</div>}
+              </div>
             </a>
           )}
 

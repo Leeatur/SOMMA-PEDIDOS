@@ -737,7 +737,7 @@ export function Reports() {
                 return (
                   <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-[12px]">
+                      <table className="text-[12px]" style={{ minWidth: 1100 }}>
                         <thead className="bg-surface-container-low">
                           <tr>
                             <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Data</th>
