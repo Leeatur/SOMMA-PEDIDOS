@@ -632,33 +632,52 @@ function ProductCard({ product, onAdd, cartItems }: {
           </div>
         )}
 
-        {/* ── REGULAR: grade de tamanhos ── */}
+        {/* ── REGULAR: grade de tamanhos — tabela horizontal com scroll ── */}
         {!isPack && availableSizes.length > 0 && (
-          <div className="space-y-1">
-            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(availableSizes.length, 4)}, 1fr)` }}>
-              {availableSizes.map(s => (
-                <div key={s} className="text-center">
-                  <p className="text-[10px] font-semibold text-gray-500 mb-0.5">{s}</p>
-                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                    <button onClick={() => setSizes(prev => ({...prev, [s]: Math.max(0, (prev[s]||0)-1)}))}
-                      className="px-1.5 py-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-50 active:scale-95 text-xs">−</button>
-                    <input
-                      type="number" min="0" value={sizes[s] || ''}
-                      onChange={e => setSizes(prev => ({...prev, [s]: Math.max(0, parseInt(e.target.value)||0)}))}
-                      className="flex-1 text-center text-sm font-bold w-0 min-w-0 py-1 focus:outline-none bg-transparent"
-                      placeholder="0"
-                    />
-                    <button onClick={() => setSizes(prev => ({...prev, [s]: (prev[s]||0)+1}))}
-                      className="px-1.5 py-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-50 active:scale-95 text-xs">+</button>
-                  </div>
-                </div>
-              ))}
+          <div className="space-y-1.5">
+            {/* Cabeçalho dos tamanhos */}
+            <div className="overflow-x-auto -mx-1">
+              <table className="w-full" style={{ minWidth: availableSizes.length * 52 }}>
+                <thead>
+                  <tr>
+                    {availableSizes.map(s => (
+                      <th key={s} className="text-center text-[11px] font-bold text-gray-500 pb-1 px-0.5"
+                          style={{ minWidth: 48 }}>{s}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {availableSizes.map(s => {
+                      const qty = sizes[s] || 0
+                      return (
+                        <td key={s} className="px-0.5 pb-0.5">
+                          <div className={`flex flex-col items-center gap-0.5 rounded-xl border-2 overflow-hidden transition-colors ${qty > 0 ? 'border-purple-400 bg-purple-50' : 'border-gray-200 bg-white'}`}>
+                            <button
+                              onClick={() => setSizes(prev => ({...prev, [s]: Math.max(0, (prev[s]||0)-1)}))}
+                              className="w-full py-1.5 text-gray-400 active:bg-gray-100 text-sm font-bold leading-none">−</button>
+                            <div className={`text-sm font-black leading-none py-0.5 ${qty > 0 ? 'text-purple-700' : 'text-gray-300'}`}>
+                              {qty}
+                            </div>
+                            <button
+                              onClick={() => setSizes(prev => ({...prev, [s]: (prev[s]||0)+1}))}
+                              className="w-full py-1.5 text-purple-500 active:bg-purple-100 text-sm font-bold leading-none">+</button>
+                          </div>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                </tbody>
+              </table>
             </div>
             {regularPieces > 0 && (
-              <p className="text-xs text-gray-500 text-center">{regularPieces} peças · {fmtCur(totalPrice)}</p>
+              <div className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-1.5">
+                <span className="text-[12px] font-semibold text-purple-700">{regularPieces} peças</span>
+                <span className="text-[12px] font-bold text-purple-700">{fmtCur(totalPrice)}</span>
+              </div>
             )}
             {regularPieces > 0 && regularPieces < MIN_PIECES_PER_REF && (
-              <p className="text-[10px] text-amber-600 text-center">Mínimo {MIN_PIECES_PER_REF} peças</p>
+              <p className="text-[10px] text-amber-600 text-center">Mínimo {MIN_PIECES_PER_REF} peças por referência</p>
             )}
           </div>
         )}
