@@ -136,7 +136,6 @@ export function Dashboard() {
   const ticketMedio      = filteredOrders.length > 0 ? totalValue / filteredOrders.length : 0
   const uniqueClients    = new Set(filteredOrders.map(o => o.client_name)).size
   const recentOrders     = [...allOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
-  const pendingOrders    = allOrders.filter(o => o.status_name && !['Entregue','Cancelado','Faturado'].includes(o.status_name))
 
   // Admin: ranking de reps e status
   // Peças por marca/fábrica
