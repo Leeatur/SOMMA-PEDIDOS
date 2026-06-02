@@ -124,16 +124,8 @@ export function AppLayout() {
         style={{ background: 'linear-gradient(180deg, #1C0A4A 0%, #160838 60%, #110530 100%)' }}
       >
         {/* Brand */}
-        <div className="flex items-center justify-between px-5 py-5 mb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/40">
-              <ShoppingCart className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <p className="font-display text-[15px] font-bold text-white leading-none tracking-wide">Somma</p>
-              <p className="text-[12px] text-surface-variant/50 font-medium tracking-widest uppercase mt-0.5">Gestão Comercial</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-5 py-4 mb-2">
+          <img src="/logo-sidebar.svg" alt="Somma Gestão Comercial" className="h-10 w-auto" />
           <button className="lg:hidden p-1 text-surface-variant/50 hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
