@@ -200,8 +200,9 @@ export function Dashboard() {
       </div>
 
       {/* ─── Filtro de período ───────────────────────────── */}
-      <div className="px-4 lg:px-8 pt-3 pb-1">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="pt-3 pb-1">
+        {/* Filtros — scroll horizontal no mobile */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pb-1">
           {[
             { id: 'today', label: 'Hoje' },
             { id: '7d',    label: '7 dias' },
@@ -210,7 +211,7 @@ export function Dashboard() {
             { id: 'custom',label: 'Personalizado' },
           ].map(p => (
             <button key={p.id} onClick={() => setPeriod(p.id)}
-              className={`px-3 py-1 rounded-xl text-[12px] font-semibold border transition-colors ${
+              className={`flex-shrink-0 px-4 py-1.5 rounded-xl text-[13px] font-semibold border transition-colors active:scale-95 ${
                 activePeriod === p.id
                   ? 'bg-white text-primary border-white shadow-sm'
                   : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
@@ -218,18 +219,18 @@ export function Dashboard() {
               {p.label}
             </button>
           ))}
-          {activePeriod === 'custom' && (
-            <div className="flex items-center gap-1.5 ml-1">
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                className="px-2 py-1 rounded-lg text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              <span className="text-white/60 text-[12px]">até</span>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                className="px-2 py-1 rounded-lg text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-          )}
         </div>
+        {activePeriod === 'custom' && (
+          <div className="flex items-center gap-2 px-4 lg:px-8 mt-2 flex-wrap">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <span className="text-white/60 text-[12px] flex-shrink-0">até</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+        )}
         {activePeriod !== 'today' && (
-          <p className="text-white/50 text-[11px] mt-1">
+          <p className="text-white/50 text-[11px] mt-1 px-4 lg:px-8">
             {new Date(dateFrom+'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(dateTo+'T12:00:00').toLocaleDateString('pt-BR')} · {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}
           </p>
         )}
@@ -386,10 +387,10 @@ export function Dashboard() {
                       <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
 
                         {/* Header da marca */}
-                        <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                        <div className="px-4 lg:px-5 pt-4 pb-3 flex items-center justify-between">
                           <div>
                             <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">{factory?.period_label || reps[0]?.period_label || ''}</p>
-                            <h3 className="text-white text-[20px] font-black tracking-tight">{brand}</h3>
+                            <h3 className="text-white text-[22px] font-black tracking-tight">{brand}</h3>
                           </div>
                           {factory && (
                             <div className="flex gap-1">
@@ -401,7 +402,7 @@ export function Dashboard() {
 
                         {/* Meta geral da fábrica */}
                         {factory && (
-                          <div className="px-5 pb-4">
+                          <div className="px-4 lg:px-5 pb-4">
                             <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
                             <GoalBar g={factory} large />
                           </div>
@@ -409,7 +410,7 @@ export function Dashboard() {
 
                         {/* Grid de reps */}
                         {reps.length > 0 && (
-                          <div className="bg-black/20 px-5 py-3">
+                          <div className="bg-black/20 px-4 lg:px-5 py-3">
                             <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-3">👥 Por Representante</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                               {reps.sort((a, b) => b.achieved_pieces - a.achieved_pieces).map(g => {
