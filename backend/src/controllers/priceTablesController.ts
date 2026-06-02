@@ -372,6 +372,54 @@ export async function updateBlockedSizes(req: AuthRequest, res: Response) {
   res.json(rows[0])
 }
 
+export async function updatePriceTableRules(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { discount_rules, name, collection, season, year } = req.body
+
+  const dbClient = await (await import('../config/database')).pool.connect()
+  try {
+    await dbClient.query('BEGIN')
+
+    // Atualiza metadados se fornecidos
+    if (name !== undefined) {
+      await dbClient.query(
+        `UPDATE price_tables SET name=$1, collection=$2, season=$3, year=$4 WHERE id=$5`,
+        [name, collection||null, season||null, year||null, id]
+      )
+    }
+
+    // Substitui todas as regras de desconto/comissão
+    if (discount_rules !== undefined) {
+      const rules = Array.isArray(discount_rules) ? discount_rules : JSON.parse(discount_rules)
+      await dbClient.query('DELETE FROM discount_commission_rules WHERE price_table_id=$1', [id])
+      for (let i = 0; i < rules.length; i++) {
+        const r = rules[i]
+        await dbClient.query(
+          `INSERT INTO discount_commission_rules
+           (price_table_id, discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct, sort_order)
+           VALUES ($1,$2,$3,$4,$5,$6)`,
+          [id, r.discount_pct, r.total_commission_pct, r.rep_commission_pct, r.office_commission_pct, i]
+        )
+      }
+    }
+
+    await dbClient.query('COMMIT')
+
+    // Retorna tabela atualizada com regras
+    const { rows: [pt] } = await dbClient.query('SELECT * FROM price_tables WHERE id=$1', [id])
+    const { rows: rules } = await dbClient.query(
+      'SELECT * FROM discount_commission_rules WHERE price_table_id=$1 ORDER BY discount_pct', [id]
+    )
+    res.json({ ...pt, discount_rules: rules })
+  } catch (err) {
+    await dbClient.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao atualizar tabela' })
+  } finally {
+    dbClient.release()
+  }
+}
+
 export async function deletePriceTable(req: AuthRequest, res: Response) {
   const { id } = req.params
   // Products/grade_configs/discount_rules cascade delete.

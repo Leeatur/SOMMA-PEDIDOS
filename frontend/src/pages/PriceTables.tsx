@@ -49,6 +49,9 @@ export function PriceTables() {
   const [catalogOpen, setCatalogOpen] = useState(false)
   const [selectedTable, setSelectedTable] = useState<PriceTable | null>(null)
   const [deleteTable, setDeleteTable] = useState<PriceTable | null>(null)
+  const [editRulesTable, setEditRulesTable] = useState<PriceTable | null>(null)
+  const [editRules, setEditRules] = useState<DiscountRule[]>([])
+  const [editName, setEditName] = useState('')
 
   // Import Excel state
   const [importStep, setImportStep] = useState<1 | 2 | 3>(1)
@@ -126,6 +129,24 @@ export function PriceTables() {
       setDeleteTable(null)
     },
   })
+
+  const updateRulesMut = useMutation({
+    mutationFn: ({ id, name, rules }: { id: string; name: string; rules: DiscountRule[] }) =>
+      priceTablesApi.update(id, { name, discount_rules: rules }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['price-tables'] })
+      setEditRulesTable(null)
+    },
+  })
+
+  function openEditRules(t: PriceTable) {
+    setEditRulesTable(t)
+    setEditName(t.name)
+    // Busca as regras existentes
+    priceTablesApi.get(t.id).then(r => {
+      setEditRules((r.data as { discount_rules?: DiscountRule[] }).discount_rules || [])
+    })
+  }
 
   const clearImagesMut = useMutation({
     mutationFn: (id: string) => priceTablesApi.clearProductImages(id),
@@ -246,6 +267,13 @@ export function PriceTables() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
+                    <button
+                      onClick={() => openEditRules(t)}
+                      className="flex items-center gap-1 text-[12px] text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 px-2 py-1.5 rounded-lg transition-colors font-semibold"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                      Descontos
+                    </button>
                     <button
                       onClick={() => openCatalogImport(t)}
                       className="flex items-center gap-1 text-[12px] text-primary hover:text-primary bg-primary/10 hover:bg-primary/10 px-2 py-1.5 rounded-lg transition-colors"
@@ -551,6 +579,101 @@ export function PriceTables() {
           <p className="text-[12px] text-outline">
             Os produtos e fotos desta tabela serão removidos. Os pedidos já realizados são mantidos no histórico com todos os valores intactos.
           </p>
+        </div>
+      </Modal>
+
+      {/* ── Modal: Editar Descontos & Comissões ── */}
+      <Modal
+        open={!!editRulesTable}
+        onClose={() => setEditRulesTable(null)}
+        title={`Descontos e Comissões — ${editRulesTable?.name || ''}`}
+        size="lg"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setEditRulesTable(null)}>Cancelar</Button>
+            <Button
+              loading={updateRulesMut.isPending}
+              onClick={() => editRulesTable && updateRulesMut.mutate({ id: editRulesTable.id, name: editName, rules: editRules })}
+              icon={<CheckCircle className="h-4 w-4" />}
+            >
+              Salvar
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* Nome da tabela */}
+          <div>
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Nome da tabela</label>
+            <input
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+            />
+          </div>
+
+          {/* Regras de desconto/comissão */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[12px] font-semibold text-on-surface-variant uppercase tracking-wide">
+                Regras de Desconto e Comissão
+              </p>
+              <button
+                type="button"
+                onClick={() => setEditRules([...editRules, { discount_pct: 0, total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }])}
+                className="flex items-center gap-1 text-[12px] text-primary font-semibold hover:text-primary/80"
+              >
+                <Plus className="h-3.5 w-3.5" /> Nova regra
+              </button>
+            </div>
+
+            {editRules.length === 0 && (
+              <p className="text-[12px] text-outline italic text-center py-4">Nenhuma regra configurada. Clique em "Nova regra" para adicionar.</p>
+            )}
+
+            <div className="space-y-2">
+              {/* Cabeçalho */}
+              {editRules.length > 0 && (
+                <div className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 text-[11px] font-semibold text-outline uppercase tracking-wide px-1">
+                  <span>Desconto %</span>
+                  <span>Total Com. %</span>
+                  <span>Rep %</span>
+                  <span>Escritório %</span>
+                  <span></span>
+                </div>
+              )}
+              {editRules.map((r, i) => (
+                <div key={i} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center bg-surface-container-low rounded-xl p-2">
+                  {(['discount_pct', 'total_commission_pct', 'rep_commission_pct', 'office_commission_pct'] as const).map(field => (
+                    <input
+                      key={field}
+                      type="number" min="0" max="100" step="0.1"
+                      value={r[field]}
+                      onChange={e => {
+                        const updated = [...editRules]
+                        updated[i] = { ...updated[i], [field]: parseFloat(e.target.value) || 0 }
+                        setEditRules(updated)
+                      }}
+                      className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-[12px] text-center font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setEditRules(editRules.filter((_, idx) => idx !== i))}
+                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {editRules.length > 0 && (
+              <p className="text-[11px] text-outline mt-2 italic">
+                💡 Dica: a comissão Total = Rep + Escritório. Os cards de desconto no pedido são gerados a partir dessas regras.
+              </p>
+            )}
+          </div>
         </div>
       </Modal>
 

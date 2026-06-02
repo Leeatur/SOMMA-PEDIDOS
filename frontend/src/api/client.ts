@@ -154,6 +154,7 @@ export const priceTablesApi = {
     )
   },
   clearProductImages: (id: string) => apiClient.delete(`/price-tables/${id}/images`),
+  update: (id: string, data: object) => apiClient.put(`/price-tables/${id}`, data),
   delete: (id: string) => apiClient.delete(`/price-tables/${id}`),
 }
 
