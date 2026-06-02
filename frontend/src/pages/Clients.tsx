@@ -27,6 +27,7 @@ interface Client {
   address: string | null
   zip: string | null
   notes: string | null
+  buyer_name: string | null
   rep_id: string | null
   rep_name: string | null
 }
@@ -48,12 +49,13 @@ interface FormState {
   email: string
   rep_id: string
   notes: string
+  buyer_name: string
 }
 
 const emptyForm: FormState = {
   name: '', trade_name: '', cnpj: '', cpf: '', state_registration: '',
   address: '', city: '', state: '', zip: '',
-  phone: '', whatsapp: '', email: '', rep_id: '', notes: '',
+  phone: '', whatsapp: '', email: '', rep_id: '', notes: '', buyer_name: '',
 }
 
 export function Clients() {
@@ -143,7 +145,7 @@ export function Clients() {
       address: c.address || '', city: c.city || '',
       state: c.state || '', zip: maskCep(c.zip || ''),
       phone: maskPhone(c.phone || ''), whatsapp: maskPhone(c.whatsapp || ''),
-      email: c.email || '', rep_id: c.rep_id || '', notes: c.notes || '',
+      email: c.email || '', rep_id: c.rep_id || '', notes: c.notes || '', buyer_name: c.buyer_name || '',
     })
     setErrors({})
     setOpen(true)
@@ -596,6 +598,7 @@ export function Clients() {
             />
           )}
 
+          <Input label="Comprador padrão" {...f('buyer_name')} placeholder="Nome do comprador habitual" />
           <Textarea label="Observações" {...f('notes')} rows={2} />
         </div>
       </Modal>

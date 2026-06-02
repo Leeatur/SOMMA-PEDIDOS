@@ -93,6 +93,7 @@ interface Client {
   city: string | null
   cnpj: string | null
   phone: string | null
+  buyer_name: string | null
 }
 
 interface PriceTable {
@@ -565,6 +566,7 @@ export function NewOrder() {
                     padding="md"
                     onClick={() => {
                       setSelectedClient(c)
+                      if (c.buyer_name) setBuyerName(c.buyer_name)
                       setStep(1)
                     }}
                     className={selectedClient?.id === c.id ? 'ring-2 ring-primary' : ''}
@@ -1292,12 +1294,12 @@ export function NewOrder() {
           cartItem={cart.find(c => c.product.id === quickAddProduct.id) || null}
           selectedTable={selectedTable}
           onClose={() => setQuickAddProduct(null)}
-          onAdd={(p, sizes, boxes, observation) => {
+          onAdd={(p, sizes, boxes, observation, price) => {
             const exists = cart.find(c => c.product.id === p.id)
             if (exists) {
-              setCart(cart.map(c => c.product.id === p.id ? { ...c, sizes, boxes_count: boxes, observation } : c))
+              setCart(cart.map(c => c.product.id === p.id ? { ...c, sizes, boxes_count: boxes, observation, unit_price: price } : c))
             } else {
-              setCart([...cart, { product: p, boxes_count: boxes, sizes, unit_price: p.base_price, observation }])
+              setCart([...cart, { product: p, boxes_count: boxes, sizes, unit_price: price, observation }])
             }
             setQuickAddProduct(null)
           }}
@@ -1315,7 +1317,7 @@ function QuickAddModal({
   cartItem: CartItem | null
   selectedTable: PriceTable | null
   onClose: () => void
-  onAdd: (p: Product, sizes: Record<string, number>, boxes: number, observation: string) => void
+  onAdd: (p: Product, sizes: Record<string, number>, boxes: number, observation: string, price: number) => void
 }) {
   const isPack = product.type === 'pack'
 
@@ -1336,13 +1338,14 @@ function QuickAddModal({
   const [sizes, setSizes] = useState<Record<string, number>>(() => cartItem?.sizes || initSizes(product))
   const [boxes, setBoxes] = useState(cartItem?.boxes_count || 1)
   const [observation, setObservation] = useState(cartItem?.observation || '')
+  const [customPrice, setCustomPrice] = useState<number>(cartItem?.unit_price || Number(product.base_price))
 
   // Pack: total = TODAS as cores × caixas (ex: 6 cores × 6 pç/cor = 36 pç/cx)
   const totalPiecesPerBox = grades.reduce((s, g) => s + g.total_pieces, 0) || 0
   const totalPieces = isPack
     ? totalPiecesPerBox * boxes
     : Object.values(sizes).reduce((s, v) => s + v, 0)
-  const totalValue = Number(product.base_price) * totalPieces
+  const totalValue = customPrice * totalPieces
 
   const fmtR = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
   const fmtN = (v: number) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(v)
@@ -1351,7 +1354,7 @@ function QuickAddModal({
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
       if (e.key === 'Enter' && totalPieces > 0 && !(e.target instanceof HTMLTextAreaElement)) {
-        onAdd(product, sizes, boxes, observation)
+        onAdd(product, sizes, boxes, observation, customPrice)
       }
     }
     window.addEventListener('keydown', handler)
@@ -1504,9 +1507,26 @@ function QuickAddModal({
                     {/* ── Totais ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[11px] text-outline font-medium mb-1">Preço Unit.</p>
-              <div className="px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg text-[12px] font-semibold text-on-surface">
-                {fmtN(Number(product.base_price))}
+              <p className="text-[11px] text-outline font-medium mb-1">Preço Unit. (editável)</p>
+              <div className="flex items-center border border-outline-variant rounded-lg overflow-hidden bg-white focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30">
+                <span className="pl-3 text-[12px] text-outline/60">R$</span>
+                <input
+                  type="text" inputMode="decimal"
+                  defaultValue={customPrice.toFixed(2).replace('.', ',')}
+                  key={`cp-${product.id}`}
+                  onBlur={e => {
+                    const raw = e.target.value.replace(',', '.')
+                    const v = parseFloat(raw)
+                    if (!isNaN(v) && v > 0) {
+                      setCustomPrice(v)
+                      e.target.value = v.toFixed(2).replace('.', ',')
+                    } else {
+                      e.target.value = customPrice.toFixed(2).replace('.', ',')
+                    }
+                  }}
+                  onFocus={e => e.target.select()}
+                  className="flex-1 px-2 py-2 text-[12px] font-semibold text-on-surface focus:outline-none bg-transparent"
+                />
               </div>
             </div>
             <div>
@@ -1537,7 +1557,7 @@ function QuickAddModal({
           </button>
           <Button
             disabled={totalPieces === 0}
-            onClick={() => onAdd(product, sizes, boxes, observation)}
+            onClick={() => onAdd(product, sizes, boxes, observation, customPrice)}
             icon={<Check className="h-4 w-4" />}
           >
             {cartItem ? 'Atualizar' : 'Adicionar'}

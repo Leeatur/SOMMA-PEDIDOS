@@ -30,6 +30,7 @@ export interface CreatedClient {
   city: string | null
   cnpj: string | null
   phone: string | null
+  buyer_name: string | null
 }
 
 interface FormData {
