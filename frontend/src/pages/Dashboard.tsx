@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus } from 'lucide-react'
+import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award } from 'lucide-react'
 import { ordersApi, reportsApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { PageSpinner } from '../components/ui/Spinner'
-import { formatCurrency } from '../utils/format'
+import { formatCurrency, formatOrderNumber } from '../utils/format'
 
 interface Order {
   id: string; order_number: number; client_name: string; factory_name: string
   total_value: number; total_pieces: number; status_name: string
   status_color: string; status_id: string; created_at: string; rep_name: string
+  rep_commission_value: number
 }
 
 interface DaySaleRow {
@@ -54,8 +55,15 @@ export function Dashboard() {
     const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
     return d === today
   })
-  const totalValue = allOrders.reduce((s, o) => s + Number(o.total_value), 0)
-  const todayValue = todayOrders.reduce((s, o) => s + Number(o.total_value), 0)
+  const totalValue  = allOrders.reduce((s, o) => s + Number(o.total_value), 0)
+  const todayValue  = todayOrders.reduce((s, o) => s + Number(o.total_value), 0)
+
+  // Rep-specific metrics
+  const totalPieces      = allOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
+  const totalCommission  = allOrders.reduce((s, o) => s + Number(o.rep_commission_value || 0), 0)
+  const uniqueClients    = new Set(allOrders.map(o => o.client_name)).size
+  const recentOrders     = [...allOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
+  const pendingOrders    = allOrders.filter(o => o.status_name && !['Entregue','Cancelado','Faturado'].includes(o.status_name))
 
   const greeting = () => {
     const h = new Date().getHours()
@@ -146,6 +154,95 @@ export function Dashboard() {
       </div>
 
       <div className="px-4 lg:px-8 mt-3 space-y-3">
+
+        {/* ─── Seção do Representante ──────────────────── */}
+        {!isAdmin && (
+          <div className="space-y-3">
+
+            {/* Cards adicionais: Peças, Comissão, Clientes, Pendentes */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <StatCard
+                icon={<Package className="h-4.5 w-4.5 text-violet-600" />}
+                iconBg="bg-violet-100"
+                label="Total de peças"
+                value={totalPieces.toLocaleString('pt-BR')}
+                accentColor="#7C3AED"
+              />
+              <StatCard
+                icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
+                iconBg="bg-emerald-100"
+                label="Minha comissão"
+                value={formatCurrency(totalCommission)}
+                accentColor="#10B981"
+              />
+              <StatCard
+                icon={<Users className="h-4.5 w-4.5 text-blue-600" />}
+                iconBg="bg-blue-100"
+                label="Clientes atendidos"
+                value={uniqueClients.toString()}
+                accentColor="#3B82F6"
+              />
+              <StatCard
+                icon={<CheckCircle className="h-4.5 w-4.5 text-amber-600" />}
+                iconBg="bg-amber-100"
+                label="Em aberto"
+                value={pendingOrders.length.toString()}
+                accentColor="#F59E0B"
+              />
+            </div>
+
+            {/* Pedidos recentes */}
+            <section>
+              <SectionTitle>Últimos Pedidos</SectionTitle>
+              <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
+                {recentOrders.length === 0 ? (
+                  <div className="p-8 flex flex-col items-center text-center">
+                    <Package className="h-7 w-7 text-outline/40 mb-2" />
+                    <p className="text-[12px] text-outline/70">Nenhum pedido ainda</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-outline-variant/20">
+                    {recentOrders.map(o => (
+                      <button
+                        key={o.id}
+                        onClick={() => navigate(`/orders/${o.id}`)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary/5 transition-colors text-left"
+                      >
+                        <div
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: o.status_color || '#9CA3AF' }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[12px] font-bold text-primary">{formatOrderNumber(o.order_number)}</span>
+                            <span className="text-[12px] font-medium text-on-surface truncate">{o.client_name}</span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-0.5 text-[12px] text-outline">
+                            <span>{o.factory_name}</span>
+                            <span>{o.total_pieces} pç</span>
+                            {o.status_name && <span className="text-[11px]" style={{ color: o.status_color }}>{o.status_name}</span>}
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-[12px] font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
+                          <p className="text-[11px] text-outline">
+                            {(() => { const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at)); const [y,m,day] = d.split('-'); return `${day}/${m}/${y}` })()}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="px-4 py-2 border-t border-outline-variant/20 bg-surface-container-low/50">
+                  <button onClick={() => navigate('/orders')} className="text-[12px] text-primary font-semibold hover:underline">
+                    Ver todos os pedidos →
+                  </button>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        )}
 
         {/* ─── Resumo de vendas do dia — admin only ────── */}
         {isAdmin && (
