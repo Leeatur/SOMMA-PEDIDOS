@@ -284,7 +284,7 @@ export default function OrderEdit() {
     if (!order) return
     setForm({
       client_id: order.client_id || '',
-      client_display: order.client_trade_name || order.client_name || '',
+      client_display: order.client_name || order.client_trade_name || '',
       buyer_name: order.buyer_name || '',
       transportadora: order.transportadora || '',
       freight_type: order.freight_type || 'CIF',
@@ -531,7 +531,7 @@ export default function OrderEdit() {
             <h1 className="font-semibold text-on-surface text-[12px] leading-tight">
               {formatOrderNumber(order.order_number)}
             </h1>
-            <p className="text-[12px] text-on-surface-variant truncate">{order.client_trade_name || order.client_name}</p>
+            <p className="text-[12px] text-on-surface-variant truncate">{order.client_name || order.client_trade_name}</p>
           </div>
           {/* Visualizar */}
           <button onClick={() => window.open(`/orders/${id}/print`, '_blank')}
@@ -597,13 +597,16 @@ export default function OrderEdit() {
                 <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-outline-variant rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {clientResults.map(c => (
                     <button key={c.id} type="button"
-                      className="w-full text-left px-3 py-1 text-[12px] hover:bg-surface-container"
+                      className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-container border-b border-outline-variant/20 last:border-0"
                       onMouseDown={() => {
-                        setForm(f => ({ ...f, client_id: c.id, client_display: c.trade_name || c.name }))
+                        setForm(f => ({ ...f, client_id: c.id, client_display: c.name }))
                         setShowClientDropdown(false)
                       }}>
-                      <span className="font-medium">{c.trade_name || c.name}</span>
-                      {c.city && <span className="text-on-surface-variant ml-2 text-[12px]">– {c.city}</span>}
+                      <p className="font-semibold text-on-surface">{c.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {c.cnpj && <span className="text-outline font-mono text-[11px]">{c.cnpj}</span>}
+                        {c.city && <span className="text-outline text-[11px]">{c.city}</span>}
+                      </div>
                     </button>
                   ))}
                 </div>
