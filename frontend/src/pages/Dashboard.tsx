@@ -321,64 +321,131 @@ export function Dashboard() {
 
       <div className="px-4 lg:px-8 mt-3 space-y-3">
 
-        {/* ─── Admin: Metas ────────────────────────────── */}
-        {isAdmin && (
-          <section>
-            <div className="flex items-center justify-between mb-2">
-              <SectionTitle className="mb-0">🎯 Metas</SectionTitle>
-              <button onClick={openNewGoal} className="flex items-center gap-1 text-[12px] text-primary font-semibold hover:text-primary/80">
-                <Plus className="h-3.5 w-3.5" /> Nova meta
-              </button>
-            </div>
-            {goals.length === 0 ? (
-              <button onClick={openNewGoal} className="w-full bg-white rounded-2xl border border-dashed border-outline-variant/60 p-6 text-center hover:border-primary/40 hover:bg-primary/5 transition-colors">
-                <Target className="h-7 w-7 text-outline/40 mx-auto mb-1" />
-                <p className="text-[12px] text-outline/70">Nenhuma meta cadastrada. Clique para adicionar.</p>
-              </button>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {goals.map(g => {
-                  const pct = g.target_pieces > 0 ? Math.min(100, (g.achieved_pieces / g.target_pieces) * 100) : 0
-                  const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : pct >= 40 ? '#3B82F6' : '#EF4444'
-                  return (
-                    <div key={g.id} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4">
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${g.type === 'factory' ? 'bg-blue-50 text-blue-700' : 'bg-violet-50 text-violet-700'}`}>
-                              {g.type === 'factory' ? '🏭 FÁBRICA' : '👤 REP'}
-                            </span>
-                            {g.period_label && <span className="text-[10px] text-outline">{g.period_label}</span>}
-                          </div>
-                          <p className="text-[13px] font-bold text-on-surface truncate">{g.label}</p>
-                          <p className="text-[11px] text-outline">{g.factory_name || g.rep_name}</p>
-                        </div>
-                        <div className="flex gap-0.5 flex-shrink-0">
-                          <button onClick={() => openEditGoal(g)} className="p-1 text-outline/50 hover:text-primary rounded-lg transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => window.confirm('Excluir meta?') && deleteGoalMut.mutate(g.id)} className="p-1 text-outline/50 hover:text-red-500 rounded-lg transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
-                        </div>
-                      </div>
-                      {/* Barra de progresso */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-end justify-between">
-                          <span className="text-[22px] font-bold leading-none" style={{ color }}>{g.achieved_pieces.toLocaleString('pt-BR')}</span>
-                          <span className="text-[12px] text-outline">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
-                        </div>
-                        <div className="w-full bg-surface-container-low rounded-full h-2 overflow-hidden">
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-outline">{g.target_pieces - g.achieved_pieces > 0 ? `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç` : '✅ Meta atingida!'}</span>
-                          <span className="text-[13px] font-bold" style={{ color }}>{pct.toFixed(1)}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+        {/* ─── Admin: Metas agrupadas por marca ────────── */}
+        {isAdmin && (() => {
+          // Agrupa por marca (1ª palavra do label)
+          const getBrand = (g: Goal) => g.label.split(' ')[0]
+          const groups: Record<string, { factory: Goal | null; reps: Goal[] }> = {}
+          goals.forEach(g => {
+            const brand = getBrand(g)
+            if (!groups[brand]) groups[brand] = { factory: null, reps: [] }
+            if (g.type === 'factory') groups[brand].factory = g
+            else groups[brand].reps.push(g)
+          })
+          const brandList = Object.keys(groups).sort()
+
+          const GoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
+            const pct = g.target_pieces > 0 ? Math.min(100, (g.achieved_pieces / g.target_pieces) * 100) : 0
+            const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : pct >= 40 ? '#3B82F6' : '#EF4444'
+            return (
+              <div className="space-y-1">
+                <div className="flex items-end justify-between gap-2">
+                  <span className={`font-bold leading-none ${large ? 'text-[32px]' : 'text-[20px]'}`} style={{ color }}>
+                    {g.achieved_pieces.toLocaleString('pt-BR')}
+                  </span>
+                  <span className="text-[11px] text-outline pb-1">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+                </div>
+                <div className={`w-full bg-black/10 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-white/70">
+                    {pct >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
+                  </span>
+                  <span className="text-[13px] font-bold text-white">{pct.toFixed(1)}%</span>
+                </div>
               </div>
-            )}
-          </section>
-        )}
+            )
+          }
+
+          return (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <SectionTitle className="mb-0">🎯 Metas por Marca</SectionTitle>
+                <button onClick={openNewGoal} className="flex items-center gap-1 text-[12px] text-primary font-semibold hover:text-primary/80">
+                  <Plus className="h-3.5 w-3.5" /> Nova meta
+                </button>
+              </div>
+
+              {goals.length === 0 ? (
+                <button onClick={openNewGoal} className="w-full bg-white rounded-2xl border border-dashed border-outline-variant/60 p-6 text-center hover:border-primary/40 hover:bg-primary/5 transition-colors">
+                  <Target className="h-7 w-7 text-outline/40 mx-auto mb-1" />
+                  <p className="text-[12px] text-outline/70">Nenhuma meta cadastrada. Clique para adicionar.</p>
+                </button>
+              ) : (
+                <div className="space-y-5">
+                  {brandList.map(brand => {
+                    const { factory, reps } = groups[brand]
+                    const brandColors: Record<string, { from: string; to: string }> = {
+                      OUZZARE: { from: '#6D28D9', to: '#4C1D95' },
+                      TEEZZ:   { from: '#1D4ED8', to: '#1E3A8A' },
+                    }
+                    const bc = brandColors[brand] || { from: '#374151', to: '#1F2937' }
+
+                    return (
+                      <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
+
+                        {/* Header da marca */}
+                        <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                          <div>
+                            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">{factory?.period_label || reps[0]?.period_label || ''}</p>
+                            <h3 className="text-white text-[20px] font-black tracking-tight">{brand}</h3>
+                          </div>
+                          {factory && (
+                            <div className="flex gap-1">
+                              <button onClick={() => openEditGoal(factory)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => window.confirm('Excluir meta geral?') && deleteGoalMut.mutate(factory.id)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Meta geral da fábrica */}
+                        {factory && (
+                          <div className="px-5 pb-4">
+                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
+                            <GoalBar g={factory} large />
+                          </div>
+                        )}
+
+                        {/* Grid de reps */}
+                        {reps.length > 0 && (
+                          <div className="bg-black/20 px-5 py-3">
+                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-3">👥 Por Representante</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                              {reps.sort((a, b) => b.achieved_pieces - a.achieved_pieces).map(g => {
+                                const pct = g.target_pieces > 0 ? Math.min(100, (g.achieved_pieces / g.target_pieces) * 100) : 0
+                                const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : pct >= 40 ? '#60A5FA' : '#FCA5A5'
+                                return (
+                                  <div key={g.id} className="bg-white/10 hover:bg-white/15 rounded-2xl p-3 transition-colors group">
+                                    <div className="flex items-start justify-between mb-2">
+                                      <p className="text-white text-[12px] font-bold truncate flex-1">{g.rep_name}</p>
+                                      <div className="hidden group-hover:flex gap-0.5 flex-shrink-0 ml-1">
+                                        <button onClick={() => openEditGoal(g)} className="p-1 rounded text-white/50 hover:text-white"><Pencil className="h-3 w-3" /></button>
+                                        <button onClick={() => window.confirm('Excluir?') && deleteGoalMut.mutate(g.id)} className="p-1 rounded text-white/50 hover:text-white"><Trash2 className="h-3 w-3" /></button>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-baseline gap-1 mb-1.5">
+                                      <span className="text-[18px] font-black" style={{ color }}>{g.achieved_pieces.toLocaleString('pt-BR')}</span>
+                                      <span className="text-[10px] text-white/40">/ {(g.target_pieces/1000).toFixed(0)}k</span>
+                                    </div>
+                                    <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
+                                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                                    </div>
+                                    <p className="text-[10px] mt-1 font-bold text-right" style={{ color }}>{pct.toFixed(0)}%</p>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )
+        })()}
 
 
         {/* ─── Admin: Status e Ranking ─────────────────── */}
