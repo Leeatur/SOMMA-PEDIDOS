@@ -531,7 +531,7 @@ function ProductCard({ product, onAdd, cartItems }: {
 
   // ── PACK state ──
   const [boxes, setBoxes] = useState(1)
-  const [selectedGrade] = useState<GradeConfig | null>(product.grade_configs?.[0] || null)
+  const grades: GradeConfig[] = product.grade_configs || []
 
   // ── REGULAR state ──
   const availableSizes = isPack ? [] : parseSizeRange(product.size_range || '')
@@ -539,7 +539,9 @@ function ProductCard({ product, onAdd, cartItems }: {
     Object.fromEntries(availableSizes.map(s => [s, 0]))
   )
 
-  const packPieces = isPack && selectedGrade ? selectedGrade.total_pieces * boxes : 0
+  // Pack: soma TODAS as cores × caixas (não só a 1ª cor)
+  const totalPiecesPerPack = grades.reduce((s: number, g: GradeConfig) => s + g.total_pieces, 0)
+  const packPieces = isPack ? totalPiecesPerPack * boxes : 0
   const regularPieces = Object.values(sizes).reduce((s, v) => s + v, 0)
   const totalPieces = isPack ? packPieces : regularPieces
   const totalPrice = product.base_price * totalPieces
@@ -548,8 +550,9 @@ function ProductCard({ product, onAdd, cartItems }: {
   const inCartBoxes = cartItems.reduce((s, i) => s + i.boxes, 0)
 
   function handleAdd() {
-    if (isPack && selectedGrade) {
-      onAdd(product, { grade: selectedGrade, boxes })
+    if (isPack && grades.length > 0) {
+      // Usa a 1ª grade como referência (todas as cores vão no pedido)
+      onAdd(product, { grade: grades[0], boxes })
     } else {
       onAdd(product, { sizes })
     }
