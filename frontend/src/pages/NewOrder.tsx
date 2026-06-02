@@ -322,10 +322,17 @@ export function NewOrder() {
 
   const online = navigator.onLine
 
+  // Debounce da busca de clientes (300ms)
+  const [debouncedClientSearch, setDebouncedClientSearch] = useState(clientSearch)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedClientSearch(clientSearch), 300)
+    return () => clearTimeout(t)
+  }, [clientSearch])
+
   // Queries
   const { data: clients, isLoading: loadingClients } = useQuery<Client[]>({
-    queryKey: ['clients', clientSearch],
-    queryFn: () => clientsApi.list(clientSearch || undefined).then((r) => r.data),
+    queryKey: ['clients', debouncedClientSearch],
+    queryFn: () => clientsApi.list(debouncedClientSearch || undefined).then((r) => r.data),
     enabled: step === 0,
   })
 
