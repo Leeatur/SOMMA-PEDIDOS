@@ -1,57 +1,34 @@
-name: 🌙 Deploy Noturno — develop → main
+name: Deploy Noturno Automatico
 
 on:
-  # Roda todo dia às 23h (horário de Brasília = 02:00 UTC)
   schedule:
     - cron: '0 2 * * *'
-
-  # Permite disparar manualmente pelo GitHub Actions
   workflow_dispatch:
-    inputs:
-      reason:
-        description: 'Motivo do deploy manual'
-        required: false
-        default: 'Deploy manual solicitado'
 
 jobs:
-  merge-to-production:
-    name: Merge develop → main
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout do repositório
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configurar Git
         run: |
-          git config user.name "Somma Deploy Bot"
-          git config user.email "deploy@sommagestao.com.br"
+          git config user.name "Somma Bot"
+          git config user.email "bot@sommagestao.com.br"
 
-      - name: Verificar se develop tem commits novos
-        id: check
+      - name: Verificar e fazer merge develop para main
         run: |
           git fetch origin
-          BEHIND=$(git rev-list --count origin/main..origin/develop)
-          echo "commits_ahead=$BEHIND" >> $GITHUB_OUTPUT
-          if [ "$BEHIND" -gt "0" ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "✅ develop tem $BEHIND commit(s) novo(s) para enviar para produção"
+          AHEAD=$(git rev-list --count origin/main..origin/develop 2>/dev/null || echo 0)
+          echo "Commits novos no develop: $AHEAD"
+          if [ "$AHEAD" -gt "0" ]; then
+            git checkout main
+            git merge origin/develop --no-ff -m "Deploy automatico $(date +'%d/%m/%Y %H:%M')"
+            git push origin main
+            echo "Deploy enviado! Railway vai atualizar a producao em alguns minutos."
           else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ Nenhum commit novo — produção já está atualizada"
+            echo "Nenhuma mudanca hoje. Producao ja esta atualizada."
           fi
-
-      - name: Merge develop → main (deploy para produção)
-        if: steps.check.outputs.has_changes == 'true'
-        run: |
-          git checkout main
-          git merge origin/develop --no-ff -m "🌙 Deploy noturno automático: $(date +'%d/%m/%Y %H:%M') (Brasília)"
-          git push origin main
-          echo "🚀 Deploy enviado! Railway irá atualizar a produção em ~3 minutos."
-
-      - name: Sem mudanças
-        if: steps.check.outputs.has_changes == 'false'
-        run: echo "✅ Produção já está na versão mais recente. Nenhuma ação necessária."
