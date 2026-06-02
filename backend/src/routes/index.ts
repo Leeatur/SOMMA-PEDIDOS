@@ -15,6 +15,7 @@ import * as reports from '../controllers/reportsController'
 import * as prospecting from '../controllers/prospectingController'
 import * as portal from '../controllers/portalController'
 import * as goals from '../controllers/goalsController'
+import * as pdf from '../controllers/pdfController'
 
 const router = Router()
 
@@ -82,6 +83,7 @@ router.post('/clients/import/preview', authenticate, upload.single('file'), clie
 router.post('/clients/import/confirm', authenticate, upload.single('file'), clientsImport.confirmImport)
 
 // Pedidos
+router.get('/orders/:id/pdf', authenticate, pdf.getOrderPdf)
 router.get('/orders', authenticate, orders.listOrders)
 router.get('/orders/trash', authenticate, requireAdmin, orders.listTrashedOrders)
 router.get('/orders/:id', authenticate, orders.getOrder)
