@@ -62,6 +62,7 @@ const ALL_COL_DEFS: ColumnDef[] = [
   { id: 'value',          label: 'Valor' },
   { id: 'delivery',       label: 'Prev. Entrega',      defaultVisible: true },
   { id: 'payment',        label: 'Cond. Pagamento',    defaultVisible: true },
+  { id: 'politica',       label: 'Política' },
   { id: 'commission',     label: 'Comissão',           defaultVisible: false },
   { id: 'discount',       label: 'Desconto',           defaultVisible: false },
   { id: 'table',          label: 'Tabela',             defaultVisible: false },
@@ -125,6 +126,17 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
         {o.rep_commission_value > 0
           ? <span className="text-[12px] font-semibold text-emerald-600">{formatCurrency(o.rep_commission_value)}</span>
           : <span className="text-[12px] text-outline/50">—</span>}
+      </td>
+    case 'politica':
+      return <td className="px-2 py-1 text-center whitespace-nowrap">
+        <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${
+          o.discount_pct === 0 ? 'bg-blue-50 text-blue-700' :
+          o.discount_pct <= 5 ? 'bg-amber-50 text-amber-700' :
+          o.discount_pct <= 8 ? 'bg-orange-50 text-orange-700' :
+          'bg-red-50 text-red-700'
+        }`}>
+          {o.discount_pct > 0 ? `${o.discount_pct}%` : '0%'}
+        </span>
       </td>
     case 'discount':
       return <td className="px-2 py-1 text-right whitespace-nowrap last:pr-3">
