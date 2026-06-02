@@ -45,6 +45,22 @@ export function Dashboard() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '' })
 
+  // Filtro de período
+  const spDate = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
+  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); d.setDate(1); return spDate(d) }) // início do mês
+  const [dateTo,   setDateTo]   = useState(() => spDate(new Date()))
+  const [activePeriod, setActivePeriod] = useState('month')
+
+  function setPeriod(p: string) {
+    setActivePeriod(p)
+    const now = new Date()
+    if (p === 'today')  { setDateFrom(spDate(now)); setDateTo(spDate(now)) }
+    if (p === '7d')     { const d=new Date(now); d.setDate(d.getDate()-6); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === '30d')    { const d=new Date(now); d.setDate(d.getDate()-29); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === 'month')  { const d=new Date(now); d.setDate(1); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === 'custom') { /* usuário digita nas caixas */ }
+  }
+
   // Usa horário de Brasília (America/Sao_Paulo) para evitar bug de timezone UTC vs UTC-3
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 
@@ -103,22 +119,29 @@ export function Dashboard() {
     const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
     return d === today
   })
-  const totalValue  = allOrders.reduce((s, o) => s + Number(o.total_value), 0)
+
+  // Pedidos filtrados pelo período selecionado
+  const filteredOrders = allOrders.filter(o => {
+    const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
+    return d >= dateFrom && d <= dateTo
+  })
+
+  const totalValue  = filteredOrders.reduce((s, o) => s + Number(o.total_value), 0)
   const todayValue  = todayOrders.reduce((s, o) => s + Number(o.total_value), 0)
 
-  // Métricas compartilhadas
-  const totalPieces      = allOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
-  const totalRepComm     = allOrders.reduce((s, o) => s + Number(o.rep_commission_value || 0), 0)
-  const totalOfficeComm  = allOrders.reduce((s, o) => s + Number((o as Order & {office_commission_value?:number}).office_commission_value || 0), 0)
-  const ticketMedio      = allOrders.length > 0 ? totalValue / allOrders.length : 0
-  const uniqueClients    = new Set(allOrders.map(o => o.client_name)).size
+  // Métricas compartilhadas (baseadas no período filtrado)
+  const totalPieces      = filteredOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
+  const totalRepComm     = filteredOrders.reduce((s, o) => s + Number(o.rep_commission_value || 0), 0)
+  const totalOfficeComm  = filteredOrders.reduce((s, o) => s + Number((o as Order & {office_commission_value?:number}).office_commission_value || 0), 0)
+  const ticketMedio      = filteredOrders.length > 0 ? totalValue / filteredOrders.length : 0
+  const uniqueClients    = new Set(filteredOrders.map(o => o.client_name)).size
   const recentOrders     = [...allOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
   const pendingOrders    = allOrders.filter(o => o.status_name && !['Entregue','Cancelado','Faturado'].includes(o.status_name))
 
   // Admin: ranking de reps e status
   // Peças por marca/fábrica
   const piecesByFactory = isAdmin ? Object.entries(
-    allOrders.reduce((acc, o) => {
+    filteredOrders.reduce((acc, o) => {
       const k = o.factory_name || 'N/A'
       if (!acc[k]) acc[k] = { pieces: 0, value: 0 }
       acc[k].pieces += Number(o.total_pieces || 0)
@@ -128,7 +151,7 @@ export function Dashboard() {
   ).sort((a, b) => b[1].pieces - a[1].pieces) : []
 
   const repRanking = isAdmin ? Object.entries(
-    allOrders.reduce((acc, o) => {
+    filteredOrders.reduce((acc, o) => {
       const k = o.rep_name || 'N/A'
       acc[k] = (acc[k] || 0) + Number(o.total_value)
       return acc
@@ -136,7 +159,7 @@ export function Dashboard() {
   ).sort((a, b) => b[1] - a[1]).slice(0, 5) : []
 
   const statusSummary = isAdmin ? Object.entries(
-    allOrders.reduce((acc, o) => {
+    filteredOrders.reduce((acc, o) => {
       const k = o.status_name || 'Sem status'
       if (!acc[k]) acc[k] = { count: 0, color: o.status_color || '#9CA3AF' }
       acc[k].count++
@@ -186,6 +209,42 @@ export function Dashboard() {
         </button>
       </div>
 
+      {/* ─── Filtro de período ───────────────────────────── */}
+      <div className="px-4 lg:px-8 pt-3 pb-1">
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            { id: 'today', label: 'Hoje' },
+            { id: '7d',    label: '7 dias' },
+            { id: '30d',   label: '30 dias' },
+            { id: 'month', label: 'Este mês' },
+            { id: 'custom',label: 'Personalizado' },
+          ].map(p => (
+            <button key={p.id} onClick={() => setPeriod(p.id)}
+              className={`px-3 py-1 rounded-xl text-[12px] font-semibold border transition-colors ${
+                activePeriod === p.id
+                  ? 'bg-white text-primary border-white shadow-sm'
+                  : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
+              }`}>
+              {p.label}
+            </button>
+          ))}
+          {activePeriod === 'custom' && (
+            <div className="flex items-center gap-1.5 ml-1">
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                className="px-2 py-1 rounded-lg text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <span className="text-white/60 text-[12px]">até</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                className="px-2 py-1 rounded-lg text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+          )}
+        </div>
+        {activePeriod !== 'today' && (
+          <p className="text-white/50 text-[11px] mt-1">
+            {new Date(dateFrom+'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(dateTo+'T12:00:00').toLocaleDateString('pt-BR')} · {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}
+          </p>
+        )}
+      </div>
+
       {/* ─── Stat cards — overlap hero ──────────────────── */}
       <div className="px-4 lg:px-8 -mt-5">
         <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
@@ -194,7 +253,7 @@ export function Dashboard() {
             icon={<ShoppingCart className="h-4.5 w-4.5 text-blue-600" />}
             iconBg="bg-blue-100"
             label="Total de pedidos"
-            value={isAdmin ? allOrders.length.toString() : formatCurrency(totalValue)}
+            value={isAdmin ? filteredOrders.length.toString() : formatCurrency(totalValue)}
             accentColor="#3B82F6"
             large={isAdmin}
           />
@@ -367,7 +426,7 @@ export function Dashboard() {
                       <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
                       <div className="flex items-center gap-2">
                         <div className="w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${(count/allOrders.length*100)}%`, backgroundColor: color }} />
+                          <div className="h-full rounded-full" style={{ width: `${(count/filteredOrders.length*100)}%`, backgroundColor: color }} />
                         </div>
                         <span className="text-[12px] font-bold text-on-surface w-6 text-right">{count}</span>
                       </div>
