@@ -33,7 +33,8 @@ export function Dashboard() {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
 
-  const today = new Date().toISOString().split('T')[0]
+  // Usa horário de Brasília (America/Sao_Paulo) para evitar bug de timezone UTC vs UTC-3
+  const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ['orders'],
@@ -49,7 +50,10 @@ export function Dashboard() {
   if (isLoading) return <PageSpinner />
 
   const allOrders = orders || []
-  const todayOrders = allOrders.filter(o => o.created_at.startsWith(today))
+  const todayOrders = allOrders.filter(o => {
+    const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
+    return d === today
+  })
   const totalValue = allOrders.reduce((s, o) => s + Number(o.total_value), 0)
   const todayValue = todayOrders.reduce((s, o) => s + Number(o.total_value), 0)
 

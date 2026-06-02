@@ -3,8 +3,10 @@ import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 
 function dateRange(req: AuthRequest): [string, string] {
-  const today = new Date().toISOString().split('T')[0]
-  const thirtyAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
+  // Usa horário de Brasília para comparação de datas
+  const toSP = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
+  const today = toSP(new Date())
+  const thirtyAgo = toSP(new Date(Date.now() - 30 * 86400000))
   return [
     String(req.query.date_from || thirtyAgo),
     String(req.query.date_to || today),
