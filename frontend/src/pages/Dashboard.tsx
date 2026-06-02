@@ -68,6 +68,17 @@ export function Dashboard() {
   const pendingOrders    = allOrders.filter(o => o.status_name && !['Entregue','Cancelado','Faturado'].includes(o.status_name))
 
   // Admin: ranking de reps e status
+  // Peças por marca/fábrica
+  const piecesByFactory = isAdmin ? Object.entries(
+    allOrders.reduce((acc, o) => {
+      const k = o.factory_name || 'N/A'
+      if (!acc[k]) acc[k] = { pieces: 0, value: 0 }
+      acc[k].pieces += Number(o.total_pieces || 0)
+      acc[k].value  += Number(o.total_value  || 0)
+      return acc
+    }, {} as Record<string, { pieces: number; value: number }>)
+  ).sort((a, b) => b[1].pieces - a[1].pieces) : []
+
   const repRanking = isAdmin ? Object.entries(
     allOrders.reduce((acc, o) => {
       const k = o.rep_name || 'N/A'
@@ -212,6 +223,27 @@ export function Dashboard() {
       )}
 
       <div className="px-4 lg:px-8 mt-3 space-y-3">
+
+        {/* ─── Admin: Peças por Marca ─────────────────── */}
+        {isAdmin && piecesByFactory.length > 0 && (
+          <section>
+            <SectionTitle>📦 Peças por Marca / Coleção</SectionTitle>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {piecesByFactory.map(([factory, { pieces, value }]) => (
+                <div key={factory} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Package className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold text-on-surface truncate">{factory}</p>
+                    <p className="text-[22px] font-bold text-primary leading-tight">{pieces.toLocaleString('pt-BR')}</p>
+                    <p className="text-[11px] text-outline">peças · {formatCurrency(value)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ─── Admin: Status e Ranking ─────────────────── */}
         {isAdmin && (statusSummary.length > 0 || repRanking.length > 0) && (
