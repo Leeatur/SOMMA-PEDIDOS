@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link2, Plus, Copy, Trash2, CheckCircle, Share2, ToggleLeft, ToggleRight, ExternalLink, Building2 } from 'lucide-react'
-import { portalsApi, factoriesApi } from '../api/client'
+import { Link2, Plus, Copy, Trash2, CheckCircle, Share2, ToggleLeft, ToggleRight, ExternalLink, Tags } from 'lucide-react'
+import { portalsApi, priceTablesApi } from '../api/client'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
 import { PageSpinner } from '../components/ui/Spinner'
 import { useAuthStore } from '../stores/authStore'
 
-interface Factory { id: string; name: string; logo_url: string | null }
+interface PriceTable { id: string; name: string; factory_name: string; collection: string | null; season: string | null; year: number | null }
 interface Portal {
   id: string; rep_id: string; token: string; name: string
-  factory_ids: string[]; factory_names?: string[]
+  factory_ids: string[]; price_table_ids: string[]; factory_names?: string[]
   active: boolean; created_at: string; expires_at: string | null
 }
 
@@ -24,21 +24,21 @@ export function Portals() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', factory_ids: [] as string[] })
+  const [form, setForm] = useState({ name: '', price_table_ids: [] as string[] })
 
   const { data: portals = [], isLoading } = useQuery<Portal[]>({
     queryKey: ['portals'],
     queryFn: () => portalsApi.list().then(r => r.data),
   })
 
-  const { data: factories = [] } = useQuery<Factory[]>({
-    queryKey: ['factories'],
-    queryFn: () => factoriesApi.list().then(r => r.data),
+  const { data: priceTables = [] } = useQuery<PriceTable[]>({
+    queryKey: ['price-tables'],
+    queryFn: () => priceTablesApi.list().then(r => r.data),
   })
 
   const createMut = useMutation({
-    mutationFn: () => portalsApi.create({ name: form.name, factory_ids: form.factory_ids }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['portals'] }); setCreateOpen(false); setForm({ name: '', factory_ids: [] }) },
+    mutationFn: () => portalsApi.create({ name: form.name, price_table_ids: form.price_table_ids, factory_ids: [] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['portals'] }); setCreateOpen(false); setForm({ name: '', price_table_ids: [] }) },
   })
 
   const toggleMut = useMutation({
@@ -139,7 +139,7 @@ export function Portals() {
                       <div className="flex flex-wrap gap-1 mt-1">
                         {(portal.factory_names || portal.factory_ids).map((f, i) => (
                           <span key={i} className="text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
-                            <Building2 className="h-2.5 w-2.5 inline mr-0.5" />{f}
+                            <Tags className="h-2.5 w-2.5 inline mr-0.5" />{f}
                           </span>
                         ))}
                       </div>
@@ -248,41 +248,48 @@ export function Portals() {
 
           <div>
             <label className="block text-[13px] font-medium text-on-surface mb-2">
-              Marcas disponíveis
+              📋 Tabelas de Preço / Coleções *
             </label>
             <p className="text-[12px] text-outline mb-2">
-              Selecione as marcas que o cliente poderá ver. Se não selecionar nenhuma, todas ficam disponíveis.
+              Selecione quais tabelas o cliente poderá ver e comprar.
             </p>
-            <div className="space-y-2">
-              {factories.map(f => (
-                <label key={f.id} className="flex items-center gap-3 cursor-pointer p-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-low transition-colors">
+            <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+              {priceTables.map(pt => (
+                <label key={pt.id} className={`flex items-center gap-3 cursor-pointer p-2.5 rounded-xl border transition-colors ${
+                  form.price_table_ids.includes(pt.id)
+                    ? 'border-primary bg-primary/5'
+                    : 'border-outline-variant/40 hover:bg-surface-container-low'
+                }`}>
                   <input
                     type="checkbox"
-                    checked={form.factory_ids.includes(f.id)}
+                    checked={form.price_table_ids.includes(pt.id)}
                     onChange={e => {
                       if (e.target.checked) {
-                        setForm(prev => ({ ...prev, factory_ids: [...prev.factory_ids, f.id] }))
+                        setForm(prev => ({ ...prev, price_table_ids: [...prev.price_table_ids, pt.id] }))
                       } else {
-                        setForm(prev => ({ ...prev, factory_ids: prev.factory_ids.filter(id => id !== f.id) }))
+                        setForm(prev => ({ ...prev, price_table_ids: prev.price_table_ids.filter(id => id !== pt.id) }))
                       }
                     }}
-                    className="w-4 h-4 accent-primary rounded"
+                    className="w-4 h-4 accent-primary rounded flex-shrink-0"
                   />
-                  <div className="flex items-center gap-2 flex-1">
-                    {f.logo_url
-                      ? <img src={f.logo_url} alt={f.name} className="h-6 w-12 object-contain" />
-                      : <div className="h-6 w-12 bg-surface-container rounded flex items-center justify-center"><Building2 className="h-3.5 w-3.5 text-outline" /></div>
-                    }
-                    <span className="text-[13px] font-semibold text-on-surface">{f.name}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[13px] font-bold text-on-surface truncate">{pt.name}</span>
+                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full flex-shrink-0">{pt.factory_name}</span>
+                    </div>
+                    {(pt.collection || pt.season) && (
+                      <p className="text-[11px] text-outline">{[pt.collection, pt.season, pt.year].filter(Boolean).join(' · ')}</p>
+                    )}
                   </div>
+                  <Tags className="h-4 w-4 text-outline/40 flex-shrink-0" />
                 </label>
               ))}
             </div>
           </div>
 
-          {form.factory_ids.length === 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[12px] text-amber-700">
-              ⚠️ Nenhuma marca selecionada — o cliente verá TODAS as marcas disponíveis.
+          {form.price_table_ids.length === 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-[12px] text-red-700">
+              ⚠️ Selecione pelo menos uma tabela de preço para o cliente acessar.
             </div>
           )}
         </div>

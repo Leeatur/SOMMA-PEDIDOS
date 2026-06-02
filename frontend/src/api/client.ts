@@ -344,7 +344,7 @@ export const goalsApi = {
 
 export const portalsApi = {
   list: () => apiClient.get('/portals'),
-  create: (data: { name: string; factory_ids: string[]; expires_at?: string }) => apiClient.post('/portals', data),
+  create: (data: { name: string; factory_ids: string[]; price_table_ids?: string[]; expires_at?: string }) => apiClient.post('/portals', data),
   update: (id: string, data: object) => apiClient.put(`/portals/${id}`, data),
   delete: (id: string) => apiClient.delete(`/portals/${id}`),
 }

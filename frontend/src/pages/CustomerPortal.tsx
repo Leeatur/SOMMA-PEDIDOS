@@ -464,7 +464,7 @@ function ProductCard({ product, onAdd, cartItems }: {
 
   // ── PACK state ──
   const [boxes, setBoxes] = useState(1)
-  const [selectedGrade, setSelectedGrade] = useState<GradeConfig | null>(product.grade_configs?.[0] || null)
+  const [selectedGrade] = useState<GradeConfig | null>(product.grade_configs?.[0] || null)
 
   // ── REGULAR state ──
   const availableSizes = isPack ? [] : parseSizeRange(product.size_range || '')
@@ -510,41 +510,56 @@ function ProductCard({ product, onAdd, cartItems }: {
           <p className="font-bold text-purple-700 mt-0.5">{fmtCur(product.base_price)}/pç</p>
         </div>
 
-        {/* ── PACK: seletor de cor + caixas ── */}
+        {/* ── PACK: grade completa fechada + caixas ── */}
         {isPack && product.grade_configs && (
           <div className="space-y-1.5">
-            <select
-              value={selectedGrade?.color || ''}
-              onChange={e => setSelectedGrade(product.grade_configs!.find(g => g.color === e.target.value) || null)}
-              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-purple-400 bg-white"
-            >
-              {product.grade_configs.map(g => (
-                <option key={g.color} value={g.color || ''}>
-                  {g.color || 'Padrão'} — {g.total_pieces} pç/cx
-                </option>
-              ))}
-            </select>
-            {/* Composição da grade */}
-            {selectedGrade && (
-              <div className="text-[10px] text-gray-400 flex flex-wrap gap-1">
-                {Object.entries(selectedGrade.sizes).filter(([,v])=>v>0).map(([s,v])=>(
-                  <span key={s} className="bg-gray-100 px-1.5 py-0.5 rounded">{s}:{v}</span>
-                ))}
-              </div>
-            )}
-            {/* Seletor de caixas */}
-            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-1.5">
+            {/* Tabela de cores e tamanhos (somente leitura) */}
+            <div className="overflow-x-auto rounded-lg border border-gray-100 bg-gray-50">
+              <table className="min-w-full text-[10px]">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-2 py-1 text-left text-gray-500 font-semibold">Cor</th>
+                    {Object.keys(product.grade_configs[0]?.sizes || {}).map(s => (
+                      <th key={s} className="px-1.5 py-1 text-center text-gray-500 font-semibold">{s}</th>
+                    ))}
+                    <th className="px-2 py-1 text-center text-purple-600 font-bold">Tot/cx</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {product.grade_configs.map(g => (
+                    <tr key={g.color || 'default'} className="bg-white">
+                      <td className="px-2 py-1 font-semibold text-gray-700 whitespace-nowrap">{g.color || '—'}</td>
+                      {Object.entries(g.sizes).map(([s, v]) => (
+                        <td key={s} className="px-1.5 py-1 text-center text-gray-600">
+                          {Number(v) > 0 ? v : <span className="text-gray-200">—</span>}
+                        </td>
+                      ))}
+                      <td className="px-2 py-1 text-center font-bold text-purple-600">{g.total_pieces}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-50 border-t border-gray-200">
+                  <tr>
+                    <td className="px-2 py-1 font-bold text-gray-600 text-[11px]">Total/cx</td>
+                    <td colSpan={Object.keys(product.grade_configs[0]?.sizes || {}).length} />
+                    <td className="px-2 py-1 text-center font-black text-purple-700 text-[12px]">{packPieces}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            {/* Seletor de caixas — centralizado e prominente */}
+            <div className="flex items-center gap-3 bg-purple-50 rounded-xl p-2 border border-purple-100">
               <button onClick={() => setBoxes(Math.max(1, boxes - 1))}
-                className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm active:scale-95">
-                <Minus className="h-3.5 w-3.5 text-gray-600" />
+                className="w-9 h-9 rounded-full bg-white border border-purple-200 flex items-center justify-center shadow-sm active:scale-95">
+                <Minus className="h-4 w-4 text-purple-600" />
               </button>
               <div className="flex-1 text-center">
-                <p className="font-bold text-sm text-gray-900">{boxes} cx</p>
-                <p className="text-[10px] text-gray-400">{packPieces} peças</p>
+                <p className="font-black text-lg text-purple-700 leading-none">{boxes}</p>
+                <p className="text-[10px] text-purple-500">caixa{boxes > 1 ? 's' : ''} · {packPieces * boxes} peças</p>
               </div>
               <button onClick={() => setBoxes(boxes + 1)}
-                className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm active:scale-95">
-                <Plus className="h-3.5 w-3.5 text-gray-600" />
+                className="w-9 h-9 rounded-full bg-white border border-purple-200 flex items-center justify-center shadow-sm active:scale-95">
+                <Plus className="h-4 w-4 text-purple-600" />
               </button>
             </div>
           </div>

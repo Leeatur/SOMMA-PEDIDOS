@@ -23,14 +23,14 @@ export async function listPortals(req: AuthRequest, res: Response) {
 }
 
 export async function createPortal(req: AuthRequest, res: Response) {
-  const { name, factory_ids, expires_at } = req.body
+  const { name, factory_ids, price_table_ids, expires_at } = req.body
   if (!name) { res.status(400).json({ error: 'Nome é obrigatório' }); return }
   const token = crypto.randomBytes(24).toString('hex')
   const repId = req.user!.id
   const { rows: [portal] } = await query(
-    `INSERT INTO customer_portals (rep_id, factory_ids, token, name, expires_at)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [repId, factory_ids || [], token, name, expires_at || null]
+    `INSERT INTO customer_portals (rep_id, factory_ids, price_table_ids, token, name, expires_at)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [repId, factory_ids || [], price_table_ids || [], token, name, expires_at || null]
   )
   res.status(201).json(portal)
 }
@@ -76,13 +76,26 @@ export async function getPortalInfo(req: Request, res: Response) {
   const portal = await getPortal(req.params.token)
   if (!portal) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
 
+  // Se tem tabelas específicas, retorna apenas elas
+  if (portal.price_table_ids?.length > 0) {
+    const { rows: priceTables } = await query(
+      `SELECT pt.id, pt.name, pt.collection, pt.season, pt.year, f.id as factory_id, f.name as factory_name, f.logo_url
+       FROM price_tables pt JOIN factories f ON f.id=pt.factory_id
+       WHERE pt.id = ANY($1) AND pt.active=true ORDER BY f.name, pt.name`,
+      [portal.price_table_ids]
+    )
+    res.json({ portal: { id: portal.id, name: portal.name, rep_name: portal.rep_name }, price_tables: priceTables, factories: [] })
+    return
+  }
+
+  // Fallback: filtra por fábricas
   const { rows: factories } = await query(
-    portal.factory_ids.length > 0
+    portal.factory_ids?.length > 0
       ? `SELECT f.id, f.name, f.logo_url FROM factories f WHERE f.id = ANY($1) AND f.active=true ORDER BY f.name`
       : `SELECT f.id, f.name, f.logo_url FROM factories f WHERE f.active=true ORDER BY f.name`,
-    portal.factory_ids.length > 0 ? [portal.factory_ids] : []
+    portal.factory_ids?.length > 0 ? [portal.factory_ids] : []
   )
-  res.json({ portal: { id: portal.id, name: portal.name, rep_name: portal.rep_name }, factories })
+  res.json({ portal: { id: portal.id, name: portal.name, rep_name: portal.rep_name }, factories, price_tables: [] })
 }
 
 // POST /public/portal/:token/lookup-cnpj — valida CNPJ e retorna dados do cliente
@@ -135,19 +148,19 @@ export async function getPortalCatalog(req: Request, res: Response) {
 
   const { factory_id, price_table_id } = req.query as Record<string, string>
 
-  // Filtra por fábricas do portal
-  const allowedFactories = portal.factory_ids.length > 0 ? portal.factory_ids : null
+  // Prioridade: price_table_ids > factory_ids
+  const allowedPriceTables = portal.price_table_ids?.length > 0 ? portal.price_table_ids : null
+  const allowedFactories   = !allowedPriceTables && portal.factory_ids?.length > 0 ? portal.factory_ids : null
 
   let ptWhere = 'WHERE pt.active=true'
   const params: unknown[] = []
 
-  if (allowedFactories) {
+  if (allowedPriceTables) {
+    ptWhere += ` AND pt.id = ANY($${params.length + 1})`; params.push(allowedPriceTables)
+  } else if (allowedFactories) {
     ptWhere += ` AND pt.factory_id = ANY($${params.length + 1})`; params.push(allowedFactories)
   }
-  if (factory_id) {
-    if (allowedFactories && !allowedFactories.includes(factory_id)) {
-      res.status(403).json({ error: 'Fábrica não disponível' }); return
-    }
+  if (factory_id && !allowedPriceTables) {
     ptWhere += ` AND pt.factory_id = $${params.length + 1}`; params.push(factory_id)
   }
   if (price_table_id) {
