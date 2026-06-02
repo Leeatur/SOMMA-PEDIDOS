@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award } from 'lucide-react'
-import { ordersApi, reportsApi } from '../api/client'
+import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award, Target, Pencil, Trash2, X } from 'lucide-react'
+import { ordersApi, reportsApi, goalsApi, factoriesApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { PageSpinner } from '../components/ui/Spinner'
 import { formatCurrency, formatOrderNumber } from '../utils/format'
@@ -29,10 +30,20 @@ interface DaySaleRow {
   office_commission_value: number
 }
 
+interface Goal {
+  id: string; type: 'factory'|'rep'; factory_id: string|null; rep_id: string|null
+  label: string; target_pieces: number; period_label: string|null
+  factory_name: string|null; rep_name: string|null; achieved_pieces: number
+}
+
 export function Dashboard() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
+  const [showGoalModal, setShowGoalModal] = useState(false)
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
+  const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '' })
 
   // Usa horário de Brasília (America/Sao_Paulo) para evitar bug de timezone UTC vs UTC-3
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date())
@@ -41,6 +52,43 @@ export function Dashboard() {
     queryKey: ['orders'],
     queryFn: () => ordersApi.list().then(r => r.data),
   })
+
+  const { data: goals = [] } = useQuery<Goal[]>({
+    queryKey: ['goals'],
+    queryFn: () => goalsApi.list().then(r => r.data),
+    enabled: isAdmin,
+  })
+  const { data: factories = [] } = useQuery<{id:string;name:string}[]>({
+    queryKey: ['factories'],
+    queryFn: () => factoriesApi.list().then(r => r.data),
+    enabled: isAdmin,
+  })
+  const { data: repUsers = [] } = useQuery<{id:string;name:string;role:string}[]>({
+    queryKey: ['users'],
+    queryFn: () => usersApi.list().then(r => r.data),
+    enabled: isAdmin,
+  })
+  const reps = repUsers.filter(u => u.role !== 'admin')
+
+  const createGoalMut = useMutation({
+    mutationFn: (data: object) => editingGoal ? goalsApi.update(editingGoal.id, data) : goalsApi.create(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['goals'] }); setShowGoalModal(false); setEditingGoal(null) },
+  })
+  const deleteGoalMut = useMutation({
+    mutationFn: (id: string) => goalsApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['goals'] }),
+  })
+
+  function openNewGoal() {
+    setEditingGoal(null)
+    setGoalForm({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '' })
+    setShowGoalModal(true)
+  }
+  function openEditGoal(g: Goal) {
+    setEditingGoal(g)
+    setGoalForm({ type: g.type, factory_id: g.factory_id||'', rep_id: g.rep_id||'', label: g.label, target_pieces: String(g.target_pieces), period_label: g.period_label||'' })
+    setShowGoalModal(true)
+  }
 
   const { data: todaysSales, isLoading: salesLoading } = useQuery<DaySaleRow[]>({
     queryKey: ['dashboard-today-sales', today],
@@ -114,7 +162,7 @@ export function Dashboard() {
   const salesTotalRepCom = sales.reduce((s, r) => s + Number(r.rep_commission_value), 0)
   const salesTotalEscCom = sales.reduce((s, r) => s + Number(r.office_commission_value), 0)
 
-  return (
+  return (<>
     <div className="pb-24 lg:pb-8 min-h-full">
 
       {/* ─── Hero header ─────────────────────────────────── */}
@@ -223,6 +271,65 @@ export function Dashboard() {
       )}
 
       <div className="px-4 lg:px-8 mt-3 space-y-3">
+
+        {/* ─── Admin: Metas ────────────────────────────── */}
+        {isAdmin && (
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <SectionTitle className="mb-0">🎯 Metas</SectionTitle>
+              <button onClick={openNewGoal} className="flex items-center gap-1 text-[12px] text-primary font-semibold hover:text-primary/80">
+                <Plus className="h-3.5 w-3.5" /> Nova meta
+              </button>
+            </div>
+            {goals.length === 0 ? (
+              <button onClick={openNewGoal} className="w-full bg-white rounded-2xl border border-dashed border-outline-variant/60 p-6 text-center hover:border-primary/40 hover:bg-primary/5 transition-colors">
+                <Target className="h-7 w-7 text-outline/40 mx-auto mb-1" />
+                <p className="text-[12px] text-outline/70">Nenhuma meta cadastrada. Clique para adicionar.</p>
+              </button>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {goals.map(g => {
+                  const pct = g.target_pieces > 0 ? Math.min(100, (g.achieved_pieces / g.target_pieces) * 100) : 0
+                  const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : pct >= 40 ? '#3B82F6' : '#EF4444'
+                  return (
+                    <div key={g.id} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${g.type === 'factory' ? 'bg-blue-50 text-blue-700' : 'bg-violet-50 text-violet-700'}`}>
+                              {g.type === 'factory' ? '🏭 FÁBRICA' : '👤 REP'}
+                            </span>
+                            {g.period_label && <span className="text-[10px] text-outline">{g.period_label}</span>}
+                          </div>
+                          <p className="text-[13px] font-bold text-on-surface truncate">{g.label}</p>
+                          <p className="text-[11px] text-outline">{g.factory_name || g.rep_name}</p>
+                        </div>
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          <button onClick={() => openEditGoal(g)} className="p-1 text-outline/50 hover:text-primary rounded-lg transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => window.confirm('Excluir meta?') && deleteGoalMut.mutate(g.id)} className="p-1 text-outline/50 hover:text-red-500 rounded-lg transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                      </div>
+                      {/* Barra de progresso */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-end justify-between">
+                          <span className="text-[22px] font-bold leading-none" style={{ color }}>{g.achieved_pieces.toLocaleString('pt-BR')}</span>
+                          <span className="text-[12px] text-outline">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+                        </div>
+                        <div className="w-full bg-surface-container-low rounded-full h-2 overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-outline">{g.target_pieces - g.achieved_pieces > 0 ? `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç` : '✅ Meta atingida!'}</span>
+                          <span className="text-[13px] font-bold" style={{ color }}>{pct.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ─── Admin: Peças por Marca ─────────────────── */}
         {isAdmin && piecesByFactory.length > 0 && (
@@ -489,7 +596,92 @@ export function Dashboard() {
 
       </div>
     </div>
-  )
+
+    {/* ── Modal Nova/Editar Meta ── */}
+    {/* ── Modal Nova/Editar Meta ── */}
+    {showGoalModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowGoalModal(false)} />
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-on-surface text-base">{editingGoal ? 'Editar Meta' : 'Nova Meta'}</h3>
+            <button onClick={() => setShowGoalModal(false)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Tipo */}
+          <div className="grid grid-cols-2 gap-2">
+            {['factory','rep'].map(t => (
+              <button key={t} type="button" onClick={() => setGoalForm(f => ({...f, type: t}))}
+                className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${goalForm.type === t ? 'border-primary bg-primary/10 text-primary' : 'border-outline-variant text-outline hover:bg-surface-container'}`}>
+                {t === 'factory' ? '🏭 Por Fábrica' : '👤 Por Representante'}
+              </button>
+            ))}
+          </div>
+
+          {/* Entidade */}
+          {goalForm.type === 'factory' ? (
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">Fábrica</label>
+              <select value={goalForm.factory_id} onChange={e => setGoalForm(f => ({...f, factory_id: e.target.value}))}
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <option value="">Selecione...</option>
+                {(factories as {id:string;name:string}[]).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">Representante</label>
+              <select value={goalForm.rep_id} onChange={e => setGoalForm(f => ({...f, rep_id: e.target.value}))}
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <option value="">Selecione...</option>
+                {reps.map((r: {id:string;name:string}) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Label e coleção */}
+          <div>
+            <label className="block text-[12px] font-medium text-outline mb-1">Descrição / Coleção</label>
+            <input value={goalForm.label} onChange={e => setGoalForm(f => ({...f, label: e.target.value}))}
+              placeholder="Ex: OUZZARE VE27 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">Meta (peças)</label>
+              <input type="number" value={goalForm.target_pieces} onChange={e => setGoalForm(f => ({...f, target_pieces: e.target.value}))}
+                placeholder="Ex: 5000" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">Período</label>
+              <input value={goalForm.period_label} onChange={e => setGoalForm(f => ({...f, period_label: e.target.value}))}
+                placeholder="Ex: Inverno 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end pt-2">
+            <button onClick={() => setShowGoalModal(false)} className="px-4 py-2 text-[12px] text-outline hover:text-on-surface">Cancelar</button>
+            <button
+              onClick={() => createGoalMut.mutate({
+                type: goalForm.type,
+                factory_id: goalForm.factory_id || null,
+                rep_id: goalForm.rep_id || null,
+                label: goalForm.label,
+                target_pieces: parseInt(goalForm.target_pieces) || 0,
+                period_label: goalForm.period_label || null,
+              })}
+              disabled={!goalForm.label || !goalForm.target_pieces || createGoalMut.isPending}
+              className="px-5 py-2 bg-primary text-white rounded-xl text-[12px] font-semibold disabled:opacity-50 hover:bg-primary/90 active:scale-95"
+            >
+              {createGoalMut.isPending ? 'Salvando...' : editingGoal ? 'Salvar' : 'Criar Meta'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>)
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────

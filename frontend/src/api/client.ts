@@ -335,6 +335,13 @@ export const prospectingApi = {
   deleteContact: (id: string) => apiClient.delete(`/prospecting/contacts/${id}`),
 }
 
+export const goalsApi = {
+  list: () => apiClient.get('/goals'),
+  create: (data: object) => apiClient.post('/goals', data),
+  update: (id: string, data: object) => apiClient.put(`/goals/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/goals/${id}`),
+}
+
 export const portalsApi = {
   list: () => apiClient.get('/portals'),
   create: (data: { name: string; factory_ids: string[]; expires_at?: string }) => apiClient.post('/portals', data),

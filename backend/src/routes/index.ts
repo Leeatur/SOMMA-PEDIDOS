@@ -14,6 +14,7 @@ import * as company from '../controllers/companyController'
 import * as reports from '../controllers/reportsController'
 import * as prospecting from '../controllers/prospectingController'
 import * as portal from '../controllers/portalController'
+import * as goals from '../controllers/goalsController'
 
 const router = Router()
 
@@ -138,5 +139,11 @@ router.get('/public/portal/:token', portal.getPortalInfo)
 router.post('/public/portal/:token/lookup-cnpj', portal.portalLookupCnpj)
 router.get('/public/portal/:token/catalog', portal.getPortalCatalog)
 router.post('/public/portal/:token/order', portal.submitPortalOrder)
+
+// ── Metas ──────────────────────────────────────────────────────────────────────
+router.get('/goals', authenticate, requireAdmin, goals.listGoals)
+router.post('/goals', authenticate, requireAdmin, goals.createGoal)
+router.put('/goals/:id', authenticate, requireAdmin, goals.updateGoal)
+router.delete('/goals/:id', authenticate, requireAdmin, goals.deleteGoal)
 
 export default router
