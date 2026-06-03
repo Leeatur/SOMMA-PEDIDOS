@@ -39,6 +39,10 @@ export function Portals() {
   const createMut = useMutation({
     mutationFn: () => portalsApi.create({ name: form.name, price_table_ids: form.price_table_ids, factory_ids: [] }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['portals'] }); setCreateOpen(false); setForm({ name: '', price_table_ids: [] }) },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao criar link. Tente novamente.'
+      alert(msg)
+    },
   })
 
   const toggleMut = useMutation({
@@ -228,7 +232,7 @@ export function Portals() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
             <Button
               loading={createMut.isPending}
-              disabled={!form.name.trim()}
+              disabled={!form.name.trim() || form.price_table_ids.length === 0}
               onClick={() => createMut.mutate()}
               icon={<Link2 className="h-4 w-4" />}
             >
@@ -249,6 +253,9 @@ export function Portals() {
           <div>
             <label className="block text-[13px] font-medium text-on-surface mb-2">
               📋 Tabelas de Preço / Coleções *
+              {form.price_table_ids.length === 0 && (
+                <span className="ml-2 text-[11px] text-amber-600 font-normal">— selecione ao menos uma</span>
+              )}
             </label>
             <p className="text-[12px] text-outline mb-2">
               Selecione quais tabelas o cliente poderá ver e comprar.
