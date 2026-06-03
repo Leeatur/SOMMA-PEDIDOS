@@ -21,7 +21,7 @@ import {
   ColumnConfigButton,
   useColumnConfig,
 } from '../components/ui/ColumnConfig'
-import { useColumnResize, ResizeHandle } from '../components/ui/useColumnResize.tsx'
+import { useColumnResize } from '../components/ui/useColumnResize.tsx'
 
 interface Order {
   id: string
@@ -244,12 +244,7 @@ export function Orders() {
     value: 100, delivery: 90, payment: 130, politica: 70,
     commission: 90, discount: 80, table: 150, status: 130,
   }
-  const { widths, save: saveWidths, getResizeProps } = useColumnResize('orders', DEFAULT_WIDTHS)
-
-  const handleColResize = (colId: string, delta: number) => {
-    const current = widths[colId] ?? DEFAULT_WIDTHS[colId] ?? 100
-    saveWidths({ ...widths, [colId]: Math.max(50, current + delta) })
-  }
+  const { widths, save: saveWidths } = useColumnResize('orders', DEFAULT_WIDTHS)
 
   // Ordenação por clique no cabeçalho
   const [sortCol, setSortCol] = useState<string>('')
@@ -475,16 +470,60 @@ export function Orders() {
             <table className="text-left" style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
                 <tr>
-                  {visibleCols.map(col => (
-                    <th
-                      key={col.id}
-                      {...getResizeProps(col.id)}
-                      className="overflow-hidden"
-                    >
-                      <OrderHeader id={col.id} label={col.label} sortCol={sortCol} sortDir={sortDir} onSort={handleSortClick} />
-                      <ResizeHandle colId={col.id} onResize={handleColResize} />
-                    </th>
-                  ))}
+                  {visibleCols.map((col, colIdx) => {
+                    const colWidth = widths[col.id] ?? DEFAULT_WIDTHS[col.id] ?? 100
+                    return (
+                      <th
+                        key={col.id}
+                        style={{ width: colWidth, minWidth: 50, position: 'relative' }}
+                        draggable
+                        onDragStart={e => { e.dataTransfer.setData('colIdx', String(colIdx)) }}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => {
+                          e.preventDefault()
+                          const fromIdx = parseInt(e.dataTransfer.getData('colIdx'))
+                          if (fromIdx === colIdx || isNaN(fromIdx)) return
+                          // Reordena no config
+                          const fromId = visibleCols[fromIdx].id
+                          const toId = col.id
+                          const newConfig = [...config]
+                          const fromPos = newConfig.findIndex(c => c.id === fromId)
+                          const toPos = newConfig.findIndex(c => c.id === toId)
+                          if (fromPos >= 0 && toPos >= 0) {
+                            const [moved] = newConfig.splice(fromPos, 1)
+                            newConfig.splice(toPos, 0, moved)
+                            save(newConfig)
+                          }
+                        }}
+                      >
+                        <OrderHeader id={col.id} label={col.label} sortCol={sortCol} sortDir={sortDir} onSort={handleSortClick} />
+                        {/* Handle de resize — fora do overflow */}
+                        <div
+                          style={{ position: 'absolute', top: 0, right: 0, width: 6, height: '100%', cursor: 'col-resize', zIndex: 20 }}
+                          className="hover:bg-primary/40 active:bg-primary/60 group"
+                          title="Arraste para redimensionar"
+                          onMouseDown={e => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            const startX = e.clientX
+                            const startWidth = colWidth
+                            const onMove = (ev: MouseEvent) => {
+                              const newW = Math.max(50, startWidth + ev.clientX - startX)
+                              saveWidths({ ...widths, [col.id]: newW })
+                            }
+                            const onUp = () => {
+                              window.removeEventListener('mousemove', onMove)
+                              window.removeEventListener('mouseup', onUp)
+                            }
+                            window.addEventListener('mousemove', onMove)
+                            window.addEventListener('mouseup', onUp)
+                          }}
+                        >
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4 bg-outline/30 group-hover:bg-primary/60" />
+                        </div>
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody className="bg-white">
