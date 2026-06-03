@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Settings2, Eye, EyeOff, GripVertical } from 'lucide-react'
+import { Settings2, GripVertical, Plus } from 'lucide-react'
 import { Modal } from './Modal'
 import { Button } from './Button'
 
@@ -133,55 +133,59 @@ export function ColumnConfigModal({
         </div>
       }
     >
-      <p className="text-[12px] text-outline/70 mb-3">
-        Arraste ⠿ para reordenar · clique no olho para mostrar/ocultar
-      </p>
-      <div className="divide-y divide-outline-variant/30 select-none">
-        {local.map((col, idx) => {
+      {/* Seção: Adicionar coluna */}
+      {local.some(c => !c.visible) && (
+        <div className="mb-3 flex items-center gap-2">
+          <select
+            className="flex-1 border border-outline-variant rounded-lg px-3 py-1.5 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+            defaultValue=""
+            onChange={e => {
+              const id = e.target.value
+              if (!id) return
+              setLocal(prev => prev.map(c => c.id === id ? { ...c, visible: true } : c))
+              e.target.value = ''
+            }}
+          >
+            <option value="">Selecione uma coluna para adicionar...</option>
+            {local.filter(c => !c.visible).map(c => {
+              const def = defs.find(d => d.id === c.id)
+              return def ? <option key={c.id} value={c.id}>{def.label}</option> : null
+            })}
+          </select>
+          <Plus className="h-4 w-4 text-outline/50 flex-shrink-0" />
+        </div>
+      )}
+
+      {/* Colunas ativas — drag para reordenar */}
+      <p className="text-[11px] text-outline/50 mb-2">Colunas ativas — arraste ⠿ para reordenar</p>
+      <div className="divide-y divide-outline-variant/20 select-none border border-outline-variant/30 rounded-xl overflow-hidden">
+        {local.filter(c => c.visible).map((col) => {
+          const visIdx = local.findIndex(c => c.id === col.id)
           const def = defs.find(d => d.id === col.id)
           if (!def) return null
-          const isDraggingOver = dragOver === idx
+          const isDraggingOver = dragOver === visIdx
           return (
             <div
               key={col.id}
               draggable
-              onDragStart={() => handleDragStart(idx)}
-              onDragOver={e => handleDragOver(e, idx)}
-              onDrop={() => handleDrop(idx)}
+              onDragStart={() => handleDragStart(visIdx)}
+              onDragOver={e => handleDragOver(e, visIdx)}
+              onDrop={() => handleDrop(visIdx)}
               onDragEnd={handleDragEnd}
-              className={`flex items-center gap-2 py-2 px-1 rounded-lg transition-all cursor-grab active:cursor-grabbing ${
-                isDraggingOver ? 'bg-primary/10 border border-primary/30' : 'hover:bg-surface-container-low'
-              } ${col.visible ? '' : 'opacity-50'}`}
+              className={`flex items-center gap-2 py-2 px-3 transition-all cursor-grab active:cursor-grabbing bg-white ${
+                isDraggingOver ? 'bg-primary/10' : 'hover:bg-surface-container-low'
+              }`}
             >
-              {/* Drag handle */}
-              <GripVertical className="h-4 w-4 text-outline/40 flex-shrink-0" />
-
-              {/* Visibility toggle */}
-              <button
-                onClick={() => toggleVisible(col.id)}
-                disabled={def.alwaysVisible}
-                className={`flex-shrink-0 p-0.5 rounded transition-colors ${
-                  def.alwaysVisible ? 'opacity-30 cursor-default' : 'hover:bg-surface-container'
-                }`}
-                title={col.visible ? 'Ocultar coluna' : 'Mostrar coluna'}
-              >
-                {col.visible
-                  ? <Eye className="h-4 w-4 text-primary" />
-                  : <EyeOff className="h-4 w-4 text-outline/70" />
-                }
-              </button>
-
-              {/* Label */}
-              <span className={`flex-1 text-[13px] ${col.visible ? 'font-medium text-on-surface' : 'text-outline/60'}`}>
-                {def.label}
-              </span>
-
-              {/* Badge visível/oculto */}
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 ${
-                col.visible ? 'bg-primary/10 text-primary' : 'bg-outline/10 text-outline/50'
-              }`}>
-                {col.visible ? 'visível' : 'oculta'}
-              </span>
+              <GripVertical className="h-4 w-4 text-outline/30 flex-shrink-0" />
+              <span className="flex-1 text-[13px] font-medium text-on-surface">{def.label}</span>
+              {!def.alwaysVisible && (
+                <button
+                  onClick={() => toggleVisible(col.id)}
+                  className="text-[11px] text-red-500 hover:text-red-700 font-semibold flex-shrink-0 px-1.5 py-0.5 rounded hover:bg-red-50 transition-colors"
+                >
+                  Remover
+                </button>
+              )}
             </div>
           )
         })}

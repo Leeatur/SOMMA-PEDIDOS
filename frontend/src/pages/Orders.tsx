@@ -21,6 +21,7 @@ import {
   ColumnConfigButton,
   useColumnConfig,
 } from '../components/ui/ColumnConfig'
+import { useColumnResize, ResizeHandle } from '../components/ui/useColumnResize.tsx'
 
 interface Order {
   id: string
@@ -85,78 +86,39 @@ const COL_META: Record<string, { align?: string; width?: string }> = {
 function OrderHeader({ id, label }: { id: string; label: string }) {
   const meta = COL_META[id] || {}
   return (
-    <th className={`px-2 py-1.5 text-[12px] font-semibold text-outline first:pl-3 last:pr-3 ${meta.width ?? ''} ${meta.align ?? ''}`}>
+    <div className={`px-2 py-1.5 text-[12px] font-semibold text-outline truncate ${meta.align ?? ''}`}>
       {label}
-    </th>
+    </div>
   )
 }
 
+// OrderCell agora retorna o conteúdo sem <td> (o <td> é renderizado pelo loop pai)
 function OrderCell({ id, o }: { id: string; o: Order }) {
+  const cls = "px-2 py-1 text-[12px] truncate block"
   switch (id) {
-    case 'date':
-      return <td className="pl-3 pr-2 py-1 whitespace-nowrap"><span className="text-[12px] text-outline">{formatDate(o.created_at)}</span></td>
-    case 'number':
-      return <td className="px-2 py-1 whitespace-nowrap first:pl-3"><span className="text-[12px] font-bold text-primary">{formatOrderNumber(o.order_number)}</span></td>
-    case 'factory':
-      return <td className="px-2 py-1 max-w-[110px]"><span className="text-[12px] font-semibold text-on-surface-variant truncate block">{o.factory_name}</span></td>
-    case 'rep':
-      return <td className="px-2 py-1 max-w-[120px]"><span className="text-[12px] text-outline truncate block">{o.rep_name || '—'}</span></td>
-    case 'nr_rep':
-      return <td className="px-2 py-1 whitespace-nowrap"><span className="text-[12px] text-outline font-mono">{o.industry_order_number || '—'}</span></td>
-    case 'razao_social':
-      return <td className="px-2 py-1 max-w-[200px]"><p className="text-[12px] font-semibold text-on-surface truncate leading-tight">{o.client_name}</p></td>
-    case 'client':
-      return <td className="px-2 py-1 max-w-[160px]"><span className="text-[12px] text-on-surface-variant truncate block">{o.client_trade_name || '—'}</span></td>
-    case 'city':
-      return <td className="px-2 py-1 max-w-[120px]"><span className="text-[12px] text-on-surface-variant truncate block">{o.client_city || '—'}</span></td>
-    case 'items':
-      return <td className="px-2 py-1 text-center"><span className="text-[12px] font-medium text-on-surface-variant">{o.total_pieces > 0 ? o.total_pieces : '—'}</span></td>
-    case 'value':
-      return <td className="px-2 py-1 text-right whitespace-nowrap"><span className="text-[12px] font-bold text-on-surface">{formatCurrency(o.total_value)}</span></td>
-    case 'delivery':
-      return <td className="px-2 py-1 whitespace-nowrap">
-        {o.delivery_date
-          ? <span className="text-[12px] text-on-surface-variant">{(() => { const [y,m,d] = String(o.delivery_date).substring(0,10).split('-'); return `${d}/${m}/${y}` })()}</span>
-          : <span className="text-[12px] text-outline/50">—</span>}
-      </td>
-    case 'payment':
-      return <td className="px-2 py-1 max-w-[130px]"><span className="text-[12px] text-on-surface-variant truncate block">{o.payment_terms || '—'}</span></td>
-    case 'commission':
-      return <td className="px-2 py-1 text-right whitespace-nowrap">
-        {o.rep_commission_value > 0
-          ? <span className="text-[12px] font-semibold text-emerald-600">{formatCurrency(o.rep_commission_value)}</span>
-          : <span className="text-[12px] text-outline/50">—</span>}
-      </td>
-    case 'politica':
-      return <td className="px-2 py-1 text-center whitespace-nowrap">
-        <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${
-          o.discount_pct === 0 ? 'bg-blue-50 text-blue-700' :
-          o.discount_pct <= 5 ? 'bg-amber-50 text-amber-700' :
-          o.discount_pct <= 8 ? 'bg-orange-50 text-orange-700' :
-          'bg-red-50 text-red-700'
-        }`}>
-          {o.discount_pct > 0 ? `${o.discount_pct}%` : '0%'}
-        </span>
-      </td>
-    case 'discount':
-      return <td className="px-2 py-1 text-right whitespace-nowrap last:pr-3">
-        {o.discount_pct > 0
-          ? <span className="text-[12px] font-semibold text-emerald-600">-{o.discount_pct}%</span>
-          : <span className="text-[12px] text-outline/50">—</span>}
-      </td>
-    case 'table':
-      return <td className="px-2 py-1 max-w-[150px]"><span className="text-[12px] text-outline/70 truncate block">{o.price_table_name}</span></td>
-    case 'status':
-      return <td className="px-2 pr-3 py-1">
-        {o.status_name && o.status_color ? (
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color }} />
-            <span className="text-[12px] font-medium text-on-surface-variant truncate">{o.status_name}</span>
-          </div>
-        ) : <span className="text-[12px] text-outline/50">—</span>}
-      </td>
-    default:
-      return <td className="px-2 py-1" />
+    case 'date':      return <span className={`${cls} text-outline whitespace-nowrap`}>{formatDate(o.created_at)}</span>
+    case 'number':    return <span className={`${cls} font-bold text-primary whitespace-nowrap`}>{formatOrderNumber(o.order_number)}</span>
+    case 'factory':   return <span className={`${cls} font-semibold text-on-surface-variant`}>{o.factory_name}</span>
+    case 'rep':       return <span className={`${cls} text-outline`}>{o.rep_name || '—'}</span>
+    case 'nr_rep':    return <span className={`${cls} text-outline font-mono whitespace-nowrap`}>{o.industry_order_number || '—'}</span>
+    case 'razao_social': return <span className={`${cls} font-semibold text-on-surface`}>{o.client_name}</span>
+    case 'client':    return <span className={`${cls} text-on-surface-variant`}>{o.client_trade_name || '—'}</span>
+    case 'city':      return <span className={`${cls} text-on-surface-variant`}>{o.client_city || '—'}</span>
+    case 'items':     return <span className={`${cls} text-center text-on-surface-variant`}>{o.total_pieces > 0 ? o.total_pieces : '—'}</span>
+    case 'value':     return <span className={`${cls} text-right font-bold text-on-surface whitespace-nowrap`}>{formatCurrency(o.total_value)}</span>
+    case 'delivery':  return <span className={`${cls} text-on-surface-variant whitespace-nowrap`}>{o.delivery_date ? (() => { const [y,m,d] = String(o.delivery_date).substring(0,10).split('-'); return `${d}/${m}/${y}` })() : '—'}</span>
+    case 'payment':   return <span className={`${cls} text-on-surface-variant`}>{o.payment_terms || '—'}</span>
+    case 'commission': return <span className={`${cls} text-right whitespace-nowrap ${o.rep_commission_value > 0 ? 'font-semibold text-emerald-600' : 'text-outline/50'}`}>{o.rep_commission_value > 0 ? formatCurrency(o.rep_commission_value) : '—'}</span>
+    case 'politica':  return <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold mx-2 inline-block ${o.discount_pct === 0 ? 'bg-blue-50 text-blue-700' : o.discount_pct <= 5 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>{o.discount_pct > 0 ? `${o.discount_pct}%` : '0%'}</span>
+    case 'discount':  return <span className={`${cls} text-right whitespace-nowrap ${o.discount_pct > 0 ? 'font-semibold text-emerald-600' : 'text-outline/50'}`}>{o.discount_pct > 0 ? `-${o.discount_pct}%` : '—'}</span>
+    case 'table':     return <span className={`${cls} text-outline/70`}>{o.price_table_name}</span>
+    case 'status':    return o.status_name && o.status_color ? (
+      <div className="flex items-center gap-1.5 px-2 py-1 min-w-0">
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color }} />
+        <span className="text-[12px] font-medium text-on-surface-variant truncate">{o.status_name}</span>
+      </div>
+    ) : <span className={`${cls} text-outline/50`}>—</span>
+    default: return <span className={cls} />
   }
 }
 
@@ -256,6 +218,20 @@ export function Orders() {
   const colDefs = ALL_COL_DEFS.filter(c => c.id !== 'rep' || isAdmin)
   const { orderedDefs, config, save, reset } = useColumnConfig('orders', colDefs)
   const visibleCols = orderedDefs.filter(c => c.visible)
+
+  // Redimensionamento de colunas
+  const DEFAULT_WIDTHS: Record<string, number> = {
+    date: 80, number: 80, factory: 90, rep: 110, nr_rep: 90,
+    razao_social: 160, client: 120, city: 90, items: 70,
+    value: 100, delivery: 90, payment: 130, politica: 70,
+    commission: 90, discount: 80, table: 150, status: 130,
+  }
+  const { widths, save: saveWidths, getResizeProps } = useColumnResize('orders', DEFAULT_WIDTHS)
+
+  const handleColResize = (colId: string, delta: number) => {
+    const current = widths[colId] ?? DEFAULT_WIDTHS[colId] ?? 100
+    saveWidths({ ...widths, [colId]: Math.max(50, current + delta) })
+  }
 
   const total = orders?.length || 0
 
@@ -439,10 +415,23 @@ export function Orders() {
           </div>
         ) : (
           <div className="flex-1 overflow-auto">
-            <table className="w-full text-left" style={{ minWidth: 900 }}>
+            {/* Dica de uso */}
+            <div className="text-[11px] text-outline/50 px-3 py-1 bg-surface-container-low border-b border-outline-variant/30">
+              Arraste a borda direita do cabeçalho para redimensionar · Clique na coluna para ordenar
+            </div>
+            <table className="text-left" style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
                 <tr>
-                  {visibleCols.map(col => <OrderHeader key={col.id} id={col.id} label={col.label} />)}
+                  {visibleCols.map(col => (
+                    <th
+                      key={col.id}
+                      {...getResizeProps(col.id)}
+                      className="overflow-hidden"
+                    >
+                      <OrderHeader id={col.id} label={col.label} />
+                      <ResizeHandle colId={col.id} onResize={handleColResize} />
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="bg-white">
@@ -452,7 +441,11 @@ export function Orders() {
                     className="border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors"
                     onClick={() => navigate(`/orders/${o.id}`)}
                   >
-                    {visibleCols.map(col => <OrderCell key={col.id} id={col.id} o={o} />)}
+                    {visibleCols.map(col => (
+                      <td key={col.id} style={{ width: widths[col.id] ?? DEFAULT_WIDTHS[col.id], overflow: 'hidden' }}>
+                        <OrderCell id={col.id} o={o} />
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
