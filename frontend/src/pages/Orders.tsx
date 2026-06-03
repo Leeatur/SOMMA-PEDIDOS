@@ -83,11 +83,29 @@ const COL_META: Record<string, { align?: string; width?: string }> = {
   status:      { width: 'w-36' },
 }
 
-function OrderHeader({ id, label }: { id: string; label: string }) {
+function OrderHeader({ id, label, sortCol, sortDir, onSort }: {
+  id: string; label: string
+  sortCol: string; sortDir: 'asc' | 'desc'
+  onSort: (id: string) => void
+}) {
   const meta = COL_META[id] || {}
+  const isActive = sortCol === id
+  const hasSort = ['date','number','factory','rep','razao_social','client','city','items','value','delivery','payment','commission','politica','status'].includes(id)
   return (
-    <div className={`px-2 py-1.5 text-[12px] font-semibold text-outline truncate ${meta.align ?? ''}`}>
-      {label}
+    <div
+      onClick={hasSort ? () => onSort(id) : undefined}
+      className={`px-2 py-1.5 text-[12px] font-semibold flex items-center gap-1 truncate select-none
+        ${meta.align ?? ''}
+        ${hasSort ? 'cursor-pointer hover:text-primary' : ''}
+        ${isActive ? 'text-primary' : 'text-outline'}`}
+    >
+      <span className="truncate">{label}</span>
+      {isActive && (
+        <span className="text-[10px] flex-shrink-0">{sortDir === 'asc' ? '↑' : '↓'}</span>
+      )}
+      {!isActive && hasSort && (
+        <span className="text-[10px] text-outline/30 flex-shrink-0">↕</span>
+      )}
     </div>
   )
 }
@@ -232,6 +250,41 @@ export function Orders() {
     const current = widths[colId] ?? DEFAULT_WIDTHS[colId] ?? 100
     saveWidths({ ...widths, [colId]: Math.max(50, current + delta) })
   }
+
+  // Ordenação por clique no cabeçalho
+  const [sortCol, setSortCol] = useState<string>('')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  const handleSortClick = (colId: string) => {
+    if (sortCol === colId) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(colId); setSortDir('asc') }
+  }
+
+  const SORT_FIELDS: Record<string, (o: Order) => string | number> = {
+    date:        o => o.created_at,
+    number:      o => o.order_number,
+    factory:     o => o.factory_name?.toLowerCase() || '',
+    rep:         o => o.rep_name?.toLowerCase() || '',
+    razao_social: o => o.client_name?.toLowerCase() || '',
+    client:      o => (o.client_trade_name || '').toLowerCase(),
+    city:        o => (o.client_city || '').toLowerCase(),
+    items:       o => o.total_pieces || 0,
+    value:       o => Number(o.total_value) || 0,
+    delivery:    o => o.delivery_date || '',
+    payment:     o => o.payment_terms || '',
+    commission:  o => Number(o.rep_commission_value) || 0,
+    politica:    o => Number(o.discount_pct) || 0,
+    status:      o => o.status_name?.toLowerCase() || '',
+  }
+
+  const sortedOrders = sortCol && SORT_FIELDS[sortCol]
+    ? [...(orders || [])].sort((a, b) => {
+        const fn = SORT_FIELDS[sortCol]
+        const av = fn(a), bv = fn(b)
+        const cmp = av < bv ? -1 : av > bv ? 1 : 0
+        return sortDir === 'asc' ? cmp : -cmp
+      })
+    : (orders || [])
 
   const total = orders?.length || 0
 
@@ -428,14 +481,14 @@ export function Orders() {
                       {...getResizeProps(col.id)}
                       className="overflow-hidden"
                     >
-                      <OrderHeader id={col.id} label={col.label} />
+                      <OrderHeader id={col.id} label={col.label} sortCol={sortCol} sortDir={sortDir} onSort={handleSortClick} />
                       <ResizeHandle colId={col.id} onResize={handleColResize} />
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {(orders || []).map(o => (
+                {sortedOrders.map(o => (
                   <tr
                     key={o.id}
                     className="border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors"
