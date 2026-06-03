@@ -433,11 +433,11 @@ export function OrderPrint() {
             <div className="value">{fmt(totalGross)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Total c/ Desconto (R$)</div>
+            <div className="label">Total c/ Desconto à Vista (R$)</div>
             <div className="value">{fmt(totalNet)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Desconto R$ Total</div>
+            <div className="label">Desconto à Vista R$ Total</div>
             <div className="value">{fmt(totalDiscount)}</div>
           </div>
           <div className="grand-total-cell">

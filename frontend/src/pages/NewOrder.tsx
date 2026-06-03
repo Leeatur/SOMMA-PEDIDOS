@@ -1106,7 +1106,7 @@ export function NewOrder() {
 
               {/* Desconto */}
               <div className="p-3 border-b border-outline-variant/50">
-                <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">Desconto</h3>
+                <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">Desconto à Vista</h3>
                 {discountRules.length > 0 && !customDiscount ? (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">

@@ -105,6 +105,24 @@ function ProductDetailModal({
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
   const pricePerBox = p.base_price * totalPieces
 
+  // ── Image upload state ───────────────────────────────────────────────────
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [currentImageUrl, setCurrentImageUrl] = useState(p.image_url)
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !isAdmin) return
+    setUploadingImage(true)
+    try {
+      const r = await productsApi.uploadImage(p.id, file)
+      const newUrl = r.data.image_url || r.data.url || ''
+      setCurrentImageUrl(newUrl)
+      onUpdated({ image_url: newUrl })
+      qc.invalidateQueries({ queryKey: ['all-products'] })
+    } catch { /* erro silencioso */ }
+    finally { setUploadingImage(false); e.target.value = '' }
+  }
+
   // ── Edit mode state ──────────────────────────────────────────────────────
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -394,15 +412,39 @@ function ProductDetailModal({
           </div>
         )}
 
-        {p.image_url ? (
-          <div className="w-full aspect-square max-h-64 overflow-hidden rounded-xl bg-surface-container">
-            <img src={p.image_url} alt={p.reference} className="w-full h-full object-contain" />
-          </div>
-        ) : (
-          <div className="w-full h-40 bg-surface-container rounded-xl flex items-center justify-center text-outline/50">
-            <ImageIcon className="h-12 w-12" />
-          </div>
-        )}
+        {/* Imagem + botão upload/substituir */}
+        <div className="relative group">
+          {currentImageUrl ? (
+            <div className="w-full aspect-square max-h-64 overflow-hidden rounded-xl bg-surface-container">
+              <img src={currentImageUrl} alt={p.reference} className="w-full h-full object-contain" />
+            </div>
+          ) : (
+            <div className="w-full h-40 bg-surface-container rounded-xl flex items-center justify-center text-outline/50">
+              <ImageIcon className="h-12 w-12" />
+            </div>
+          )}
+          {isAdmin && (
+            <label className={`absolute inset-0 flex flex-col items-center justify-center rounded-xl cursor-pointer transition-all
+              ${currentImageUrl
+                ? 'bg-black/0 group-hover:bg-black/40 text-transparent group-hover:text-white'
+                : 'bg-primary/10 hover:bg-primary/20 text-primary'}`}>
+              {uploadingImage ? (
+                <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+              ) : (
+                <>
+                  <ImageIcon className="h-6 w-6 mb-1" />
+                  <span className="text-[12px] font-semibold">
+                    {currentImageUrl ? 'Substituir foto' : 'Adicionar foto'}
+                  </span>
+                </>
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+            </label>
+          )}
+        </div>
 
         <div className="flex items-start gap-2 flex-wrap">
           <Badge variant={p.type === 'pack' ? 'purple' : 'info'}>
