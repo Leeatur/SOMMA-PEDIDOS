@@ -197,14 +197,28 @@ export function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
 
         {/* ── Desktop TopBar ── */}
-        <header className="hidden lg:flex h-topbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-outline-variant/60 items-center px-8 shadow-sm relative">
-          {/* Logo centralizada */}
-          <div className="absolute left-1/2 -translate-x-1/2">
-            <img src="/logo-header.svg" alt="Somma Gestão Comercial" className="h-9 w-auto" />
+        <header className="hidden lg:flex h-topbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-outline-variant/60 items-center px-8 shadow-sm">
+          {/* Espaço esquerdo para balancear */}
+          <div className="flex-1" />
+
+          {/* Logo centralizada em JSX */}
+          <div className="flex items-center gap-2.5">
+            {/* Ícone barras crescentes */}
+            <svg viewBox="0 0 38 42" width="28" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="40" width="38" height="2" rx="1" fill="#E07B27" opacity="0.3"/>
+              <rect x="1" y="28" width="9" height="14" rx="2.5" fill="#E07B27"/>
+              <rect x="14" y="18" width="9" height="24" rx="2.5" fill="#E07B27"/>
+              <rect x="27" y="7" width="9" height="35" rx="2.5" fill="#E07B27"/>
+              <polyline points="27,11 31.5,3 36,11" fill="none" stroke="#E07B27" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div>
+              <p className="text-[17px] font-black text-[#1B2337] leading-none tracking-wide">SOMMA</p>
+              <p className="text-[9px] font-semibold text-[#8A96AA] tracking-[2px] leading-none mt-0.5">GESTÃO COMERCIAL</p>
+            </div>
           </div>
 
           {/* Lado direito: usuário */}
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex-1 flex justify-end items-center gap-3">
             <div className="h-5 w-px bg-outline-variant" />
             <button
               onClick={handleLogout}
