@@ -197,18 +197,21 @@ export function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
 
         {/* ── Desktop TopBar ── */}
-        <header className="hidden lg:flex h-topbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-outline-variant/60 items-center justify-between px-8 shadow-sm">
-          <div className="flex-1 max-w-md">
-            {/* placeholder — search is per-page */}
+        <header className="hidden lg:flex h-topbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-outline-variant/60 items-center px-8 shadow-sm relative">
+          {/* Logo centralizada */}
+          <div className="absolute left-1/2 -translate-x-1/2">
+            <img src="/logo-header.svg" alt="Somma Gestão Comercial" className="h-9 w-auto" />
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Lado direito: usuário */}
+          <div className="ml-auto flex items-center gap-3">
             <div className="h-5 w-px bg-outline-variant" />
             <button
               onClick={handleLogout}
               className="flex items-center gap-2.5 hover:bg-surface-container px-3 py-1.5 rounded-xl transition-colors"
             >
-              <div className="flex items-center justify-center flex-shrink-0 px-2.5 py-1 rounded-lg" style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)' }}>
-                <span className="text-[12px] font-bold text-white tracking-widest uppercase">Somma</span>
+              <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                <span className="text-[13px] font-black text-primary">{user?.name?.charAt(0).toUpperCase()}</span>
               </div>
               <div className="text-left">
                 <p className="text-[12px] font-semibold text-on-surface leading-none">{user?.name}</p>
@@ -220,17 +223,15 @@ export function AppLayout() {
         </header>
 
         {/* ── Mobile TopBar ── */}
-        <header className="lg:hidden sticky top-0 z-30 bg-on-surface border-b border-white/5 flex items-center gap-3 px-4 py-3">
-          <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg text-surface-variant/60 hover:text-white hover:bg-white/5 transition-colors">
+        <header className="lg:hidden sticky top-0 z-30 bg-on-surface border-b border-white/5 flex items-center px-4 py-2.5">
+          <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg text-surface-variant/60 hover:text-white hover:bg-white/5 transition-colors flex-shrink-0">
             <Menu className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
-              <ShoppingCart className="h-3.5 w-3.5 text-white" />
-            </div>
-            <span className="text-sm font-bold text-white font-display">Somma</span>
+          {/* Logo centralizada no mobile */}
+          <div className="flex-1 flex justify-center">
+            <img src="/logo-sidebar.svg" alt="Somma" className="h-8 w-auto" />
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {online
               ? <Wifi className="h-4 w-4 text-emerald-400" />
               : <WifiOff className="h-4 w-4 text-amber-400" />
