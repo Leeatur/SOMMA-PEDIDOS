@@ -31,8 +31,8 @@ interface CartItem {
   subtotal: number
 }
 
-const MIN_ORDER_VALUE = 2500
-const MIN_PIECES_PER_REF = 3
+const MIN_ORDER_VALUE = 0
+const MIN_PIECES_PER_REF = 1
 
 const SIZE_ORDER = ['RN','PP','XP','P','M','G','GG','XG','EXG','2XG','3XG','4XG',
   '34','36','38','40','42','44','46','48','50','52','54','56','58','60','U']
@@ -154,9 +154,11 @@ export function CustomerPortal() {
     let total_pieces: number; let sizes: Record<string, number>; let grade: GradeConfig | null; let boxes: number
 
     if ('grade' in opts) {
-      // PACK
+      // PACK — soma TODAS as cores para total correto
       grade = opts.grade; boxes = opts.boxes
-      total_pieces = grade.total_pieces * boxes
+      const allGrades: GradeConfig[] = (product.grade_configs as GradeConfig[] | null) || [grade]
+      const piecesPerBox = allGrades.reduce((s, g) => s + g.total_pieces, 0) || grade.total_pieces
+      total_pieces = piecesPerBox * boxes
       sizes = {}
     } else {
       // REGULAR
@@ -457,11 +459,6 @@ export function CustomerPortal() {
               <span className="font-semibold text-gray-700">Total ({cartPieces} peças)</span>
               <span className="font-bold text-purple-700 text-lg">{fmtR(cartTotal)}</span>
             </div>
-            {cartTotal < MIN_ORDER_VALUE && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-                ⚠️ Pedido mínimo de <strong>{fmtR(MIN_ORDER_VALUE)}</strong>. Faltam {fmtR(MIN_ORDER_VALUE - cartTotal)} para atingir o mínimo.
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -491,14 +488,9 @@ export function CustomerPortal() {
       {/* Confirmar Pedido */}
       {step === 'cart' && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-3 pb-4 safe-bottom space-y-2">
-          {cartTotal < MIN_ORDER_VALUE && (
-            <p className="text-center text-[12px] text-amber-600 font-medium">
-              ⚠️ Mínimo {fmtR(MIN_ORDER_VALUE)} · faltam {fmtR(MIN_ORDER_VALUE - cartTotal)}
-            </p>
-          )}
           <button
             onClick={handleSubmit}
-            disabled={submitting || !cart.length || cartTotal < MIN_ORDER_VALUE}
+            disabled={submitting || !cart.length}
             className="w-full text-white py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: 'linear-gradient(135deg, #059669, #047857)',
@@ -612,7 +604,7 @@ function ProductCard({ product, onAdd, cartItems }: {
                   <tr>
                     <td className="px-2 py-1 font-bold text-gray-600 text-[11px]">Total/cx</td>
                     <td colSpan={Object.keys(product.grade_configs[0]?.sizes || {}).length} />
-                    <td className="px-2 py-1 text-center font-black text-purple-700 text-[12px]">{packPieces}</td>
+                    <td className="px-2 py-1 text-center font-black text-purple-700 text-[12px]">{totalPiecesPerPack}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -625,7 +617,7 @@ function ProductCard({ product, onAdd, cartItems }: {
               </button>
               <div className="flex-1 text-center">
                 <p className="font-black text-lg text-purple-700 leading-none">{boxes}</p>
-                <p className="text-[10px] text-purple-500">caixa{boxes > 1 ? 's' : ''} · {packPieces * boxes} peças</p>
+                <p className="text-[10px] text-purple-500">caixa{boxes > 1 ? 's' : ''} · {packPieces} peças</p>
               </div>
               <button onClick={() => setBoxes(boxes + 1)}
                 className="w-9 h-9 rounded-full bg-white border border-purple-200 flex items-center justify-center shadow-sm active:scale-95">
