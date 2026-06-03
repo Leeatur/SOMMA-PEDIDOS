@@ -196,14 +196,14 @@ export function AppLayout() {
       ════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
 
-        {/* ── Desktop TopBar ── */}
-        <header className="hidden lg:flex h-topbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-outline-variant/60 items-center px-8 shadow-sm">
+        {/* ── Desktop TopBar ── fundo navy igual à sidebar */}
+        <header className="hidden lg:flex h-topbar sticky top-0 z-40 items-center px-8 shadow-lg"
+          style={{ background: 'linear-gradient(135deg, #1A1F2E 0%, #2E1065 50%, #1A1F2E 100%)' }}>
           {/* Espaço esquerdo para balancear */}
           <div className="flex-1" />
 
-          {/* Logo centralizada em JSX — tamanho duplo */}
+          {/* Logo centralizada — versão clara para fundo escuro */}
           <div className="flex items-center gap-4">
-            {/* Ícone barras crescentes */}
             <svg viewBox="0 0 38 42" width="52" height="58" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="0" y="40" width="38" height="2" rx="1" fill="#E07B27" opacity="0.3"/>
               <rect x="1" y="28" width="9" height="14" rx="2.5" fill="#E07B27"/>
@@ -212,26 +212,26 @@ export function AppLayout() {
               <polyline points="27,11 31.5,3 36,11" fill="none" stroke="#E07B27" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <div>
-              <p className="text-[34px] font-black text-[#1B2337] leading-none tracking-wide">SOMMA</p>
-              <p className="text-[11px] font-semibold text-[#8A96AA] tracking-[3px] leading-none mt-1">GESTÃO COMERCIAL</p>
+              <p className="text-[34px] font-black text-white leading-none tracking-wide">SOMMA</p>
+              <p className="text-[11px] font-semibold text-white/50 tracking-[3px] leading-none mt-1">GESTÃO COMERCIAL</p>
             </div>
           </div>
 
           {/* Lado direito: usuário */}
           <div className="flex-1 flex justify-end items-center gap-3">
-            <div className="h-5 w-px bg-outline-variant" />
+            <div className="h-5 w-px bg-white/20" />
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2.5 hover:bg-surface-container px-3 py-1.5 rounded-xl transition-colors"
+              className="flex items-center gap-2.5 hover:bg-white/10 px-3 py-1.5 rounded-xl transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
-                <span className="text-[13px] font-black text-primary">{user?.name?.charAt(0).toUpperCase()}</span>
+              <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0 border border-white/20">
+                <span className="text-[13px] font-black text-white">{user?.name?.charAt(0).toUpperCase()}</span>
               </div>
               <div className="text-left">
-                <p className="text-[12px] font-semibold text-on-surface leading-none">{user?.name}</p>
-                <p className="text-[12px] text-outline mt-0.5">{user?.role === 'admin' ? 'Administrador' : 'Representante'}</p>
+                <p className="text-[12px] font-semibold text-white leading-none">{user?.name}</p>
+                <p className="text-[12px] text-white/60 mt-0.5">{user?.role === 'admin' ? 'Administrador' : 'Representante'}</p>
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-outline" />
+              <ChevronDown className="h-3.5 w-3.5 text-white/60" />
             </button>
           </div>
         </header>
