@@ -46,6 +46,9 @@ export function PriceTables() {
   const qc = useQueryClient()
   const [selectedFactory, setSelectedFactory] = useState('')
   const [importOpen, setImportOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm, setCreateForm] = useState({ factory_id: '', name: '', collection: '', season: '', year: '' })
+  const [createSaving, setCreateSaving] = useState(false)
   const [catalogOpen, setCatalogOpen] = useState(false)
   const [selectedTable, setSelectedTable] = useState<PriceTable | null>(null)
   const [deleteTable, setDeleteTable] = useState<PriceTable | null>(null)
@@ -101,6 +104,24 @@ export function PriceTables() {
     queryKey: ['price-tables', selectedFactory],
     queryFn: () => priceTablesApi.list(selectedFactory || undefined).then((r) => r.data),
   })
+
+  async function handleCreate() {
+    if (!createForm.factory_id || !createForm.name) return
+    setCreateSaving(true)
+    try {
+      await priceTablesApi.create({
+        factory_id: createForm.factory_id,
+        name: createForm.name,
+        collection: createForm.collection || undefined,
+        season: createForm.season || undefined,
+        year: createForm.year ? parseInt(createForm.year) : null,
+      })
+      qc.invalidateQueries({ queryKey: ['price-tables'] })
+      setCreateOpen(false)
+      setCreateForm({ factory_id: '', name: '', collection: '', season: '', year: '' })
+    } catch { alert('Erro ao criar tabela') }
+    finally { setCreateSaving(false) }
+  }
 
   const importMut = useMutation({
     mutationFn: (args: { file: File; data: typeof importForm; rules: DiscountRule[] }) =>
@@ -218,9 +239,14 @@ export function PriceTables() {
             <h1 className="font-display text-sm font-bold text-on-surface">Tabelas de Preço</h1>
             <p className="text-[12px] text-outline mt-0.5">{tables.length} tabelas</p>
           </div>
-          <Button onClick={() => { resetImport(); setImportOpen(true) }} icon={<Upload className="h-4 w-4" />} size="sm">
-            Importar Excel
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setCreateOpen(true)} icon={<Plus className="h-4 w-4" />} size="sm" variant="outline">
+              Nova Tabela
+            </Button>
+            <Button onClick={() => { resetImport(); setImportOpen(true) }} icon={<Upload className="h-4 w-4" />} size="sm">
+              Importar Excel
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -786,6 +812,69 @@ export function PriceTables() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Modal Nova Tabela */}
+      <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="Nova Tabela de Preços"
+        size="sm"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleCreate}
+              disabled={createSaving || !createForm.factory_id || !createForm.name}
+              icon={<Plus className="h-4 w-4" />}
+            >
+              {createSaving ? 'Criando...' : 'Criar Tabela'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-[12px] font-semibold text-outline mb-1">Fábrica *</label>
+            <Select
+              value={createForm.factory_id}
+              onChange={e => setCreateForm(f => ({ ...f, factory_id: e.target.value }))}
+              options={[
+                { value: '', label: 'Selecione a fábrica...' },
+                ...(factories || []).map(f => ({ value: f.id, label: f.name })),
+              ]}
+            />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-outline mb-1">Nome da Tabela *</label>
+            <Input
+              value={createForm.name}
+              onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
+              placeholder="Ex: OUZZARE 619-2 VE27"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] font-semibold text-outline mb-1">Coleção</label>
+              <Input
+                value={createForm.collection}
+                onChange={e => setCreateForm(f => ({ ...f, collection: e.target.value }))}
+                placeholder="Ex: Inverno"
+              />
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold text-outline mb-1">Temporada</label>
+              <Input
+                value={createForm.season}
+                onChange={e => setCreateForm(f => ({ ...f, season: e.target.value }))}
+                placeholder="Ex: 2027"
+              />
+            </div>
+          </div>
+          <p className="text-[12px] text-outline/70">
+            💡 Após criar, você pode adicionar produtos manualmente ou importar o catálogo na tela de Produtos.
+          </p>
+        </div>
       </Modal>
     </div>
   )
