@@ -18,7 +18,8 @@ async function computeOrderTotals(
   items: OrderItem[],
   discountPct: number,
   priceTableId: string,
-  client: PoolClient
+  client: PoolClient,
+  commissionDiscountPct?: number  // desconto de prazo para lookup de comissão (opcional)
 ) {
   let totalPieces = 0
   let totalValue = 0       // valor com desconto à vista (o que o cliente paga)
@@ -80,12 +81,13 @@ async function computeOrderTotals(
     })
   }
 
-  // Busca a regra de comissão mais próxima do desconto aplicado (política da tabela)
-  // A comissão é calculada sobre o preço CHEIO (sem o desconto à vista)
+  // Busca a regra de comissão pelo desconto de PRAZO (não inclui desconto à vista)
+  // Se commissionDiscountPct não informado, usa discountPct (compatibilidade)
+  const commPct = commissionDiscountPct !== undefined ? commissionDiscountPct : discountPct
   const { rows: rules } = await (client as any).query(
     `SELECT * FROM discount_commission_rules WHERE price_table_id=$1
      ORDER BY ABS(discount_pct - $2) ASC LIMIT 1`,
-    [priceTableId, discountPct]
+    [priceTableId, commPct]
   )
   const rule = rules[0] || { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }
 
@@ -446,7 +448,7 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
 
 // Troca a tabela de preços do pedido e recalcula todos os valores
 export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
-  const { price_table_id, discount_pct } = req.body
+  const { price_table_id, discount_pct, commission_discount_pct } = req.body
   const orderId = req.params.id
   if (!price_table_id) { res.status(400).json({ error: 'price_table_id obrigatório' }); return }
 
@@ -472,6 +474,11 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
   const disc = parseFloat(discount_pct) !== undefined && !isNaN(parseFloat(discount_pct))
     ? parseFloat(discount_pct)
     : parseFloat(order.discount_pct) || 0
+
+  // Desconto usado para lookup de comissão (apenas desconto de prazo, sem desconto à vista)
+  const commDisc = commission_discount_pct !== undefined && !isNaN(parseFloat(commission_discount_pct))
+    ? parseFloat(commission_discount_pct)
+    : disc
 
   const dbClient = await pool.connect()
   try {
@@ -536,7 +543,9 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
       'SELECT product_id, reference, boxes_count, unit_price, sizes FROM order_items WHERE order_id=$1',
       [orderId]
     )
-    const totals = await computeOrderTotals(updatedItems, disc, price_table_id, dbClient as any)
+    // disc = desconto total (prazo + à vista) para preço do cliente
+    // commDisc = apenas desconto de prazo para lookup de comissão
+    const totals = await computeOrderTotals(updatedItems, disc, price_table_id, dbClient as any, commDisc)
 
     // Verifica se o rep do pedido é admin → comissão 100% escritório
     const { rows: [repUser] } = await dbClient.query(
