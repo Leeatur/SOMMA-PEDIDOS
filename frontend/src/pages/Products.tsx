@@ -243,6 +243,23 @@ function ProductDetailModal({
     },
   })
 
+  const [deleting, setDeleting] = useState(false)
+  async function handleDelete() {
+    if (!window.confirm(`Excluir a referência ${p.reference}? Esta ação não pode ser desfeita.`)) return
+    setDeleting(true)
+    try {
+      const res = await productsApi.deleteProduct(p.id)
+      qc.invalidateQueries({ queryKey: ['all-products'] })
+      if (res.data.inactivated) {
+        onUpdated({ active: false })
+        alert(`${p.reference} tem pedidos vinculados — foi inativada em vez de excluída.`)
+      } else {
+        onClose()
+      }
+    } catch { alert('Erro ao excluir referência.') }
+    finally { setDeleting(false) }
+  }
+
   async function saveBlockedSizes() {
     setSavingBlocked(true)
     try {
@@ -577,6 +594,22 @@ function ProductDetailModal({
                 {p.active
                   ? <><ToggleRight className="h-4 w-4" /> Disponível</>
                   : <><ToggleLeft className="h-4 w-4" /> Indisponível</>}
+              </button>
+            </div>
+
+            {/* Excluir referência */}
+            <div className="flex items-center justify-between pt-2 border-t border-red-100 mt-2">
+              <div>
+                <p className="text-[12px] font-semibold text-red-700">Excluir referência</p>
+                <p className="text-[12px] text-outline">Remove permanentemente do sistema</p>
+              </div>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 text-[12px] font-medium transition-all disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleting ? 'Excluindo…' : 'Excluir'}
               </button>
             </div>
 

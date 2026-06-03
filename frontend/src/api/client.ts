@@ -186,6 +186,7 @@ export const productsApi = {
     apiClient.patch(`/products/${id}/availability`, { active }),
   setBlockedSizes: (id: string, blocked_sizes: string[]) =>
     apiClient.patch(`/products/${id}/blocked-sizes`, { blocked_sizes }),
+  deleteProduct: (id: string) => apiClient.delete(`/products/${id}`),
   create: (data: {
     price_table_id: string
     reference: string
