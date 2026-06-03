@@ -28,6 +28,7 @@ export interface CreatedClient {
   name: string
   trade_name: string | null
   city: string | null
+  state: string | null
   cnpj: string | null
   phone: string | null
   buyer_name: string | null
