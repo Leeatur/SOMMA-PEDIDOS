@@ -1392,16 +1392,24 @@ function QuickAddModal({
   const fmtR = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
   const fmtN = (v: number) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(v)
 
+  // Garante que tamanhos bloqueados sempre ficam com 0
+  const safeSizes = Object.fromEntries(
+    Object.entries(sizes).map(([s, v]) => {
+      const isBlocked = (product.blocked_sizes || []).map(b => b.toUpperCase()).includes(s.toUpperCase())
+      return [s, isBlocked ? 0 : v]
+    })
+  )
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
       if (e.key === 'Enter' && totalPieces > 0 && !(e.target instanceof HTMLTextAreaElement)) {
-        onAdd(product, sizes, boxes, observation, customPrice)
+        onAdd(product, safeSizes, boxes, observation, customPrice)
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onClose, onAdd, product, sizes, boxes, observation, totalPieces])
+  }, [onClose, onAdd, product, safeSizes, boxes, observation, totalPieces])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1521,16 +1529,27 @@ function QuickAddModal({
                 )}
               </div>
               <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Quantidades por tamanho</p>
+              {(product.blocked_sizes || []).length > 0 && (
+                <p className="text-[11px] text-amber-600 mb-2">🚫 Bloqueados: {(product.blocked_sizes || []).join(', ')}</p>
+              )}
               <div className="border border-outline-variant rounded-xl overflow-hidden">
                 <table className="w-full" style={{ tableLayout: 'fixed' }}>
                   <thead className="bg-surface-container-low">
-                    <tr>{allSizes.map(s => (
-                      <th key={s} className="px-1 py-2 text-center text-[11px] font-bold text-outline border-r border-outline-variant/30 last:border-r-0">{s}</th>
-                    ))}</tr>
+                    <tr>{allSizes.map(s => {
+                      const isBlocked = (product.blocked_sizes || []).map(b => b.toUpperCase()).includes(s.toUpperCase())
+                      return (
+                        <th key={s} className={`px-1 py-2 text-center text-[11px] font-bold border-r border-outline-variant/30 last:border-r-0 ${isBlocked ? 'text-red-300 line-through bg-red-50' : 'text-outline'}`}>{s}</th>
+                      )
+                    })}</tr>
                   </thead>
                   <tbody>
-                    <tr>{allSizes.map((s, idx) => (
-                      <td key={s} className="border-r border-outline-variant/20 last:border-r-0 border-t border-outline-variant/20 p-0">
+                    <tr>{allSizes.map((s, idx) => {
+                      const isBlocked = (product.blocked_sizes || []).map(b => b.toUpperCase()).includes(s.toUpperCase())
+                      return (
+                      <td key={s} className={`border-r border-outline-variant/20 last:border-r-0 border-t border-outline-variant/20 p-0 ${isBlocked ? 'bg-red-50' : ''}`}>
+                        {isBlocked ? (
+                          <div className="w-full text-center py-2.5 text-[13px] text-red-300 cursor-not-allowed select-none" title={`Tamanho ${s} bloqueado`}>🚫</div>
+                        ) : (
                         <input type="number" min="0"
                           value={sizes[s] || ''}
                           onChange={e => setSizes(prev => ({ ...prev, [s]: Math.max(0, parseInt(e.target.value) || 0) }))}
@@ -1538,8 +1557,10 @@ function QuickAddModal({
                           tabIndex={idx + 1}
                           className="w-full text-center py-2.5 text-[13px] font-semibold text-on-surface focus:outline-none focus:bg-primary/5 bg-transparent"
                           placeholder="0" />
+                        )}
                       </td>
-                    ))}</tr>
+                      )
+                    })}</tr>
                   </tbody>
                 </table>
               </div>
@@ -1599,7 +1620,7 @@ function QuickAddModal({
           </button>
           <Button
             disabled={totalPieces === 0}
-            onClick={() => onAdd(product, sizes, boxes, observation, customPrice)}
+            onClick={() => onAdd(product, safeSizes, boxes, observation, customPrice)}
             icon={<Check className="h-4 w-4" />}
           >
             {cartItem ? 'Atualizar' : 'Adicionar'}

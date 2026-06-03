@@ -258,8 +258,8 @@ export function OrderDetail() {
       } catch { /* usuario cancelou */ }
     }
 
-    // Desktop: abre página de impressão em nova aba (Ctrl+P para salvar como PDF)
-    window.open(printUrl, '_blank')
+    // Desktop: abre com ?autoprint=1 → diálogo de salvar como PDF aparece automaticamente
+    window.open(`${printUrl}?autoprint=1`, '_blank')
   }
 
   const { data: statuses } = useQuery<Status[]>({
@@ -1429,8 +1429,8 @@ export function OrderDetail() {
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current flex-shrink-0"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h8v1H8v-1zm0 3h5v1H8v-1zm0-6h3v1H8v-1z"/></svg>
             <div className="text-left">
-              <div>📄 Compartilhar / Salvar PDF</div>
-              <div className="text-xs text-orange-100">Celular: compartilha link · Desktop: abre para imprimir</div>
+              <div>📄 Gerar PDF do Pedido</div>
+              <div className="text-xs text-orange-100">Celular: compartilha direto · Desktop: salva como PDF automaticamente</div>
             </div>
           </button>
 
