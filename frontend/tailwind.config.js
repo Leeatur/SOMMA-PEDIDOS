@@ -88,7 +88,7 @@ export default {
       // ── Spacing ───────────────────────────────────────────────────────────
       spacing: {
         'sidebar': '260px',
-        'topbar':  '64px',
+        'topbar':  '80px',
       },
       screens: { xs: '375px' },
     },
