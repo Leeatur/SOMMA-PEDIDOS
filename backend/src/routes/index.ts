@@ -72,6 +72,7 @@ router.post('/products/:id/duplicate', authenticate, requireAdmin, priceTables.d
 router.post('/products/:id/image', authenticate, requireAdmin, upload.single('image'), priceTables.uploadProductImage)
 router.put('/products/:product_id/grade', authenticate, requireAdmin, priceTables.updateGradeConfig)
 router.patch('/products/:id', authenticate, requireAdmin, priceTables.updateProduct)
+router.delete('/products/:id', authenticate, requireAdmin, priceTables.deleteProduct)
 router.patch('/products/:id/availability', authenticate, requireAdmin, priceTables.updateProductAvailability)
 router.patch('/products/:id/blocked-sizes', authenticate, requireAdmin, priceTables.updateBlockedSizes)
 

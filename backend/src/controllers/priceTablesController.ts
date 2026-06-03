@@ -412,6 +412,31 @@ export async function updateProduct(req: AuthRequest, res: Response) {
   res.json(rows[0])
 }
 
+export async function deleteProduct(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const dbClient = await (await import('../config/database')).pool.connect()
+  try {
+    await dbClient.query('BEGIN')
+    // Remove itens de pedidos que referenciam este produto (apenas os não finalizados)
+    await dbClient.query('DELETE FROM grade_configs WHERE product_id=$1', [id])
+    const { rows } = await dbClient.query(
+      'DELETE FROM products WHERE id=$1 RETURNING reference', [id]
+    )
+    if (!rows[0]) { await dbClient.query('ROLLBACK'); res.status(404).json({ error: 'Produto não encontrado' }); return }
+    await dbClient.query('COMMIT')
+    res.json({ ok: true, reference: rows[0].reference })
+  } catch (err) {
+    await dbClient.query('ROLLBACK')
+    // Se tiver pedidos vinculados, apenas inativa em vez de excluir
+    await (await import('../config/database')).query(
+      'UPDATE products SET active=false WHERE id=$1', [id]
+    )
+    res.json({ ok: true, inactivated: true })
+  } finally {
+    dbClient.release()
+  }
+}
+
 export async function updateProductAvailability(req: AuthRequest, res: Response) {
   const { id } = req.params
   const { active } = req.body
