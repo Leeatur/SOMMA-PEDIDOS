@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X } from 'lucide-react'
-import { productsApi } from '../api/client'
+import { productsApi, priceTablesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
@@ -106,6 +106,13 @@ function ProductDetailModal({
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
   const pricePerBox = p.base_price * totalPieces
 
+  // Busca tabelas disponíveis para troca
+  const { data: allPriceTables = [] } = useQuery<{id:string;name:string;factory_name:string}[]>({
+    queryKey: ['price-tables-all'],
+    queryFn: () => priceTablesApi.list().then(r => r.data),
+    enabled: isAdmin,
+  })
+
   // ── Image upload state ───────────────────────────────────────────────────
   const [uploadingImage, setUploadingImage] = useState(false)
   const [currentImageUrl, setCurrentImageUrl] = useState(p.image_url)
@@ -137,6 +144,7 @@ function ProductDetailModal({
     category: p.category || '',
     observation: p.observation || '',
     type: p.type as 'regular' | 'pack',
+    price_table_id: p.price_table_id || '',
   })
   const [editGrade, setEditGrade] = useState<EditGradeRow[]>(() => {
     if (!p.grade_configs || p.grade_configs.length === 0) {
@@ -190,6 +198,8 @@ function ProductDetailModal({
         category: editForm.category || null,
         observation: editForm.observation || null,
         type: editForm.type,
+        ...(editForm.price_table_id && editForm.price_table_id !== p.price_table_id
+          ? { price_table_id: editForm.price_table_id } : {}),
       })
       const gradePayload = editGrade
         .filter(row => Object.values(row.sizes).some(v => v > 0))
@@ -301,6 +311,25 @@ function ProductDetailModal({
                 <option value="pack">Pack</option>
               </select>
             </div>
+          </div>
+
+          {/* Tabela de Preços — permite trocar */}
+          <div>
+            <label className="block text-[12px] font-semibold text-outline mb-1">
+              Tabela de Preços
+              {editForm.price_table_id !== p.price_table_id && (
+                <span className="ml-2 text-amber-600 text-[11px] font-normal">⚠️ alterada — salve para confirmar</span>
+              )}
+            </label>
+            <select
+              className={inputCls}
+              value={editForm.price_table_id}
+              onChange={e => setEditForm(f => ({ ...f, price_table_id: e.target.value }))}
+            >
+              {allPriceTables.map(pt => (
+                <option key={pt.id} value={pt.id}>{pt.factory_name} — {pt.name}</option>
+              ))}
+            </select>
           </div>
 
           <div>

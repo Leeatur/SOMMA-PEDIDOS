@@ -400,14 +400,17 @@ export async function duplicateProduct(req: AuthRequest, res: Response) {
 
 export async function updateProduct(req: AuthRequest, res: Response) {
   const { id } = req.params
-  const { reference, product_name, model, size_range, base_price, category, observation, type } = req.body
+  const { reference, product_name, model, size_range, base_price, category, observation, type, price_table_id } = req.body
   if (!reference || base_price === undefined) {
     res.status(400).json({ error: 'reference e base_price são obrigatórios' }); return
   }
-  const { rows } = await query(
-    `UPDATE products SET reference=$1, product_name=$2, model=$3, size_range=$4, base_price=$5, category=$6, observation=$7, type=$8, updated_at=NOW() WHERE id=$9 RETURNING *`,
-    [reference, product_name || null, model || null, size_range || null, base_price, category || null, observation || null, type, id]
-  )
+  const setPriceTable = price_table_id ? `, price_table_id=$10` : ''
+  const params: unknown[] = [reference, product_name || null, model || null, size_range || null, base_price, category || null, observation || null, type, id]
+  if (price_table_id) params.splice(8, 0, price_table_id) // insert before id
+  const sql = price_table_id
+    ? `UPDATE products SET reference=$1, product_name=$2, model=$3, size_range=$4, base_price=$5, category=$6, observation=$7, type=$8, price_table_id=$9, updated_at=NOW() WHERE id=$10 RETURNING *`
+    : `UPDATE products SET reference=$1, product_name=$2, model=$3, size_range=$4, base_price=$5, category=$6, observation=$7, type=$8, updated_at=NOW() WHERE id=$9 RETURNING *`
+  const { rows } = await query(sql, params)
   if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
   res.json(rows[0])
 }
