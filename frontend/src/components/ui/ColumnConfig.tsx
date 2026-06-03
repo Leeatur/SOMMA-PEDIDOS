@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Settings2, ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Settings2, Eye, EyeOff, GripVertical } from 'lucide-react'
 import { Modal } from './Modal'
 import { Button } from './Button'
 
@@ -81,8 +81,9 @@ export function ColumnConfigModal({
   onReset,
 }: ColumnConfigModalProps) {
   const [local, setLocal] = useState<ColState[]>([])
+  const dragIdx = useRef<number | null>(null)
+  const [dragOver, setDragOver] = useState<number | null>(null)
 
-  // Sync local state every time the modal opens
   useEffect(() => {
     if (open) setLocal(config.map(c => ({ ...c })))
   }, [open, config])
@@ -93,15 +94,23 @@ export function ColumnConfigModal({
     setLocal(prev => prev.map(c => c.id === id ? { ...c, visible: !c.visible } : c))
   }
 
-  const move = (idx: number, dir: -1 | 1) => {
-    const next = idx + dir
-    if (next < 0 || next >= local.length) return
+  const handleDragStart = (idx: number) => { dragIdx.current = idx }
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    setDragOver(idx)
+  }
+  const handleDrop = (targetIdx: number) => {
+    if (dragIdx.current === null || dragIdx.current === targetIdx) { setDragOver(null); return }
     setLocal(prev => {
       const arr = [...prev]
-      ;[arr[idx], arr[next]] = [arr[next], arr[idx]]
+      const [moved] = arr.splice(dragIdx.current!, 1)
+      arr.splice(targetIdx, 0, moved)
       return arr
     })
+    dragIdx.current = null
+    setDragOver(null)
   }
+  const handleDragEnd = () => { dragIdx.current = null; setDragOver(null) }
 
   const handleSave = () => { onSave(local); onClose() }
   const handleReset = () => { onReset(); onClose() }
@@ -114,10 +123,7 @@ export function ColumnConfigModal({
       size="sm"
       footer={
         <div className="flex items-center justify-between gap-2">
-          <button
-            onClick={handleReset}
-            className="text-[12px] text-primary hover:text-primary"
-          >
+          <button onClick={handleReset} className="text-[12px] text-primary hover:underline">
             Restaurar padrão
           </button>
           <div className="flex gap-2">
@@ -128,29 +134,36 @@ export function ColumnConfigModal({
       }
     >
       <p className="text-[12px] text-outline/70 mb-3">
-        Ative/desative colunas e use ▲▼ para reordenar.
+        Arraste ⠿ para reordenar · clique no olho para mostrar/ocultar
       </p>
-      <div className="divide-y divide-outline-variant/50">
+      <div className="divide-y divide-outline-variant/30 select-none">
         {local.map((col, idx) => {
           const def = defs.find(d => d.id === col.id)
           if (!def) return null
+          const isDraggingOver = dragOver === idx
           return (
             <div
               key={col.id}
-              className={`flex items-center gap-2 py-1 px-1 transition-colors ${
-                col.visible ? '' : 'opacity-50'
-              }`}
+              draggable
+              onDragStart={() => handleDragStart(idx)}
+              onDragOver={e => handleDragOver(e, idx)}
+              onDrop={() => handleDrop(idx)}
+              onDragEnd={handleDragEnd}
+              className={`flex items-center gap-2 py-2 px-1 rounded-lg transition-all cursor-grab active:cursor-grabbing ${
+                isDraggingOver ? 'bg-primary/10 border border-primary/30' : 'hover:bg-surface-container-low'
+              } ${col.visible ? '' : 'opacity-50'}`}
             >
+              {/* Drag handle */}
+              <GripVertical className="h-4 w-4 text-outline/40 flex-shrink-0" />
+
               {/* Visibility toggle */}
               <button
                 onClick={() => toggleVisible(col.id)}
                 disabled={def.alwaysVisible}
                 className={`flex-shrink-0 p-0.5 rounded transition-colors ${
-                  def.alwaysVisible
-                    ? 'opacity-30 cursor-default'
-                    : 'hover:bg-surface-container cursor-pointer'
+                  def.alwaysVisible ? 'opacity-30 cursor-default' : 'hover:bg-surface-container'
                 }`}
-                title={col.visible ? 'Ocultar' : 'Mostrar'}
+                title={col.visible ? 'Ocultar coluna' : 'Mostrar coluna'}
               >
                 {col.visible
                   ? <Eye className="h-4 w-4 text-primary" />
@@ -159,27 +172,16 @@ export function ColumnConfigModal({
               </button>
 
               {/* Label */}
-              <span className={`flex-1 text-[12px] ${col.visible ? 'font-medium text-on-surface' : 'text-outline/70'}`}>
+              <span className={`flex-1 text-[13px] ${col.visible ? 'font-medium text-on-surface' : 'text-outline/60'}`}>
                 {def.label}
               </span>
 
-              {/* Up / Down */}
-              <div className="flex gap-0.5">
-                <button
-                  onClick={() => move(idx, -1)}
-                  disabled={idx === 0}
-                  className="p-0.5 text-outline/50 hover:text-on-surface-variant disabled:opacity-20 disabled:cursor-default rounded"
-                >
-                  <ChevronUp className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => move(idx, 1)}
-                  disabled={idx === local.length - 1}
-                  className="p-0.5 text-outline/50 hover:text-on-surface-variant disabled:opacity-20 disabled:cursor-default rounded"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-              </div>
+              {/* Badge visível/oculto */}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 ${
+                col.visible ? 'bg-primary/10 text-primary' : 'bg-outline/10 text-outline/50'
+              }`}>
+                {col.visible ? 'visível' : 'oculta'}
+              </span>
             </div>
           )
         })}
