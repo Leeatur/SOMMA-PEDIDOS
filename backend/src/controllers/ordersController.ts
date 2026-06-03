@@ -590,7 +590,7 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
 // Atualiza quantidades de um item (tamanhos para regular, caixas para pack) e recalcula totais
 export async function updateOrderItem(req: AuthRequest, res: Response) {
   const { id, item_id } = req.params
-  const { sizes, boxes_count, custom_grade } = req.body
+  const { sizes, boxes_count, custom_grade, unit_price: newUnitPrice } = req.body
 
   const { rows: [order] } = await query(
     'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
@@ -611,8 +611,13 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
   )
   if (!item) { res.status(404).json({ error: 'Item não encontrado' }); return }
 
+  // Usa o novo preço se fornecido, senão mantém o atual
+  const effectiveUnitPrice = (newUnitPrice !== undefined && !isNaN(parseFloat(newUnitPrice)))
+    ? parseFloat(newUnitPrice)
+    : Number(item.unit_price)
+
   const disc = parseFloat(order.discount_pct) || 0
-  const discountedPrice = Number(item.unit_price) * (1 - disc / 100)
+  const discountedPrice = effectiveUnitPrice * (1 - disc / 100)
 
   let newTotalPieces: number
   let newSubtotal: number
@@ -669,18 +674,21 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
 
   await query(
     `UPDATE order_items SET
-       sizes=$1, boxes_count=$2, total_pieces=$3, subtotal=$4, custom_grade=$5
-     WHERE id=$6`,
-    [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, newCustomGrade, item_id]
+       sizes=$1, boxes_count=$2, total_pieces=$3, subtotal=$4, custom_grade=$5, unit_price=$6
+     WHERE id=$7`,
+    [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, newCustomGrade, effectiveUnitPrice, item_id]
   )
 
-  // Recalcula totais do pedido
+  // Recalcula totais do pedido baseado no preço cheio (sem desconto à vista) para comissão
   const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
+    `SELECT COALESCE(SUM(total_pieces),0) AS pcs,
+            COALESCE(SUM(subtotal),0) AS val,
+            COALESCE(SUM(unit_price * total_pieces),0) AS val_full
      FROM order_items WHERE order_id=$1`,
     [id]
   )
   const newValue = Math.round(Number(totals.val) * 100) / 100
+  const newValueFull = Math.round(Number(totals.val_full) * 100) / 100
   await query(
     `UPDATE orders SET total_pieces=$1, total_value=$2,
        rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
@@ -688,8 +696,8 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     [
       Number(totals.pcs),
       newValue,
-      Math.round(newValue * order.rep_commission_pct / 100 * 100) / 100,
-      Math.round(newValue * order.office_commission_pct / 100 * 100) / 100,
+      Math.round(newValueFull * order.rep_commission_pct / 100 * 100) / 100,
+      Math.round(newValueFull * order.office_commission_pct / 100 * 100) / 100,
       id,
     ]
   )
