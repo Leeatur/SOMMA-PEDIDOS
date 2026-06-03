@@ -44,6 +44,7 @@ export function Dashboard() {
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '' })
+  const [cardModal, setCardModal] = useState<string | null>(null)
 
   // Filtro de período
   const spDate = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
@@ -246,6 +247,7 @@ export function Dashboard() {
             value={isAdmin ? filteredOrders.length.toString() : formatCurrency(totalValue)}
             accentColor="#3B82F6"
             large={isAdmin}
+            onClick={isAdmin ? () => setCardModal('pedidos') : undefined}
           />
 
           <StatCard
@@ -257,6 +259,7 @@ export function Dashboard() {
             badgeColor="emerald"
             accentColor="#10B981"
             large={isAdmin}
+            onClick={isAdmin ? () => setCardModal('hoje') : undefined}
           />
 
           {isAdmin && (
@@ -266,6 +269,7 @@ export function Dashboard() {
               label="Total vendas"
               value={formatCurrency(totalValue)}
               accentColor="#7C3AED"
+              onClick={() => setCardModal('vendas')}
             />
           )}
 
@@ -278,6 +282,7 @@ export function Dashboard() {
               badge="HOJE"
               badgeColor="amber"
               accentColor="#F59E0B"
+              onClick={() => setCardModal('hoje')}
             />
           )}
         </div>
@@ -293,6 +298,7 @@ export function Dashboard() {
               label="Comissão Escritório"
               value={formatCurrency(totalOfficeComm)}
               accentColor="#10B981"
+              onClick={() => setCardModal('comissao')}
             />
             <StatCard
               icon={<Package className="h-4.5 w-4.5 text-violet-600" />}
@@ -300,6 +306,7 @@ export function Dashboard() {
               label="Total de Peças"
               value={totalPieces.toLocaleString('pt-BR')}
               accentColor="#7C3AED"
+              onClick={() => setCardModal('pecas')}
             />
             <StatCard
               icon={<TrendingUp className="h-4.5 w-4.5 text-blue-600" />}
@@ -307,6 +314,7 @@ export function Dashboard() {
               label="Ticket Médio"
               value={formatCurrency(ticketMedio)}
               accentColor="#3B82F6"
+              onClick={() => setCardModal('ticket')}
             />
             <StatCard
               icon={<Users className="h-4.5 w-4.5 text-amber-600" />}
@@ -314,6 +322,7 @@ export function Dashboard() {
               label="Clientes Atendidos"
               value={uniqueClients.toString()}
               accentColor="#F59E0B"
+              onClick={() => setCardModal('clientes')}
             />
           </div>
         </div>
@@ -448,8 +457,8 @@ export function Dashboard() {
         })()}
 
 
-        {/* ─── Admin: Status e Ranking ─────────────────── */}
-        {isAdmin && (statusSummary.length > 0 || repRanking.length > 0) && (
+        {/* ─── Admin: Status e Ranking por Fábrica ──────── */}
+        {isAdmin && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
 
             {/* Pedidos por Status */}
@@ -458,7 +467,7 @@ export function Dashboard() {
                 <SectionTitle>Pedidos por Status</SectionTitle>
                 <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4 space-y-2">
                   {statusSummary.map(([name, { count, color }]) => (
-                    <div key={name} className="flex items-center gap-3">
+                    <div key={name} className="flex items-center gap-3 cursor-pointer hover:bg-surface-container-low rounded-lg px-1 py-0.5 transition-colors" onClick={() => setCardModal('status_' + name)}>
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                       <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
                       <div className="flex items-center gap-2">
@@ -473,14 +482,14 @@ export function Dashboard() {
               </section>
             )}
 
-            {/* Ranking de Representantes */}
+            {/* Ranking geral */}
             {repRanking.length > 0 && (
               <section>
-                <SectionTitle>🏆 Ranking de Representantes</SectionTitle>
+                <SectionTitle>🏆 Ranking Geral</SectionTitle>
                 <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4 space-y-2">
                   {repRanking.map(([name, value], i) => (
                     <div key={name} className="flex items-center gap-3">
-                      <span className={`text-[12px] font-bold w-5 text-center ${i === 0 ? 'text-amber-500' : i === 1 ? 'text-gray-400' : 'text-amber-700'}`}>
+                      <span className="text-[12px] font-bold w-5 text-center">
                         {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}º`}
                       </span>
                       <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
@@ -497,6 +506,69 @@ export function Dashboard() {
             )}
           </div>
         )}
+
+        {/* ─── Ranking por Fábrica ──────────────────────── */}
+        {isAdmin && filteredOrders.length > 0 && (() => {
+          // Agrupa pedidos por fábrica → depois por rep
+          const factories = [...new Set(filteredOrders.map(o => o.factory_name))].sort()
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {factories.map(factory => {
+                const factoryOrders = filteredOrders.filter(o => o.factory_name === factory)
+                const rankingByFactory = Object.entries(
+                  factoryOrders.reduce((acc, o) => {
+                    const k = o.rep_name || 'N/A'
+                    if (!acc[k]) acc[k] = { value: 0, pieces: 0, orders: 0 }
+                    acc[k].value += Number(o.total_value)
+                    acc[k].pieces += Number(o.total_pieces || 0)
+                    acc[k].orders += 1
+                    return acc
+                  }, {} as Record<string, { value: number; pieces: number; orders: number }>)
+                ).sort((a, b) => b[1].value - a[1].value)
+
+                const totalFactory = factoryOrders.reduce((s, o) => s + Number(o.total_value), 0)
+                const totalPiecesFactory = factoryOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
+
+                const factoryColors: Record<string, string> = {
+                  OUZZARE: '#6D28D9', TEEZZ: '#1D4ED8',
+                }
+                const color = factoryColors[factory] || '#374151'
+
+                return (
+                  <section key={factory}>
+                    <SectionTitle>🏭 {factory}</SectionTitle>
+                    <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
+                      {/* Header fábrica */}
+                      <div className="px-4 py-2 flex items-center justify-between" style={{ backgroundColor: color }}>
+                        <span className="text-white text-[11px] font-bold uppercase tracking-wider">{factoryOrders.length} pedidos · {totalPiecesFactory.toLocaleString('pt-BR')} pç</span>
+                        <span className="text-white text-[13px] font-black">{formatCurrency(totalFactory)}</span>
+                      </div>
+                      <div className="p-4 space-y-2">
+                        {rankingByFactory.map(([name, data], i) => (
+                          <div key={name} className="flex items-center gap-3 cursor-pointer hover:bg-surface-container-low rounded-lg px-1 py-1 transition-colors" onClick={() => setCardModal(`rep_${factory}_${name}`)}>
+                            <span className="text-[12px] font-bold w-5 text-center flex-shrink-0">
+                              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}º`}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[12px] font-semibold text-on-surface truncate">{name}</p>
+                              <p className="text-[10px] text-outline">{data.orders} pedido{data.orders !== 1 ? 's' : ''} · {data.pieces.toLocaleString('pt-BR')} pç</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                              <span className="text-[12px] font-bold" style={{ color }}>{formatCurrency(data.value)}</span>
+                              <div className="w-20 bg-surface-container-low rounded-full h-1 overflow-hidden">
+                                <div className="h-full rounded-full" style={{ width: `${(data.value / rankingByFactory[0][1].value) * 100}%`, backgroundColor: color }} />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                )
+              })}
+            </div>
+          )
+        })()}
 
         {/* ─── Seção do Representante ──────────────────── */}
         {!isAdmin && (
@@ -526,16 +598,18 @@ export function Dashboard() {
                 accentColor="#3B82F6"
               />
               {(() => {
-                const totalTarget = goals.reduce((s, g) => s + g.target_pieces, 0)
-                const totalDone   = goals.reduce((s, g) => s + g.achieved_pieces, 0)
+                // Somente a meta pessoal do representante (type='rep')
+                const repGoals = goals.filter(g => g.type === 'rep')
+                const totalTarget = repGoals.reduce((s, g) => s + g.target_pieces, 0)
+                const totalDone   = repGoals.reduce((s, g) => s + g.achieved_pieces, 0)
                 const pct = totalTarget > 0 ? Math.min(100, Math.round((totalDone / totalTarget) * 100)) : 0
                 const metaColor = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : '#7C3AED'
                 return (
                   <StatCard
                     icon={<Target className="h-4.5 w-4.5" style={{ color: metaColor }} />}
                     iconBg={pct >= 100 ? 'bg-emerald-100' : pct >= 70 ? 'bg-amber-100' : 'bg-violet-100'}
-                    label="Minhas metas"
-                    value={goals.length === 0 ? '—' : `${pct}%`}
+                    label="Minha meta"
+                    value={repGoals.length === 0 ? '—' : `${pct}%`}
                     accentColor={metaColor}
                   />
                 )
@@ -702,6 +776,113 @@ export function Dashboard() {
       </div>
     </div>
 
+    {/* ── Modal Detalhes do Card ── */}
+    {cardModal && (() => {
+      let title = ''
+      let rows: Order[] = []
+
+      if (cardModal === 'pedidos') { title = `Pedidos do Período (${filteredOrders.length})`; rows = filteredOrders }
+      else if (cardModal === 'hoje') { title = `Pedidos de Hoje (${todayOrders.length})`; rows = todayOrders }
+      else if (cardModal === 'vendas') { title = `Vendas do Período`; rows = filteredOrders }
+      else if (cardModal === 'comissao') { title = `Comissão Escritório`; rows = filteredOrders }
+      else if (cardModal === 'pecas') { title = `Total de Peças por Fábrica`; rows = filteredOrders }
+      else if (cardModal === 'ticket') { title = `Ticket Médio por Representante`; rows = filteredOrders }
+      else if (cardModal === 'clientes') { title = `Clientes Atendidos`; rows = filteredOrders }
+      else if (cardModal.startsWith('status_')) { const s = cardModal.replace('status_',''); title = `Pedidos — ${s}`; rows = filteredOrders.filter(o => o.status_name === s) }
+      else if (cardModal.startsWith('rep_')) { const parts = cardModal.split('_'); const factory = parts[1]; const rep = parts.slice(2).join('_'); title = `${rep} — ${factory}`; rows = filteredOrders.filter(o => o.factory_name === factory && o.rep_name === rep) }
+
+      // Para peças/ticket/comissão/clientes mostra agrupamento
+      const isGrouped = ['pecas','ticket','comissao','clientes'].includes(cardModal)
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setCardModal(null)} />
+          <div className="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
+              <h3 className="font-bold text-on-surface text-base">{title}</h3>
+              <button onClick={() => setCardModal(null)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-4 space-y-2">
+              {/* Agrupado */}
+              {isGrouped && cardModal === 'pecas' && (
+                Object.entries(
+                  rows.reduce((acc, o) => { acc[o.factory_name] = (acc[o.factory_name] || 0) + Number(o.total_pieces || 0); return acc }, {} as Record<string,number>)
+                ).sort((a,b) => b[1]-a[1]).map(([factory, pcs]) => (
+                  <div key={factory} className="flex items-center justify-between py-2 px-3 bg-surface-container-low rounded-xl">
+                    <span className="font-semibold text-[13px]">{factory}</span>
+                    <span className="font-bold text-primary text-[14px]">{pcs.toLocaleString('pt-BR')} peças</span>
+                  </div>
+                ))
+              )}
+              {isGrouped && cardModal === 'comissao' && (
+                Object.entries(
+                  rows.reduce((acc, o) => { const k = o.rep_name||'N/A'; if(!acc[k]) acc[k]={comm:0,orders:0}; acc[k].comm += Number((o as Order & {office_commission_value?:number}).office_commission_value||0); acc[k].orders++; return acc }, {} as Record<string,{comm:number;orders:number}>)
+                ).sort((a,b)=>b[1].comm-a[1].comm).map(([rep,d]) => (
+                  <div key={rep} className="flex items-center justify-between py-2 px-3 bg-surface-container-low rounded-xl">
+                    <div><p className="font-semibold text-[13px]">{rep}</p><p className="text-[11px] text-outline">{d.orders} pedidos</p></div>
+                    <span className="font-bold text-emerald-600 text-[14px]">{formatCurrency(d.comm)}</span>
+                  </div>
+                ))
+              )}
+              {isGrouped && cardModal === 'ticket' && (
+                Object.entries(
+                  rows.reduce((acc, o) => { const k=o.rep_name||'N/A'; if(!acc[k]) acc[k]={total:0,count:0}; acc[k].total+=Number(o.total_value); acc[k].count++; return acc }, {} as Record<string,{total:number;count:number}>)
+                ).sort((a,b)=>(b[1].total/b[1].count)-(a[1].total/a[1].count)).map(([rep,d]) => (
+                  <div key={rep} className="flex items-center justify-between py-2 px-3 bg-surface-container-low rounded-xl">
+                    <div><p className="font-semibold text-[13px]">{rep}</p><p className="text-[11px] text-outline">{d.count} pedidos</p></div>
+                    <span className="font-bold text-primary text-[14px]">{formatCurrency(d.total/d.count)}</span>
+                  </div>
+                ))
+              )}
+              {isGrouped && cardModal === 'clientes' && (
+                [...new Set(rows.map(o => o.client_name))].sort().map(client => {
+                  const clientOrders = rows.filter(o => o.client_name === client)
+                  return (
+                    <div key={client} className="flex items-center justify-between py-2 px-3 bg-surface-container-low rounded-xl cursor-pointer hover:bg-primary/5" onClick={() => { setCardModal(null); navigate('/clients') }}>
+                      <div><p className="font-semibold text-[13px]">{client}</p><p className="text-[11px] text-outline">{clientOrders.length} pedido{clientOrders.length!==1?'s':''}</p></div>
+                      <span className="font-bold text-primary text-[13px]">{formatCurrency(clientOrders.reduce((s,o)=>s+Number(o.total_value),0))}</span>
+                    </div>
+                  )
+                })
+              )}
+
+              {/* Lista de pedidos */}
+              {!isGrouped && rows.length === 0 && (
+                <p className="text-center text-outline py-8 text-[13px]">Nenhum pedido encontrado</p>
+              )}
+              {!isGrouped && rows.map(o => (
+                <button key={o.id} onClick={() => { setCardModal(null); navigate(`/orders/${o.id}`) }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 bg-surface-container-low hover:bg-primary/5 rounded-xl text-left transition-colors">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color || '#9CA3AF' }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] font-bold text-primary">#{String(o.order_number).padStart(4,'0')}</span>
+                      <span className="text-[12px] font-medium text-on-surface truncate">{o.client_name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-outline">
+                      <span>{o.rep_name}</span>
+                      <span>·</span>
+                      <span>{o.factory_name}</span>
+                      <span>·</span>
+                      <span>{o.total_pieces} pç</span>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[12px] font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
+                    <p className="text-[10px] text-outline">{(() => { const d = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date(o.created_at)); const [y,m,day]=d.split('-'); return `${day}/${m}` })()}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    })()}
+
     {/* ── Modal Nova/Editar Meta ── */}
     {/* ── Modal Nova/Editar Meta ── */}
     {showGoalModal && (
@@ -792,7 +973,7 @@ export function Dashboard() {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function StatCard({
-  icon, iconBg, label, value, badge, badgeColor, large, accentColor,
+  icon, iconBg, label, value, badge, badgeColor, large, accentColor, onClick,
 }: {
   icon: React.ReactNode
   iconBg: string
@@ -802,6 +983,7 @@ function StatCard({
   badgeColor?: 'emerald' | 'amber'
   large?: boolean
   accentColor?: string
+  onClick?: () => void
 }) {
   const badgeCls = badgeColor === 'emerald'
     ? 'bg-emerald-100 text-emerald-700'
@@ -809,7 +991,8 @@ function StatCard({
 
   return (
     <div
-      className="bg-white rounded-2xl p-3 border-0 relative overflow-hidden"
+      onClick={onClick}
+      className={`bg-white rounded-2xl p-3 border-0 relative overflow-hidden ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform' : ''}`}
       style={{
         boxShadow: accentColor
           ? `0 10px 28px -6px ${accentColor}35, 0 4px 10px -4px ${accentColor}20`
@@ -818,6 +1001,13 @@ function StatCard({
     >
       {accentColor && (
         <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: accentColor }} />
+      )}
+      {onClick && (
+        <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black/5 flex items-center justify-center">
+          <svg className="w-2.5 h-2.5 text-outline/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
       )}
       <div className="flex items-center justify-between mb-2 mt-0.5">
         <div className={`w-9 h-9 ${iconBg} rounded-xl flex items-center justify-center`}>

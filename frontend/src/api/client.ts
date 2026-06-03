@@ -186,6 +186,20 @@ export const productsApi = {
     apiClient.patch(`/products/${id}/availability`, { active }),
   setBlockedSizes: (id: string, blocked_sizes: string[]) =>
     apiClient.patch(`/products/${id}/blocked-sizes`, { blocked_sizes }),
+  create: (data: {
+    price_table_id: string
+    reference: string
+    product_name?: string | null
+    model?: string | null
+    size_range?: string | null
+    base_price: number
+    category?: string | null
+    observation?: string | null
+    type: 'regular' | 'pack'
+    grade_configs?: Array<{ color: string | null; sizes: Record<string, number> }>
+  }) => apiClient.post('/products', data),
+  duplicate: (id: string, reference: string) =>
+    apiClient.post(`/products/${id}/duplicate`, { reference }),
 }
 
 export const clientsApi = {

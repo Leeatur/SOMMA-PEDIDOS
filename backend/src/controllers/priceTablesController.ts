@@ -328,6 +328,76 @@ export async function listProducts(req: AuthRequest, res: Response) {
   res.json(rows)
 }
 
+export async function createProduct(req: AuthRequest, res: Response) {
+  const { price_table_id, reference, product_name, model, size_range, base_price, category, observation, type, grade_configs } = req.body
+  if (!price_table_id || !reference || base_price === undefined) {
+    res.status(400).json({ error: 'price_table_id, reference e base_price são obrigatórios' }); return
+  }
+  const dbClient = await (await import('../config/database')).pool.connect()
+  try {
+    await dbClient.query('BEGIN')
+    const { rows } = await dbClient.query(
+      `INSERT INTO products (price_table_id, reference, type, product_name, model, size_range, base_price, category, observation)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [price_table_id, reference, type || 'regular', product_name || null, model || null, size_range || null, base_price, category || null, observation || null]
+    )
+    const product = rows[0]
+    if (grade_configs && Array.isArray(grade_configs) && grade_configs.length > 0) {
+      for (let i = 0; i < grade_configs.length; i++) {
+        const gc = grade_configs[i]
+        const totalPieces = Object.values(gc.sizes as Record<string, number>).reduce((s: number, v: unknown) => s + Number(v || 0), 0)
+        await dbClient.query(
+          `INSERT INTO grade_configs (product_id, color, sizes, total_pieces, sort_order) VALUES ($1,$2,$3,$4,$5)`,
+          [product.id, gc.color || null, JSON.stringify(gc.sizes), totalPieces, i]
+        )
+      }
+    }
+    await dbClient.query('COMMIT')
+    res.status(201).json(product)
+  } catch (err) {
+    await dbClient.query('ROLLBACK')
+    console.error('Erro criar produto:', err)
+    res.status(500).json({ error: 'Erro ao criar produto' })
+  } finally {
+    dbClient.release()
+  }
+}
+
+export async function duplicateProduct(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { reference } = req.body  // nova referência para o duplicado
+  const dbClient = await (await import('../config/database')).pool.connect()
+  try {
+    await dbClient.query('BEGIN')
+    // Busca produto original com grades
+    const { rows: [orig] } = await dbClient.query('SELECT * FROM products WHERE id=$1', [id])
+    if (!orig) { res.status(404).json({ error: 'Produto não encontrado' }); return }
+    const { rows: grades } = await dbClient.query('SELECT * FROM grade_configs WHERE product_id=$1 ORDER BY sort_order', [id])
+    // Cria cópia com nova referência
+    const newRef = reference || `${orig.reference}-COPIA`
+    const { rows: [newProd] } = await dbClient.query(
+      `INSERT INTO products (price_table_id, reference, type, product_name, model, size_range, base_price, category, observation)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [orig.price_table_id, newRef, orig.type, orig.product_name, orig.model, orig.size_range, orig.base_price, orig.category, orig.observation]
+    )
+    // Copia grades
+    for (const gc of grades) {
+      await dbClient.query(
+        `INSERT INTO grade_configs (product_id, color, sizes, total_pieces, sort_order) VALUES ($1,$2,$3,$4,$5)`,
+        [newProd.id, gc.color, gc.sizes, gc.total_pieces, gc.sort_order]
+      )
+    }
+    await dbClient.query('COMMIT')
+    res.status(201).json(newProd)
+  } catch (err) {
+    await dbClient.query('ROLLBACK')
+    console.error('Erro duplicar produto:', err)
+    res.status(500).json({ error: 'Erro ao duplicar produto' })
+  } finally {
+    dbClient.release()
+  }
+}
+
 export async function updateProduct(req: AuthRequest, res: Response) {
   const { id } = req.params
   const { reference, product_name, model, size_range, base_price, category, observation, type } = req.body

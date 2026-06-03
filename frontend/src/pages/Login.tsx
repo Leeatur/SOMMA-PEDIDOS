@@ -45,17 +45,8 @@ export function Login() {
       <div className="w-full max-w-[400px] flex flex-col items-center">
 
         {/* Brand */}
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="w-16 h-16 bg-primary-container rounded-xl flex items-center justify-center mb-4 shadow-lg">
-            <span
-              className="text-white text-4xl select-none"
-              style={{ fontFamily: 'Material Symbols Outlined', fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 40" }}
-            >
-              inventory_2
-            </span>
-          </div>
-          <h1 className="text-3xl font-bold text-white" style={{ fontFamily: 'Plus Jakarta Sans' }}>Somma</h1>
-          <p className="text-sm text-outline-variant/80 mt-1 uppercase tracking-widest font-medium">Gestão Comercial</p>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <img src="/logo-login.svg" alt="Somma Gestão Comercial" className="h-16 w-auto" />
         </div>
 
         {/* Card */}

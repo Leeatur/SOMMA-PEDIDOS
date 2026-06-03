@@ -601,10 +601,12 @@ function ProductRow({
   p,
   visibleCols,
   onOpenDetail,
+  onDuplicate,
 }: {
   p: Product
   visibleCols: Array<ColumnDef & { visible: boolean }>
   onOpenDetail: (p: Product) => void
+  onDuplicate?: (p: Product) => void
 }) {
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
   const blockedCount = (p.blocked_sizes || []).length
@@ -705,11 +707,249 @@ function ProductRow({
       onClick={() => onOpenDetail(p)}
     >
       {visibleCols.map(col => renderCell(col.id))}
+      {onDuplicate && (
+        <td className="px-2 py-1 w-8" onClick={e => { e.stopPropagation(); onDuplicate(p) }}>
+          <button className="p-1 rounded-lg text-outline hover:text-primary hover:bg-primary/10 transition-colors" title="Duplicar produto">
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </td>
+      )}
     </tr>
   )
 }
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
+// ─── Modal Criar / Duplicar Produto ─────────────────────────────────────────
+
+function CreateProductModal({ source, onClose, onSaved }: {
+  source: Product | null
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const qc = useQueryClient()
+  const isDuplicate = !!source
+
+  // Busca tabelas de preço para seleção
+  const { data: priceTables = [] } = useQuery<{id:string;name:string;factory_name:string}[]>({
+    queryKey: ['price-tables-select'],
+    queryFn: () => import('../api/client').then(m => m.priceTablesApi.list().then(r => r.data)),
+  })
+
+  const [form, setForm] = useState({
+    price_table_id: source?.grade_configs ? '' : '',
+    reference: isDuplicate ? `${source!.reference}-COPIA` : '',
+    product_name: source?.product_name || '',
+    model: source?.model || '',
+    size_range: source?.size_range || '',
+    base_price: source?.base_price ? String(source.base_price) : '',
+    category: source?.category || '',
+    observation: source?.observation || '',
+    type: (source?.type || 'regular') as 'regular' | 'pack',
+  })
+
+  const [grade, setGrade] = useState<{color: string; sizes: Record<string,number>}[]>(() => {
+    if (source?.grade_configs && source.grade_configs.length > 0) {
+      return source.grade_configs.map(gc => ({
+        color: gc.color || '',
+        sizes: expandGradeSizes(gc.sizes),
+      }))
+    }
+    return [{ color: '', sizes: {} }]
+  })
+
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const gradeSizes = useMemo(() => {
+    const fromRange = parseSizeRange(form.size_range)
+    if (fromRange.length > 0) return fromRange
+    return sortSizes(Array.from(new Set(grade.flatMap(r => Object.keys(r.sizes)))))
+  }, [form.size_range, grade])
+
+  function setCell(rowIdx: number, size: string, val: number) {
+    setGrade(prev => prev.map((r, i) => i === rowIdx ? { ...r, sizes: { ...r.sizes, [size]: val } } : r))
+  }
+
+  async function handleSave() {
+    if (!form.reference || !form.base_price) { setError('Preencha referência e preço'); return }
+    setSaving(true); setError('')
+    try {
+      const { productsApi } = await import('../api/client')
+      const gradeConfigs = grade.filter(r => Object.values(r.sizes).some(v => v > 0))
+
+      if (isDuplicate) {
+        await productsApi.duplicate(source!.id, form.reference)
+      } else {
+        if (!form.price_table_id) { setError('Selecione uma tabela de preços'); setSaving(false); return }
+        await productsApi.create({
+          price_table_id: form.price_table_id,
+          reference: form.reference,
+          product_name: form.product_name || null,
+          model: form.model || null,
+          size_range: form.size_range || null,
+          base_price: parseFloat(form.base_price),
+          category: form.category || null,
+          observation: form.observation || null,
+          type: form.type,
+          grade_configs: gradeConfigs.length > 0 ? gradeConfigs : undefined,
+        })
+      }
+      onSaved()
+    } catch (e: unknown) {
+      const msg = (e as {response?:{data?:{error?:string}}})?.response?.data?.error || 'Erro ao salvar'
+      setError(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const F = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const inputCls = "w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30"
+  const labelCls = "block text-[11px] font-semibold text-outline uppercase tracking-wide mb-1"
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
+          <div>
+            <h3 className="font-bold text-on-surface text-base">
+              {isDuplicate ? `Duplicar: ${source!.reference}` : 'Novo Produto'}
+            </h3>
+            {isDuplicate && <p className="text-[11px] text-outline mt-0.5">Todos os dados foram copiados — edite o que precisar</p>}
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-outline hover:bg-surface-container"><X className="h-5 w-5" /></button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-5 space-y-4">
+          {/* Tabela (só no cadastro novo) */}
+          {!isDuplicate && (
+            <div>
+              <label className={labelCls}>Tabela de Preços *</label>
+              <select value={form.price_table_id} onChange={F('price_table_id')} className={inputCls}>
+                <option value="">Selecione...</option>
+                {priceTables.map(pt => (
+                  <option key={pt.id} value={pt.id}>{pt.factory_name} — {pt.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Referência + Tipo */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Referência *</label>
+              <input value={form.reference} onChange={F('reference')} placeholder="Ex: TE11458" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Tipo</label>
+              <select value={form.type} onChange={F('type')} className={inputCls}>
+                <option value="regular">Regular</option>
+                <option value="pack">Pack</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Nome + Modelo */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Nome do Produto</label>
+              <input value={form.product_name} onChange={F('product_name')} placeholder="Ex: Camiseta Básica" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Modelo / Coleção</label>
+              <input value={form.model} onChange={F('model')} placeholder="Ex: VE27" className={inputCls} />
+            </div>
+          </div>
+
+          {/* Preço + Grade */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Preço Unitário (R$) *</label>
+              <input type="number" step="0.01" value={form.base_price} onChange={F('base_price')} placeholder="0.00" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Grade (ex: P-GG ou 36-48)</label>
+              <input value={form.size_range} onChange={F('size_range')} placeholder="P-GG" className={inputCls} />
+            </div>
+          </div>
+
+          {/* Categoria + Observação */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Categoria</label>
+              <input value={form.category} onChange={F('category')} placeholder="Ex: Camisetas" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Observação</label>
+              <input value={form.observation} onChange={F('observation')} placeholder="Opcional" className={inputCls} />
+            </div>
+          </div>
+
+          {/* Grade de tamanhos */}
+          {gradeSizes.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className={labelCls}>Grade de Tamanhos</label>
+                {form.type === 'pack' && (
+                  <button onClick={() => setGrade(g => [...g, { color: '', sizes: Object.fromEntries(gradeSizes.map(s => [s, 1])) }])}
+                    className="text-[11px] text-primary font-semibold flex items-center gap-1">
+                    <Plus className="h-3 w-3" /> Cor
+                  </button>
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="text-[11px] w-full">
+                  <thead>
+                    <tr>
+                      {form.type === 'pack' && <th className="text-left px-1 pb-1 text-outline">Cor</th>}
+                      {gradeSizes.map(s => <th key={s} className="px-1 pb-1 text-center text-outline">{s}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grade.map((row, ri) => (
+                      <tr key={ri}>
+                        {form.type === 'pack' && (
+                          <td className="pr-2">
+                            <input value={row.color} onChange={e => setGrade(g => g.map((r,i) => i===ri ? {...r,color:e.target.value} : r))}
+                              placeholder="PRETO" className="border border-outline-variant rounded-lg px-2 py-1 text-[11px] w-20" />
+                          </td>
+                        )}
+                        {gradeSizes.map(s => (
+                          <td key={s} className="px-0.5">
+                            <input type="number" min="0" value={row.sizes[s] || 0}
+                              onChange={e => setCell(ri, s, parseInt(e.target.value)||0)}
+                              className="border border-outline-variant rounded-lg text-center w-10 py-1 text-[11px] focus:ring-1 focus:ring-primary" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {error && <p className="text-[12px] text-red-500 font-medium">{error}</p>}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-outline-variant/30">
+          <button onClick={onClose} className="px-4 py-2 text-[12px] text-outline hover:text-on-surface">Cancelar</button>
+          <button onClick={handleSave} disabled={saving}
+            className="px-6 py-2 bg-primary text-white rounded-xl text-[12px] font-semibold disabled:opacity-50 hover:bg-primary/90 active:scale-95 flex items-center gap-2">
+            {saving && <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>}
+            {saving ? 'Salvando...' : isDuplicate ? 'Salvar Duplicata' : 'Cadastrar Produto'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function Products() {
   const qc = useQueryClient()
   const { user } = useAuthStore()
@@ -717,10 +957,12 @@ export function Products() {
 
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-  const [showInactive, setShowInactive] = useState(false)
+  const [activeFilter, setActiveFilter] = useState<'active' | 'all' | 'inactive'>('active')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const [showZipImport, setShowZipImport] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [duplicateSource, setDuplicateSource] = useState<Product | null>(null)
 
   const handleSearch = (val: string) => {
     setSearch(val)
@@ -730,15 +972,20 @@ export function Products() {
     }, 350)
   }
 
-  const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ['all-products', debouncedSearch, typeFilter, showInactive],
+  const { data: rawProducts, isLoading } = useQuery<Product[]>({
+    queryKey: ['all-products', debouncedSearch, typeFilter, activeFilter],
     queryFn: () =>
       productsApi.list({
         search: debouncedSearch || undefined,
         type: typeFilter || undefined,
-        include_inactive: isAdmin && showInactive ? true : undefined,
+        include_inactive: isAdmin && activeFilter !== 'active' ? true : undefined,
       }).then(r => r.data),
   })
+
+  // Filtra somente inativas se selecionado
+  const products = activeFilter === 'inactive'
+    ? (rawProducts || []).filter(p => !p.active)
+    : rawProducts
 
   const [sortCol, setSortCol] = useState<string>('reference')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -777,6 +1024,12 @@ export function Products() {
     setDetailProduct(prev => prev ? { ...prev, ...updated } : null)
   }
 
+  function handleDuplicate(p: Product, e: React.MouseEvent) {
+    e.stopPropagation()
+    setDuplicateSource(p)
+    setShowCreateModal(true)
+  }
+
   return (
     <div className="flex flex-col h-full">
 
@@ -787,9 +1040,17 @@ export function Products() {
         <div className="px-4 pt-3 pb-2 bg-white border-b border-outline-variant/60 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-display text-lg font-bold text-on-surface">Produtos</h2>
-            <span className="text-[12px] text-outline">
-              {isLoading ? '' : `${total} produto${total !== 1 ? 's' : ''}`}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] text-outline">
+                {isLoading ? '' : `${total} produto${total !== 1 ? 's' : ''}`}
+              </span>
+              {isAdmin && (
+                <button onClick={() => { setDuplicateSource(null); setShowCreateModal(true) }}
+                  className="flex items-center gap-1 bg-primary text-white text-[12px] font-semibold px-3 py-1.5 rounded-xl">
+                  <Plus className="h-3.5 w-3.5" /> Novo
+                </button>
+              )}
+            </div>
           </div>
           <div className="relative mb-1.5">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline" />
@@ -800,17 +1061,29 @@ export function Products() {
               className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-[12px] focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
           </div>
-          {/* Type filter chips */}
-          <div className="flex gap-2">
+          {/* Filtros mobile */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            {/* Tipo */}
             {['', 'regular', 'pack'].map(t => (
               <button key={t}
                 onClick={() => setTypeFilter(t)}
-                className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide transition-colors ${
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide transition-colors ${
                   typeFilter === t
                     ? t === 'pack' ? 'bg-violet-600 text-white' : 'bg-primary text-white'
                     : 'bg-surface-container text-on-surface-variant border border-outline-variant/60'
                 }`}>
                 {t === '' ? 'Todos' : t === 'regular' ? 'Regular' : 'Pack'}
+              </button>
+            ))}
+            {/* Status Ativas/Todas/Inativas */}
+            {isAdmin && ([['active','Ativas'],['all','Todas'],['inactive','Inativas']] as const).map(([val, label]) => (
+              <button key={val} onClick={() => setActiveFilter(val)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide transition-colors ${
+                  activeFilter === val
+                    ? val === 'inactive' ? 'bg-red-500 text-white' : 'bg-emerald-600 text-white'
+                    : 'bg-surface-container text-on-surface-variant border border-outline-variant/60'
+                }`}>
+                {label}
               </button>
             ))}
           </div>
@@ -871,6 +1144,14 @@ export function Products() {
                       {p.factory_name && (
                         <p className="text-[12px] text-outline mt-1 truncate">{p.factory_name}</p>
                       )}
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => handleDuplicate(p, e)}
+                          className="mt-2 w-full flex items-center justify-center gap-1 text-[11px] text-primary font-semibold border border-primary/30 rounded-lg py-1 hover:bg-primary/5"
+                        >
+                          <Plus className="h-3 w-3" /> Duplicar
+                        </button>
+                      )}
                     </div>
                   </button>
                 )
@@ -894,17 +1175,23 @@ export function Products() {
           <div className="flex items-center gap-2">
             {isAdmin && (
               <button
-                onClick={() => setShowInactive(v => !v)}
-                className={`flex items-center gap-1.5 text-[12px] font-semibold border rounded-lg px-3 py-1 transition-colors ${
-                  showInactive
-                    ? 'bg-red-50 border-red-300 text-red-700'
-                    : 'bg-surface-container hover:bg-surface-container-high border-outline-variant text-on-surface-variant'
-                }`}
-                title="Mostrar referências indisponíveis"
+                onClick={() => { setDuplicateSource(null); setShowCreateModal(true) }}
+                className="flex items-center gap-1.5 text-[12px] font-semibold bg-primary text-white rounded-lg px-3 py-1.5 hover:bg-primary/90 transition-colors"
               >
-                {showInactive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                <span className="hidden sm:inline">Inativas</span>
+                <Plus className="h-4 w-4" /> Novo Produto
               </button>
+            )}
+            {isAdmin && (
+              <div className="flex rounded-lg border border-outline-variant overflow-hidden text-[12px] font-semibold">
+                {([['active','Ativas'],['all','Todas'],['inactive','Inativas']] as const).map(([val, label]) => (
+                  <button key={val} onClick={() => setActiveFilter(val)}
+                    className={`px-3 py-1 transition-colors ${activeFilter === val
+                      ? val === 'inactive' ? 'bg-red-500 text-white' : 'bg-primary text-white'
+                      : 'bg-white text-on-surface-variant hover:bg-surface-container'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             )}
             <button
               onClick={() => setShowZipImport(true)}
@@ -985,7 +1272,7 @@ export function Products() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
               {sortedProducts.map(p => (
-                <ProductRow key={p.id} p={p} visibleCols={visibleCols} onOpenDetail={setDetailProduct} />
+                <ProductRow key={p.id} p={p} visibleCols={visibleCols} onOpenDetail={setDetailProduct} onDuplicate={isAdmin ? (prod) => { setDuplicateSource(prod); setShowCreateModal(true) } : undefined} />
               ))}
             </tbody>
           </table>
@@ -993,6 +1280,19 @@ export function Products() {
       )}
 
       </div> {/* end desktop view */}
+
+      {/* Modal Criar / Duplicar Produto */}
+      {showCreateModal && (
+        <CreateProductModal
+          source={duplicateSource}
+          onClose={() => { setShowCreateModal(false); setDuplicateSource(null) }}
+          onSaved={() => {
+            setShowCreateModal(false)
+            setDuplicateSource(null)
+            qc.invalidateQueries({ queryKey: ['all-products'] })
+          }}
+        />
+      )}
 
       {/* Modal detalhe produto — compartilhado mobile+desktop */}
       {detailProduct && (
