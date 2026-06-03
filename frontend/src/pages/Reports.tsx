@@ -793,7 +793,7 @@ export function Reports() {
                         </tbody>
                         <tfoot>
                           <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
-                            <td className="px-2 py-1.5 text-on-surface-variant" colSpan={isAdmin ? 10 : 9}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
+                            <td className="px-2 py-1.5 text-on-surface-variant" colSpan={8}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
                             <td className="px-2 py-1.5 text-right text-on-surface">{fmtR(sum('total_value'))}</td>
                             <td className="px-2 py-1.5 text-right text-emerald-700">{fmtR(sum('rep_commission_value'))}</td>
                             {isAdmin && <td className="px-2 py-1.5 text-right text-blue-700">{fmtR(sum('office_commission_value'))}</td>}
