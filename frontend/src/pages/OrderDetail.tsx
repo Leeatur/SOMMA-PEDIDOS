@@ -243,36 +243,23 @@ export function OrderDetail() {
 
   async function handleDownloadPdf() {
     if (!id || !order) return
-    setPdfLoading(true)
-    try {
-      const { apiClient } = await import('../api/client')
-      const resp = await apiClient.get(`/orders/${id}/pdf`, { responseType: 'blob' })
-      const url = URL.createObjectURL(new Blob([resp.data], { type: 'application/pdf' }))
-      const num = String(order.order_number).padStart(4, '0')
-      // Tenta Web Share API (mobile) — compartilha o arquivo
-      if (navigator.canShare && navigator.share) {
-        const file = new File([resp.data], `pedido-${num}.pdf`, { type: 'application/pdf' })
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: `Pedido #${num} — ${order.factory_name}`,
-            text: `Pedido #${num} de ${order.client_name} — R$ ${Number(order.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-            files: [file],
-          })
-          setPdfLoading(false)
-          return
-        }
-      }
-      // Fallback desktop: download direto
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `pedido-${num}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('PDF error:', err)
-    } finally {
-      setPdfLoading(false)
+    const num = String(order.order_number).padStart(4, '0')
+    const printUrl = `${window.location.origin}/orders/${id}/print`
+
+    // Mobile: usa Web Share API para compartilhar o link
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Pedido #${num} — ${order.factory_name}`,
+          text: `Pedido #${num} de ${order.client_name}\nValor: R$ ${Number(order.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\nVisualize/imprima como PDF:`,
+          url: printUrl,
+        })
+        return
+      } catch { /* usuario cancelou */ }
     }
+
+    // Desktop: abre página de impressão em nova aba (Ctrl+P para salvar como PDF)
+    window.open(printUrl, '_blank')
   }
 
   const { data: statuses } = useQuery<Status[]>({
@@ -1438,17 +1425,12 @@ export function OrderDetail() {
           {/* PDF */}
           <button
             onClick={handleDownloadPdf}
-            disabled={pdfLoading}
-            className="flex items-center gap-3 w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors"
+            className="flex items-center gap-3 w-full bg-orange-500 hover:bg-orange-600 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors active:scale-[0.98]"
           >
-            {pdfLoading ? (
-              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h8v1H8v-1zm0 3h5v1H8v-1zm0-6h3v1H8v-1z"/></svg>
-            )}
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current flex-shrink-0"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h8v1H8v-1zm0 3h5v1H8v-1zm0-6h3v1H8v-1z"/></svg>
             <div className="text-left">
-              <div>{pdfLoading ? 'Gerando PDF...' : '📄 Gerar e Compartilhar PDF'}</div>
-              <div className="text-xs text-orange-100">No celular abre opções de envio direto</div>
+              <div>📄 Compartilhar / Salvar PDF</div>
+              <div className="text-xs text-orange-100">Celular: compartilha link · Desktop: abre para imprimir</div>
             </div>
           </button>
 
