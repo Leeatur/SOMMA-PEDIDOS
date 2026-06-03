@@ -46,7 +46,7 @@ export function Login() {
 
         {/* Brand */}
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo-login.svg" alt="Somma Gestão Comercial" className="h-16 w-auto" />
+          <img src="/logo-somma-branco.svg" alt="Somma Gestão Comercial" className="h-20 w-auto" />
         </div>
 
         {/* Card */}

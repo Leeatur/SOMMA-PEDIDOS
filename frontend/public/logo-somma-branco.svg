@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 160" width="420" height="160">
+  <!-- 3 barras vermelhas ascendentes -->
+  <rect x="10"  y="90"  width="72" height="60" rx="4" fill="#D93D2B"/>
+  <rect x="100" y="55"  width="72" height="95" rx="4" fill="#D93D2B"/>
+  <rect x="190" y="10"  width="72" height="140" rx="4" fill="#D93D2B"/>
+
+  <!-- Texto GESTÃO COMERCIAL em branco para fundo escuro -->
+  <text x="285" y="120"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="28"
+    font-weight="600"
+    letter-spacing="2"
+    fill="#FFFFFF">GESTÃO COMERCIAL</text>
+</svg>
