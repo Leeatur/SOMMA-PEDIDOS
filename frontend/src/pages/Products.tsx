@@ -84,6 +84,7 @@ interface Product {
   image_url: string | null
   active: boolean
   blocked_sizes: string[]
+  price_table_id: string
   price_table_name: string | null
   factory_name: string | null
   grade_configs: GradeConfig[] | null
@@ -469,10 +470,12 @@ function ProductDetailModal({
         </div>
 
         <div className="space-y-1.5 text-[12px]">
-          {p.size_range && (
+          {(editing ? editForm.size_range : p.size_range) && (
             <div className="flex justify-between">
               <span className="text-outline">Tamanhos</span>
-              <span className="font-medium text-on-surface">{p.size_range}</span>
+              <span className={`font-medium ${editing ? 'text-primary' : 'text-on-surface'}`}>
+                {editing ? editForm.size_range : p.size_range}
+              </span>
             </div>
           )}
           {p.category && (
@@ -819,7 +822,19 @@ function CreateProductModal({ source, onClose, onSaved }: {
       const gradeConfigs = grade.filter(r => Object.values(r.sizes).some(v => v > 0))
 
       if (isDuplicate) {
-        await productsApi.duplicate(source!.id, form.reference)
+        // Duplicar: cria novo produto com TODOS os valores editados (não só a referência)
+        await productsApi.create({
+          price_table_id: source!.price_table_id,
+          reference: form.reference,
+          product_name: form.product_name || null,
+          model: form.model || null,
+          size_range: form.size_range || null,
+          base_price: parseFloat(form.base_price),
+          category: form.category || null,
+          observation: form.observation || null,
+          type: form.type,
+          grade_configs: gradeConfigs.length > 0 ? gradeConfigs : undefined,
+        })
       } else {
         if (!form.price_table_id) { setError('Selecione uma tabela de preços'); setSaving(false); return }
         await productsApi.create({
