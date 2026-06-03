@@ -212,19 +212,32 @@ export async function submitPortalOrder(req: Request, res: Response) {
     res.status(403).json({ error: 'Fábrica não autorizada' }); return
   }
 
-  const client = await query.call(null,
-    `INSERT INTO clients (name, trade_name, cnpj, address, city, state, zip, phone, email, rep_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-     ON CONFLICT (cnpj) DO UPDATE SET name=EXCLUDED.name, trade_name=EXCLUDED.trade_name, updated_at=NOW()
-     RETURNING id`,
-    [client_name, trade_name||null, cnpj, address||null, city||null, state||null, zip||null, phone||null, email||null, portal.rep_id]
-  ).catch(async () => {
-    // Se der conflito de CNPJ, busca o cliente existente
-    return query(`SELECT id FROM clients WHERE cnpj ILIKE $1 AND active=true LIMIT 1`, [`%${cnpj.replace(/\D/g,'')}%`])
-  })
+  // Busca cliente existente pelo CNPJ (sem precisar de constraint UNIQUE)
+  const cnpjClean = cnpj.replace(/\D/g, '')
+  const { rows: [existingClient] } = await query(
+    `SELECT id FROM clients WHERE REGEXP_REPLACE(cnpj, '[^0-9]', '', 'g') = $1 AND active=true LIMIT 1`,
+    [cnpjClean]
+  )
 
-  const clientId = (client as { rows: { id: string }[] }).rows[0]?.id
-  if (!clientId) { res.status(500).json({ error: 'Erro ao identificar cliente' }); return }
+  let clientId: string
+  if (existingClient) {
+    // Cliente já existe — atualiza dados e usa o ID existente
+    await query(
+      `UPDATE clients SET name=$1, trade_name=$2, address=$3, city=$4, state=$5, zip=$6,
+       phone=COALESCE($7, phone), email=COALESCE($8, email), updated_at=NOW() WHERE id=$9`,
+      [client_name, trade_name||null, address||null, city||null, state||null, zip||null, phone||null, email||null, existingClient.id]
+    )
+    clientId = existingClient.id
+  } else {
+    // Cliente novo — insere
+    const { rows: [newClient] } = await query(
+      `INSERT INTO clients (name, trade_name, cnpj, address, city, state, zip, phone, email, rep_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+      [client_name, trade_name||null, cnpjClean, address||null, city||null, state||null, zip||null, phone||null, email||null, portal.rep_id]
+    )
+    if (!newClient) { res.status(500).json({ error: 'Erro ao criar cliente' }); return }
+    clientId = newClient.id
+  }
 
   // Status inicial
   const { rows: [initialStatus] } = await query('SELECT id FROM order_statuses WHERE is_initial=true AND active=true LIMIT 1')
