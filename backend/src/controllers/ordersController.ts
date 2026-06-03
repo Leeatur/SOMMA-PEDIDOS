@@ -21,35 +21,40 @@ async function computeOrderTotals(
   client: PoolClient
 ) {
   let totalPieces = 0
-  let totalValue = 0
+  let totalValue = 0       // valor com desconto à vista (o que o cliente paga)
+  let totalValueFull = 0   // valor sem desconto (base de cálculo da comissão)
   const enrichedItems = []
 
   for (const item of items) {
     let itemPieces: number
     let subtotal: number
+    let subtotalFull: number  // subtotal sem desconto à vista
     let finalBoxesCount: number
     let finalSizes: Record<string, number> | null
 
     const sizesMap = item.sizes && typeof item.sizes === 'object' ? item.sizes : {}
     const sizesTotal = Object.values(sizesMap).reduce((s: number, v: unknown) => s + Number(v || 0), 0)
     const discountedPrice = item.unit_price * (1 - discountPct / 100)
+    const fullPrice = item.unit_price  // preço cheio para base de comissão
 
     if (sizesTotal > 0) {
-      // Produto regular: peças = soma dos tamanhos
+      // Produto regular
       itemPieces = sizesTotal
       subtotal = discountedPrice * itemPieces
+      subtotalFull = fullPrice * itemPieces
       finalBoxesCount = 1
       finalSizes = sizesMap
     } else if (item.custom_grade && Array.isArray(item.custom_grade) && item.custom_grade.length > 0) {
-      // Pack com grade personalizada: preço por PEÇA × total de peças
+      // Pack com grade personalizada
       itemPieces = item.custom_grade.reduce((s, gc) =>
         s + Object.values(gc.sizes || {}).reduce((ss, v) => ss + Number(v || 0), 0), 0
       )
       subtotal = Math.round(discountedPrice * itemPieces * 100) / 100
+      subtotalFull = Math.round(fullPrice * itemPieces * 100) / 100
       finalBoxesCount = 1
       finalSizes = null
     } else {
-      // Pack padrão: preço por PEÇA × total de peças (boxes × peças/caixa)
+      // Pack padrão
       const { rows: grades } = await client.query(
         'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
       )
@@ -57,12 +62,14 @@ async function computeOrderTotals(
       const boxCount = item.boxes_count || 1
       itemPieces = boxCount * piecesPerBox
       subtotal = Math.round(discountedPrice * itemPieces * 100) / 100
+      subtotalFull = Math.round(fullPrice * itemPieces * 100) / 100
       finalBoxesCount = boxCount
       finalSizes = null
     }
 
     totalPieces += itemPieces
     totalValue += subtotal
+    totalValueFull += subtotalFull
     enrichedItems.push({
       ...item,
       total_pieces: itemPieces,
@@ -73,11 +80,12 @@ async function computeOrderTotals(
     })
   }
 
-  // Comissão baseada na regra mais próxima
+  // Comissão sempre calculada sobre o preço CHEIO (sem desconto à vista)
+  // O desconto à vista é benefício do cliente, não afeta comissão do representante
   const { rows: rules } = await (client as any).query(
     `SELECT * FROM discount_commission_rules WHERE price_table_id=$1
-     ORDER BY ABS(discount_pct - $2) LIMIT 1`,
-    [priceTableId, discountPct]
+     ORDER BY discount_pct ASC LIMIT 1`,
+    [priceTableId]
   )
   const rule = rules[0] || { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }
 
@@ -88,8 +96,9 @@ async function computeOrderTotals(
     totalCommissionPct: rule.total_commission_pct,
     repCommissionPct: rule.rep_commission_pct,
     officeCommissionPct: rule.office_commission_pct,
-    repCommissionValue: Math.round(totalValue * rule.rep_commission_pct / 100 * 100) / 100,
-    officeCommissionValue: Math.round(totalValue * rule.office_commission_pct / 100 * 100) / 100,
+    // Comissão baseada no valor CHEIO (sem desconto à vista)
+    repCommissionValue: Math.round(totalValueFull * rule.rep_commission_pct / 100 * 100) / 100,
+    officeCommissionValue: Math.round(totalValueFull * rule.office_commission_pct / 100 * 100) / 100,
   }
 }
 
@@ -412,12 +421,14 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
 
   // Recalcula totais do pedido
   const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
+    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val,
+            COALESCE(SUM(unit_price * total_pieces),0) AS val_full
      FROM order_items WHERE order_id=$1`,
     [id]
   )
   const { rows: [o] } = await query('SELECT rep_commission_pct, office_commission_pct FROM orders WHERE id=$1', [id])
   const newValue = Number(totals.val)
+  const newValueFull = Number(totals.val_full)  // base de comissão = preço cheio
   await query(
     `UPDATE orders SET total_pieces=$1, total_value=$2,
        rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
@@ -425,8 +436,8 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
     [
       Number(totals.pcs),
       newValue,
-      Math.round(newValue * o.rep_commission_pct / 100 * 100) / 100,
-      Math.round(newValue * o.office_commission_pct / 100 * 100) / 100,
+      Math.round(newValueFull * o.rep_commission_pct / 100 * 100) / 100,
+      Math.round(newValueFull * o.office_commission_pct / 100 * 100) / 100,
       id,
     ]
   )
