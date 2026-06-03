@@ -474,21 +474,29 @@ export default function OrderEdit() {
       const removedIds = items.filter(it => it.removed).map(it => it.id)
       await Promise.all(removedIds.map(iid => ordersApi.removeItem(id!, iid)))
 
-      // 5. Atualizar itens modificados
+      // 5. Atualizar itens modificados (tamanhos, grade e preço unitário)
       for (const it of activeItems) {
         const origItem = order.items?.find((o: OrderItemRaw) => o.id === it.id)
         if (!origItem) continue
+
+        const priceChanged = Math.abs(it.unit_price - Number(origItem.unit_price || 0)) > 0.001
+
         if (it.type === 'regular') {
           const sizesChanged = JSON.stringify(it.draftSizes) !== JSON.stringify(origItem.sizes || {})
-          if (sizesChanged) {
-            await ordersApi.updateItem(id!, it.id, { sizes: it.draftSizes })
+          if (sizesChanged || priceChanged) {
+            await ordersApi.updateItem(id!, it.id, {
+              sizes: it.draftSizes,
+              ...(priceChanged ? { unit_price: it.unit_price } : {}),
+            })
           }
         } else {
-          // Pack: compara draftGrade com o estado inicial (custom_grade ou grade_configs × boxes)
           const origGrade = initDraftGrade(origItem)
           const gradeChanged = JSON.stringify(it.draftGrade) !== JSON.stringify(origGrade)
-          if (gradeChanged) {
-            await ordersApi.updateItem(id!, it.id, { custom_grade: it.draftGrade })
+          if (gradeChanged || priceChanged) {
+            await ordersApi.updateItem(id!, it.id, {
+              custom_grade: it.draftGrade,
+              ...(priceChanged ? { unit_price: it.unit_price } : {}),
+            })
           }
         }
       }
