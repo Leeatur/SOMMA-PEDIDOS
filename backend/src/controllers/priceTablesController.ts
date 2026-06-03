@@ -133,19 +133,8 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
             [p.id, g.color, JSON.stringify(g.sizes), total, i]
           )
         }
-      } else {
-        // Grade padrão: 1 peça por tamanho
-        const sizes = buildDefaultGrade(prod.size_range)
-        const total = Object.keys(sizes).length
-        if (total > 0) {
-          await client.query(
-            `INSERT INTO grade_configs (product_id, color, sizes, total_pieces)
-             VALUES ($1,$2,$3,$4)
-             ON CONFLICT DO NOTHING`,
-            [p.id, null, JSON.stringify(sizes), total]
-          )
-        }
       }
+      // Produtos REG não têm grade_configs — apenas size_range define os tamanhos disponíveis
       inserted++
     }
 
@@ -342,7 +331,8 @@ export async function createProduct(req: AuthRequest, res: Response) {
       [price_table_id, reference, type || 'regular', product_name || null, model || null, size_range || null, base_price, category || null, observation || null]
     )
     const product = rows[0]
-    if (grade_configs && Array.isArray(grade_configs) && grade_configs.length > 0) {
+    // Só salva grade_configs para produtos PACK (REG não usa grade)
+    if ((type === 'pack') && grade_configs && Array.isArray(grade_configs) && grade_configs.length > 0) {
       for (let i = 0; i < grade_configs.length; i++) {
         const gc = grade_configs[i]
         const totalPieces = Object.values(gc.sizes as Record<string, number>).reduce((s: number, v: unknown) => s + Number(v || 0), 0)
