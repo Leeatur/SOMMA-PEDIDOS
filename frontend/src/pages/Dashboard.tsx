@@ -179,21 +179,21 @@ export function Dashboard() {
     <div className="pb-24 lg:pb-8 min-h-full">
 
       {/* ─── Hero header ─────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#2E1065] via-[#4C1D95] to-[#6D28D9] px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10">
-        <div className="absolute -top-10 -right-10 w-52 h-52 bg-white/10 rounded-full pointer-events-none" />
-        <div className="absolute top-8 right-20 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
-        <div className="absolute -bottom-6 left-1/3 w-36 h-36 bg-white/5 rounded-full pointer-events-none" />
+      <div className="relative px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10"
+        style={{ background: 'linear-gradient(135deg, #1e0a3c 0%, #3b0764 40%, #5b21b6 100%)' }}>
+        {/* Linha decorativa sutil na base */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
 
-        <p className="text-white/70 text-[12px] font-medium">{greeting()},</p>
-        <h1 className="font-display text-[32px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
-        <p className="text-white/60 text-[12px] mt-1.5">
+        <p className="text-white/60 text-[12px] font-medium tracking-wide uppercase">{greeting()}</p>
+        <h1 className="font-display text-[34px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
+        <p className="text-white/50 text-[12px] mt-1.5">
           {isAdmin ? 'Administrador' : 'Representante'} &bull;{' '}
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
 
         <button
           onClick={() => navigate('/orders/new')}
-          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-[12px] font-semibold px-4 py-1 rounded-xl border border-white/20 transition-all backdrop-blur-sm"
+          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-[12px] font-semibold px-5 py-2 rounded-xl border border-white/15 transition-all"
         >
           <Plus className="h-4 w-4" /> Novo pedido
         </button>
