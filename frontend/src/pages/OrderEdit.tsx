@@ -699,12 +699,14 @@ export default function OrderEdit() {
               </div>
             )}
 
-            {/* Tabela de Política: Desconto × Comissão */}
+            {/* Tabela de Política: Desconto × Comissão — interativa */}
             {isAdmin && discountRules.length > 0 && (
               <div className="sm:col-span-2 lg:col-span-3">
                 <label className={labelCls}>
                   Tabela de Política — {order?.price_table_name}
-                  <span className="ml-1 text-[10px] font-normal text-outline/60 normal-case tracking-normal">(Desconto à Vista usado: {Number(order?.discount_pct || 0).toFixed(1)}%)</span>
+                  <span className="ml-1 text-[10px] font-normal text-outline/60 normal-case tracking-normal">
+                    (clique em uma linha para aplicar o desconto)
+                  </span>
                 </label>
                 <div className="overflow-x-auto border border-outline-variant/40 rounded-xl">
                   <table className="text-[12px] w-full min-w-[480px]">
@@ -718,23 +720,34 @@ export default function OrderEdit() {
                     </thead>
                     <tbody className="divide-y divide-outline-variant/20">
                       {discountRules.map((r, i) => {
-                        const isActive = Math.abs(Number(r.discount_pct) - Number(order?.discount_pct || 0)) < 0.1
+                        const currentDisc = parseFloat(form.discount_pct.replace(',', '.')) || 0
+                        const isActive = Math.abs(Number(r.discount_pct) - currentDisc) < 0.11
                         return (
-                          <tr key={i} className={isActive ? 'bg-primary/10 font-bold' : 'bg-white hover:bg-surface-container-low/50'}>
-                            <td className="px-3 py-2">
+                          <tr
+                            key={i}
+                            onClick={() => setForm(f => ({ ...f, discount_pct: String(Number(r.discount_pct)) }))}
+                            className={`cursor-pointer transition-colors ${isActive
+                              ? 'bg-primary/10 font-bold ring-1 ring-inset ring-primary/30'
+                              : 'bg-white hover:bg-primary/5'
+                            }`}
+                          >
+                            <td className="px-3 py-2.5">
                               {isActive && <span className="inline-block w-2 h-2 bg-primary rounded-full mr-2" />}
-                              {Number(r.discount_pct).toFixed(1)}%
-                              {isActive && <span className="ml-2 text-[10px] text-primary font-bold">← ESTE PEDIDO</span>}
+                              <span className={isActive ? 'text-primary' : ''}>{Number(r.discount_pct).toFixed(1)}%</span>
+                              {isActive && <span className="ml-2 text-[10px] text-primary font-bold">← SELECIONADO</span>}
                             </td>
-                            <td className="px-3 py-2 text-center">{Number(r.total_commission_pct).toFixed(1)}%</td>
-                            <td className="px-3 py-2 text-center text-emerald-700">{Number(r.rep_commission_pct).toFixed(1)}%</td>
-                            <td className="px-3 py-2 text-center text-blue-700">{Number(r.office_commission_pct).toFixed(1)}%</td>
+                            <td className="px-3 py-2.5 text-center">{Number(r.total_commission_pct).toFixed(1)}%</td>
+                            <td className="px-3 py-2.5 text-center text-emerald-700 font-semibold">{Number(r.rep_commission_pct).toFixed(1)}%</td>
+                            <td className="px-3 py-2.5 text-center text-blue-700 font-semibold">{Number(r.office_commission_pct).toFixed(1)}%</td>
                           </tr>
                         )
                       })}
                     </tbody>
                   </table>
                 </div>
+                <p className="text-[11px] text-outline mt-1">
+                  💡 A comissão é calculada sobre o preço cheio (tabela). Ao salvar, os valores serão recalculados.
+                </p>
               </div>
             )}
 

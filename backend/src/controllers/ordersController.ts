@@ -80,12 +80,12 @@ async function computeOrderTotals(
     })
   }
 
-  // Comissão sempre calculada sobre o preço CHEIO (sem desconto à vista)
-  // O desconto à vista é benefício do cliente, não afeta comissão do representante
+  // Busca a regra de comissão mais próxima do desconto aplicado (política da tabela)
+  // A comissão é calculada sobre o preço CHEIO (sem o desconto à vista)
   const { rows: rules } = await (client as any).query(
     `SELECT * FROM discount_commission_rules WHERE price_table_id=$1
-     ORDER BY discount_pct ASC LIMIT 1`,
-    [priceTableId]
+     ORDER BY ABS(discount_pct - $2) ASC LIMIT 1`,
+    [priceTableId, discountPct]
   )
   const rule = rules[0] || { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }
 
