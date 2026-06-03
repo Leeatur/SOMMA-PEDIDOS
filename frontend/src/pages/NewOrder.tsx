@@ -1417,15 +1417,6 @@ function QuickAddModal({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[95vh] overflow-hidden">
 
-        {/* ── ATENÇÃO: Observação do produto em vermelho ── */}
-        {product.observation && (
-          <div className="bg-red-600 px-5 py-3 flex items-start gap-2 flex-shrink-0">
-            <span className="text-white font-black text-[15px] flex-shrink-0">⚠️</span>
-            <p className="text-white font-bold text-[13px] leading-tight uppercase tracking-wide">
-              {product.observation}
-            </p>
-          </div>
-        )}
 
         {/* ── Info do produto ── */}
         <div className="bg-surface-container-low px-5 py-4 border-b border-outline-variant flex-shrink-0">
@@ -1578,7 +1569,17 @@ function QuickAddModal({
             </div>
           )}
 
-                    {/* ── Totais ── */}
+          {/* ── ATENÇÃO: Observação do produto ── */}
+          {product.observation && (
+            <div className="mx-0 bg-red-600 px-5 py-3 flex items-center gap-3 rounded-xl">
+              <span className="text-white text-[18px] flex-shrink-0">⚠️</span>
+              <p className="text-white font-black text-[14px] uppercase tracking-wide leading-tight">
+                {product.observation}
+              </p>
+            </div>
+          )}
+
+          {/* ── Totais ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[11px] text-outline font-medium mb-1">Preço Unit. (editável)</p>
