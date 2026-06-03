@@ -240,9 +240,11 @@ export default function OrderEdit() {
     rep_id: '',
     status_id: '',
     industry_order_number: '',
-    discount_pct: '',
+    discount_pct: '',      // desconto à vista (cash) — NÃO afeta comissão
     notes: '',
   })
+  // Desconto de política (prazo) — afeta comissão, selecionado no grid
+  const [policyDiscountPct, setPolicyDiscountPct] = useState<number>(0)
 
   // ── itens editáveis ──────────────────────────────────────────────────────────
 
@@ -301,9 +303,11 @@ export default function OrderEdit() {
       rep_id: order.rep_id || '',
       status_id: order.status_id || '',
       industry_order_number: order.industry_order_number || '',
-      discount_pct: String(order.discount_pct ?? ''),
+      discount_pct: '0',   // Desconto à Vista começa em 0 (separado do desconto de política)
       notes: order.notes || '',
     })
+    // Inicializa o desconto de política com o desconto salvo no pedido
+    setPolicyDiscountPct(Number(order.discount_pct) || 0)
     setItems((order.items || []).map((it: OrderItemRaw) => ({
       ...it,
       draftSizes: initSizes(it),
@@ -433,12 +437,15 @@ export default function OrderEdit() {
     setSaving(true)
     setSaveError('')
     try {
-      const newDiscount = parseFloat(form.discount_pct.replace(',', '.')) || 0
-      const oldDiscount = Number(order.discount_pct) || 0
+      // Desconto à Vista (cash) — só reduz preço do cliente, não afeta comissão
+      const cashDiscount = parseFloat(form.discount_pct.replace(',', '.')) || 0
+      // Desconto de Política (prazo) — afeta comissão
+      const totalDiscount = policyDiscountPct + cashDiscount
+      const oldTotalDiscount = Number(order.discount_pct) || 0
 
-      // 1. Desconto mudou → recalcula preços
-      if (isAdmin && Math.abs(newDiscount - oldDiscount) > 0.001) {
-        await ordersApi.changePriceTable(id!, order.price_table_id, newDiscount)
+      // 1. Desconto ou política mudou → recalcula preços e comissão
+      if (isAdmin && Math.abs(totalDiscount - oldTotalDiscount) > 0.001) {
+        await ordersApi.changePriceTable(id!, order.price_table_id, totalDiscount)
       }
 
       // 2. Info do cabeçalho
@@ -699,20 +706,20 @@ export default function OrderEdit() {
               </div>
             )}
 
-            {/* Tabela de Política: Desconto × Comissão — interativa */}
+            {/* Tabela de Política de Prazo — SEPARADA do Desconto à Vista */}
             {isAdmin && discountRules.length > 0 && (
               <div className="sm:col-span-2 lg:col-span-3">
                 <label className={labelCls}>
-                  Tabela de Política — {order?.price_table_name}
+                  Política de Prazo — {order?.price_table_name}
                   <span className="ml-1 text-[10px] font-normal text-outline/60 normal-case tracking-normal">
-                    (clique em uma linha para aplicar o desconto)
+                    (condições especiais a prazo — clique para selecionar)
                   </span>
                 </label>
                 <div className="overflow-x-auto border border-outline-variant/40 rounded-xl">
                   <table className="text-[12px] w-full min-w-[480px]">
                     <thead className="bg-surface-container-low border-b border-outline-variant/40">
                       <tr>
-                        <th className="px-3 py-2 text-left font-semibold text-outline">Desconto à Vista</th>
+                        <th className="px-3 py-2 text-left font-semibold text-outline">Desconto de Prazo</th>
                         <th className="px-3 py-2 text-center font-semibold text-outline">Comissão Total</th>
                         <th className="px-3 py-2 text-center font-semibold text-emerald-700">Com. Representante</th>
                         <th className="px-3 py-2 text-center font-semibold text-blue-700">Com. Escritório</th>
@@ -720,12 +727,11 @@ export default function OrderEdit() {
                     </thead>
                     <tbody className="divide-y divide-outline-variant/20">
                       {discountRules.map((r, i) => {
-                        const currentDisc = parseFloat(form.discount_pct.replace(',', '.')) || 0
-                        const isActive = Math.abs(Number(r.discount_pct) - currentDisc) < 0.11
+                        const isActive = Math.abs(Number(r.discount_pct) - policyDiscountPct) < 0.11
                         return (
                           <tr
                             key={i}
-                            onClick={() => setForm(f => ({ ...f, discount_pct: String(Number(r.discount_pct)) }))}
+                            onClick={() => setPolicyDiscountPct(Number(r.discount_pct))}
                             className={`cursor-pointer transition-colors ${isActive
                               ? 'bg-primary/10 font-bold ring-1 ring-inset ring-primary/30'
                               : 'bg-white hover:bg-primary/5'
@@ -746,7 +752,7 @@ export default function OrderEdit() {
                   </table>
                 </div>
                 <p className="text-[11px] text-outline mt-1">
-                  💡 A comissão é calculada sobre o preço cheio (tabela). Ao salvar, os valores serão recalculados.
+                  💡 Desconto de prazo afeta comissão. Desconto à Vista é separado e não afeta comissão.
                 </p>
               </div>
             )}
