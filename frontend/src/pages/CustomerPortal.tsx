@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { publicPortalApi } from '../api/client'
 import {
   ShoppingCart, Package, ChevronRight, ChevronDown, ChevronUp,
-  Plus, Minus, CheckCircle, ArrowLeft, X, Search, RefreshCw,
+  CheckCircle, ArrowLeft, X, Search, RefreshCw,
 } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -92,6 +92,7 @@ export function CustomerPortal() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [orderResult, setOrderResult] = useState<{ order_number: number; total_value: number } | null>(null)
+  const [modalProduct, setModalProduct] = useState<Product | null>(null)
 
   // Load portal info — se tem price_tables, carrega catálogo direto
   useEffect(() => {
@@ -414,8 +415,9 @@ export function CustomerPortal() {
                           {isOpen && (
                             <div className="border-t border-gray-100 p-3 grid grid-cols-2 gap-2">
                               {filtered.map(p => (
-                                <ProductCard key={p.id} product={p} onAdd={addToCart}
-                                  cartItems={cart.filter(i => i.product.id === p.id)} />
+                                <ProductCard key={p.id} product={p}
+                                  cartItems={cart.filter(i => i.product.id === p.id)}
+                                  onOpenModal={setModalProduct} />
                               ))}
                             </div>
                           )}
@@ -507,51 +509,206 @@ export function CustomerPortal() {
           </p>
         </div>
       )}
+
+      {/* Modal de produto */}
+      {modalProduct && (
+        <ProductModal
+          product={modalProduct}
+          onAdd={addToCart}
+          cartItems={cart.filter(i => i.product.id === modalProduct.id)}
+          onClose={() => setModalProduct(null)}
+        />
+      )}
     </div>
   )
 }
 
 // ─── ProductCard ─────────────────────────────────────────────────────────────
 
-function ProductCard({ product, onAdd, cartItems }: {
+// ─── ProductModal — abre ao clicar na referência ────────────────────────────
+
+function ProductModal({ product, onAdd, cartItems, onClose }: {
   product: Product
   onAdd: (p: Product, opts: { grade: GradeConfig; boxes: number } | { sizes: Record<string, number> }) => void
   cartItems: CartItem[]
+  onClose: () => void
 }) {
   const isPack = product.type === 'pack' && product.grade_configs && product.grade_configs.length > 0
   const fmtCur = (v: number) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
-
-  // ── PACK state ──
-  const [boxes, setBoxes] = useState(1)
   const grades: GradeConfig[] = product.grade_configs || []
-
-  // ── REGULAR state ──
   const availableSizes = isPack ? [] : parseSizeRange(product.size_range || '')
+
+  const [boxes, setBoxes] = useState(1)
   const [sizes, setSizes] = useState<Record<string, number>>(() =>
     Object.fromEntries(availableSizes.map(s => [s, 0]))
   )
 
-  // Pack: soma TODAS as cores × caixas (não só a 1ª cor)
   const totalPiecesPerPack = grades.reduce((s: number, g: GradeConfig) => s + g.total_pieces, 0)
   const packPieces = isPack ? totalPiecesPerPack * boxes : 0
   const regularPieces = Object.values(sizes).reduce((s, v) => s + v, 0)
   const totalPieces = isPack ? packPieces : regularPieces
   const totalPrice = product.base_price * totalPieces
-
   const inCart = cartItems.reduce((s, i) => s + i.total_pieces, 0)
-  const inCartBoxes = cartItems.reduce((s, i) => s + i.boxes, 0)
 
-  function handleAdd() {
+  function handleConfirm() {
     if (isPack && grades.length > 0) {
-      // Usa a 1ª grade como referência (todas as cores vão no pedido)
       onAdd(product, { grade: grades[0], boxes })
     } else {
       onAdd(product, { sizes })
     }
+    onClose()
   }
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
+
+        {/* Header */}
+        <div className="flex items-start gap-3 p-4 border-b border-gray-100">
+          {product.image_url && (
+            <img src={product.image_url} alt={product.reference} className="w-16 h-16 object-cover rounded-xl border border-gray-200 flex-shrink-0" />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-lg text-gray-900 leading-tight">{product.reference}</p>
+            {product.product_name && <p className="text-sm text-gray-500">{product.product_name}</p>}
+            <p className="font-bold text-purple-700 text-base mt-0.5">{fmtCur(product.base_price)}<span className="text-xs font-normal text-gray-400">/peça</span></p>
+            {inCart > 0 && <p className="text-[11px] text-green-600 font-semibold mt-0.5">✓ Já no carrinho: {inCart} peças</p>}
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full text-gray-400 hover:bg-gray-100 flex-shrink-0">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Conteúdo com scroll */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+          {/* PACK */}
+          {isPack && grades.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Grade do Pack (fechada por caixa)</p>
+              <div className="overflow-x-auto rounded-xl border border-purple-100 bg-purple-50/30">
+                <table className="min-w-full text-[12px]">
+                  <thead>
+                    <tr className="bg-purple-100/60">
+                      <th className="px-3 py-2 text-left text-purple-800 font-bold">Cor</th>
+                      {Object.keys(grades[0]?.sizes || {}).map(s => (
+                        <th key={s} className="px-2 py-2 text-center text-purple-800 font-bold">{s}</th>
+                      ))}
+                      <th className="px-3 py-2 text-center text-purple-900 font-black">Tot/cx</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-purple-100">
+                    {grades.map(g => (
+                      <tr key={g.color || 'default'} className="bg-white">
+                        <td className="px-3 py-2 font-bold text-gray-800 whitespace-nowrap">{g.color || '—'}</td>
+                        {Object.entries(g.sizes).map(([s, v]) => (
+                          <td key={s} className="px-2 py-2 text-center text-gray-700 font-medium">
+                            {Number(v) > 0 ? v : <span className="text-gray-200">—</span>}
+                          </td>
+                        ))}
+                        <td className="px-3 py-2 text-center font-black text-purple-700 text-[13px]">{g.total_pieces}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-purple-50 border-t-2 border-purple-200">
+                    <tr>
+                      <td className="px-3 py-2 font-bold text-purple-900 text-[13px]">TOTAL / cx</td>
+                      <td colSpan={Object.keys(grades[0]?.sizes || {}).length} />
+                      <td className="px-3 py-2 text-center font-black text-purple-900 text-[15px]">{totalPiecesPerPack}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Seletor de caixas */}
+              <div>
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Quantidade de caixas</p>
+                <div className="flex items-center justify-center gap-4 bg-purple-50 rounded-2xl p-4 border border-purple-100">
+                  <button onClick={() => setBoxes(Math.max(1, boxes - 1))}
+                    className="w-12 h-12 rounded-full bg-white border-2 border-purple-300 flex items-center justify-center shadow active:scale-95 text-purple-700 font-black text-xl">−</button>
+                  <div className="text-center min-w-[80px]">
+                    <p className="font-black text-4xl text-purple-700 leading-none">{boxes}</p>
+                    <p className="text-[11px] text-purple-500 mt-1">{packPieces} peças total</p>
+                  </div>
+                  <button onClick={() => setBoxes(boxes + 1)}
+                    className="w-12 h-12 rounded-full bg-white border-2 border-purple-300 flex items-center justify-center shadow active:scale-95 text-purple-700 font-black text-xl">+</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* REGULAR */}
+          {!isPack && availableSizes.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Quantidade por tamanho</p>
+              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(availableSizes.length, 5)}, 1fr)` }}>
+                {availableSizes.map(s => {
+                  const qty = sizes[s] || 0
+                  return (
+                    <div key={s} className={`flex flex-col items-center rounded-2xl border-2 overflow-hidden transition-all ${qty > 0 ? 'border-purple-500 bg-purple-50 shadow-md shadow-purple-100' : 'border-gray-200 bg-white'}`}>
+                      <p className={`text-[11px] font-bold pt-2 pb-1 ${qty > 0 ? 'text-purple-600' : 'text-gray-400'}`}>{s}</p>
+                      <button onClick={() => setSizes(prev => ({...prev, [s]: Math.max(0, (prev[s]||0)-1)}))}
+                        className="w-full py-2 text-gray-400 active:bg-gray-100 text-lg font-black leading-none">−</button>
+                      <div className={`text-2xl font-black leading-none py-1 ${qty > 0 ? 'text-purple-700' : 'text-gray-300'}`}>{qty}</div>
+                      <button onClick={() => setSizes(prev => ({...prev, [s]: (prev[s]||0)+1}))}
+                        className="w-full py-2 text-purple-500 active:bg-purple-100 text-lg font-black leading-none pb-2">+</button>
+                    </div>
+                  )
+                })}
+              </div>
+              {regularPieces > 0 && (
+                <div className="flex items-center justify-between bg-purple-50 rounded-xl px-4 py-3 border border-purple-100">
+                  <span className="font-bold text-purple-700">{regularPieces} peças</span>
+                  <span className="font-black text-purple-800 text-lg">{fmtCur(totalPrice)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer — botão confirmar */}
+        <div className="p-4 border-t border-gray-100 space-y-2">
+          {totalPieces > 0 && (
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-500">{totalPieces} peças selecionadas</span>
+              <span className="font-black text-purple-700 text-lg">{fmtCur(totalPrice)}</span>
+            </div>
+          )}
+          <button
+            onClick={handleConfirm}
+            disabled={totalPieces === 0}
+            className="w-full py-4 rounded-2xl font-black text-base transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: totalPieces > 0 ? 'linear-gradient(135deg,#16a34a,#15803d)' : '#9ca3af', color: '#fff', boxShadow: totalPieces > 0 ? '0 4px 20px rgba(22,163,74,0.4)' : 'none' }}
+          >
+            ✅ CONFIRMAR E VOLTAR AO CATÁLOGO
+          </button>
+          <button onClick={onClose} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── ProductCard — card simples, abre modal ao clicar ────────────────────────
+
+function ProductCard({ product, cartItems, onOpenModal }: {
+  product: Product
+  cartItems: CartItem[]
+  onOpenModal: (p: Product) => void
+}) {
+  const isPack = product.type === 'pack' && product.grade_configs && product.grade_configs.length > 0
+  const fmtCur = (v: number) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
+  const inCart = cartItems.reduce((s, i) => s + i.total_pieces, 0)
+  const inCartBoxes = cartItems.reduce((s, i) => s + i.boxes, 0)
+
+  return (
+    <div
+      className="border border-gray-200 rounded-xl overflow-hidden bg-white active:scale-[0.98] transition-transform cursor-pointer shadow-sm hover:shadow-md hover:border-purple-200"
+      onClick={() => onOpenModal(product)}
+    >
       {/* Imagem */}
       <div className="aspect-square bg-gray-50 overflow-hidden relative">
         {product.image_url
@@ -559,133 +716,26 @@ function ProductCard({ product, onAdd, cartItems }: {
           : <div className="w-full h-full flex items-center justify-center text-gray-200"><Package className="h-10 w-10" /></div>
         }
         {inCart > 0 && (
-          <div className="absolute top-1.5 right-1.5 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+          <div className="absolute top-1.5 right-1.5 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow">
             {isPack ? `${inCartBoxes}cx` : `${inCart}pç`}
           </div>
         )}
+        {/* Indicador de clique */}
+        <div className="absolute inset-0 bg-purple-900/0 hover:bg-purple-900/5 flex items-end justify-center pb-2 opacity-0 hover:opacity-100 transition-opacity">
+          <span className="bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Toque para abrir</span>
+        </div>
       </div>
 
-      <div className="p-2.5 space-y-2">
-        <div>
-          <p className="font-bold text-sm text-gray-900">{product.reference}</p>
-          {product.product_name && <p className="text-xs text-gray-500">{product.product_name}</p>}
-          <p className="font-bold text-purple-700 mt-0.5">{fmtCur(product.base_price)}/pç</p>
+      <div className="p-2.5">
+        <p className="font-bold text-sm text-gray-900 truncate">{product.reference}</p>
+        {product.product_name && <p className="text-xs text-gray-500 truncate">{product.product_name}</p>}
+        <div className="flex items-center justify-between mt-1.5">
+          <p className="font-bold text-purple-700 text-sm">{fmtCur(product.base_price)}/pç</p>
+          {inCart > 0
+            ? <span className="text-[10px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded-full">✓ No carrinho</span>
+            : <span className="text-[10px] bg-purple-100 text-purple-600 font-semibold px-1.5 py-0.5 rounded-full">{isPack ? 'Pack' : 'Regular'}</span>
+          }
         </div>
-
-        {/* ── PACK: grade completa fechada + caixas ── */}
-        {isPack && product.grade_configs && (
-          <div className="space-y-1.5">
-            {/* Tabela de cores e tamanhos (somente leitura) */}
-            <div className="overflow-x-auto rounded-lg border border-gray-100 bg-gray-50">
-              <table className="min-w-full text-[10px]">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-2 py-1 text-left text-gray-500 font-semibold">Cor</th>
-                    {Object.keys(product.grade_configs[0]?.sizes || {}).map(s => (
-                      <th key={s} className="px-1.5 py-1 text-center text-gray-500 font-semibold">{s}</th>
-                    ))}
-                    <th className="px-2 py-1 text-center text-purple-600 font-bold">Tot/cx</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {product.grade_configs.map(g => (
-                    <tr key={g.color || 'default'} className="bg-white">
-                      <td className="px-2 py-1 font-semibold text-gray-700 whitespace-nowrap">{g.color || '—'}</td>
-                      {Object.entries(g.sizes).map(([s, v]) => (
-                        <td key={s} className="px-1.5 py-1 text-center text-gray-600">
-                          {Number(v) > 0 ? v : <span className="text-gray-200">—</span>}
-                        </td>
-                      ))}
-                      <td className="px-2 py-1 text-center font-bold text-purple-600">{g.total_pieces}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-gray-50 border-t border-gray-200">
-                  <tr>
-                    <td className="px-2 py-1 font-bold text-gray-600 text-[11px]">Total/cx</td>
-                    <td colSpan={Object.keys(product.grade_configs[0]?.sizes || {}).length} />
-                    <td className="px-2 py-1 text-center font-black text-purple-700 text-[12px]">{totalPiecesPerPack}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            {/* Seletor de caixas — centralizado e prominente */}
-            <div className="flex items-center gap-3 bg-purple-50 rounded-xl p-2 border border-purple-100">
-              <button onClick={() => setBoxes(Math.max(1, boxes - 1))}
-                className="w-9 h-9 rounded-full bg-white border border-purple-200 flex items-center justify-center shadow-sm active:scale-95">
-                <Minus className="h-4 w-4 text-purple-600" />
-              </button>
-              <div className="flex-1 text-center">
-                <p className="font-black text-lg text-purple-700 leading-none">{boxes}</p>
-                <p className="text-[10px] text-purple-500">caixa{boxes > 1 ? 's' : ''} · {packPieces} peças</p>
-              </div>
-              <button onClick={() => setBoxes(boxes + 1)}
-                className="w-9 h-9 rounded-full bg-white border border-purple-200 flex items-center justify-center shadow-sm active:scale-95">
-                <Plus className="h-4 w-4 text-purple-600" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── REGULAR: grade de tamanhos — tabela horizontal com scroll ── */}
-        {!isPack && availableSizes.length > 0 && (
-          <div className="space-y-1.5">
-            {/* Cabeçalho dos tamanhos */}
-            <div className="overflow-x-auto -mx-1">
-              <table className="w-full" style={{ minWidth: availableSizes.length * 52 }}>
-                <thead>
-                  <tr>
-                    {availableSizes.map(s => (
-                      <th key={s} className="text-center text-[11px] font-bold text-gray-500 pb-1 px-0.5"
-                          style={{ minWidth: 48 }}>{s}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {availableSizes.map(s => {
-                      const qty = sizes[s] || 0
-                      return (
-                        <td key={s} className="px-0.5 pb-0.5">
-                          <div className={`flex flex-col items-center gap-0.5 rounded-xl border-2 overflow-hidden transition-colors ${qty > 0 ? 'border-purple-400 bg-purple-50' : 'border-gray-200 bg-white'}`}>
-                            <button
-                              onClick={() => setSizes(prev => ({...prev, [s]: Math.max(0, (prev[s]||0)-1)}))}
-                              className="w-full py-1.5 text-gray-400 active:bg-gray-100 text-sm font-bold leading-none">−</button>
-                            <div className={`text-sm font-black leading-none py-0.5 ${qty > 0 ? 'text-purple-700' : 'text-gray-300'}`}>
-                              {qty}
-                            </div>
-                            <button
-                              onClick={() => setSizes(prev => ({...prev, [s]: (prev[s]||0)+1}))}
-                              className="w-full py-1.5 text-purple-500 active:bg-purple-100 text-sm font-bold leading-none">+</button>
-                          </div>
-                        </td>
-                      )
-                    })}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            {regularPieces > 0 && (
-              <div className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-1.5">
-                <span className="text-[12px] font-semibold text-purple-700">{regularPieces} peças</span>
-                <span className="text-[12px] font-bold text-purple-700">{fmtCur(totalPrice)}</span>
-              </div>
-            )}
-            {regularPieces > 0 && regularPieces < MIN_PIECES_PER_REF && (
-              <p className="text-[10px] text-amber-600 text-center">Mínimo {MIN_PIECES_PER_REF} peças por referência</p>
-            )}
-          </div>
-        )}
-
-        {/* Botão adicionar */}
-        {totalPieces > 0 && (
-          <button onClick={handleAdd}
-            className={`w-full py-2 rounded-lg text-sm font-bold transition-all active:scale-95 ${
-              inCart > 0 ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'
-            }`}>
-            {inCart > 0 ? '✓ Atualizar' : `+ ${fmtCur(totalPrice)}`}
-          </button>
-        )}
       </div>
     </div>
   )
