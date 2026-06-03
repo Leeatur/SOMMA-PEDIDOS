@@ -470,6 +470,41 @@ export async function updateBlockedSizes(req: AuthRequest, res: Response) {
   res.json(rows[0])
 }
 
+export async function createPriceTable(req: AuthRequest, res: Response) {
+  const { factory_id, name, collection, season, year, discount_rules } = req.body
+  if (!factory_id || !name) {
+    res.status(400).json({ error: 'factory_id e name são obrigatórios' }); return
+  }
+  const dbClient = await (await import('../config/database')).pool.connect()
+  try {
+    await dbClient.query('BEGIN')
+    const { rows: [table] } = await dbClient.query(
+      `INSERT INTO price_tables (factory_id, name, collection, season, year, imported_at)
+       VALUES ($1,$2,$3,$4,$5,NOW()) RETURNING *`,
+      [factory_id, name, collection||null, season||null, year||null]
+    )
+    // Insere regras de desconto/comissão se fornecidas
+    if (discount_rules && Array.isArray(discount_rules)) {
+      for (let i = 0; i < discount_rules.length; i++) {
+        const r = discount_rules[i]
+        await dbClient.query(
+          `INSERT INTO discount_commission_rules (price_table_id, discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct, sort_order)
+           VALUES ($1,$2,$3,$4,$5,$6)`,
+          [table.id, r.discount_pct||0, r.total_commission_pct||0, r.rep_commission_pct||0, r.office_commission_pct||0, i]
+        )
+      }
+    }
+    await dbClient.query('COMMIT')
+    res.status(201).json(table)
+  } catch (err) {
+    await dbClient.query('ROLLBACK')
+    console.error('Erro criar tabela:', err)
+    res.status(500).json({ error: 'Erro ao criar tabela' })
+  } finally {
+    dbClient.release()
+  }
+}
+
 export async function updatePriceTableRules(req: AuthRequest, res: Response) {
   const { id } = req.params
   const { discount_rules, name, collection, season, year } = req.body

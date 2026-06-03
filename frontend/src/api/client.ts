@@ -110,6 +110,14 @@ export const priceTablesApi = {
   list: (factory_id?: string) =>
     apiClient.get('/price-tables', { params: { factory_id } }),
   get: (id: string) => apiClient.get(`/price-tables/${id}`),
+  create: (data: {
+    factory_id: string
+    name: string
+    collection?: string
+    season?: string
+    year?: number | null
+    discount_rules?: Array<{ discount_pct: number; total_commission_pct: number; rep_commission_pct: number; office_commission_pct: number }>
+  }) => apiClient.post('/price-tables', data),
   preview: (file: File) => {
     const fd = new FormData()
     fd.append('file', file)

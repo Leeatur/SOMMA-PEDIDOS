@@ -56,6 +56,7 @@ router.post('/factories/:id/logo', authenticate, requireAdmin, upload.single('lo
 // Tabelas de Preço
 router.get('/price-tables', authenticate, priceTables.listPriceTables)
 router.get('/price-tables/:id', authenticate, priceTables.getPriceTable)
+router.post('/price-tables', authenticate, requireAdmin, priceTables.createPriceTable)
 router.post('/price-tables/preview', authenticate, requireAdmin, upload.single('file'), priceTables.previewExcelImport)
 router.post('/price-tables/import', authenticate, requireAdmin, upload.single('file'), priceTables.confirmExcelImport)
 router.post('/price-tables/import-catalog', authenticate, requireAdmin, upload.single('file'), priceTables.importCatalog)
