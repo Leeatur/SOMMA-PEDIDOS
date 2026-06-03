@@ -196,6 +196,14 @@ export function AppLayout() {
       ════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
 
+        {/* ── Banner de Ambiente de Testes (staging only) ── */}
+        {window.location.hostname.includes('staging') && (
+          <div className="sticky top-0 z-50 bg-amber-400 text-amber-900 text-center py-1.5 px-4 text-[13px] font-black tracking-wide shadow-md flex items-center justify-center gap-2">
+            <span>⚠️</span>
+            <span>AMBIENTE DE TESTES — os dados aqui NÃO são a produção real</span>
+            <span>⚠️</span>
+          </div>
+        )}
 
         {/* ── Mobile TopBar ── */}
         <header className="lg:hidden sticky top-0 z-30 bg-on-surface border-b border-white/5 flex items-center px-4 py-2.5">
