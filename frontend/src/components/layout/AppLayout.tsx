@@ -124,8 +124,8 @@ export function AppLayout() {
         style={{ background: 'linear-gradient(180deg, #1C0A4A 0%, #160838 60%, #110530 100%)' }}
       >
         {/* Brand */}
-        <div className="flex items-center justify-between px-5 py-4 mb-2">
-          <img src="/logo-sidebar.svg" alt="Somma Gestão Comercial" className="h-10 w-auto" />
+        <div className="flex items-center justify-between px-5 py-5 mb-2">
+          <img src="/logo-somma-branco.svg" alt="Somma Gestão Comercial" className="h-14 w-auto" />
           <button className="lg:hidden p-1 text-surface-variant/50 hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
@@ -204,7 +204,7 @@ export function AppLayout() {
           </button>
           {/* Logo centralizada no mobile */}
           <div className="flex-1 flex justify-center">
-            <img src="/logo-sidebar.svg" alt="Somma" className="h-8 w-auto" />
+            <img src="/logo-somma-branco.svg" alt="Somma" className="h-9 w-auto" />
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {online
