@@ -202,7 +202,7 @@ export async function submitPortalOrder(req: Request, res: Response) {
   if (!portal) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
 
   const { cnpj, client_name, trade_name, address, city, state, zip, phone, email,
-          price_table_id, factory_id, discount_pct, notes, items } = req.body
+          price_table_id, factory_id, discount_pct, notes, items, payment_terms } = req.body
 
   if (!cnpj || !client_name || !price_table_id || !factory_id || !items?.length) {
     res.status(400).json({ error: 'Dados obrigatórios faltando' }); return
@@ -244,19 +244,37 @@ export async function submitPortalOrder(req: Request, res: Response) {
   const { rows: [initialStatus] } = await query('SELECT id FROM order_statuses WHERE is_initial=true AND active=true LIMIT 1')
 
   const discPct = parseFloat(discount_pct) || 0
+
+  // Busca regra de comissão mais próxima do desconto aplicado
+  const { rows: commRules } = await query(
+    `SELECT * FROM discount_commission_rules WHERE price_table_id=$1
+     ORDER BY ABS(discount_pct - $2) ASC LIMIT 1`,
+    [price_table_id, discPct]
+  )
+  const commRule = commRules[0] || { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }
+
+  const { rows: [repUser] } = await query('SELECT role FROM users WHERE id=$1', [portal.rep_id])
+  const isAdminRep = repUser?.role === 'admin'
+
   const { rows: [order] } = await query(
-    `INSERT INTO orders (client_id, rep_id, factory_id, price_table_id, status_id, discount_pct, notes, freight_type)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'CIF') RETURNING *`,
-    [clientId, portal.rep_id, factory_id, price_table_id, initialStatus?.id || null, discPct, notes||null]
+    `INSERT INTO orders (client_id, rep_id, factory_id, price_table_id, status_id, discount_pct, notes, freight_type,
+       payment_terms, total_commission_pct, rep_commission_pct, office_commission_pct)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,'CIF',$8,$9,$10,$11) RETURNING *`,
+    [clientId, portal.rep_id, factory_id, price_table_id, initialStatus?.id || null, discPct, notes||null,
+     payment_terms || null,
+     commRule.total_commission_pct,
+     isAdminRep ? 0 : commRule.rep_commission_pct,
+     isAdminRep ? commRule.total_commission_pct : commRule.office_commission_pct]
   )
 
-  // Insere itens
-  let totalPieces = 0; let totalValue = 0
+  // Insere itens — comissão calculada sobre o preço CHEIO (sem desconto à vista)
+  let totalPieces = 0; let totalValue = 0; let totalValueFull = 0
   for (const item of items) {
     const discountedPrice = item.unit_price * (1 - discPct/100)
     const pieces = item.total_pieces || 0
-    const subtotal = discountedPrice * pieces
-    totalPieces += pieces; totalValue += subtotal
+    const subtotal = Math.round(discountedPrice * pieces * 100) / 100
+    const subtotalFull = Math.round(item.unit_price * pieces * 100) / 100
+    totalPieces += pieces; totalValue += subtotal; totalValueFull += subtotalFull
     await query(
       `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, custom_grade)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
@@ -264,6 +282,15 @@ export async function submitPortalOrder(req: Request, res: Response) {
     )
   }
 
-  await query('UPDATE orders SET total_pieces=$1, total_value=$2 WHERE id=$3', [totalPieces, totalValue, order.id])
+  // Comissão sobre preço cheio (sem desconto à vista)
+  const repCommVal   = isAdminRep ? 0 : Math.round(totalValueFull * commRule.rep_commission_pct / 100 * 100) / 100
+  const offCommVal   = isAdminRep
+    ? Math.round(totalValueFull * commRule.total_commission_pct / 100 * 100) / 100
+    : Math.round(totalValueFull * commRule.office_commission_pct / 100 * 100) / 100
+
+  await query(
+    `UPDATE orders SET total_pieces=$1, total_value=$2, rep_commission_value=$3, office_commission_value=$4 WHERE id=$5`,
+    [totalPieces, Math.round(totalValue * 100) / 100, repCommVal, offCommVal, order.id]
+  )
   res.status(201).json({ order_id: order.id, order_number: order.order_number, total_value: totalValue })
 }
