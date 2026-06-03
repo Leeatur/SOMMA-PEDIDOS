@@ -957,7 +957,7 @@ export function Products() {
 
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-  const [showInactive, setShowInactive] = useState(false)
+  const [activeFilter, setActiveFilter] = useState<'active' | 'all' | 'inactive'>('active')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const [showZipImport, setShowZipImport] = useState(false)
@@ -972,15 +972,20 @@ export function Products() {
     }, 350)
   }
 
-  const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ['all-products', debouncedSearch, typeFilter, showInactive],
+  const { data: rawProducts, isLoading } = useQuery<Product[]>({
+    queryKey: ['all-products', debouncedSearch, typeFilter, activeFilter],
     queryFn: () =>
       productsApi.list({
         search: debouncedSearch || undefined,
         type: typeFilter || undefined,
-        include_inactive: isAdmin && showInactive ? true : undefined,
+        include_inactive: isAdmin && activeFilter !== 'active' ? true : undefined,
       }).then(r => r.data),
   })
+
+  // Filtra somente inativas se selecionado
+  const products = activeFilter === 'inactive'
+    ? (rawProducts || []).filter(p => !p.active)
+    : rawProducts
 
   const [sortCol, setSortCol] = useState<string>('reference')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -1056,17 +1061,29 @@ export function Products() {
               className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-[12px] focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
           </div>
-          {/* Type filter chips */}
-          <div className="flex gap-2">
+          {/* Filtros mobile */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            {/* Tipo */}
             {['', 'regular', 'pack'].map(t => (
               <button key={t}
                 onClick={() => setTypeFilter(t)}
-                className={`px-3.5 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide transition-colors ${
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide transition-colors ${
                   typeFilter === t
                     ? t === 'pack' ? 'bg-violet-600 text-white' : 'bg-primary text-white'
                     : 'bg-surface-container text-on-surface-variant border border-outline-variant/60'
                 }`}>
                 {t === '' ? 'Todos' : t === 'regular' ? 'Regular' : 'Pack'}
+              </button>
+            ))}
+            {/* Status Ativas/Todas/Inativas */}
+            {isAdmin && ([['active','Ativas'],['all','Todas'],['inactive','Inativas']] as const).map(([val, label]) => (
+              <button key={val} onClick={() => setActiveFilter(val)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wide transition-colors ${
+                  activeFilter === val
+                    ? val === 'inactive' ? 'bg-red-500 text-white' : 'bg-emerald-600 text-white'
+                    : 'bg-surface-container text-on-surface-variant border border-outline-variant/60'
+                }`}>
+                {label}
               </button>
             ))}
           </div>
@@ -1165,18 +1182,16 @@ export function Products() {
               </button>
             )}
             {isAdmin && (
-              <button
-                onClick={() => setShowInactive(v => !v)}
-                className={`flex items-center gap-1.5 text-[12px] font-semibold border rounded-lg px-3 py-1 transition-colors ${
-                  showInactive
-                    ? 'bg-red-50 border-red-300 text-red-700'
-                    : 'bg-surface-container hover:bg-surface-container-high border-outline-variant text-on-surface-variant'
-                }`}
-                title="Mostrar referências indisponíveis"
-              >
-                {showInactive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                <span className="hidden sm:inline">Inativas</span>
-              </button>
+              <div className="flex rounded-lg border border-outline-variant overflow-hidden text-[12px] font-semibold">
+                {([['active','Ativas'],['all','Todas'],['inactive','Inativas']] as const).map(([val, label]) => (
+                  <button key={val} onClick={() => setActiveFilter(val)}
+                    className={`px-3 py-1 transition-colors ${activeFilter === val
+                      ? val === 'inactive' ? 'bg-red-500 text-white' : 'bg-primary text-white'
+                      : 'bg-white text-on-surface-variant hover:bg-surface-container'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             )}
             <button
               onClick={() => setShowZipImport(true)}
