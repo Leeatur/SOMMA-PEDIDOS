@@ -14,6 +14,7 @@ interface Product {
   id: string; reference: string; product_name: string | null; model: string | null
   base_price: number; type: 'regular' | 'pack'; image_url: string | null
   size_range: string | null; grade_configs: GradeConfig[] | null; price_table_id: string
+  blocked_sizes: string[]
 }
 interface PriceTable {
   id: string; name: string; collection: string; season: string; year: number | null
@@ -536,7 +537,10 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
   const isPack = product.type === 'pack' && product.grade_configs && product.grade_configs.length > 0
   const fmtCur = (v: number) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
   const grades: GradeConfig[] = product.grade_configs || []
-  const availableSizes = isPack ? [] : parseSizeRange(product.size_range || '')
+  const blockedSet = new Set((product.blocked_sizes || []).map(s => s.toUpperCase()))
+  // Remove tamanhos bloqueados da lista de disponíveis
+  const allSizes = isPack ? [] : parseSizeRange(product.size_range || '')
+  const availableSizes = allSizes.filter(s => !blockedSet.has(s.toUpperCase()))
 
   const [boxes, setBoxes] = useState(1)
   const [sizes, setSizes] = useState<Record<string, number>>(() =>
@@ -617,24 +621,30 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
                   <thead>
                     <tr className="bg-purple-100/60">
                       <th className="px-3 py-2 text-left text-purple-800 font-bold">Cor</th>
-                      {Object.keys(grades[0]?.sizes || {}).map(s => (
-                        <th key={s} className="px-2 py-2 text-center text-purple-800 font-bold">{s}</th>
-                      ))}
+                      {Object.keys(grades[0]?.sizes || {})
+                        .filter(s => !blockedSet.has(s.toUpperCase()))
+                        .map(s => (
+                          <th key={s} className="px-2 py-2 text-center text-purple-800 font-bold">{s}</th>
+                        ))}
                       <th className="px-3 py-2 text-center text-purple-900 font-black">Tot/cx</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-purple-100">
-                    {grades.map(g => (
+                    {grades.map(g => {
+                      const filteredSizes = Object.entries(g.sizes).filter(([s]) => !blockedSet.has(s.toUpperCase()))
+                      const filteredTotal = filteredSizes.reduce((sum, [, v]) => sum + Number(v || 0), 0)
+                      return (
                       <tr key={g.color || 'default'} className="bg-white">
                         <td className="px-3 py-2 font-bold text-gray-800 whitespace-nowrap">{g.color || '—'}</td>
-                        {Object.entries(g.sizes).map(([s, v]) => (
+                        {filteredSizes.map(([s, v]) => (
                           <td key={s} className="px-2 py-2 text-center text-gray-700 font-medium">
                             {Number(v) > 0 ? v : <span className="text-gray-200">—</span>}
                           </td>
                         ))}
-                        <td className="px-3 py-2 text-center font-black text-purple-700 text-[13px]">{g.total_pieces}</td>
+                        <td className="px-3 py-2 text-center font-black text-purple-700 text-[13px]">{filteredTotal}</td>
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                   <tfoot className="bg-purple-50 border-t-2 border-purple-200">
                     <tr>
