@@ -303,11 +303,14 @@ export default function OrderEdit() {
       rep_id: order.rep_id || '',
       status_id: order.status_id || '',
       industry_order_number: order.industry_order_number || '',
-      discount_pct: '0',   // Desconto à Vista começa em 0 (separado do desconto de política)
+      // Desconto à Vista = desconto salvo no pedido (assume que era à vista, não de prazo)
+      // Política de Prazo começa em 0 — admin seleciona no grid se quiser aplicar
+      discount_pct: String(order.discount_pct ?? '0'),
       notes: order.notes || '',
     })
-    // Inicializa o desconto de política com o desconto salvo no pedido
-    setPolicyDiscountPct(Number(order.discount_pct) || 0)
+    // Política de Prazo começa em 0 (separado do Desconto à Vista)
+    // O usuário seleciona explicitamente clicando no grid se quiser aplicar desconto de prazo
+    setPolicyDiscountPct(0)
     setItems((order.items || []).map((it: OrderItemRaw) => ({
       ...it,
       draftSizes: initSizes(it),
