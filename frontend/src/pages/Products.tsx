@@ -726,7 +726,6 @@ function CreateProductModal({ source, onClose, onSaved }: {
   onClose: () => void
   onSaved: () => void
 }) {
-  const qc = useQueryClient()
   const isDuplicate = !!source
 
   // Busca tabelas de preço para seleção

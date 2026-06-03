@@ -214,7 +214,7 @@ export function OrderDetail() {
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
   const [deleteModal, setDeleteModal] = useState(false)
   const [shareModal, setShareModal] = useState(false)
-  const [pdfLoading, setPdfLoading] = useState(false)
+
   const [editInfoModal, setEditInfoModal] = useState(false)
   const [editInfoForm, setEditInfoForm] = useState<EditInfoForm>({
     payment_terms: '',

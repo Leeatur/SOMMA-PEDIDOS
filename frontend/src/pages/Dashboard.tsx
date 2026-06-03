@@ -873,7 +873,7 @@ export function Dashboard() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-[12px] font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
-                    <p className="text-[10px] text-outline">{(() => { const d = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date(o.created_at)); const [y,m,day]=d.split('-'); return `${day}/${m}` })()}</p>
+                    <p className="text-[10px] text-outline">{(() => { const d = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date(o.created_at)); const [,m,day]=d.split('-'); return `${day}/${m}` })()}</p>
                   </div>
                 </button>
               ))}
