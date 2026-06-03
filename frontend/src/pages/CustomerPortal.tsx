@@ -32,8 +32,16 @@ interface CartItem {
   subtotal: number
 }
 
-const MIN_ORDER_VALUE = 0
+const MIN_ORDER_VALUE = 2500
 const MIN_PIECES_PER_REF = 1
+
+const PAYMENT_OPTIONS = [
+  { label: 'À Vista (3% desconto)',         value: 'À Vista',                  discount: 3 },
+  { label: '30/60/90 Dias',                  value: '30/60/90 Dias',            discount: 0 },
+  { label: '30/60/90/120 Dias',              value: '30/60/90/120 Dias',        discount: 0 },
+  { label: '30/45/60/75/90 Dias',            value: '30/45/60/75/90 Dias',      discount: 0 },
+  { label: '30/45/60/75/90/105/120 Dias',    value: '30/45/60/75/90/105/120',   discount: 0 },
+]
 
 const SIZE_ORDER = ['RN','PP','XP','P','M','G','GG','XG','EXG','2XG','3XG','4XG',
   '34','36','38','40','42','44','46','48','50','52','54','56','58','60','U']
@@ -94,6 +102,7 @@ export function CustomerPortal() {
   const [submitting, setSubmitting] = useState(false)
   const [orderResult, setOrderResult] = useState<{ order_number: number; total_value: number } | null>(null)
   const [modalProduct, setModalProduct] = useState<Product | null>(null)
+  const [selectedPayment, setSelectedPayment] = useState(PAYMENT_OPTIONS[0])
 
   // Load portal info — se tem price_tables, carrega catálogo direto
   useEffect(() => {
@@ -190,13 +199,15 @@ export function CustomerPortal() {
     setCart(cart.filter(i => `${i.product.id}_${i.grade?.color || 'regular'}` !== key))
   }
 
-  const cartTotal = cart.reduce((s, i) => s + i.subtotal, 0)
+  const cartSubtotal = cart.reduce((s, i) => s + i.subtotal, 0)
+  const cartDiscount = selectedPayment.discount  // % desconto à vista
+  const cartTotal = cartSubtotal * (1 - cartDiscount / 100)
   const cartPieces = cart.reduce((s, i) => s + i.total_pieces, 0)
 
   async function handleSubmit() {
     if (!cart.length || !clientData) return
-    if (cartTotal < MIN_ORDER_VALUE) {
-      alert(`Pedido mínimo de ${fmtR(MIN_ORDER_VALUE)}. Seu pedido está em ${fmtR(cartTotal)}.`)
+    if (cartSubtotal < MIN_ORDER_VALUE) {
+      alert(`Pedido mínimo de ${fmtR(MIN_ORDER_VALUE)}. Seu pedido está em ${fmtR(cartSubtotal)}.`)
       return
     }
     // Pega a tabela de preço do primeiro item do carrinho
@@ -229,7 +240,8 @@ export function CustomerPortal() {
         email: clientData.email,
         price_table_id: table.id,
         factory_id: factoryId,
-        discount_pct: 0,
+        discount_pct: selectedPayment.discount,
+        payment_terms: selectedPayment.value,
         items,
       })
       setOrderResult(r.data)
@@ -458,9 +470,46 @@ export function CustomerPortal() {
                 </div>
               </div>
             ))}
-            <div className="bg-gray-100 rounded-xl p-3 flex items-center justify-between">
-              <span className="font-semibold text-gray-700">Total ({cartPieces} peças)</span>
-              <span className="font-bold text-purple-700 text-lg">{fmtR(cartTotal)}</span>
+            {/* Prazo de Pagamento */}
+            <div className="bg-white rounded-xl border border-gray-200 p-3 space-y-2">
+              <p className="font-semibold text-sm text-gray-800">💳 Condição de Pagamento</p>
+              <div className="space-y-1.5">
+                {PAYMENT_OPTIONS.map(opt => (
+                  <label key={opt.value} className={`flex items-center justify-between gap-3 p-2.5 rounded-xl border-2 cursor-pointer transition-all ${selectedPayment.value === opt.value ? 'border-purple-500 bg-purple-50' : 'border-gray-200 bg-white'}`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${selectedPayment.value === opt.value ? 'border-purple-500 bg-purple-500' : 'border-gray-300'}`}>
+                        {selectedPayment.value === opt.value && <div className="w-2 h-2 bg-white rounded-full m-auto mt-0.5" />}
+                      </div>
+                      <span className={`text-sm font-medium ${selectedPayment.value === opt.value ? 'text-purple-700' : 'text-gray-700'}`}>{opt.label}</span>
+                    </div>
+                    {opt.discount > 0 && (
+                      <span className="text-[11px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">−{opt.discount}%</span>
+                    )}
+                    <input type="radio" className="hidden" checked={selectedPayment.value === opt.value} onChange={() => setSelectedPayment(opt)} />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Totais */}
+            <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>Subtotal ({cartPieces} peças)</span>
+                <span>{fmtR(cartSubtotal)}</span>
+              </div>
+              {selectedPayment.discount > 0 && (
+                <div className="flex items-center justify-between text-sm text-green-700">
+                  <span>Desconto à Vista ({selectedPayment.discount}%)</span>
+                  <span>− {fmtR(cartSubtotal * selectedPayment.discount / 100)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between font-bold text-base border-t border-gray-200 pt-1.5 mt-1.5">
+                <span className="text-gray-800">Total</span>
+                <span className="text-purple-700 text-lg">{fmtR(cartTotal)}</span>
+              </div>
+              {cartSubtotal < MIN_ORDER_VALUE && (
+                <p className="text-[11px] text-amber-600 text-center">⚠️ Mínimo {fmtR(MIN_ORDER_VALUE)} · faltam {fmtR(MIN_ORDER_VALUE - cartSubtotal)}</p>
+              )}
             </div>
           </div>
         )}
@@ -493,16 +542,18 @@ export function CustomerPortal() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-3 pb-4 safe-bottom space-y-2">
           <button
             onClick={handleSubmit}
-            disabled={submitting || !cart.length}
+            disabled={submitting || !cart.length || cartSubtotal < MIN_ORDER_VALUE}
             className="w-full text-white py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              background: 'linear-gradient(135deg, #059669, #047857)',
-              boxShadow: '0 4px 20px rgba(5,150,105,0.4)'
+              background: cartSubtotal < MIN_ORDER_VALUE ? '#9ca3af' : 'linear-gradient(135deg, #059669, #047857)',
+              boxShadow: cartSubtotal >= MIN_ORDER_VALUE ? '0 4px 20px rgba(5,150,105,0.4)' : 'none'
             }}
           >
             {submitting
               ? <><RefreshCw className="h-5 w-5 animate-spin" /> Enviando pedido...</>
-              : <><CheckCircle className="h-5 w-5" /> Finalizar e Enviar Pedido</>
+              : cartSubtotal < MIN_ORDER_VALUE
+                ? `⚠️ Mínimo ${fmtR(MIN_ORDER_VALUE)}`
+                : <><CheckCircle className="h-5 w-5" /> Finalizar e Enviar Pedido</>
             }
           </button>
           <p className="text-center text-[11px] text-gray-400">
