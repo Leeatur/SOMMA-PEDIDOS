@@ -17,7 +17,7 @@ import {
   X,
   BarChart2,
   Trash2,
-  ChevronDown,
+
   MapPin,
   Link2,
 } from 'lucide-react'
@@ -196,45 +196,6 @@ export function AppLayout() {
       ════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
 
-        {/* ── Desktop TopBar ── fundo navy igual à sidebar */}
-        <header className="hidden lg:flex h-topbar sticky top-0 z-40 items-center px-8 shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #1A1F2E 0%, #2E1065 50%, #1A1F2E 100%)' }}>
-          {/* Espaço esquerdo para balancear */}
-          <div className="flex-1" />
-
-          {/* Logo centralizada — versão clara para fundo escuro */}
-          <div className="flex items-center gap-4">
-            <svg viewBox="0 0 38 42" width="52" height="58" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="40" width="38" height="2" rx="1" fill="#E07B27" opacity="0.3"/>
-              <rect x="1" y="28" width="9" height="14" rx="2.5" fill="#E07B27"/>
-              <rect x="14" y="18" width="9" height="24" rx="2.5" fill="#E07B27"/>
-              <rect x="27" y="7" width="9" height="35" rx="2.5" fill="#E07B27"/>
-              <polyline points="27,11 31.5,3 36,11" fill="none" stroke="#E07B27" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <div>
-              <p className="text-[34px] font-black text-white leading-none tracking-wide">SOMMA</p>
-              <p className="text-[11px] font-semibold text-white/50 tracking-[3px] leading-none mt-1">GESTÃO COMERCIAL</p>
-            </div>
-          </div>
-
-          {/* Lado direito: usuário */}
-          <div className="flex-1 flex justify-end items-center gap-3">
-            <div className="h-5 w-px bg-white/20" />
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2.5 hover:bg-white/10 px-3 py-1.5 rounded-xl transition-colors"
-            >
-              <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0 border border-white/20">
-                <span className="text-[13px] font-black text-white">{user?.name?.charAt(0).toUpperCase()}</span>
-              </div>
-              <div className="text-left">
-                <p className="text-[12px] font-semibold text-white leading-none">{user?.name}</p>
-                <p className="text-[12px] text-white/60 mt-0.5">{user?.role === 'admin' ? 'Administrador' : 'Representante'}</p>
-              </div>
-              <ChevronDown className="h-3.5 w-3.5 text-white/60" />
-            </button>
-          </div>
-        </header>
 
         {/* ── Mobile TopBar ── */}
         <header className="lg:hidden sticky top-0 z-30 bg-on-surface border-b border-white/5 flex items-center px-4 py-2.5">
