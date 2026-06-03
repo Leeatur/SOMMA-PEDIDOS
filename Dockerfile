@@ -2,7 +2,7 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Copia tudo e faz o build
+# Build cache bust: 2026-06-02-2241
 COPY . .
 
 RUN npm run build
