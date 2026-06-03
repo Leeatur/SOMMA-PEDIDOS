@@ -6,7 +6,7 @@ import {
   Loader2, Eye, Printer, Check,
 } from 'lucide-react'
 import {
-  ordersApi, clientsApi, usersApi, statusesApi, productsApi,
+  ordersApi, clientsApi, usersApi, statusesApi, productsApi, priceTablesApi,
 } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { formatCurrency, formatOrderNumber } from '../utils/format'
@@ -216,6 +216,14 @@ export default function OrderEdit() {
     queryFn: () => usersApi.list().then(r => r.data),
     enabled: isAdmin,
   })
+
+  // Tabela de política (desconto × comissão) da tabela de preço do pedido
+  const { data: priceTableDetail } = useQuery<{ discount_rules: Array<{ discount_pct: number; total_commission_pct: number; rep_commission_pct: number; office_commission_pct: number }> }>({
+    queryKey: ['price-table-detail', order?.price_table_id],
+    queryFn: () => priceTablesApi.get(order!.price_table_id).then(r => r.data),
+    enabled: !!order?.price_table_id,
+  })
+  const discountRules = priceTableDetail?.discount_rules || []
 
   // (desconto picker removido temporariamente para debug)
 
@@ -688,6 +696,45 @@ export default function OrderEdit() {
                 <input className={inputCls} value={form.discount_pct} inputMode="decimal"
                   onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))}
                   placeholder="0,00" />
+              </div>
+            )}
+
+            {/* Tabela de Política: Desconto × Comissão */}
+            {isAdmin && discountRules.length > 0 && (
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className={labelCls}>
+                  Tabela de Política — {order?.price_table_name}
+                  <span className="ml-1 text-[10px] font-normal text-outline/60 normal-case tracking-normal">(Desconto à Vista usado: {Number(order?.discount_pct || 0).toFixed(1)}%)</span>
+                </label>
+                <div className="overflow-x-auto border border-outline-variant/40 rounded-xl">
+                  <table className="text-[12px] w-full min-w-[480px]">
+                    <thead className="bg-surface-container-low border-b border-outline-variant/40">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-outline">Desconto à Vista</th>
+                        <th className="px-3 py-2 text-center font-semibold text-outline">Comissão Total</th>
+                        <th className="px-3 py-2 text-center font-semibold text-emerald-700">Com. Representante</th>
+                        <th className="px-3 py-2 text-center font-semibold text-blue-700">Com. Escritório</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/20">
+                      {discountRules.map((r, i) => {
+                        const isActive = Math.abs(Number(r.discount_pct) - Number(order?.discount_pct || 0)) < 0.1
+                        return (
+                          <tr key={i} className={isActive ? 'bg-primary/10 font-bold' : 'bg-white hover:bg-surface-container-low/50'}>
+                            <td className="px-3 py-2">
+                              {isActive && <span className="inline-block w-2 h-2 bg-primary rounded-full mr-2" />}
+                              {Number(r.discount_pct).toFixed(1)}%
+                              {isActive && <span className="ml-2 text-[10px] text-primary font-bold">← ESTE PEDIDO</span>}
+                            </td>
+                            <td className="px-3 py-2 text-center">{Number(r.total_commission_pct).toFixed(1)}%</td>
+                            <td className="px-3 py-2 text-center text-emerald-700">{Number(r.rep_commission_pct).toFixed(1)}%</td>
+                            <td className="px-3 py-2 text-center text-blue-700">{Number(r.office_commission_pct).toFixed(1)}%</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 

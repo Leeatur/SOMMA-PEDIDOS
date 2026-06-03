@@ -244,22 +244,24 @@ export function OrderDetail() {
   async function handleDownloadPdf() {
     if (!id || !order) return
     const num = String(order.order_number).padStart(4, '0')
-    const printUrl = `${window.location.origin}/orders/${id}/print`
+    // Endpoint que gera HTML rico do pedido, com botão "Salvar como PDF"
+    const pdfUrl = `/api/orders/${id}/pdf`
+    const fullPdfUrl = `${window.location.origin}${pdfUrl}`
 
-    // Mobile: usa Web Share API para compartilhar o link
+    // Mobile: usa Web Share API para compartilhar o link direto do PDF
     if (navigator.share) {
       try {
         await navigator.share({
           title: `Pedido #${num} — ${order.factory_name}`,
-          text: `Pedido #${num} de ${order.client_name}\nValor: R$ ${Number(order.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\nVisualize/imprima como PDF:`,
-          url: printUrl,
+          text: `Pedido #${num} de ${order.client_name} — R$ ${Number(order.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+          url: fullPdfUrl,
         })
         return
       } catch { /* usuario cancelou */ }
     }
 
-    // Desktop: abre com ?autoprint=1 → diálogo de salvar como PDF aparece automaticamente
-    window.open(`${printUrl}?autoprint=1`, '_blank')
+    // Desktop: abre página do pedido em nova aba — botão "Salvar como PDF" bem visível no topo
+    window.open(fullPdfUrl, '_blank')
   }
 
   const { data: statuses } = useQuery<Status[]>({
