@@ -4,6 +4,7 @@ import { BarChart2, ChevronDown, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
+import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
 
 // ─── formatters ──────────────────────────────────────────────────────────────
 
@@ -110,6 +111,23 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
     </th>
   )
 }
+
+// ─── Definições de colunas — Comissões ───────────────────────────────────────
+const COMM_COL_DEFS: ColumnDef[] = [
+  { id: 'data',           label: 'Data',          alwaysVisible: true },
+  { id: 'vendedor',       label: 'Vendedor' },
+  { id: 'industria',      label: 'Indústria' },
+  { id: 'nr_fabrica',     label: 'Nr. Fábrica' },
+  { id: 'razao_social',   label: 'Razão Social',  alwaysVisible: true },
+  { id: 'nome_fantasia',  label: 'Nome Fantasia' },
+  { id: 'cidade',         label: 'Cidade' },
+  { id: 'uf',             label: 'UF' },
+  { id: 'valor',          label: 'Valor',         alwaysVisible: true },
+  { id: 'com_rep',        label: 'Com. Rep' },
+  { id: 'com_escr',       label: 'Com. Escr.' },
+  { id: 'faturado',       label: 'Faturado' },
+  { id: 'a_faturar',      label: 'A Faturar' },
+]
 
 function Td({ children, right, bold }: { children: React.ReactNode; right?: boolean; bold?: boolean }) {
   return (
@@ -457,6 +475,11 @@ export function Reports() {
   const [factoryId, setFactoryId] = useState('')
   const [repId, setRepId] = useState('')
 
+  // Configuração de colunas — Comissões
+  const commColDefs = COMM_COL_DEFS.filter(c => c.id !== 'com_escr' || isAdmin)
+  const { orderedDefs: commCols, config: commConfig, save: saveCommCols, reset: resetCommCols } = useColumnConfig('report-commissions', commColDefs)
+  const colVisible = (id: string) => commCols.find(c => c.id === id)?.visible !== false
+
   // Catalog-specific filters
   const [catalogFactoryId, setCatalogFactoryId] = useState('')
   const [catalogPriceTableId, setCatalogPriceTableId] = useState('')
@@ -736,64 +759,51 @@ export function Reports() {
                 const fmtPct = (v: number) => `${Number(v || 0).toFixed(2).replace('.', ',')}%`
                 return (
                   <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                    {/* Botão configurar colunas */}
+                    <div className="flex justify-end px-3 py-1.5 border-b border-outline-variant/30 bg-surface-container-low/30">
+                      <ColumnConfigButton defs={commColDefs} config={commConfig} onSave={saveCommCols} onReset={resetCommCols} />
+                    </div>
                     <div className="overflow-x-auto">
-                      <table className="text-[12px]" style={{ minWidth: 1100 }}>
+                      <table className="text-[12px]" style={{ minWidth: 800 }}>
                         <thead className="bg-surface-container-low">
                           <tr>
-                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Data</th>
-                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Vendedor</th>
-                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Indústria</th>
-                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nr. Fábrica</th>
+                            {colVisible('data') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Data</th>}
+                            {colVisible('vendedor') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Vendedor</th>}
+                            {colVisible('industria') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Indústria</th>}
+                            {colVisible('nr_fabrica') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nr. Fábrica</th>}
                             <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant">Razão Social</th>
                             <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant">Nome Fantasia</th>
-                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Cidade</th>
-                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">UF</th>
-                            <th className="px-2 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Valor</th>
-                            <th className="px-2 py-1.5 text-right font-semibold text-emerald-700 whitespace-nowrap">Com. Rep</th>
-                            {isAdmin && <th className="px-2 py-1.5 text-right font-semibold text-blue-700 whitespace-nowrap">Com. Escr.</th>}
-                            <th className="px-2 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Faturado</th>
-                            <th className="px-2 py-1.5 text-right font-semibold text-orange-600 whitespace-nowrap">A Faturar</th>
+                            {colVisible('cidade') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Cidade</th>}
+                            {colVisible('uf') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">UF</th>}
+                            {colVisible('valor') && <th className="px-2 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Valor</th>}
+                            {colVisible('com_rep') && <th className="px-2 py-1.5 text-right font-semibold text-emerald-700 whitespace-nowrap">Com. Rep</th>}
+                            {colVisible('com_escr') && isAdmin && <th className="px-2 py-1.5 text-right font-semibold text-blue-700 whitespace-nowrap">Com. Escr.</th>}
+                            {colVisible('faturado') && <th className="px-2 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Faturado</th>}
+                            {colVisible('a_faturar') && <th className="px-2 py-1.5 text-right font-semibold text-orange-600 whitespace-nowrap">A Faturar</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                           {rows.map(r => (
                             <tr key={r.id} className="hover:bg-surface-container-low/50 cursor-pointer" onClick={() => window.open(`/orders/${r.id}`, '_self')}>
-                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>
-                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.vendedor}</td>
-                              <td className="px-2 py-1 whitespace-nowrap font-medium text-on-surface">{r.industria}</td>
-                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.nr_ped_fabrica || '—'}</td>
-                              <td className="px-2 py-1 max-w-[160px]">
-                                <span className="block truncate text-on-surface font-medium" title={r.razao_social}>{r.razao_social}</span>
-                              </td>
-                              <td className="px-2 py-1 max-w-[130px]">
-                                <span className="block truncate text-on-surface-variant" title={r.cliente || ''}>{r.cliente || '—'}</span>
-                              </td>
-                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>
-                              <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.uf || '—'}</td>
-                              <td className="px-2 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>
-                              <td className="px-2 py-1 text-right whitespace-nowrap">
-                                <span className="font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</span>
-                                <span className="text-emerald-600/70 ml-0.5 text-[12px]">({fmtPct(r.rep_commission_pct)})</span>
-                              </td>
-                              {isAdmin && (
-                                <td className="px-2 py-1 text-right whitespace-nowrap">
-                                  <span className="font-bold text-blue-700">{fmtR(r.office_commission_value)}</span>
-                                  <span className="text-blue-600/70 ml-0.5 text-[12px]">({fmtPct(r.office_commission_pct)})</span>
-                                </td>
-                              )}
-                              <td className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
-                              <td className="px-2 py-1 text-right whitespace-nowrap">
-                                {Number(r.falta_faturar) > 0
-                                  ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span>
-                                  : <span className="text-on-surface-variant/50">—</span>
-                                }
-                              </td>
+                              {colVisible('data') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>}
+                              {colVisible('vendedor') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.vendedor}</td>}
+                              {colVisible('industria') && <td className="px-2 py-1 whitespace-nowrap font-medium text-on-surface">{r.industria}</td>}
+                              {colVisible('nr_fabrica') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.nr_ped_fabrica || '—'}</td>}
+                              {colVisible('razao_social') && <td className="px-2 py-1 max-w-[160px]"><span className="block truncate text-on-surface font-medium" title={r.razao_social}>{r.razao_social}</span></td>}
+                              {colVisible('nome_fantasia') && <td className="px-2 py-1 max-w-[130px]"><span className="block truncate text-on-surface-variant" title={r.cliente || ''}>{r.cliente || '—'}</span></td>}
+                              {colVisible('cidade') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>}
+                              {colVisible('uf') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.uf || '—'}</td>}
+                              {colVisible('valor') && <td className="px-2 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>}
+                              {colVisible('com_rep') && <td className="px-2 py-1 text-right whitespace-nowrap"><span className="font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</span><span className="text-emerald-600/70 ml-0.5 text-[12px]">({fmtPct(r.rep_commission_pct)})</span></td>}
+                              {colVisible('com_escr') && isAdmin && <td className="px-2 py-1 text-right whitespace-nowrap"><span className="font-bold text-blue-700">{fmtR(r.office_commission_value)}</span><span className="text-blue-600/70 ml-0.5 text-[12px]">({fmtPct(r.office_commission_pct)})</span></td>}
+                              {colVisible('faturado') && <td className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>}
+                              {colVisible('a_faturar') && <td className="px-2 py-1 text-right whitespace-nowrap">{Number(r.falta_faturar) > 0 ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span> : <span className="text-on-surface-variant/50">—</span>}</td>}
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
                           <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
-                            <td className="px-2 py-1.5 text-on-surface-variant" colSpan={8}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
+                            <td className="px-2 py-1.5 text-on-surface-variant" colSpan={['data','vendedor','industria','nr_fabrica','razao_social','nome_fantasia','cidade','uf'].filter(colVisible).length}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
                             <td className="px-2 py-1.5 text-right text-on-surface">{fmtR(sum('total_value'))}</td>
                             <td className="px-2 py-1.5 text-right text-emerald-700">{fmtR(sum('rep_commission_value'))}</td>
                             {isAdmin && <td className="px-2 py-1.5 text-right text-blue-700">{fmtR(sum('office_commission_value'))}</td>}
