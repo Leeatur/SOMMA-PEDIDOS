@@ -748,7 +748,6 @@ export function Reports() {
                             <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant">Nome Fantasia</th>
                             <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Cidade</th>
                             <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">UF</th>
-                            <th className="px-2 py-1.5 text-center font-semibold text-violet-700 whitespace-nowrap">Política</th>
                             <th className="px-2 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Valor</th>
                             <th className="px-2 py-1.5 text-right font-semibold text-emerald-700 whitespace-nowrap">Com. Rep</th>
                             {isAdmin && <th className="px-2 py-1.5 text-right font-semibold text-blue-700 whitespace-nowrap">Com. Escr.</th>}
@@ -771,16 +770,6 @@ export function Reports() {
                               </td>
                               <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>
                               <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.uf || '—'}</td>
-                              <td className="px-2 py-1 text-center whitespace-nowrap">
-                                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
-                                  Number(r.discount_pct) === 0 ? 'bg-blue-50 text-blue-700' :
-                                  Number(r.discount_pct) <= 5 ? 'bg-amber-50 text-amber-700' :
-                                  Number(r.discount_pct) <= 8 ? 'bg-orange-50 text-orange-700' :
-                                  'bg-red-50 text-red-700'
-                                }`}>
-                                  {Number(r.discount_pct) > 0 ? `${Number(r.discount_pct).toFixed(1)}%` : '0%'}
-                                </span>
-                              </td>
                               <td className="px-2 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>
                               <td className="px-2 py-1 text-right whitespace-nowrap">
                                 <span className="font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</span>

@@ -134,6 +134,8 @@ interface Product {
   image_url: string | null
   size_range: string | null
   grade_configs: GradeConfig[] | null
+  active: boolean
+  blocked_sizes: string[]
 }
 
 interface CartItem {
@@ -192,12 +194,15 @@ function SizeGrid({
   sizes,
   onChange,
   onRemove,
+  blockedSizes = [],
 }: {
   sizes: Record<string, number>
   onChange: (size: string, value: number) => void
   onRemove: () => void
+  blockedSizes?: string[]
 }) {
   const sizeKeys = sortSizes(Object.keys(sizes))
+  const blocked = new Set(blockedSizes.map(s => s.toUpperCase()))
   const total = Object.values(sizes).reduce((s, v) => s + (v || 0), 0)
 
   return (
@@ -211,20 +216,32 @@ function SizeGrid({
           <Trash2 className="h-3 w-3" /> Remover
         </button>
       </div>
+      {blockedSizes.length > 0 && (
+        <p className="text-[11px] text-amber-600 mb-1.5">
+          🚫 Tamanhos bloqueados: {blockedSizes.join(', ')}
+        </p>
+      )}
       <div className="overflow-x-auto">
         <table className="text-[12px] size-grid-table">
           <thead>
             <tr>
               {sizeKeys.map(s => (
-                <th key={s} className="px-1 pb-0.5 text-center text-outline font-medium min-w-[36px]">{s}</th>
+                <th key={s} className={`px-1 pb-0.5 text-center font-medium min-w-[36px] ${blocked.has(s.toUpperCase()) ? 'text-red-300 line-through' : 'text-outline'}`}>{s}</th>
               ))}
               <th className="px-1 pb-0.5 text-center text-primary font-bold pl-2">Total</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              {sizeKeys.map((s, idx) => (
+              {sizeKeys.map((s, idx) => {
+                const isBlocked = blocked.has(s.toUpperCase())
+                return (
                 <td key={s} className="px-0.5">
+                  {isBlocked ? (
+                    <div className="w-9 h-7 flex items-center justify-center bg-red-50 border border-red-200 rounded text-[11px] text-red-300 font-bold cursor-not-allowed" title={`Tamanho ${s} bloqueado`}>
+                      🚫
+                    </div>
+                  ) : (
                   <input
                     type="number"
                     inputMode="numeric"
@@ -245,8 +262,10 @@ function SizeGrid({
                     }}
                     className="w-9 h-7 text-center border border-outline-variant rounded text-[12px] font-bold focus:outline-none focus:ring-1 focus:ring-primary focus:border-indigo-400 bg-white"
                   />
+                  )}
                 </td>
-              ))}
+                )
+              })}
               <td className="px-1 pl-2 text-center font-bold text-primary text-[12px]">{total}</td>
             </tr>
           </tbody>
@@ -420,9 +439,13 @@ export function NewOrder() {
   }
 
   function updateSize(productId: string, size: string, value: number) {
-    setCart(cart.map(c =>
-      c.product.id === productId ? { ...c, sizes: { ...c.sizes, [size]: Math.max(0, value) } } : c
-    ))
+    setCart(cart.map(c => {
+      if (c.product.id !== productId) return c
+      // Não permite lançar quantidade em tamanhos bloqueados
+      const blocked = new Set((c.product.blocked_sizes || []).map(s => s.toUpperCase()))
+      if (blocked.has(size.toUpperCase())) return c
+      return { ...c, sizes: { ...c.sizes, [size]: Math.max(0, value) } }
+    }))
   }
 
   function updateBoxCount(productId: string, delta: number) {
@@ -877,6 +900,7 @@ export function NewOrder() {
                             sizes={cartItem.sizes}
                             onChange={(size, val) => updateSize(p.id, size, val)}
                             onRemove={() => removeFromCart(p.id)}
+                            blockedSizes={p.blocked_sizes || []}
                           />
                         </div>
                       )}
