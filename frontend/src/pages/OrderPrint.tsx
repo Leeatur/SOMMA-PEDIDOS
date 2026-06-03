@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ordersApi, companyApi } from '../api/client'
 
@@ -88,6 +88,8 @@ interface Order {
 export function OrderPrint() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const autoprint = searchParams.get('autoprint') === '1'
 
   const { data: order } = useQuery<Order>({
     queryKey: ['order', id],
@@ -103,8 +105,13 @@ export function OrderPrint() {
   useEffect(() => {
     if (order && company) {
       document.title = `Pedido #${order.order_number} - ${order.client_name}`
+      // Se veio com ?autoprint=1, dispara o diálogo automaticamente
+      if (autoprint) {
+        const timer = setTimeout(() => window.print(), 800)
+        return () => clearTimeout(timer)
+      }
     }
-  }, [order, company])
+  }, [order, company, autoprint])
 
   if (!order || !company) {
     return (
