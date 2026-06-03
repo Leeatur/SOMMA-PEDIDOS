@@ -198,8 +198,7 @@ function ProductDetailModal({
         category: editForm.category || null,
         observation: editForm.observation || null,
         type: editForm.type,
-        ...(editForm.price_table_id && editForm.price_table_id !== p.price_table_id
-          ? { price_table_id: editForm.price_table_id } : {}),
+        ...(editForm.price_table_id ? { price_table_id: editForm.price_table_id } : {}),
       })
       const gradePayload = editGrade
         .filter(row => Object.values(row.sizes).some(v => v > 0))
@@ -314,22 +313,26 @@ function ProductDetailModal({
           </div>
 
           {/* Tabela de Preços — permite trocar */}
-          <div>
-            <label className="block text-[12px] font-semibold text-outline mb-1">
-              Tabela de Preços
-              {editForm.price_table_id !== p.price_table_id && (
-                <span className="ml-2 text-amber-600 text-[11px] font-normal">⚠️ alterada — salve para confirmar</span>
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <label className="block text-[12px] font-bold text-amber-800 mb-1.5 uppercase tracking-wide">
+              📋 Tabela de Preços
+              {editForm.price_table_id && editForm.price_table_id !== p.price_table_id && (
+                <span className="ml-2 normal-case text-amber-700">⚠️ alterada — salve para confirmar</span>
               )}
             </label>
             <select
-              className={inputCls}
+              className="w-full border border-amber-300 bg-white rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-amber-400"
               value={editForm.price_table_id}
               onChange={e => setEditForm(f => ({ ...f, price_table_id: e.target.value }))}
             >
+              {allPriceTables.length === 0 && (
+                <option value="">Carregando tabelas...</option>
+              )}
               {allPriceTables.map(pt => (
                 <option key={pt.id} value={pt.id}>{pt.factory_name} — {pt.name}</option>
               ))}
             </select>
+            <p className="text-[11px] text-amber-600 mt-1">Atual: {p.price_table_name || '—'}</p>
           </div>
 
           <div>
