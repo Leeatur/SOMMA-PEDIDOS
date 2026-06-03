@@ -564,20 +564,33 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
 
-        {/* Header */}
-        <div className="flex items-start gap-3 p-4 border-b border-gray-100">
-          {product.image_url && (
-            <img src={product.image_url} alt={product.reference} className="w-16 h-16 object-cover rounded-xl border border-gray-200 flex-shrink-0" />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="font-black text-lg text-gray-900 leading-tight">{product.reference}</p>
-            {product.product_name && <p className="text-sm text-gray-500">{product.product_name}</p>}
-            <p className="font-bold text-purple-700 text-base mt-0.5">{fmtCur(product.base_price)}<span className="text-xs font-normal text-gray-400">/peça</span></p>
-            {inCart > 0 && <p className="text-[11px] text-green-600 font-semibold mt-0.5">✓ Já no carrinho: {inCart} peças</p>}
-          </div>
-          <button onClick={onClose} className="p-2 rounded-full text-gray-400 hover:bg-gray-100 flex-shrink-0">
+        {/* Header com foto grande */}
+        <div className="relative">
+          {/* Botão fechar */}
+          <button onClick={onClose} className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/30 text-white hover:bg-black/50">
             <X className="h-5 w-5" />
           </button>
+          {/* Foto grande */}
+          {product.image_url ? (
+            <div className="w-full h-56 sm:h-64 overflow-hidden rounded-t-3xl sm:rounded-t-2xl bg-gray-100">
+              <img src={product.image_url} alt={product.reference} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-full h-40 rounded-t-3xl sm:rounded-t-2xl bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center">
+              <Package className="h-16 w-16 text-gray-200" />
+            </div>
+          )}
+          {/* Info sobre a foto */}
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-black text-xl text-gray-900 leading-tight">{product.reference}</p>
+                {product.product_name && <p className="text-sm text-gray-500">{product.product_name}</p>}
+                <p className="font-bold text-purple-700 text-lg mt-0.5">{fmtCur(product.base_price)}<span className="text-xs font-normal text-gray-400">/peça</span></p>
+              </div>
+              {inCart > 0 && <span className="text-[11px] bg-green-100 text-green-700 font-bold px-2 py-1 rounded-full flex-shrink-0">✓ {inCart}pç no carrinho</span>}
+            </div>
+          </div>
         </div>
 
         {/* Conteúdo com scroll */}
@@ -640,19 +653,21 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
 
           {/* REGULAR */}
           {!isPack && availableSizes.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Quantidade por tamanho</p>
-              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(availableSizes.length, 5)}, 1fr)` }}>
+              <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(availableSizes.length, 6)}, 1fr)` }}>
                 {availableSizes.map(s => {
                   const qty = sizes[s] || 0
                   return (
-                    <div key={s} className={`flex flex-col items-center rounded-2xl border-2 overflow-hidden transition-all ${qty > 0 ? 'border-purple-500 bg-purple-50 shadow-md shadow-purple-100' : 'border-gray-200 bg-white'}`}>
-                      <p className={`text-[11px] font-bold pt-2 pb-1 ${qty > 0 ? 'text-purple-600' : 'text-gray-400'}`}>{s}</p>
-                      <button onClick={() => setSizes(prev => ({...prev, [s]: Math.max(0, (prev[s]||0)-1)}))}
-                        className="w-full py-2 text-gray-400 active:bg-gray-100 text-lg font-black leading-none">−</button>
-                      <div className={`text-2xl font-black leading-none py-1 ${qty > 0 ? 'text-purple-700' : 'text-gray-300'}`}>{qty}</div>
+                    <div key={s} className={`flex flex-col items-center rounded-xl border-2 overflow-hidden transition-all ${qty > 0 ? 'border-purple-500 bg-purple-50' : 'border-gray-200 bg-white'}`}>
+                      <p className={`text-[10px] font-bold pt-1.5 ${qty > 0 ? 'text-purple-600' : 'text-gray-400'}`}>{s}</p>
+                      {/* + em cima */}
                       <button onClick={() => setSizes(prev => ({...prev, [s]: (prev[s]||0)+1}))}
-                        className="w-full py-2 text-purple-500 active:bg-purple-100 text-lg font-black leading-none pb-2">+</button>
+                        className="w-full py-1 text-purple-500 active:bg-purple-100 text-base font-black leading-none">+</button>
+                      <div className={`text-lg font-black leading-none py-0.5 ${qty > 0 ? 'text-purple-700' : 'text-gray-300'}`}>{qty}</div>
+                      {/* − embaixo */}
+                      <button onClick={() => setSizes(prev => ({...prev, [s]: Math.max(0, (prev[s]||0)-1)}))}
+                        className="w-full py-1 text-gray-400 active:bg-gray-100 text-base font-black leading-none pb-1.5">−</button>
                     </div>
                   )
                 })}
