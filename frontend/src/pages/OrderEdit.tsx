@@ -44,6 +44,7 @@ interface OrderItemRaw {
   sizes: Record<string, number> | null
   grade_configs: GradeConfig[] | null
   custom_grade: DraftGradeEntry[] | null
+  observation: string | null
 }
 
 interface EditableItem extends OrderItemRaw {
@@ -856,6 +857,7 @@ export default function OrderEdit() {
                     onPriceChange={val => updateExistingPrice(it.id, val)}
                     onRemove={() => removeItem(it.id)}
                     priceTableName={order?.price_table_name}
+                    productObservation={it.observation}
                   />
                 ))}
 
@@ -1110,12 +1112,14 @@ interface ItemRowProps {
   onRemove: () => void
   isNew?: boolean
   priceTableName?: string | null
+  productObservation?: string | null
 }
 
 function ItemRow({
   index, reference, productName, imageUrl, type, unitPrice,
   gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
   onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
+  productObservation,
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
 
@@ -1148,6 +1152,11 @@ function ItemRow({
             <p className="font-semibold text-on-surface text-[12px]">{reference}</p>
             {priceTableName && <p className="text-[12px] text-primary/70 font-medium leading-tight">{priceTableName}</p>}
             <p className="text-[12px] text-on-surface-variant truncate max-w-[160px]">{productName}</p>
+            {productObservation && (
+              <p className="text-[11px] font-bold text-red-600 uppercase mt-0.5 flex items-center gap-1">
+                <span>⚠️</span>{productObservation}
+              </p>
+            )}
             {isNew && <span className="text-[12px] text-primary font-medium">+ novo</span>}
           </div>
         </div>

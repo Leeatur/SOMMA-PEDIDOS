@@ -136,6 +136,7 @@ interface Product {
   grade_configs: GradeConfig[] | null
   active: boolean
   blocked_sizes: string[]
+  observation: string | null
 }
 
 interface CartItem {
@@ -1415,6 +1416,16 @@ function QuickAddModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[95vh] overflow-hidden">
+
+        {/* ── ATENÇÃO: Observação do produto em vermelho ── */}
+        {product.observation && (
+          <div className="bg-red-600 px-5 py-3 flex items-start gap-2 flex-shrink-0">
+            <span className="text-white font-black text-[15px] flex-shrink-0">⚠️</span>
+            <p className="text-white font-bold text-[13px] leading-tight uppercase tracking-wide">
+              {product.observation}
+            </p>
+          </div>
+        )}
 
         {/* ── Info do produto ── */}
         <div className="bg-surface-container-low px-5 py-4 border-b border-outline-variant flex-shrink-0">
