@@ -440,15 +440,16 @@ export default function OrderEdit() {
     setSaving(true)
     setSaveError('')
     try {
-      // Desconto à Vista (cash) — só reduz preço do cliente, não afeta comissão
+      // Desconto à Vista (cash) — só reduz preço do cliente, NÃO afeta comissão
       const cashDiscount = parseFloat(form.discount_pct.replace(',', '.')) || 0
-      // Desconto de Política (prazo) — afeta comissão
+      // Desconto de Política (prazo) — afeta comissão (selecionado no grid)
       const totalDiscount = policyDiscountPct + cashDiscount
       const oldTotalDiscount = Number(order.discount_pct) || 0
 
       // 1. Desconto ou política mudou → recalcula preços e comissão
-      if (isAdmin && Math.abs(totalDiscount - oldTotalDiscount) > 0.001) {
-        await ordersApi.changePriceTable(id!, order.price_table_id, totalDiscount)
+      if (isAdmin && (Math.abs(totalDiscount - oldTotalDiscount) > 0.001 || policyDiscountPct !== undefined)) {
+        // Passa commission_discount_pct separado = só o desconto de PRAZO para comissão
+        await ordersApi.changePriceTable(id!, order.price_table_id, totalDiscount, policyDiscountPct)
       }
 
       // 2. Info do cabeçalho
