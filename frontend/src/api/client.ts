@@ -170,6 +170,7 @@ export const productsApi = {
     category?: string | null
     observation?: string | null
     type: 'regular' | 'pack'
+    price_table_id?: string
   }) => apiClient.patch(`/products/${id}`, data),
   uploadImage: (id: string, file: File) => {
     const fd = new FormData()
