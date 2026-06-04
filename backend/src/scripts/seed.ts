@@ -9,18 +9,19 @@ async function seed() {
   try {
     console.log('🌱 Verificando dados iniciais...')
 
-    // Admin padrão — força reset de senha a cada deploy (DO UPDATE)
+    // Admin padrão — garante active=true e mantém senha a cada deploy
     const hash = await bcrypt.hash('somma@2026', 10)
     await client.query(`
-      INSERT INTO users (name, email, password_hash, role)
+      INSERT INTO users (name, email, password_hash, role, active)
       VALUES
-        ('Uliano',  'somma.uliano@hotmail.com', $1, 'admin'),
-        ('Admin 2', 'admin2@somma.com.br',      $1, 'admin'),
-        ('Admin 3', 'admin3@somma.com.br',      $1, 'admin')
+        ('Uliano',  'somma.uliano@hotmail.com', $1, 'admin', true),
+        ('Admin 2', 'admin2@somma.com.br',      $1, 'admin', true),
+        ('Admin 3', 'admin3@somma.com.br',      $1, 'admin', true)
       ON CONFLICT (email) DO UPDATE
         SET password_hash = EXCLUDED.password_hash,
             name          = EXCLUDED.name,
             role          = EXCLUDED.role,
+            active        = true,
             updated_at    = NOW()
     `, [hash])
     console.log('   ✅ Admins resetados: somma.uliano@hotmail.com / somma@2026')
