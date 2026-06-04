@@ -480,6 +480,9 @@ export function Reports() {
   const { orderedDefs: commCols, config: commConfig, save: saveCommCols, reset: resetCommCols } = useColumnConfig('report-commissions', commColDefs)
   const colVisible = (id: string) => commCols.find(c => c.id === id)?.visible !== false
 
+  // Busca no relatório de comissões
+  const [commSearch, setCommSearch] = useState('')
+
   // Catalog-specific filters
   const [catalogFactoryId, setCatalogFactoryId] = useState('')
   const [catalogPriceTableId, setCatalogPriceTableId] = useState('')
@@ -752,15 +755,44 @@ export function Reports() {
           commissionsQ.data.length === 0
             ? <EmptyState label="Nenhum dado de comissão no período" />
             : (() => {
-                const rows = commissionsQ.data
+                // Filtra por busca em todos os campos
+                const q = commSearch.toLowerCase().trim()
+                const rows = q
+                  ? commissionsQ.data.filter(r =>
+                      [r.vendedor, r.industria, r.razao_social, r.cliente,
+                       r.cidade, r.uf, r.nr_ped_fabrica, String(r.order_number || ''),
+                       r.status_name, r.items_refs]
+                        .some(v => (v || '').toLowerCase().includes(q))
+                    )
+                  : commissionsQ.data
                 const sum = (key: keyof CommissionRow) =>
                   rows.reduce((s, r) => s + Number(r[key] || 0), 0)
                 const fmtDate = (d: string) => fmtDatePtBR(d)
                 const fmtPct = (v: number) => `${Number(v || 0).toFixed(2).replace('.', ',')}%`
                 return (
                   <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
-                    {/* Botão configurar colunas */}
-                    <div className="flex justify-end px-3 py-1.5 border-b border-outline-variant/30 bg-surface-container-low/30">
+                    {/* Barra de busca + config colunas */}
+                    <div className="flex items-center gap-3 px-3 py-2 border-b border-outline-variant/30 bg-surface-container-low/30">
+                      <div className="relative flex-1 max-w-md">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input
+                          type="text"
+                          value={commSearch}
+                          onChange={e => setCommSearch(e.target.value)}
+                          placeholder="Buscar por vendedor, cliente, indústria, cidade, nº pedido..."
+                          className="w-full pl-9 pr-4 py-1.5 text-[12px] bg-white border border-outline-variant/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                        />
+                        {commSearch && (
+                          <button onClick={() => setCommSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-outline/50 hover:text-on-surface">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                          </button>
+                        )}
+                      </div>
+                      {q && (
+                        <span className="text-[12px] text-outline flex-shrink-0">
+                          {rows.length} resultado{rows.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
                       <ColumnConfigButton defs={commColDefs} config={commConfig} onSave={saveCommCols} onReset={resetCommCols} />
                     </div>
                     <div className="overflow-x-auto">
