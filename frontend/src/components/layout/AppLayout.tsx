@@ -1,25 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard,
-  ShoppingCart,
-  Users,
-  Package,
-  Building2,
-  Tags,
-  Settings,
-  LogOut,
-  Plus,
-  UserCog,
-  Wifi,
-  WifiOff,
-  Menu,
-  X,
-  BarChart2,
-  Trash2,
-
-  MapPin,
-  Link2,
+  LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
+  Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
+  BarChart2, Trash2, MapPin, Link2, ChevronDown,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -33,21 +17,26 @@ interface NavItem {
   adminOnly?: boolean
 }
 
-const navMain: NavItem[] = [
-  { to: '/dashboard',    label: 'Dashboard',  icon: <LayoutDashboard className="h-5 w-5" /> },
-  { to: '/orders',       label: 'Pedidos',    icon: <ShoppingCart className="h-5 w-5" /> },
-  { to: '/clients',      label: 'Clientes',   icon: <Users className="h-5 w-5" /> },
-  { to: '/products',     label: 'Produtos',   icon: <Package className="h-5 w-5" /> },
-  { to: '/reports',      label: 'Relatórios', icon: <BarChart2 className="h-5 w-5" /> },
-  { to: '/prospecting',  label: 'Prospecção', icon: <MapPin className="h-5 w-5" /> },
-  { to: '/portals',      label: 'Portal Cliente', icon: <Link2 className="h-5 w-5" /> },
-  { to: '/price-tables', label: 'Tabelas',    icon: <Tags className="h-5 w-5" />, adminOnly: true },
-  { to: '/factories',    label: 'Fábricas',   icon: <Building2 className="h-5 w-5" />, adminOnly: true },
-  { to: '/statuses',     label: 'Status',     icon: <Package className="h-5 w-5" />, adminOnly: true },
-  { to: '/users',        label: 'Usuários',   icon: <UserCog className="h-5 w-5" />, adminOnly: true },
-  { to: '/orders/trash', label: 'Lixeira',    icon: <Trash2 className="h-5 w-5" />, adminOnly: true },
+// Itens principais no topo
+const navPrimary: NavItem[] = [
+  { to: '/dashboard',    label: 'Dashboard',      icon: <LayoutDashboard className="h-4 w-4" /> },
+  { to: '/orders',       label: 'Pedidos',        icon: <ShoppingCart className="h-4 w-4" /> },
+  { to: '/clients',      label: 'Clientes',       icon: <Users className="h-4 w-4" /> },
+  { to: '/products',     label: 'Produtos',       icon: <Package className="h-4 w-4" /> },
+  { to: '/reports',      label: 'Relatórios',     icon: <BarChart2 className="h-4 w-4" /> },
+  { to: '/portals',      label: 'Portal Cliente', icon: <Link2 className="h-4 w-4" /> },
 ]
 
+// Itens no dropdown "Mais"
+const navMore: NavItem[] = [
+  { to: '/prospecting',  label: 'Prospecção',  icon: <MapPin className="h-4 w-4" /> },
+  { to: '/price-tables', label: 'Tabelas',     icon: <Tags className="h-4 w-4" />, adminOnly: true },
+  { to: '/factories',    label: 'Fábricas',    icon: <Building2 className="h-4 w-4" />, adminOnly: true },
+  { to: '/statuses',     label: 'Status',      icon: <Package className="h-4 w-4" />, adminOnly: true },
+  { to: '/users',        label: 'Usuários',    icon: <UserCog className="h-4 w-4" />, adminOnly: true },
+  { to: '/orders/trash', label: 'Lixeira',     icon: <Trash2 className="h-4 w-4" />, adminOnly: true },
+  { to: '/settings',     label: 'Ajustes',     icon: <Settings className="h-4 w-4" /> },
+]
 
 function useOnlineStatus() {
   const [online, setOnline] = useState(navigator.onLine)
@@ -71,7 +60,7 @@ async function syncPendingOrders() {
       if (r.synced) await db.pendingOrders.delete(r.offline_id)
       else await db.pendingOrders.update(r.offline_id, { status: 'error', errorMessage: 'Erro ao sincronizar' })
     }
-  } catch { /* retry next time */ }
+  } catch { /* retry */ }
 }
 
 export function AppLayout() {
@@ -79,11 +68,26 @@ export function AppLayout() {
   const navigate = useNavigate()
   const online = useOnlineStatus()
   const isAdmin = user?.role === 'admin'
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [userOpen, setUserOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+  const userRef = useRef<HTMLDivElement>(null)
 
-  const visibleNav = navMain.filter(item => !item.adminOnly || isAdmin)
+  const visiblePrimary = navPrimary
+  const visibleMore = navMore.filter(item => !item.adminOnly || isAdmin)
 
   useEffect(() => { if (online) syncPendingOrders() }, [online])
+
+  // Fecha dropdowns ao clicar fora
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false)
+      if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   async function handleLogout() {
     try { if (refreshToken) await authApi.logout(refreshToken) } catch { /* ignore */ }
@@ -95,206 +99,234 @@ export function AppLayout() {
 
   const initials = user?.name?.slice(0, 2).toUpperCase() || 'US'
 
+  const navLinkCls = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap ${
+      isActive
+        ? 'bg-white/20 text-white'
+        : 'text-white/70 hover:bg-white/10 hover:text-white'
+    }`
+
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen flex flex-col bg-background">
 
       {/* ── Offline banner ── */}
       {!online && (
-        <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500 text-white text-center text-xs py-1.5 flex items-center justify-center gap-1.5 safe-top">
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500 text-white text-center text-xs py-1.5 flex items-center justify-center gap-1.5">
           <WifiOff className="h-3.5 w-3.5" />
           Sem conexão — pedidos serão sincronizados quando voltar online
         </div>
       )}
 
-      {/* ── Mobile overlay ── */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      {/* ── Staging banner ── */}
+      {window.location.hostname.includes('staging') && (
+        <div className="sticky top-0 z-50 bg-amber-400 text-amber-900 text-center py-1 px-4 text-[12px] font-black tracking-wide flex items-center justify-center gap-2">
+          ⚠️ AMBIENTE DE TESTES — os dados aqui NÃO são a produção real ⚠️
+        </div>
       )}
 
-      {/* ════════════════════════════════════════
-          SIDEBAR
-      ════════════════════════════════════════ */}
-      <aside
-        className={`
-          fixed top-0 bottom-0 left-0 z-50 w-sidebar flex flex-col
-          transform transition-transform duration-200 ease-in-out
-          lg:translate-x-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
-        style={{ background: 'linear-gradient(180deg, #1C0A4A 0%, #160838 60%, #110530 100%)' }}
+      {/* ════════════════════════════
+          TOP NAV BAR (desktop)
+      ════════════════════════════ */}
+      <header
+        className="hidden lg:flex sticky top-0 z-40 items-center gap-1 px-4 shadow-lg flex-shrink-0"
+        style={{ background: 'linear-gradient(135deg, #1C0A4A 0%, #2E1065 50%, #1C0A4A 100%)', height: 52 }}
       >
-        {/* Brand */}
-        <div className="flex items-center justify-between px-5 py-5 mb-2">
-          <img src="/logo-somma-branco.svg" alt="Somma Gestão Comercial" className="h-14 w-auto" />
-          <button className="lg:hidden p-1 text-surface-variant/50 hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
-            <X className="h-5 w-5" />
+        {/* Logo */}
+        <NavLink to="/dashboard" className="flex-shrink-0 mr-3">
+          <img src="/logo-somma-branco.svg" alt="Somma" className="h-8 w-auto" />
+        </NavLink>
+
+        {/* Nav principal */}
+        {visiblePrimary.map(item => (
+          <NavLink key={item.to} to={item.to} className={navLinkCls}>
+            {item.icon}
+            {item.label}
+          </NavLink>
+        ))}
+
+        {/* Dropdown "Mais" */}
+        <div ref={moreRef} className="relative">
+          <button
+            onClick={() => setMoreOpen(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
+          >
+            Mais
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
           </button>
+          {moreOpen && (
+            <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
+              {visibleMore.map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMoreOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium transition-colors ${
+                      isActive ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-container-low'
+                    }`
+                  }
+                >
+                  <span className="text-outline">{item.icon}</span>
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
-          {visibleNav.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-xl text-[16px] font-semibold transition-all duration-150 ${
-                  isActive
-                    ? 'sidebar-active'
-                    : 'text-surface-variant/60 hover:bg-white/5 hover:text-white'
-                }`
-              }
-            >
-              {item.icon}
-              {item.label}
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Novo pedido */}
+        <button
+          onClick={() => navigate('/orders/new')}
+          className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-[12px] font-bold px-3 py-1.5 rounded-lg border border-white/20 transition-all mr-2"
+        >
+          <Plus className="h-4 w-4" /> Novo Pedido
+        </button>
+
+        {/* User menu */}
+        <div ref={userRef} className="relative flex-shrink-0">
+          <button
+            onClick={() => setUserOpen(v => !v)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors"
+          >
+            <div className="w-7 h-7 rounded-full bg-white/20 border border-white/30 flex items-center justify-center">
+              <span className="text-[11px] font-black text-white">{initials}</span>
+            </div>
+            <div className="text-left hidden xl:block">
+              <p className="text-[12px] font-semibold text-white leading-none">{user?.name}</p>
+              <p className="text-[10px] text-white/50">{isAdmin ? 'Administrador' : 'Representante'}</p>
+            </div>
+            <ChevronDown className={`h-3.5 w-3.5 text-white/60 transition-transform ${userOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {userOpen && (
+            <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
+              <div className="px-4 py-2.5 border-b border-outline-variant/20">
+                <p className="text-[13px] font-bold text-on-surface">{user?.name}</p>
+                <p className="text-[11px] text-outline">{isAdmin ? 'Administrador' : 'Representante'}</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                  <span className="text-[11px] text-outline">{online ? 'Online' : 'Offline'}</span>
+                </div>
+              </div>
+              <NavLink to="/settings" onClick={() => setUserOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors">
+                <Settings className="h-4 w-4 text-outline" /> Ajustes
+              </NavLink>
+              <button onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors">
+                <LogOut className="h-4 w-4" /> Sair
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ════════════════════════════
+          MOBILE TOP BAR
+      ════════════════════════════ */}
+      <header
+        className="lg:hidden sticky top-0 z-40 flex items-center px-4 flex-shrink-0"
+        style={{ background: 'linear-gradient(135deg, #1C0A4A, #2E1065)', height: 52 }}
+      >
+        <button onClick={() => setMobileOpen(true)} className="p-1.5 text-white/70 hover:text-white mr-2">
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="flex-1 flex justify-center">
+          <img src="/logo-somma-branco.svg" alt="Somma" className="h-8 w-auto" />
+        </div>
+        <div className="flex items-center gap-2">
+          {online ? <Wifi className="h-4 w-4 text-emerald-400" /> : <WifiOff className="h-4 w-4 text-amber-400" />}
+        </div>
+      </header>
+
+      {/* ════════════════════════════
+          MOBILE DRAWER
+      ════════════════════════════ */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <div className="relative w-72 flex flex-col"
+            style={{ background: 'linear-gradient(180deg, #1C0A4A, #110530)' }}>
+            <div className="flex items-center justify-between px-5 py-4">
+              <img src="/logo-somma-branco.svg" alt="Somma" className="h-10 w-auto" />
+              <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+              {[...visiblePrimary, ...visibleMore].map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-2.5 rounded-xl text-[14px] font-semibold transition-all ${
+                      isActive ? 'bg-white/20 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'
+                    }`
+                  }
+                >
+                  {item.icon} {item.label}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="px-4 py-4 border-t border-white/10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                  <span className="text-[12px] font-black text-white">{initials}</span>
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-white">{user?.name}</p>
+                  <p className="text-[11px] text-white/40">{isAdmin ? 'Administrador' : 'Representante'}</p>
+                </div>
+              </div>
+              <button onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-white/10 rounded-lg transition-colors">
+                <LogOut className="h-4 w-4" /> Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════
+          CONTENT
+      ════════════════════════════ */}
+      <main className={`flex-1 overflow-auto main-content ${!online ? 'mt-7' : ''}`}>
+        <Outlet />
+      </main>
+
+      {/* ── Mobile Bottom Nav ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 safe-bottom"
+        style={{ background: 'white', boxShadow: '0 -1px 0 #E5E7EB, 0 -4px 16px rgba(0,0,0,0.06)' }}>
+        <div className="flex items-end justify-around px-1 pt-1 pb-1" style={{ height: 64 }}>
+          {[
+            { to: '/dashboard', icon: <LayoutDashboard className="h-[18px] w-[18px]" />, label: 'Início' },
+            { to: '/orders',    icon: <ShoppingCart className="h-[18px] w-[18px]" />,    label: 'Pedidos' },
+            { to: '/orders/new', icon: <Plus className="h-5 w-5" />,                     label: 'Novo', fab: true },
+            { to: '/clients',   icon: <Users className="h-[18px] w-[18px]" />,           label: 'Clientes' },
+            { to: '/products',  icon: <Package className="h-[18px] w-[18px]" />,         label: 'Produtos' },
+          ].map(item => item.fab ? (
+            <button key={item.to} onClick={() => navigate(item.to)}
+              className="flex flex-col items-center justify-center mb-4 w-14 h-14 rounded-full shadow-lg"
+              style={{ background: 'linear-gradient(135deg,#6D28D9,#4C1D95)' }}>
+              <span className="text-white">{item.icon}</span>
+            </button>
+          ) : (
+            <NavLink key={item.to} to={item.to} className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
+            }>
+              {({ isActive }) => (<>
+                <div className={`w-9 h-6 rounded-xl flex items-center justify-center ${isActive ? 'bg-primary/10' : ''}`}>
+                  {item.icon}
+                </div>
+                <span className="text-[12px] font-semibold">{item.label}</span>
+              </>)}
             </NavLink>
           ))}
-        </nav>
-
-        {/* Bottom */}
-        <div className="px-3 pb-4 pt-3 border-t border-white/5 space-y-1">
-          <NavLink
-            to="/settings"
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2 rounded-xl text-[16px] font-semibold transition-all duration-150 ${
-                isActive ? 'sidebar-active' : 'text-surface-variant/60 hover:bg-white/5 hover:text-white'
-              }`
-            }
-          >
-            <Settings className="h-5 w-5" />
-            Ajustes
-          </NavLink>
-
-          {/* User card */}
-          <div className="mt-2 px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/30 border border-primary/50 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-bold text-primary-fixed-dim">{initials}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-semibold text-white truncate">{user?.name}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <p className="text-[12px] text-surface-variant/40">
-                  {user?.role === 'admin' ? 'Administrador' : 'Representante'}
-                </p>
-                {online
-                  ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                  : <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                }
-              </div>
-            </div>
-            <button onClick={handleLogout} className="p-1.5 text-surface-variant/40 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5" title="Sair">
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
         </div>
-      </aside>
-
-      {/* ════════════════════════════════════════
-          MAIN AREA
-      ════════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
-
-        {/* ── Banner de Ambiente de Testes (staging only) ── */}
-        {window.location.hostname.includes('staging') && (
-          <div className="sticky top-0 z-50 bg-amber-400 text-amber-900 text-center py-1.5 px-4 text-[13px] font-black tracking-wide shadow-md flex items-center justify-center gap-2">
-            <span>⚠️</span>
-            <span>AMBIENTE DE TESTES — os dados aqui NÃO são a produção real</span>
-            <span>⚠️</span>
-          </div>
-        )}
-
-        {/* ── Mobile TopBar ── */}
-        <header className="lg:hidden sticky top-0 z-30 bg-on-surface border-b border-white/5 flex items-center px-4 py-2.5">
-          <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg text-surface-variant/60 hover:text-white hover:bg-white/5 transition-colors flex-shrink-0">
-            <Menu className="h-5 w-5" />
-          </button>
-          {/* Logo centralizada no mobile */}
-          <div className="flex-1 flex justify-center">
-            <img src="/logo-somma-branco.svg" alt="Somma" className="h-9 w-auto" />
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {online
-              ? <Wifi className="h-4 w-4 text-emerald-400" />
-              : <WifiOff className="h-4 w-4 text-amber-400" />
-            }
-          </div>
-        </header>
-
-        {/* ── Page Content ── */}
-        <main className={`flex-1 overflow-auto main-content ${!online ? 'mt-7' : ''}`}>
-          <Outlet />
-        </main>
-
-        {/* ── Mobile Bottom Nav with center FAB ── */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 safe-bottom" style={{ background: 'white', boxShadow: '0 -1px 0 #E5E7EB, 0 -4px 16px rgba(0,0,0,0.06)' }}>
-          <div className="flex items-end justify-around px-1 pt-1 pb-1" style={{ height: 64 }}>
-
-            {/* Início */}
-            <NavLink to="/dashboard" className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
-            }>
-              {({ isActive }) => (<>
-                <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
-                  <LayoutDashboard className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[12px] font-semibold">Início</span>
-              </>)}
-            </NavLink>
-
-            {/* Pedidos */}
-            <NavLink to="/orders" className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
-            }>
-              {({ isActive }) => (<>
-                <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
-                  <ShoppingCart className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[12px] font-semibold">Pedidos</span>
-              </>)}
-            </NavLink>
-
-            {/* FAB central */}
-            <div className="flex flex-col items-center" style={{ marginTop: -20 }}>
-              <button
-                onClick={() => navigate('/orders/new')}
-                className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-                style={{ boxShadow: '0 4px 20px rgba(109,40,217,0.45)' }}
-              >
-                <Plus className="h-6 w-6" />
-              </button>
-              <span className="text-[12px] font-semibold text-on-surface-variant/60 mt-0.5">Novo</span>
-            </div>
-
-            {/* Clientes */}
-            <NavLink to="/clients" className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
-            }>
-              {({ isActive }) => (<>
-                <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
-                  <Users className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[12px] font-semibold">Clientes</span>
-              </>)}
-            </NavLink>
-
-            {/* Prospecção */}
-            <NavLink to="/prospecting" className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-2xl transition-all ${isActive ? 'text-primary' : 'text-on-surface-variant/60'}`
-            }>
-              {({ isActive }) => (<>
-                <div className={`w-9 h-6 rounded-xl flex items-center justify-center transition-all ${isActive ? 'bg-primary/10' : ''}`}>
-                  <MapPin className="h-[18px] w-[18px]" />
-                </div>
-                <span className="text-[10px] font-semibold">Prospecção</span>
-              </>)}
-            </NavLink>
-
-          </div>
-        </nav>
-      </div>
+      </nav>
     </div>
   )
 }
-
