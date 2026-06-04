@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
+import { useColumnResize } from '../components/ui/useColumnResize.tsx'
 
 // ─── formatters ──────────────────────────────────────────────────────────────
 
@@ -483,6 +484,14 @@ export function Reports() {
   // Busca no relatório de comissões
   const [commSearch, setCommSearch] = useState('')
 
+  // Resize das colunas de comissões
+  const COMM_DEFAULT_WIDTHS: Record<string, number> = {
+    data: 80, vendedor: 110, industria: 90, nr_fabrica: 90,
+    razao_social: 160, nome_fantasia: 130, cidade: 100, uf: 45,
+    valor: 110, com_rep: 130, com_escr: 120, faturado: 100, a_faturar: 100,
+  }
+  const { widths: commWidths, save: saveCommWidths } = useColumnResize('report-commissions-widths', COMM_DEFAULT_WIDTHS)
+
   // Catalog-specific filters
   const [catalogFactoryId, setCatalogFactoryId] = useState('')
   const [catalogPriceTableId, setCatalogPriceTableId] = useState('')
@@ -795,23 +804,67 @@ export function Reports() {
                       )}
                       <ColumnConfigButton defs={commColDefs} config={commConfig} onSave={saveCommCols} onReset={resetCommCols} />
                     </div>
+                    <p className="text-[11px] text-outline/50 px-3 py-1 bg-surface-container-low/50 border-b border-outline-variant/20">
+                      Arraste a borda direita para redimensionar · Arraste o cabeçalho para reordenar
+                    </p>
                     <div className="overflow-x-auto">
-                      <table className="text-[12px]" style={{ minWidth: 800 }}>
+                      <table className="text-[12px]" style={{ tableLayout: 'fixed', width: '100%' }}>
                         <thead className="bg-surface-container-low">
                           <tr>
-                            {colVisible('data') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Data</th>}
-                            {colVisible('vendedor') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Vendedor</th>}
-                            {colVisible('industria') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Indústria</th>}
-                            {colVisible('nr_fabrica') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Nr. Fábrica</th>}
-                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant">Razão Social</th>
-                            <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant">Nome Fantasia</th>
-                            {colVisible('cidade') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">Cidade</th>}
-                            {colVisible('uf') && <th className="px-2 py-1.5 text-left font-semibold text-on-surface-variant whitespace-nowrap">UF</th>}
-                            {colVisible('valor') && <th className="px-2 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Valor</th>}
-                            {colVisible('com_rep') && <th className="px-2 py-1.5 text-right font-semibold text-emerald-700 whitespace-nowrap">Com. Rep</th>}
-                            {colVisible('com_escr') && isAdmin && <th className="px-2 py-1.5 text-right font-semibold text-blue-700 whitespace-nowrap">Com. Escr.</th>}
-                            {colVisible('faturado') && <th className="px-2 py-1.5 text-right font-semibold text-on-surface-variant whitespace-nowrap">Faturado</th>}
-                            {colVisible('a_faturar') && <th className="px-2 py-1.5 text-right font-semibold text-orange-600 whitespace-nowrap">A Faturar</th>}
+                            {commCols.filter(c => c.visible && (c.id !== 'com_escr' || isAdmin)).map((col, colIdx, visArr) => {
+                              const colId = col.id
+                              const colWidth = commWidths[colId] ?? COMM_DEFAULT_WIDTHS[colId] ?? 100
+                              const labels: Record<string,string> = {
+                                data:'Data', vendedor:'Vendedor', industria:'Indústria',
+                                nr_fabrica:'Nr. Fábrica', razao_social:'Razão Social',
+                                nome_fantasia:'Nome Fantasia', cidade:'Cidade', uf:'UF',
+                                valor:'Valor', com_rep:'Com. Rep', com_escr:'Com. Escr.',
+                                faturado:'Faturado', a_faturar:'A Faturar',
+                              }
+                              const isRight = ['valor','com_rep','com_escr','faturado','a_faturar'].includes(colId)
+                              return (
+                                <th
+                                  key={colId}
+                                  style={{ width: colWidth, minWidth: 40, position: 'relative' }}
+                                  draggable
+                                  onDragStart={e => { e.dataTransfer.setData('commColIdx', String(colIdx)) }}
+                                  onDragOver={e => e.preventDefault()}
+                                  onDrop={e => {
+                                    e.preventDefault()
+                                    const fromIdx = parseInt(e.dataTransfer.getData('commColIdx'))
+                                    if (fromIdx === colIdx || isNaN(fromIdx)) return
+                                    const fromId = visArr[fromIdx].id
+                                    const newCfg = [...commConfig]
+                                    const fromPos = newCfg.findIndex(c => c.id === fromId)
+                                    const toPos = newCfg.findIndex(c => c.id === colId)
+                                    if (fromPos >= 0 && toPos >= 0) {
+                                      const [moved] = newCfg.splice(fromPos, 1)
+                                      newCfg.splice(toPos, 0, moved)
+                                      saveCommCols(newCfg)
+                                    }
+                                  }}
+                                >
+                                  <div className={`px-2 py-1.5 text-[12px] font-semibold text-on-surface-variant truncate cursor-grab select-none ${isRight ? 'text-right' : ''} ${colId==='com_rep'?'text-emerald-700':''} ${colId==='com_escr'?'text-blue-700':''} ${colId==='a_faturar'?'text-orange-600':''}`}>
+                                    {labels[colId] || col.label}
+                                  </div>
+                                  {/* Handle resize */}
+                                  <div
+                                    style={{ position:'absolute', top:0, right:0, width:5, height:'100%', cursor:'col-resize', zIndex:20 }}
+                                    className="hover:bg-primary/40 group"
+                                    onMouseDown={e => {
+                                      e.preventDefault(); e.stopPropagation()
+                                      const startX = e.clientX, startW = colWidth
+                                      const onMove = (ev: MouseEvent) => saveCommWidths({ ...commWidths, [colId]: Math.max(40, startW + ev.clientX - startX) })
+                                      const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                                      window.addEventListener('mousemove', onMove)
+                                      window.addEventListener('mouseup', onUp)
+                                    }}
+                                  >
+                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4 bg-outline/30 group-hover:bg-primary/60" />
+                                  </div>
+                                </th>
+                              )
+                            })}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
