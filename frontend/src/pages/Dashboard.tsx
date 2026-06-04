@@ -180,7 +180,7 @@ export function Dashboard() {
 
       {/* ─── Hero header ─────────────────────────────────── */}
       <div className="relative px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10"
-        style={{ background: 'linear-gradient(135deg, #1e0a3c 0%, #3b0764 40%, #5b21b6 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 40%, #475569 100%)' }}>
         {/* Linha decorativa sutil na base */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
 
@@ -386,10 +386,10 @@ export function Dashboard() {
                   {brandList.map(brand => {
                     const { factory, reps } = groups[brand]
                     const brandColors: Record<string, { from: string; to: string }> = {
-                      OUZZARE: { from: '#6D28D9', to: '#4C1D95' },
-                      TEEZZ:   { from: '#1D4ED8', to: '#1E3A8A' },
+                      OUZZARE: { from: '#312e81', to: '#1e1b4b' },
+                      TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
                     }
-                    const bc = brandColors[brand] || { from: '#374151', to: '#1F2937' }
+                    const bc = brandColors[brand] || { from: '#1f2937', to: '#111827' }
 
                     return (
                       <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
@@ -530,7 +530,7 @@ export function Dashboard() {
                 const totalPiecesFactory = factoryOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
 
                 const factoryColors: Record<string, string> = {
-                  OUZZARE: '#6D28D9', TEEZZ: '#1D4ED8',
+                  OUZZARE: '#4f46e5', TEEZZ: '#2563eb',
                 }
                 const color = factoryColors[factory] || '#374151'
 

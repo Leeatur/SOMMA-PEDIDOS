@@ -129,7 +129,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="hidden lg:flex sticky top-0 z-40 items-center gap-1 px-4 shadow-lg flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1C0A4A 0%, #2E1065 50%, #1C0A4A 100%)', height: 52 }}
+        style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%)', height: 52 }}
       >
         {/* Logo */}
         <NavLink to="/dashboard" className="flex-shrink-0 mr-3">
@@ -228,7 +228,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="lg:hidden sticky top-0 z-40 flex items-center px-4 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1C0A4A, #2E1065)', height: 52 }}
+        style={{ background: 'linear-gradient(135deg, #1e293b, #334155)', height: 52 }}
       >
         <button onClick={() => setMobileOpen(true)} className="p-1.5 text-white/70 hover:text-white mr-2">
           <Menu className="h-5 w-5" />
@@ -248,7 +248,7 @@ export function AppLayout() {
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <div className="relative w-72 flex flex-col"
-            style={{ background: 'linear-gradient(180deg, #1C0A4A, #110530)' }}>
+            style={{ background: 'linear-gradient(180deg, #1e293b, #0f172a)' }}>
             <div className="flex items-center justify-between px-5 py-4">
               <img src="/logo-somma-branco.svg" alt="Somma" className="h-10 w-auto" />
               <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white">
