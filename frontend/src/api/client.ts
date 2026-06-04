@@ -317,6 +317,14 @@ export const reportsApi = {
     apiClient.get('/reports/inactive-clients', { params }),
   repPerformance: (params: { date_from?: string; date_to?: string; factory_id?: string }) =>
     apiClient.get('/reports/rep-performance', { params }),
+  abcClients: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/abc-clients', { params }),
+  periodComparison: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/period-comparison', { params }),
+  region: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/region', { params }),
+  commissionProjection: (params: { factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/commission-projection', { params }),
 }
 
 export const companyApi = {

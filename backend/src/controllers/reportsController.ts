@@ -460,3 +460,153 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
 
   res.json(rows)
 }
+
+// ─── Curva ABC de Clientes ────────────────────────────────────────────────────
+export async function abcClientsReport(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+  const [from, to] = dateRange(req)
+
+  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
+
+  const { rows } = await query(`
+    WITH client_sales AS (
+      SELECT
+        c.id, c.name AS razao_social, c.trade_name AS nome_fantasia,
+        c.city AS cidade, c.state AS uf, u.name AS rep_name,
+        COUNT(o.id)::int                              AS total_pedidos,
+        COALESCE(SUM(o.total_value), 0)::numeric      AS total_value,
+        COALESCE(SUM(o.total_pieces), 0)::int         AS total_pieces,
+        MAX(o.created_at)::date                       AS ultimo_pedido
+      FROM clients c
+      LEFT JOIN users u ON u.id = c.rep_id
+      JOIN orders o ON o.client_id = c.id AND o.deleted_at IS NULL
+        AND o.created_at BETWEEN $1 AND $2 ${cond}
+      WHERE c.active = true
+      GROUP BY c.id, c.name, c.trade_name, c.city, c.state, u.name
+    ),
+    total AS (SELECT SUM(total_value) AS grand_total FROM client_sales),
+    ranked AS (
+      SELECT cs.*, t.grand_total,
+        cs.total_value / NULLIF(t.grand_total, 0) * 100 AS pct,
+        SUM(cs.total_value) OVER (ORDER BY cs.total_value DESC) / NULLIF(t.grand_total, 0) * 100 AS pct_acum
+      FROM client_sales cs CROSS JOIN total t
+    )
+    SELECT *, CASE
+      WHEN pct_acum <= 80 THEN 'A'
+      WHEN pct_acum <= 95 THEN 'B'
+      ELSE 'C'
+    END AS classe
+    FROM ranked
+    ORDER BY total_value DESC
+  `, params)
+
+  res.json(rows)
+}
+
+// ─── Comparativo de Período ───────────────────────────────────────────────────
+export async function periodComparisonReport(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+  const [from, to] = dateRange(req)
+
+  // Período anterior: mesma duração
+  const fromD = new Date(from)
+  const toD = new Date(to)
+  const diff = toD.getTime() - fromD.getTime()
+  const prevFrom = new Date(fromD.getTime() - diff - 86400000).toISOString().split('T')[0]
+  const prevTo   = new Date(fromD.getTime() - 86400000).toISOString().split('T')[0]
+
+  const makeQuery = async (f: string, t: string) => {
+    const params: unknown[] = [`${f} 00:00:00`, `${t} 23:59:59`]
+    const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
+    const { rows } = await query(`
+      SELECT
+        COUNT(o.id)::int                                       AS total_pedidos,
+        COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
+        COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
+        COALESCE(SUM(o.rep_commission_value), 0)::numeric      AS rep_commission,
+        COALESCE(SUM(o.office_commission_value), 0)::numeric   AS office_commission,
+        COUNT(DISTINCT o.client_id)::int                       AS clientes_atendidos,
+        COALESCE(AVG(o.total_value), 0)::numeric               AS ticket_medio
+      FROM orders o
+      WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
+    `, params)
+    return rows[0]
+  }
+
+  const [current, previous] = await Promise.all([
+    makeQuery(from, to),
+    makeQuery(prevFrom, prevTo),
+  ])
+
+  res.json({ current, previous, period: { from, to }, prev_period: { from: prevFrom, to: prevTo } })
+}
+
+// ─── Análise por Região/UF ────────────────────────────────────────────────────
+export async function regionReport(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+  const [from, to] = dateRange(req)
+
+  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
+
+  const { rows } = await query(`
+    SELECT
+      COALESCE(c.state, 'N/D') AS uf,
+      COUNT(DISTINCT o.id)::int                         AS total_pedidos,
+      COUNT(DISTINCT o.client_id)::int                  AS clientes_atendidos,
+      COALESCE(SUM(o.total_value), 0)::numeric          AS total_value,
+      COALESCE(SUM(o.total_pieces), 0)::int             AS total_pieces,
+      COALESCE(AVG(o.total_value), 0)::numeric          AS ticket_medio,
+      COALESCE(SUM(o.rep_commission_value), 0)::numeric AS comissao_rep
+    FROM orders o
+    JOIN clients c ON c.id = o.client_id
+    WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
+    GROUP BY c.state
+    ORDER BY total_value DESC
+  `, params)
+
+  res.json(rows)
+}
+
+// ─── Projeção de Comissão ─────────────────────────────────────────────────────
+export async function commissionProjectionReport(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+
+  const params: unknown[] = []
+  let repCond = ''
+  let factCond = ''
+  let idx = 1
+
+  if (!isAdmin) { repCond = ` AND o.rep_id = $${idx++}`; params.push(req.user!.id) }
+  else if (repId) { repCond = ` AND o.rep_id = $${idx++}`; params.push(repId) }
+  if (factoryId) { factCond = ` AND o.factory_id = $${idx++}`; params.push(factoryId) }
+
+  const { rows } = await query(`
+    SELECT
+      u.name AS rep_name,
+      s.name AS status_name, s.color AS status_color,
+      COUNT(o.id)::int                                       AS pedidos,
+      COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
+      COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
+      COALESCE(SUM(o.rep_commission_value), 0)::numeric      AS comissao_rep,
+      COALESCE(SUM(o.office_commission_value), 0)::numeric   AS comissao_escritorio,
+      CASE WHEN s.is_final THEN 'faturado' ELSE 'a_faturar' END AS situacao
+    FROM orders o
+    JOIN users u ON u.id = o.rep_id
+    LEFT JOIN order_statuses s ON s.id = o.status_id
+    WHERE o.deleted_at IS NULL ${repCond} ${factCond}
+    GROUP BY u.name, s.name, s.color, s.is_final
+    ORDER BY situacao, comissao_rep DESC
+  `, params)
+
+  res.json(rows)
+}

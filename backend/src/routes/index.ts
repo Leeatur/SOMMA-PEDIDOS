@@ -158,3 +158,7 @@ export default router
 router.get('/reports/sales-evolution', authenticate, reports.salesEvolutionReport)
 router.get('/reports/inactive-clients', authenticate, reports.inactiveClientsReport)
 router.get('/reports/rep-performance', authenticate, requireAdmin, reports.repPerformanceReport)
+router.get('/reports/abc-clients', authenticate, reports.abcClientsReport)
+router.get('/reports/period-comparison', authenticate, reports.periodComparisonReport)
+router.get('/reports/region', authenticate, reports.regionReport)
+router.get('/reports/commission-projection', authenticate, reports.commissionProjectionReport)
