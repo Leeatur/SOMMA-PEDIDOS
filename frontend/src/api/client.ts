@@ -311,6 +311,12 @@ export const reportsApi = {
     apiClient.get('/reports/collections', { params }),
   catalog: (params: { price_table_id?: string; factory_id?: string }) =>
     apiClient.get('/reports/catalog', { params }),
+  salesEvolution: (params: { months?: number; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/sales-evolution', { params }),
+  inactiveClients: (params: { days?: number; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/inactive-clients', { params }),
+  repPerformance: (params: { date_from?: string; date_to?: string; factory_id?: string }) =>
+    apiClient.get('/reports/rep-performance', { params }),
 }
 
 export const companyApi = {

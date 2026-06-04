@@ -349,3 +349,114 @@ export async function catalogReport(req: AuthRequest, res: Response) {
 
   res.json(Array.from(tableMap.values()))
 }
+
+// ─── Evolução de Vendas (mensal) ─────────────────────────────────────────────
+export async function salesEvolutionReport(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+  const months = parseInt(String(req.query.months || '12'))
+
+  const params: unknown[] = [months]
+  let cond = ''
+  let idx = 2
+  if (repId && isAdmin) { cond += ` AND o.rep_id = $${idx++}`; params.push(repId) }
+  if (!isAdmin) { cond += ` AND o.rep_id = $${idx++}`; params.push(req.user!.id) }
+  if (factoryId) { cond += ` AND o.factory_id = $${idx++}`; params.push(factoryId) }
+
+  const { rows } = await query(`
+    SELECT
+      TO_CHAR(DATE_TRUNC('month', o.created_at AT TIME ZONE 'America/Sao_Paulo'), 'YYYY-MM') AS mes,
+      TO_CHAR(DATE_TRUNC('month', o.created_at AT TIME ZONE 'America/Sao_Paulo'), 'Mon/YY') AS mes_label,
+      COUNT(o.id)::int                                        AS total_pedidos,
+      COALESCE(SUM(o.total_value), 0)::numeric                AS total_value,
+      COALESCE(SUM(o.total_pieces), 0)::int                   AS total_pieces,
+      COALESCE(SUM(o.rep_commission_value), 0)::numeric       AS rep_commission,
+      COALESCE(SUM(o.office_commission_value), 0)::numeric    AS office_commission,
+      COUNT(DISTINCT o.client_id)::int                        AS clientes_atendidos,
+      COALESCE(AVG(o.total_value), 0)::numeric                AS ticket_medio
+    FROM orders o
+    WHERE o.deleted_at IS NULL
+      AND o.created_at >= DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Sao_Paulo' - ($1 - 1) * INTERVAL '1 month')
+      ${cond}
+    GROUP BY DATE_TRUNC('month', o.created_at AT TIME ZONE 'America/Sao_Paulo')
+    ORDER BY 1
+  `, params)
+
+  res.json(rows)
+}
+
+// ─── Clientes Inativos ────────────────────────────────────────────────────────
+export async function inactiveClientsReport(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+  const days = parseInt(String(req.query.days || '60'))
+
+  const params: unknown[] = [days]
+  let cond = ''
+  let idx = 2
+  if (repId && isAdmin) { cond += ` AND o.rep_id = $${idx++}`; params.push(repId) }
+  if (!isAdmin) { cond += ` AND o.rep_id = $${idx++}`; params.push(req.user!.id) }
+  if (factoryId) { cond += ` AND o.factory_id = $${idx++}`; params.push(factoryId) }
+
+  const { rows } = await query(`
+    SELECT
+      c.id, c.name AS razao_social, c.trade_name AS nome_fantasia,
+      c.city AS cidade, c.state AS uf, c.phone, c.whatsapp,
+      u.name AS rep_name,
+      MAX(o.created_at AT TIME ZONE 'America/Sao_Paulo')::date AS ultimo_pedido,
+      COUNT(o.id)::int                                          AS total_pedidos,
+      COALESCE(SUM(o.total_value), 0)::numeric                 AS total_comprado,
+      EXTRACT(DAY FROM NOW() - MAX(o.created_at))::int         AS dias_sem_comprar
+    FROM clients c
+    LEFT JOIN users u ON u.id = c.rep_id
+    LEFT JOIN orders o ON o.client_id = c.id AND o.deleted_at IS NULL ${cond}
+    WHERE c.active = true
+    GROUP BY c.id, c.name, c.trade_name, c.city, c.state, c.phone, c.whatsapp, u.name
+    HAVING
+      MAX(o.created_at) < NOW() - ($1 * INTERVAL '1 day')
+      OR MAX(o.created_at) IS NULL
+    ORDER BY dias_sem_comprar DESC NULLS FIRST
+    LIMIT 200
+  `, params)
+
+  res.json(rows)
+}
+
+// ─── Performance por Representante ──────────────────────────────────────────
+export async function repPerformanceReport(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  if (!isAdmin) { res.status(403).json({ error: 'Acesso negado' }); return }
+
+  const [from, to] = dateRange(req)
+  const factoryId = req.query.factory_id as string | undefined
+
+  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  let cond = ''
+  if (factoryId) { cond += ` AND o.factory_id = $3`; params.push(factoryId) }
+
+  const { rows } = await query(`
+    SELECT
+      u.id AS rep_id,
+      u.name AS rep_name,
+      COUNT(DISTINCT o.id)::int                              AS total_pedidos,
+      COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
+      COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
+      COALESCE(SUM(o.rep_commission_value), 0)::numeric      AS comissao_rep,
+      COALESCE(SUM(o.office_commission_value), 0)::numeric   AS comissao_escritorio,
+      COUNT(DISTINCT o.client_id)::int                       AS clientes_atendidos,
+      COALESCE(AVG(o.total_value), 0)::numeric               AS ticket_medio,
+      COALESCE(AVG(o.total_pieces), 0)::numeric              AS media_pecas_pedido
+    FROM users u
+    LEFT JOIN orders o ON o.rep_id = u.id
+      AND o.deleted_at IS NULL
+      AND o.created_at BETWEEN $1 AND $2
+      ${cond}
+    WHERE u.role = 'representante' AND u.active = true
+    GROUP BY u.id, u.name
+    ORDER BY total_value DESC
+  `, params)
+
+  res.json(rows)
+}

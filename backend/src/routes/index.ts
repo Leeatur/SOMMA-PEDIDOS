@@ -153,3 +153,8 @@ router.put('/goals/:id', authenticate, requireAdmin, goals.updateGoal)
 router.delete('/goals/:id', authenticate, requireAdmin, goals.deleteGoal)
 
 export default router
+
+// Novos relatórios
+router.get('/reports/sales-evolution', authenticate, reports.salesEvolutionReport)
+router.get('/reports/inactive-clients', authenticate, reports.inactiveClientsReport)
+router.get('/reports/rep-performance', authenticate, requireAdmin, reports.repPerformanceReport)
