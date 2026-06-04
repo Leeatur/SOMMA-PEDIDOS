@@ -28,7 +28,7 @@ function fmtDatePtBR(d: string | Date): string {
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog'
+type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance'
 
 interface OrderSummary {
   order_count: number; total_pieces: number
@@ -589,14 +589,39 @@ export function Reports() {
     enabled: tab === 'catalog',
   })
 
+  // ─── Novos relatórios ─────────────────────────────────────────────────────
+  const [evolutionMonths, setEvolutionMonths] = useState(12)
+  const [inactiveDays, setInactiveDays] = useState(60)
+
+  const evolutionQ = useQuery({
+    queryKey: ['rpt-evolution', evolutionMonths, factoryId, repId],
+    queryFn: () => reportsApi.salesEvolution({ months: evolutionMonths, factory_id: factoryId || undefined, rep_id: repId || undefined }).then(r => r.data),
+    enabled: tab === 'evolution',
+  })
+
+  const inactiveQ = useQuery({
+    queryKey: ['rpt-inactive', inactiveDays, factoryId, repId],
+    queryFn: () => reportsApi.inactiveClients({ days: inactiveDays, factory_id: factoryId || undefined, rep_id: repId || undefined }).then(r => r.data),
+    enabled: tab === 'inactive',
+  })
+
+  const repPerfQ = useQuery({
+    queryKey: ['rpt-rep-perf', dateFrom, dateTo, factoryId],
+    queryFn: () => reportsApi.repPerformance({ date_from: dateFrom, date_to: dateTo, factory_id: factoryId || undefined }).then(r => r.data),
+    enabled: tab === 'repperformance' && isAdmin,
+  })
+
   // ─── tabs config ───────────────────────────────────────────────────────────
 
   const ALL_TABS: { id: Tab; label: string; adminOnly?: boolean }[] = [
-    { id: 'orders',      label: 'Visão Geral' },
-    { id: 'commissions', label: 'Comissões' },
-    { id: 'clients',     label: 'Clientes' },
-    { id: 'collections', label: 'Curva ABC de Produtos' },
-    { id: 'catalog',     label: 'Catálogo de Coleção' },
+    { id: 'orders',         label: 'Visão Geral' },
+    { id: 'commissions',    label: 'Comissões' },
+    { id: 'evolution',      label: '📈 Evolução de Vendas' },
+    { id: 'repperformance', label: '🏆 Performance Reps', adminOnly: true },
+    { id: 'inactive',       label: '⚠️ Clientes Inativos' },
+    { id: 'clients',        label: 'Clientes' },
+    { id: 'collections',    label: 'Curva ABC de Produtos' },
+    { id: 'catalog',        label: 'Catálogo de Coleção' },
   ]
   const TABS = ALL_TABS.filter(t => !t.adminOnly || isAdmin)
 
@@ -1032,6 +1057,197 @@ export function Reports() {
                : <CatalogTab data={catalogQ.data} />
             }
           </div>
+        )}
+
+        {/* ═══ EVOLUÇÃO DE VENDAS ═══════════════════════════════════════ */}
+        {tab === 'evolution' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-[12px] font-semibold text-outline">Últimos</span>
+              {[6,12,24].map(m => (
+                <button key={m} onClick={() => setEvolutionMonths(m)}
+                  className={`px-3 py-1 rounded-lg text-[12px] font-semibold border transition-colors ${evolutionMonths === m ? 'bg-primary text-white border-primary' : 'border-outline-variant text-outline hover:bg-surface-container'}`}>
+                  {m} meses
+                </button>
+              ))}
+            </div>
+            {evolutionQ.isLoading ? <PageSpinner /> : !evolutionQ.data?.length ? <EmptyState label="Nenhum dado no período" /> : (
+              <div className="space-y-4">
+                {/* Cards resumo */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Total Vendido', value: fmtR(evolutionQ.data.reduce((s,r) => s+Number(r.total_value),0)), color: '#4f46e5' },
+                    { label: 'Total de Pedidos', value: evolutionQ.data.reduce((s,r) => s+r.total_pedidos,0).toString(), color: '#0891b2' },
+                    { label: 'Peças Vendidas', value: evolutionQ.data.reduce((s,r) => s+r.total_pieces,0).toLocaleString('pt-BR'), color: '#059669' },
+                    { label: 'Clientes Atendidos', value: [...new Set(evolutionQ.data.map(r => r.clientes_atendidos))].reduce((s,v) => s+v, 0).toString(), color: '#d97706' },
+                  ].map(card => (
+                    <div key={card.label} className="bg-white rounded-xl border border-outline-variant p-4">
+                      <p className="text-[11px] font-semibold text-outline uppercase tracking-wide mb-1">{card.label}</p>
+                      <p className="text-[22px] font-black" style={{ color: card.color }}>{card.value}</p>
+                    </div>
+                  ))}
+                </div>
+                {/* Tabela mensal */}
+                <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="text-[12px] w-full">
+                      <thead className="bg-surface-container-low">
+                        <tr>
+                          {['Mês','Pedidos','Peças','Valor Total','Ticket Médio','Com. Rep','Com. Escr.','Clientes'].map(h => (
+                            <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {evolutionQ.data.map((r: any) => (
+                          <tr key={r.mes} className="hover:bg-surface-container-low/50">
+                            <td className="px-3 py-2 font-bold text-on-surface whitespace-nowrap">{r.mes_label}</td>
+                            <td className="px-3 py-2 text-center">{r.total_pedidos}</td>
+                            <td className="px-3 py-2 text-center">{Number(r.total_pieces).toLocaleString('pt-BR')}</td>
+                            <td className="px-3 py-2 font-bold text-on-surface">{fmtR(r.total_value)}</td>
+                            <td className="px-3 py-2 text-outline">{fmtR(r.ticket_medio)}</td>
+                            <td className="px-3 py-2 text-emerald-700 font-semibold">{fmtR(r.rep_commission)}</td>
+                            <td className="px-3 py-2 text-blue-700 font-semibold">{fmtR(r.office_commission)}</td>
+                            <td className="px-3 py-2 text-center">{r.clientes_atendidos}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[12px]">
+                        <tr>
+                          <td className="px-3 py-2">TOTAL</td>
+                          <td className="px-3 py-2 text-center">{evolutionQ.data.reduce((s:number,r:any)=>s+r.total_pedidos,0)}</td>
+                          <td className="px-3 py-2 text-center">{evolutionQ.data.reduce((s:number,r:any)=>s+r.total_pieces,0).toLocaleString('pt-BR')}</td>
+                          <td className="px-3 py-2">{fmtR(evolutionQ.data.reduce((s:number,r:any)=>s+Number(r.total_value),0))}</td>
+                          <td className="px-3 py-2">—</td>
+                          <td className="px-3 py-2 text-emerald-700">{fmtR(evolutionQ.data.reduce((s:number,r:any)=>s+Number(r.rep_commission),0))}</td>
+                          <td className="px-3 py-2 text-blue-700">{fmtR(evolutionQ.data.reduce((s:number,r:any)=>s+Number(r.office_commission),0))}</td>
+                          <td className="px-3 py-2 text-center">—</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ CLIENTES INATIVOS ════════════════════════════════════════ */}
+        {tab === 'inactive' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-[12px] font-semibold text-outline">Sem comprar há mais de</span>
+              {[30,60,90,120].map(d => (
+                <button key={d} onClick={() => setInactiveDays(d)}
+                  className={`px-3 py-1 rounded-lg text-[12px] font-semibold border transition-colors ${inactiveDays === d ? 'bg-amber-500 text-white border-amber-500' : 'border-outline-variant text-outline hover:bg-surface-container'}`}>
+                  {d} dias
+                </button>
+              ))}
+            </div>
+            {inactiveQ.isLoading ? <PageSpinner /> : !inactiveQ.data?.length ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-8 text-center">
+                <p className="text-emerald-700 font-semibold">✅ Todos os clientes compraram nos últimos {inactiveDays} dias!</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 flex items-center justify-between">
+                  <p className="text-[12px] font-semibold text-amber-800">⚠️ {inactiveQ.data.length} cliente{inactiveQ.data.length !== 1 ? 's' : ''} sem comprar há +{inactiveDays} dias</p>
+                  <p className="text-[11px] text-amber-600">Total histórico: {fmtR(inactiveQ.data.reduce((s:number,r:any)=>s+Number(r.total_comprado),0))}</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="text-[12px] w-full">
+                    <thead className="bg-surface-container-low">
+                      <tr>
+                        {['Razão Social','Fantasia','Cidade','UF','Rep.','Último Pedido','Dias Inativo','Total Comprado','Pedidos','Contato'].map(h => (
+                          <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {inactiveQ.data.map((r: any) => (
+                        <tr key={r.id} className={`hover:bg-surface-container-low/50 ${!r.ultimo_pedido ? 'bg-red-50/30' : ''}`}>
+                          <td className="px-3 py-2 font-semibold text-on-surface max-w-[160px]"><span className="block truncate" title={r.razao_social}>{r.razao_social}</span></td>
+                          <td className="px-3 py-2 text-outline max-w-[120px]"><span className="block truncate">{r.nome_fantasia || '—'}</span></td>
+                          <td className="px-3 py-2 whitespace-nowrap text-outline">{r.cidade || '—'}</td>
+                          <td className="px-3 py-2 text-outline">{r.uf || '—'}</td>
+                          <td className="px-3 py-2 whitespace-nowrap text-outline">{r.rep_name || '—'}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            {r.ultimo_pedido
+                              ? <span className="text-outline">{new Date(r.ultimo_pedido+'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                              : <span className="text-red-500 font-bold">Nunca comprou</span>
+                            }
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${!r.dias_sem_comprar ? 'bg-red-100 text-red-700' : r.dias_sem_comprar > 90 ? 'bg-orange-100 text-orange-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {r.dias_sem_comprar ?? '∞'} d
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 font-semibold">{fmtR(r.total_comprado)}</td>
+                          <td className="px-3 py-2 text-center text-outline">{r.total_pedidos}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            {(r.whatsapp || r.phone) && (
+                              <a href={`https://wa.me/55${(r.whatsapp||r.phone).replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                                className="text-emerald-600 hover:text-emerald-800 text-[11px] font-semibold">📱 WhatsApp</a>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ PERFORMANCE POR REPRESENTANTE ═══════════════════════════ */}
+        {tab === 'repperformance' && isAdmin && (
+          repPerfQ.isLoading ? <PageSpinner /> : !repPerfQ.data?.length ? <EmptyState label="Nenhum dado no período" /> : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { label: 'Total da Equipe', value: fmtR(repPerfQ.data.reduce((s:number,r:any)=>s+Number(r.total_value),0)), color:'#4f46e5' },
+                  { label: 'Pedidos', value: repPerfQ.data.reduce((s:number,r:any)=>s+r.total_pedidos,0).toString(), color:'#0891b2' },
+                  { label: 'Representantes Ativos', value: repPerfQ.data.filter((r:any)=>r.total_pedidos>0).length.toString(), color:'#059669' },
+                  { label: 'Com. Total Equipe', value: fmtR(repPerfQ.data.reduce((s:number,r:any)=>s+Number(r.comissao_rep),0)), color:'#d97706' },
+                ].map(card => (
+                  <div key={card.label} className="bg-white rounded-xl border border-outline-variant p-4">
+                    <p className="text-[11px] font-semibold text-outline uppercase tracking-wide mb-1">{card.label}</p>
+                    <p className="text-[22px] font-black" style={{ color: card.color }}>{card.value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="text-[12px] w-full">
+                    <thead className="bg-surface-container-low">
+                      <tr>
+                        {['#','Representante','Pedidos','Peças','Total Vendido','Ticket Médio','Média Pç/Pedido','Com. Rep','Com. Escr.','Clientes'].map(h => (
+                          <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {repPerfQ.data.map((r: any, i: number) => (
+                        <tr key={r.rep_id} className="hover:bg-surface-container-low/50">
+                          <td className="px-3 py-2 font-bold text-outline">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}º`}</td>
+                          <td className="px-3 py-2 font-semibold text-on-surface whitespace-nowrap">{r.rep_name}</td>
+                          <td className="px-3 py-2 text-center">{r.total_pedidos}</td>
+                          <td className="px-3 py-2 text-center">{Number(r.total_pieces).toLocaleString('pt-BR')}</td>
+                          <td className="px-3 py-2 font-bold text-primary">{fmtR(r.total_value)}</td>
+                          <td className="px-3 py-2 text-outline">{fmtR(r.ticket_medio)}</td>
+                          <td className="px-3 py-2 text-center text-outline">{Number(r.media_pecas_pedido).toFixed(0)}</td>
+                          <td className="px-3 py-2 text-emerald-700 font-semibold">{fmtR(r.comissao_rep)}</td>
+                          <td className="px-3 py-2 text-blue-700 font-semibold">{fmtR(r.comissao_escritorio)}</td>
+                          <td className="px-3 py-2 text-center">{r.clientes_atendidos}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )
         )}
 
       </div>
