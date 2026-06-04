@@ -28,7 +28,7 @@ function fmtDatePtBR(d: string | Date): string {
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance'
+type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance' | 'abc' | 'comparison' | 'region' | 'projection'
 
 interface OrderSummary {
   order_count: number; total_pieces: number
@@ -611,17 +611,42 @@ export function Reports() {
     enabled: tab === 'repperformance' && isAdmin,
   })
 
+  const abcQ = useQuery({
+    queryKey: ['rpt-abc', dateFrom, dateTo, factoryId, repId],
+    queryFn: () => reportsApi.abcClients({ date_from: dateFrom, date_to: dateTo, factory_id: factoryId||undefined, rep_id: repId||undefined }).then(r => r.data),
+    enabled: tab === 'abc',
+  })
+  const comparisonQ = useQuery({
+    queryKey: ['rpt-comparison', dateFrom, dateTo, factoryId, repId],
+    queryFn: () => reportsApi.periodComparison({ date_from: dateFrom, date_to: dateTo, factory_id: factoryId||undefined, rep_id: repId||undefined }).then(r => r.data),
+    enabled: tab === 'comparison',
+  })
+  const regionQ = useQuery({
+    queryKey: ['rpt-region', dateFrom, dateTo, factoryId, repId],
+    queryFn: () => reportsApi.region({ date_from: dateFrom, date_to: dateTo, factory_id: factoryId||undefined, rep_id: repId||undefined }).then(r => r.data),
+    enabled: tab === 'region',
+  })
+  const projectionQ = useQuery({
+    queryKey: ['rpt-projection', factoryId, repId],
+    queryFn: () => reportsApi.commissionProjection({ factory_id: factoryId||undefined, rep_id: repId||undefined }).then(r => r.data),
+    enabled: tab === 'projection',
+  })
+
   // ─── tabs config ───────────────────────────────────────────────────────────
 
   const ALL_TABS: { id: Tab; label: string; adminOnly?: boolean }[] = [
     { id: 'orders',         label: 'Visão Geral' },
     { id: 'commissions',    label: 'Comissões' },
-    { id: 'evolution',      label: '📈 Evolução de Vendas' },
+    { id: 'evolution',      label: '📈 Evolução Mensal' },
+    { id: 'comparison',     label: '⚖️ Comparativo' },
+    { id: 'abc',            label: '🏅 Curva ABC Clientes' },
+    { id: 'region',         label: '🗺️ Por Região/UF' },
+    { id: 'projection',     label: '💰 Projeção Comissão' },
     { id: 'repperformance', label: '🏆 Performance Reps', adminOnly: true },
     { id: 'inactive',       label: '⚠️ Clientes Inativos' },
     { id: 'clients',        label: 'Clientes' },
-    { id: 'collections',    label: 'Curva ABC de Produtos' },
-    { id: 'catalog',        label: 'Catálogo de Coleção' },
+    { id: 'collections',    label: 'Curva ABC Produtos' },
+    { id: 'catalog',        label: 'Catálogo' },
   ]
   const TABS = ALL_TABS.filter(t => !t.adminOnly || isAdmin)
 
@@ -1248,6 +1273,228 @@ export function Reports() {
               </div>
             </div>
           )
+        )}
+
+        {/* ═══ CURVA ABC CLIENTES ══════════════════════════════════════ */}
+        {tab === 'abc' && (
+          abcQ.isLoading ? <PageSpinner /> : !abcQ.data?.length ? <EmptyState label="Nenhum dado no período" /> : (() => {
+            const data = abcQ.data as any[]
+            const totalA = data.filter(r=>r.classe==='A').reduce((s:number,r:any)=>s+Number(r.total_value),0)
+            const totalB = data.filter(r=>r.classe==='B').reduce((s:number,r:any)=>s+Number(r.total_value),0)
+            const totalC = data.filter(r=>r.classe==='C').reduce((s:number,r:any)=>s+Number(r.total_value),0)
+            const grandTotal = totalA+totalB+totalC
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  {[{cls:'A',cor:'#16a34a',bg:'bg-green-50 border-green-200',label:'Classe A — 80% da receita',total:totalA,count:data.filter(r=>r.classe==='A').length},
+                    {cls:'B',cor:'#ca8a04',bg:'bg-yellow-50 border-yellow-200',label:'Classe B — próximos 15%',total:totalB,count:data.filter(r=>r.classe==='B').length},
+                    {cls:'C',cor:'#dc2626',bg:'bg-red-50 border-red-200',label:'Classe C — últimos 5%',total:totalC,count:data.filter(r=>r.classe==='C').length},
+                  ].map(c => (
+                    <div key={c.cls} className={`rounded-xl border p-4 ${c.bg}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl font-black" style={{color:c.cor}}>{c.cls}</span>
+                        <span className="text-[11px] text-outline">{c.label}</span>
+                      </div>
+                      <p className="text-[20px] font-black text-on-surface">{fmtR(c.total)}</p>
+                      <p className="text-[12px] text-outline">{c.count} clientes · {grandTotal>0?(c.total/grandTotal*100).toFixed(1):0}% do total</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="text-[12px] w-full">
+                      <thead className="bg-surface-container-low">
+                        <tr>{['Classe','Razão Social','Cidade','UF','Rep.','Pedidos','Peças','Total','% Receita','% Acum.','Último Pedido'].map(h=>(
+                          <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
+                        ))}</tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {data.map((r:any) => (
+                          <tr key={r.id} className="hover:bg-surface-container-low/50">
+                            <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${r.classe==='A'?'bg-green-100 text-green-700':r.classe==='B'?'bg-yellow-100 text-yellow-700':'bg-red-100 text-red-700'}`}>{r.classe}</span></td>
+                            <td className="px-3 py-2 font-semibold max-w-[160px]"><span className="block truncate" title={r.razao_social}>{r.razao_social}</span></td>
+                            <td className="px-3 py-2 text-outline">{r.cidade||'—'}</td>
+                            <td className="px-3 py-2 text-outline">{r.uf||'—'}</td>
+                            <td className="px-3 py-2 text-outline whitespace-nowrap">{r.rep_name||'—'}</td>
+                            <td className="px-3 py-2 text-center">{r.total_pedidos}</td>
+                            <td className="px-3 py-2 text-center">{Number(r.total_pieces).toLocaleString('pt-BR')}</td>
+                            <td className="px-3 py-2 font-bold text-primary">{fmtR(r.total_value)}</td>
+                            <td className="px-3 py-2 text-center">{Number(r.pct).toFixed(1)}%</td>
+                            <td className="px-3 py-2 text-center">{Number(r.pct_acum).toFixed(1)}%</td>
+                            <td className="px-3 py-2 whitespace-nowrap text-outline">{r.ultimo_pedido?new Date(r.ultimo_pedido+'T12:00').toLocaleDateString('pt-BR'):'—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )
+          })()
+        )}
+
+        {/* ═══ COMPARATIVO DE PERÍODO ══════════════════════════════════ */}
+        {tab === 'comparison' && (
+          comparisonQ.isLoading ? <PageSpinner /> : !comparisonQ.data ? null : (() => {
+            const d = comparisonQ.data as any
+            const cur = d.current, prev = d.previous
+            const pct = (c:number, p:number) => p>0 ? ((c-p)/p*100).toFixed(1) : null
+            const metric = (label:string, cur:number, prev:number, isCurrency=true) => {
+              const p = pct(cur, prev)
+              const up = cur >= prev
+              return (
+                <div className="bg-white rounded-xl border border-outline-variant p-4">
+                  <p className="text-[11px] font-semibold text-outline uppercase tracking-wide mb-3">{label}</p>
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] text-outline mb-0.5">Período atual</p>
+                      <p className="text-[20px] font-black text-on-surface">{isCurrency?fmtR(cur):cur.toLocaleString('pt-BR')}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] text-outline mb-0.5">Período anterior</p>
+                      <p className="text-[14px] font-semibold text-outline">{isCurrency?fmtR(prev):prev.toLocaleString('pt-BR')}</p>
+                    </div>
+                  </div>
+                  {p !== null && (
+                    <div className={`mt-2 flex items-center gap-1 text-[12px] font-bold ${up?'text-green-600':'text-red-600'}`}>
+                      <span>{up?'▲':'▼'}</span> {Math.abs(Number(p))}% vs período anterior
+                    </div>
+                  )}
+                </div>
+              )
+            }
+            return (
+              <div className="space-y-4">
+                <div className="bg-surface-container-low rounded-xl px-4 py-2 text-[12px] text-outline flex gap-4 flex-wrap">
+                  <span>📅 Atual: {new Date(d.period.from+'T12:00').toLocaleDateString('pt-BR')} a {new Date(d.period.to+'T12:00').toLocaleDateString('pt-BR')}</span>
+                  <span>📅 Anterior: {new Date(d.prev_period.from+'T12:00').toLocaleDateString('pt-BR')} a {new Date(d.prev_period.to+'T12:00').toLocaleDateString('pt-BR')}</span>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {metric('Total Vendido', Number(cur.total_value), Number(prev.total_value))}
+                  {metric('Pedidos', Number(cur.total_pedidos), Number(prev.total_pedidos), false)}
+                  {metric('Peças', Number(cur.total_pieces), Number(prev.total_pieces), false)}
+                  {metric('Ticket Médio', Number(cur.ticket_medio), Number(prev.ticket_medio))}
+                  {metric('Clientes Atendidos', Number(cur.clientes_atendidos), Number(prev.clientes_atendidos), false)}
+                  {metric('Com. Representante', Number(cur.rep_commission), Number(prev.rep_commission))}
+                  {metric('Com. Escritório', Number(cur.office_commission), Number(prev.office_commission))}
+                </div>
+              </div>
+            )
+          })()
+        )}
+
+        {/* ═══ ANÁLISE POR REGIÃO ══════════════════════════════════════ */}
+        {tab === 'region' && (
+          regionQ.isLoading ? <PageSpinner /> : !regionQ.data?.length ? <EmptyState label="Nenhum dado no período" /> : (() => {
+            const data = regionQ.data as any[]
+            const grandTotal = data.reduce((s:number,r:any)=>s+Number(r.total_value),0)
+            return (
+              <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="text-[12px] w-full">
+                    <thead className="bg-surface-container-low">
+                      <tr>{['UF','Pedidos','Clientes','Peças','Total Vendido','% do Total','Ticket Médio','Com. Rep'].map(h=>(
+                        <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {data.map((r:any) => (
+                        <tr key={r.uf} className="hover:bg-surface-container-low/50">
+                          <td className="px-3 py-2 font-bold text-on-surface">{r.uf}</td>
+                          <td className="px-3 py-2 text-center">{r.total_pedidos}</td>
+                          <td className="px-3 py-2 text-center">{r.clientes_atendidos}</td>
+                          <td className="px-3 py-2 text-center">{Number(r.total_pieces).toLocaleString('pt-BR')}</td>
+                          <td className="px-3 py-2 font-bold text-primary">{fmtR(r.total_value)}</td>
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+                                <div className="h-full rounded-full bg-primary" style={{width:`${grandTotal>0?Number(r.total_value)/grandTotal*100:0}%`}} />
+                              </div>
+                              <span className="text-[11px] text-outline w-10 text-right">{grandTotal>0?(Number(r.total_value)/grandTotal*100).toFixed(1):0}%</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-outline">{fmtR(r.ticket_medio)}</td>
+                          <td className="px-3 py-2 text-emerald-700 font-semibold">{fmtR(r.comissao_rep)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[12px]">
+                      <tr>
+                        <td className="px-3 py-2">TOTAL</td>
+                        <td className="px-3 py-2 text-center">{data.reduce((s:number,r:any)=>s+r.total_pedidos,0)}</td>
+                        <td className="px-3 py-2 text-center">{data.reduce((s:number,r:any)=>s+r.clientes_atendidos,0)}</td>
+                        <td className="px-3 py-2 text-center">{data.reduce((s:number,r:any)=>s+r.total_pieces,0).toLocaleString('pt-BR')}</td>
+                        <td className="px-3 py-2 text-primary">{fmtR(grandTotal)}</td>
+                        <td className="px-3 py-2">100%</td>
+                        <td className="px-3 py-2">—</td>
+                        <td className="px-3 py-2 text-emerald-700">{fmtR(data.reduce((s:number,r:any)=>s+Number(r.comissao_rep),0))}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )
+          })()
+        )}
+
+        {/* ═══ PROJEÇÃO DE COMISSÃO ════════════════════════════════════ */}
+        {tab === 'projection' && (
+          projectionQ.isLoading ? <PageSpinner /> : !projectionQ.data?.length ? <EmptyState label="Nenhum pedido em aberto" /> : (() => {
+            const data = projectionQ.data as any[]
+            const abertos = data.filter((r:any)=>r.situacao==='a_faturar')
+            const faturados = data.filter((r:any)=>r.situacao==='faturado')
+            const totalAberto = abertos.reduce((s:number,r:any)=>s+Number(r.comissao_rep),0)
+            const totalFaturado = faturados.reduce((s:number,r:any)=>s+Number(r.comissao_rep),0)
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    {label:'A Receber (em aberto)', v:totalAberto, sub:`${abertos.reduce((s:number,r:any)=>s+r.pedidos,0)} pedidos`, color:'#d97706'},
+                    {label:'Já Faturado', v:totalFaturado, sub:`${faturados.reduce((s:number,r:any)=>s+r.pedidos,0)} pedidos`, color:'#16a34a'},
+                    {label:'Total Geral', v:totalAberto+totalFaturado, sub:'todos os pedidos', color:'#4f46e5'},
+                    {label:'Valor Total em Pedidos', v:data.reduce((s:number,r:any)=>s+Number(r.total_value),0), sub:'', color:'#0891b2'},
+                  ].map(c=>(
+                    <div key={c.label} className="bg-white rounded-xl border border-outline-variant p-4">
+                      <p className="text-[11px] font-semibold text-outline uppercase tracking-wide mb-1">{c.label}</p>
+                      <p className="text-[20px] font-black" style={{color:c.color}}>{fmtR(c.v)}</p>
+                      {c.sub && <p className="text-[11px] text-outline mt-0.5">{c.sub}</p>}
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="text-[12px] w-full">
+                      <thead className="bg-surface-container-low">
+                        <tr>{['Situação','Representante','Status','Pedidos','Peças','Valor Pedidos','Com. Rep','Com. Escr.'].map(h=>(
+                          <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
+                        ))}</tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {data.map((r:any) => (
+                          <tr key={i} className="hover:bg-surface-container-low/50">
+                            <td className="px-3 py-2">
+                              <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${r.situacao==='faturado'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}`}>
+                                {r.situacao==='faturado'?'✅ Faturado':'⏳ A Faturar'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 font-semibold whitespace-nowrap">{r.rep_name}</td>
+                            <td className="px-3 py-2">
+                              {r.status_name && <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{background:r.status_color||'#9ca3af'}}/>{r.status_name}</span>}
+                            </td>
+                            <td className="px-3 py-2 text-center">{r.pedidos}</td>
+                            <td className="px-3 py-2 text-center">{Number(r.total_pieces).toLocaleString('pt-BR')}</td>
+                            <td className="px-3 py-2 font-bold text-on-surface">{fmtR(r.total_value)}</td>
+                            <td className="px-3 py-2 text-emerald-700 font-semibold">{fmtR(r.comissao_rep)}</td>
+                            <td className="px-3 py-2 text-blue-700 font-semibold">{fmtR(r.comissao_escritorio)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )
+          })()
         )}
 
       </div>
