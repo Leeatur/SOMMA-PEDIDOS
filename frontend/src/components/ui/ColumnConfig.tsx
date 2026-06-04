@@ -201,21 +201,30 @@ export function ColumnConfigButton({
   config,
   onSave,
   onReset,
+  label,
 }: {
   defs: ColumnDef[]
   config: ColState[]
   onSave: (config: ColState[]) => void
   onReset: () => void
+  label?: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const hiddenCount = config.filter(c => !c.visible).length
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        className="p-1.5 text-outline/70 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors flex-shrink-0"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold border border-outline-variant rounded-lg text-on-surface-variant hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors flex-shrink-0"
         title="Personalizar colunas"
       >
         <Settings2 className="h-4 w-4" />
+        {label !== false && <span>Colunas</span>}
+        {hiddenCount > 0 && (
+          <span className="bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+            {hiddenCount}
+          </span>
+        )}
       </button>
       <ColumnConfigModal
         open={open}
