@@ -1076,10 +1076,10 @@ export function Reports() {
                 {/* Cards resumo */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {[
-                    { label: 'Total Vendido', value: fmtR(evolutionQ.data.reduce((s,r) => s+Number(r.total_value),0)), color: '#4f46e5' },
-                    { label: 'Total de Pedidos', value: evolutionQ.data.reduce((s,r) => s+r.total_pedidos,0).toString(), color: '#0891b2' },
-                    { label: 'Peças Vendidas', value: evolutionQ.data.reduce((s,r) => s+r.total_pieces,0).toLocaleString('pt-BR'), color: '#059669' },
-                    { label: 'Clientes Atendidos', value: [...new Set(evolutionQ.data.map(r => r.clientes_atendidos))].reduce((s,v) => s+v, 0).toString(), color: '#d97706' },
+                    { label: 'Total Vendido', value: fmtR((evolutionQ.data as any[]).reduce((s:number,r:any) => s+Number(r.total_value),0)), color: '#4f46e5' },
+                    { label: 'Total de Pedidos', value: (evolutionQ.data as any[]).reduce((s:number,r:any) => s+r.total_pedidos,0).toString(), color: '#0891b2' },
+                    { label: 'Peças Vendidas', value: (evolutionQ.data as any[]).reduce((s:number,r:any) => s+r.total_pieces,0).toLocaleString('pt-BR'), color: '#059669' },
+                    { label: 'Clientes Atendidos', value: (evolutionQ.data as any[]).reduce((s:number,r:any) => s+r.clientes_atendidos,0).toString(), color: '#d97706' },
                   ].map(card => (
                     <div key={card.label} className="bg-white rounded-xl border border-outline-variant p-4">
                       <p className="text-[11px] font-semibold text-outline uppercase tracking-wide mb-1">{card.label}</p>
