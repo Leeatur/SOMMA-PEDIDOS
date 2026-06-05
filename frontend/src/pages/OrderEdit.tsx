@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -1191,10 +1191,16 @@ function ItemRow({
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
 
-  // Estado local para o campo de preço — evita race condition entre onBlur e Salvar
+  // Estado local para o campo de preço
   const [priceText, setPriceText] = useState(Number(unitPrice).toFixed(2).replace('.', ','))
-  // Sincroniza se o unitPrice mudar externamente
-  useEffect(() => { setPriceText(Number(unitPrice).toFixed(2).replace('.', ',')) }, [unitPrice])
+  const isEditingPrice = useRef(false)  // true enquanto o usuário está digitando
+
+  // Sincroniza com unitPrice SOMENTE quando não está editando (vem de fora)
+  useEffect(() => {
+    if (!isEditingPrice.current) {
+      setPriceText(Number(unitPrice).toFixed(2).replace('.', ','))
+    }
+  }, [unitPrice])
 
   // Tamanhos únicos de toda a grade pack
   const gradeSizes = sortSizes(
@@ -1244,28 +1250,31 @@ function ItemRow({
               type="text" inputMode="decimal"
               value={priceText}
               onChange={e => {
+                // Só atualiza o texto — NÃO chama onPriceChange durante digitação
+                // para evitar o loop: onChange → state update → useEffect → reset
                 setPriceText(e.target.value)
-                const raw = e.target.value.replace(',', '.')
-                const v = parseFloat(raw)
-                if (!isNaN(v) && v > 0) onPriceChange?.(v)
               }}
               onBlur={e => {
+                isEditingPrice.current = false
                 const raw = e.target.value.replace(',', '.')
                 const v = parseFloat(raw)
                 if (!isNaN(v) && v > 0) {
                   const formatted = v.toFixed(2).replace('.', ',')
                   setPriceText(formatted)
-                  onPriceChange?.(v)
+                  onPriceChange?.(v)  // só atualiza o estado pai ao sair do campo
                 } else {
                   setPriceText(Number(unitPrice).toFixed(2).replace('.', ','))
                 }
               }}
+              onFocus={e => {
+                isEditingPrice.current = true  // marca que está editando
+                e.target.select()
+              }}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
-                  e.currentTarget.blur() // confirma o valor ao pressionar Enter
+                  e.currentTarget.blur()
                 }
               }}
-              onFocus={e => e.target.select()}
               className={`w-24 text-right text-[12px] font-semibold border rounded-lg px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-primary/40 ${
                 Math.abs(parseFloat(priceText.replace(',','.')) - unitPrice) > 0.01
                   ? 'border-amber-400 text-amber-700 bg-amber-50 focus:border-amber-500'
