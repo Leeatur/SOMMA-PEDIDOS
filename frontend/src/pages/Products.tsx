@@ -744,7 +744,7 @@ function ProductRow({
                 {p.type === 'pack' ? 'PK' : 'REG'}
               </Badge>
               {!p.active && (
-                <Badge variant="danger" className="text-[12px] px-1.5 py-0">Indisp.</Badge>
+                <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white tracking-wide">INATIVA</span>
               )}
               {blockedCount > 0 && p.active && (
                 <span className="text-[12px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-medium">
@@ -1248,7 +1248,7 @@ export function Products() {
                         }`}>
                           {p.type === 'pack' ? 'PACK' : 'REG'}
                         </span>
-                        {!p.active && <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">INDISP</span>}
+                        {!p.active && <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white tracking-wide">INATIVA</span>}
                       </div>
                       <p className="text-[12px] font-bold text-primary font-mono leading-tight truncate">{p.reference}</p>
                       {p.product_name && (
