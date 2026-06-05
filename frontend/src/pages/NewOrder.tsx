@@ -825,7 +825,10 @@ export function NewOrder() {
                     : 0
 
                   return (
-                    <div key={p.id} id={`product-card-${p.id}`} className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+                    <div key={p.id} id={`product-card-${p.id}`}
+                      className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-md transition-all active:scale-[0.99]"
+                      onClick={() => setQuickAddProduct(p)}
+                    >
                       <div className="flex gap-3 p-3">
                         {/* Image */}
                         <div className="w-14 h-14 bg-surface-container rounded-lg flex-shrink-0 overflow-hidden">

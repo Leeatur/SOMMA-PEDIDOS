@@ -47,6 +47,7 @@ interface OrderItem {
   type: string
   boxes_count: number
   unit_price: number
+  original_unit_price: number | null  // preço da tabela (nunca muda mesmo com ajuste manual)
   total_pieces: number
   subtotal: number
   sizes: Record<string, number> | null
@@ -169,6 +170,10 @@ export function OrderPrint() {
         sizeCols[s] = item.sizes[s] || 0
       }
       const gradeLabel = sortSizes(Object.keys(item.sizes).filter(s => (item.sizes![s] || 0) > 0)).join('/')
+      // Preço Tab. = original da tabela. R$ ajustado = unit_price (pode ter sido ajustado manualmente)
+      const tabPrice = item.original_unit_price ?? item.unit_price
+      const adjPrice = item.unit_price
+      const discPct = tabPrice > 0 ? Math.round((1 - adjPrice / tabPrice) * 10000) / 100 : actualDiscPct
       rows.push({
         seq,
         reference: item.reference,
@@ -177,22 +182,22 @@ export function OrderPrint() {
         gradeLabel,
         sizeCols,
         qtde,
-        unitPriceBase: item.unit_price,
-        unitPriceDisc: item.unit_price * (1 - actualDiscPct / 100),
-        discPct: actualDiscPct,
-        total: item.unit_price * (1 - actualDiscPct / 100) * qtde,
+        unitPriceBase: tabPrice,
+        unitPriceDisc: adjPrice,
+        discPct: discPct,
+        total: adjPrice * qtde,
       })
     } else if (item.grade_configs && item.grade_configs.length > 0) {
-      // Pack: unit_price é preço POR PEÇA. Uma linha por cor com preço × peças da cor.
-      const pricePerPiece = item.unit_price
-      const discPerPiece  = pricePerPiece * (1 - actualDiscPct / 100)
+      // Pack: unit_price é preço POR PEÇA.
+      const tabPricePack = item.original_unit_price ?? item.unit_price
+      const adjPricePack = item.unit_price
+      const discPctPack = tabPricePack > 0 ? Math.round((1 - adjPricePack / tabPricePack) * 10000) / 100 : actualDiscPct
 
       for (const gc of item.grade_configs) {
         seq++
         const qtde = gc.total_pieces * item.boxes_count
         const sizeCols: Record<string, number> = {}
         for (const s of sizes) {
-          // grade_configs pode ter chaves com espaços: "P " → trim para "P"
           const rawVal = gc.sizes[s] ?? gc.sizes[s + ' '] ?? gc.sizes[' ' + s] ?? 0
           sizeCols[s] = rawVal * item.boxes_count
         }
@@ -205,10 +210,10 @@ export function OrderPrint() {
           gradeLabel,
           sizeCols,
           qtde,
-          unitPriceBase: pricePerPiece,
-          unitPriceDisc: discPerPiece,
-          discPct: actualDiscPct,
-          total: discPerPiece * qtde,
+          unitPriceBase: tabPricePack,
+          unitPriceDisc: adjPricePack,
+          discPct: discPctPack,
+          total: adjPricePack * qtde,
         })
       }
     } else {
@@ -216,6 +221,9 @@ export function OrderPrint() {
       seq++
       const qtde = item.total_pieces || item.boxes_count
       const sizeCols: Record<string, number> = {}
+      const tabP2 = item.original_unit_price ?? item.unit_price
+      const adjP2 = item.unit_price
+      const disc2 = tabP2 > 0 ? Math.round((1 - adjP2 / tabP2) * 10000) / 100 : actualDiscPct
       rows.push({
         seq,
         reference: item.reference,
@@ -224,10 +232,10 @@ export function OrderPrint() {
         gradeLabel: '',
         sizeCols,
         qtde,
-        unitPriceBase: item.unit_price,
-        unitPriceDisc: item.unit_price * (1 - actualDiscPct / 100),
-        discPct: actualDiscPct,
-        total: item.unit_price * (1 - actualDiscPct / 100) * qtde,
+        unitPriceBase: tabP2,
+        unitPriceDisc: adjP2,
+        discPct: disc2,
+        total: adjP2 * qtde,
       })
     }
   }

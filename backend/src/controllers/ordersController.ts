@@ -251,8 +251,8 @@ export async function createOrder(req: AuthRequest, res: Response) {
 
     for (const item of totals.enrichedItems) {
       await dbClient.query(
-        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, sizes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, original_unit_price, total_pieces, subtotal, sizes)
+         VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$8)`,
         [order.id, item.product_id, item.reference, item.boxes_count, item.unit_price, item.total_pieces, item.subtotal,
          item.sizes ? JSON.stringify(item.sizes) : null]
       )
