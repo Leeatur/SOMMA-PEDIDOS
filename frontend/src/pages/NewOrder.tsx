@@ -1447,14 +1447,42 @@ function QuickAddModal({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-      if (e.key === 'Enter' && totalPieces > 0 && !(e.target instanceof HTMLTextAreaElement)) {
-        onAdd(product, safeSizes, boxes, observation, customPrice)
+      // Sempre para propagação quando o modal está aberto
+      if (e.key === 'Escape' || e.key === 'Enter') {
+        e.stopPropagation()
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+        return
+      }
+
+      if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement)) {
+        // Verifica se está no ÚLTIMO input numérico da grade (não move para próximo)
+        const target = e.target as HTMLElement
+        const isInSizeGrid = target.tagName === 'INPUT' && target.getAttribute('type') === 'number'
+        if (isInSizeGrid) {
+          // Se há próximo input, deixa o grid handler mover o foco (não adiciona ainda)
+          const table = target.closest('table')
+          const inputs = table ? Array.from(table.querySelectorAll<HTMLInputElement>('input[type="number"]')) : []
+          const idx = inputs.indexOf(target as HTMLInputElement)
+          if (idx >= 0 && idx < inputs.length - 1) {
+            // Não é o último — deixa navegar para o próximo
+            return
+          }
+        }
+
+        // É o último campo ou Enter fora da grade — adiciona o item
+        e.preventDefault()
+        if (totalPieces > 0) {
+          onAdd(product, safeSizes, boxes, observation, customPrice)
+        }
       }
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [onClose, onAdd, product, safeSizes, boxes, observation, totalPieces])
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [onClose, onAdd, product, safeSizes, boxes, observation, totalPieces, customPrice])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
