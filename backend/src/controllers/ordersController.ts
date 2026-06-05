@@ -251,8 +251,8 @@ export async function createOrder(req: AuthRequest, res: Response) {
 
     for (const item of totals.enrichedItems) {
       await dbClient.query(
-        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, sizes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, original_unit_price, total_pieces, subtotal, sizes)
+         VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$8)`,
         [order.id, item.product_id, item.reference, item.boxes_count, item.unit_price, item.total_pieces, item.subtotal,
          item.sizes ? JSON.stringify(item.sizes) : null]
       )
@@ -367,6 +367,28 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
   } finally {
     dbClient.release()
   }
+}
+
+// Ajuste manual de comissão (admin only)
+export async function updateOrderCommission(req: AuthRequest, res: Response) {
+  if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode ajustar comissão' }); return }
+  const { rep_commission_value, office_commission_value } = req.body
+  const { rows: [order] } = await query('SELECT id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id])
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  const { rows: [updated] } = await query(
+    `UPDATE orders SET
+       rep_commission_value = $1,
+       office_commission_value = $2,
+       updated_at = NOW()
+     WHERE id = $3
+     RETURNING rep_commission_value, office_commission_value`,
+    [
+      parseFloat(String(rep_commission_value).replace(',', '.')) || 0,
+      parseFloat(String(office_commission_value).replace(',', '.')) || 0,
+      req.params.id
+    ]
+  )
+  res.json(updated)
 }
 
 // Atualiza campos de informação do pedido
