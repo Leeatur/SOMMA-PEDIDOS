@@ -9,7 +9,16 @@ export async function listPortals(req: AuthRequest, res: Response) {
   const repId = req.user!.role === 'admin' ? req.query.rep_id || req.user!.id : req.user!.id
   const { rows } = await query(
     `SELECT cp.*, u.name as rep_name,
-       array_agg(f.name ORDER BY f.name) FILTER (WHERE f.id IS NOT NULL) AS factory_names
+       array_agg(DISTINCT f.name) FILTER (WHERE f.id IS NOT NULL) AS factory_names,
+       (
+         SELECT json_agg(
+           json_build_object('id', pt.id, 'name', pt.name, 'factory_name', f2.name)
+           ORDER BY f2.name, pt.name
+         )
+         FROM price_tables pt
+         JOIN factories f2 ON f2.id = pt.factory_id
+         WHERE pt.id = ANY(cp.price_table_ids) AND pt.active = true
+       ) AS price_table_info
      FROM customer_portals cp
      LEFT JOIN users u ON u.id = cp.rep_id
      LEFT JOIN unnest(cp.factory_ids) fid ON true

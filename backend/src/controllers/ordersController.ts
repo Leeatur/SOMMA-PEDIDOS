@@ -403,26 +403,30 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
   const offVal  = offPct  !== null ? Math.round(totalVal * offPct  / 100 * 100) / 100
                                    : parseFloat(String(office_commission_value).replace(',','.')) || 0
 
-  // Constrói UPDATE dinâmico — só altera pct quando veio no body
-  const sets = [
-    'rep_commission_value = $1',
-    'office_commission_value = $2',
-    'commission_manual_override = TRUE',
-    'updated_at = NOW()',
-  ]
-  const params: unknown[] = [repVal, offVal, req.params.id]
+  // Constrói UPDATE dinâmico — id vai SEMPRE por último como $N final
+  const sets: string[] = []
+  const params: unknown[] = []
+
+  const p = () => params.length  // índice atual após o push
+
+  params.push(repVal);  sets.push(`rep_commission_value = $${p()}`)
+  params.push(offVal);  sets.push(`office_commission_value = $${p()}`)
 
   if (repPct !== null && !isNaN(repPct)) {
-    sets.push(`rep_commission_pct = $${params.length + 1}`)
-    params.splice(params.length - 1, 0, repPct)  // insere antes do id
+    params.push(repPct);  sets.push(`rep_commission_pct = $${p()}`)
   }
   if (offPct !== null && !isNaN(offPct)) {
-    sets.push(`office_commission_pct = $${params.length + 1}`)
-    params.splice(params.length - 1, 0, offPct)
+    params.push(offPct);  sets.push(`office_commission_pct = $${p()}`)
   }
 
+  sets.push('commission_manual_override = TRUE')
+  sets.push('updated_at = NOW()')
+
+  params.push(req.params.id)  // id é sempre o último parâmetro
+  const idIdx = p()
+
   const { rows: [updated] } = await query(
-    `UPDATE orders SET ${sets.join(', ')} WHERE id = $${params.length}
+    `UPDATE orders SET ${sets.join(', ')} WHERE id = $${idIdx}
      RETURNING rep_commission_value, office_commission_value,
                rep_commission_pct, office_commission_pct, commission_manual_override`,
     params

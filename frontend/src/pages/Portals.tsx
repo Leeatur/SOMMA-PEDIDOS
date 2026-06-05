@@ -9,9 +9,12 @@ import { PageSpinner } from '../components/ui/Spinner'
 import { useAuthStore } from '../stores/authStore'
 
 interface PriceTable { id: string; name: string; factory_name: string; collection: string | null; season: string | null; year: number | null }
+interface PriceTableInfo { id: string; name: string; factory_name: string }
 interface Portal {
   id: string; rep_id: string; token: string; name: string
-  factory_ids: string[]; price_table_ids: string[]; factory_names?: string[]
+  factory_ids: string[]; price_table_ids: string[]
+  factory_names?: string[]
+  price_table_info?: PriceTableInfo[]   // info das tabelas selecionadas (vem do backend)
   active: boolean; created_at: string; expires_at: string | null
 }
 
@@ -138,8 +141,18 @@ export function Portals() {
                         {portal.active ? '● Ativo' : '○ Inativo'}
                       </span>
                     </div>
-                    {/* Fábricas */}
-                    {portal.factory_ids?.length > 0 && (
+                    {/* Tabelas de preço selecionadas (novo fluxo) */}
+                    {portal.price_table_info && portal.price_table_info.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {portal.price_table_info.map(pt => (
+                          <span key={pt.id} className="text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                            <Tags className="h-2.5 w-2.5 inline mr-0.5" />
+                            {pt.factory_name} — {pt.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : portal.factory_ids?.length > 0 ? (
+                      /* Legado: mostra fábricas */
                       <div className="flex flex-wrap gap-1 mt-1">
                         {(portal.factory_names || portal.factory_ids).map((f, i) => (
                           <span key={i} className="text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
@@ -147,9 +160,8 @@ export function Portals() {
                           </span>
                         ))}
                       </div>
-                    )}
-                    {(!portal.factory_ids || portal.factory_ids.length === 0) && (
-                      <p className="text-[11px] text-outline mt-0.5">Todas as fábricas disponíveis</p>
+                    ) : (
+                      <p className="text-[11px] text-outline mt-0.5">Sem restrição de tabela</p>
                     )}
                   </div>
                   {/* Toggle ativo/inativo */}
