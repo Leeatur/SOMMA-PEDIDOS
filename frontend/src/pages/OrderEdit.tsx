@@ -1216,14 +1216,14 @@ function ItemRow({
 
       {/* Produto */}
       <td className="px-2 py-2">
-        <div className="flex items-center gap-2 min-w-[180px]">
+        <div className="flex items-center gap-2 min-w-[280px] max-w-[340px]">
           {imageUrl
             ? <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded shrink-0" />
             : <div className="w-10 h-10 rounded bg-surface-container-low shrink-0" />}
           <div className="min-w-0">
             <p className="font-semibold text-on-surface text-[12px]">{reference}</p>
             {priceTableName && <p className="text-[12px] text-primary/70 font-medium leading-tight">{priceTableName}</p>}
-            <p className="text-[12px] text-on-surface-variant truncate max-w-[160px]">{productName}</p>
+            <p className="text-[12px] text-on-surface-variant max-w-[260px]">{productName}</p>
             {productObservation && (
               <p className="text-[11px] font-bold text-red-600 uppercase mt-0.5 flex items-center gap-1">
                 <span>⚠️</span>{productObservation}
@@ -1283,7 +1283,7 @@ function ItemRow({
               </thead>
               <tbody>
                 <tr>
-                  {sizes.map(size => (
+                  {sizes.map((size, sIdx) => (
                     <td key={size} className="px-0.5 py-0.5">
                       <input
                         type="number" min={0} max={999}
@@ -1291,6 +1291,7 @@ function ItemRow({
                         value={draftSizes[size] || 0}
                         onChange={e => onSizeChange(size, parseInt(e.target.value) || 0)}
                         onFocus={e => e.target.select()}
+                        autoFocus={sIdx === 0}
                       />
                     </td>
                   ))}
