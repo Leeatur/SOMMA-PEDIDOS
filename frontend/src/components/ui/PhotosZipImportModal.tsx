@@ -27,7 +27,7 @@ interface Props {
   onDone?: () => void
 }
 
-const REF_REGEX = /((?:TE|PKTE)\d+)/i
+const REF_REGEX = /([A-Z]{2,4}\d+)/i  // aceita TE, PKTE, ZZ, ZO, etc.
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp'])
 
 /**
@@ -138,7 +138,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
       })
 
       if (images.length === 0) {
-        setError('Nenhuma imagem com referência TE/PKTE encontrada no ZIP.')
+        setError('Nenhuma imagem com referência válida encontrada no ZIP. Certifique-se que os arquivos têm o código da referência no nome (ex: ZZ80071.jpg ou TE11140.jpg).')
         setProcessing(false)
         setPhase('idle')
         return

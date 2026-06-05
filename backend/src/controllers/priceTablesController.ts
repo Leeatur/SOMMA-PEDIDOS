@@ -604,7 +604,8 @@ export async function importPhotosZip(req: AuthRequest, res: Response) {
 
   // Extrai imagens do ZIP usando unzipper (Node.js puro — sem dependência de Python)
   const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp'])
-  const REF_REGEX = /((?:TE|PKTE)\d+)/i
+  // Aceita qualquer referência: TE, PKTE, ZZ, ZO, etc. (2 letras maiúsculas + dígitos)
+  const REF_REGEX = /([A-Z]{2,4}\d+)/i
 
   let extracted: Array<{ ref: string; path: string; ext: string }> = []
   try {
