@@ -534,8 +534,8 @@ export default function OrderEdit() {
         await ordersApi.addItems(id!, toAdd)
       }
 
-      qc.invalidateQueries({ queryKey: ['order', id] })
-      qc.invalidateQueries({ queryKey: ['orders'] })
+      qc.invalidateQueries({ queryKey: ['order', id], refetchType: 'all' })
+      qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' })
       navigate(`/orders/${id}`)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error

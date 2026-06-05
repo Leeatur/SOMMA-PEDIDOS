@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Users,
   Tags,
@@ -309,6 +309,7 @@ function SizeDisplay({ sizes }: { sizes: Record<string, number> }) {
 // ─── Página principal ────────────────────────────────────────────────────────
 export function NewOrder() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
   const [step, setStep] = useState(0)
@@ -532,7 +533,9 @@ export function NewOrder() {
       }
     },
     onSuccess: () => {
-      // Sempre volta para o grid de pedidos após salvar
+      // Invalida e força refetch imediato (ignora staleTime)
+      qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' })
+      qc.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' })
       navigate('/orders')
     },
   })
