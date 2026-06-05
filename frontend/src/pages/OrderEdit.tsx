@@ -896,7 +896,7 @@ export default function OrderEdit() {
                 <tr className="bg-surface-container-low text-on-surface-variant text-[12px]">
                   <th className="px-4 py-1 text-left font-medium w-8">#</th>
                   <th className="px-2 py-1 text-left font-medium">Produto</th>
-                  <th className="px-3 py-1 text-right font-medium whitespace-nowrap">R$ Tab.</th>
+                  <th className="px-3 py-1 text-right font-medium whitespace-nowrap">R$ Unit. <span className="text-[10px] text-primary/60 font-normal">(clique p/ editar)</span></th>
                   <th className="px-3 py-1 text-center font-medium">Quantidades / Grade</th>
                   <th className="px-3 py-1 text-right font-medium">Peças</th>
                   <th className="px-3 py-1 text-right font-medium">Total</th>
@@ -1237,33 +1237,46 @@ function ItemRow({
 
       {/* Preço unit. — editável */}
       <td className="px-3 py-2 text-right text-[12px] align-middle whitespace-nowrap">
-        <div className="flex items-center gap-0.5 justify-end">
-          <span className="text-outline/60 text-[11px]">R$</span>
-          <input
-            type="text" inputMode="decimal"
-            value={priceText}
-            onChange={e => {
-              setPriceText(e.target.value)
-              // Atualiza o estado imediatamente ao digitar (sem esperar blur)
-              const raw = e.target.value.replace(',', '.')
-              const v = parseFloat(raw)
-              if (!isNaN(v) && v > 0) onPriceChange?.(v)
-            }}
-            onBlur={e => {
-              // Formata ao sair do campo
-              const raw = e.target.value.replace(',', '.')
-              const v = parseFloat(raw)
-              if (!isNaN(v) && v > 0) {
-                const formatted = v.toFixed(2).replace('.', ',')
-                setPriceText(formatted)
-                onPriceChange?.(v)
-              } else {
-                setPriceText(Number(unitPrice).toFixed(2).replace('.', ','))
-              }
-            }}
-            onFocus={e => e.target.select()}
-            className="w-20 text-right text-[12px] font-semibold text-primary border border-outline-variant/50 rounded-lg px-1.5 py-1 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 bg-white"
-          />
+        <div className="flex flex-col items-end gap-0.5">
+          <div className="flex items-center gap-0.5">
+            <span className="text-outline/60 text-[11px]">R$</span>
+            <input
+              type="text" inputMode="decimal"
+              value={priceText}
+              onChange={e => {
+                setPriceText(e.target.value)
+                const raw = e.target.value.replace(',', '.')
+                const v = parseFloat(raw)
+                if (!isNaN(v) && v > 0) onPriceChange?.(v)
+              }}
+              onBlur={e => {
+                const raw = e.target.value.replace(',', '.')
+                const v = parseFloat(raw)
+                if (!isNaN(v) && v > 0) {
+                  const formatted = v.toFixed(2).replace('.', ',')
+                  setPriceText(formatted)
+                  onPriceChange?.(v)
+                } else {
+                  setPriceText(Number(unitPrice).toFixed(2).replace('.', ','))
+                }
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur() // confirma o valor ao pressionar Enter
+                }
+              }}
+              onFocus={e => e.target.select()}
+              className={`w-24 text-right text-[12px] font-semibold border rounded-lg px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                Math.abs(parseFloat(priceText.replace(',','.')) - unitPrice) > 0.01
+                  ? 'border-amber-400 text-amber-700 bg-amber-50 focus:border-amber-500'
+                  : 'border-outline-variant/50 text-primary bg-white focus:border-primary'
+              }`}
+              title="Clique para editar o preço unitário"
+            />
+          </div>
+          {Math.abs(parseFloat(priceText.replace(',','.')) - unitPrice) > 0.01 && (
+            <span className="text-[10px] text-amber-600 font-semibold">✏️ alterado</span>
+          )}
         </div>
       </td>
 
