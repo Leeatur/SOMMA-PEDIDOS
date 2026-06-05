@@ -248,7 +248,10 @@ export default function OrderEdit() {
   const [policyDiscountPct, setPolicyDiscountPct] = useState<number>(0)
 
   // Comissão manual — override dos valores calculados
-  const [manualCommission, setManualCommission] = useState<{ rep: string; office: string } | null>(null)
+  const [manualCommission, setManualCommission] = useState<{
+    rep: string; repPct: string
+    office: string; officePct: string
+  } | null>(null)
 
   // ── itens editáveis ──────────────────────────────────────────────────────────
 
@@ -317,8 +320,10 @@ export default function OrderEdit() {
     setPolicyDiscountPct(0)
     // Inicializa comissão manual com os valores atuais do pedido
     setManualCommission({
-      rep: String(Number(order.rep_commission_value || 0).toFixed(2)).replace('.', ','),
-      office: String(Number(order.office_commission_value || 0).toFixed(2)).replace('.', ','),
+      rep:       String(Number(order.rep_commission_value    || 0).toFixed(2)).replace('.', ','),
+      repPct:    String(Number(order.rep_commission_pct      || 0).toFixed(2)).replace('.', ','),
+      office:    String(Number(order.office_commission_value || 0).toFixed(2)).replace('.', ','),
+      officePct: String(Number(order.office_commission_pct   || 0).toFixed(2)).replace('.', ','),
     })
     setItems((order.items || []).map((it: OrderItemRaw) => ({
       ...it,
@@ -475,12 +480,24 @@ export default function OrderEdit() {
 
       // 3. Comissão manual (se admin ajustou manualmente)
       if (isAdmin && manualCommission) {
-        const repV = parseFloat(manualCommission.rep.replace(',', '.')) || 0
-        const offV = parseFloat(manualCommission.office.replace(',', '.')) || 0
-        const origRep = Number(order.rep_commission_value || 0)
+        const repV    = parseFloat(manualCommission.rep.replace(',', '.'))    || 0
+        const offV    = parseFloat(manualCommission.office.replace(',', '.')) || 0
+        const repPct  = parseFloat(manualCommission.repPct.replace(',', '.'))
+        const offPct  = parseFloat(manualCommission.officePct.replace(',', '.'))
+        const origRep = Number(order.rep_commission_value    || 0)
         const origOff = Number(order.office_commission_value || 0)
-        if (Math.abs(repV - origRep) > 0.01 || Math.abs(offV - origOff) > 0.01) {
-          await ordersApi.updateCommission(id!, { rep_commission_value: repV, office_commission_value: offV })
+        const origRepPct = Number(order.rep_commission_pct   || 0)
+        const origOffPct = Number(order.office_commission_pct || 0)
+        const changed = Math.abs(repV - origRep) > 0.01 || Math.abs(offV - origOff) > 0.01
+                     || (!isNaN(repPct) && Math.abs(repPct - origRepPct) > 0.001)
+                     || (!isNaN(offPct) && Math.abs(offPct - origOffPct) > 0.001)
+        if (changed) {
+          await ordersApi.updateCommission(id!, {
+            rep_commission_value:    repV,
+            office_commission_value: offV,
+            rep_commission_pct:    !isNaN(repPct) ? repPct : undefined,
+            office_commission_pct: !isNaN(offPct) ? offPct : undefined,
+          })
         }
       }
 
@@ -802,35 +819,92 @@ export default function OrderEdit() {
                       — sobrescreve o cálculo automático
                     </span>
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-outline mb-1">Com. Representante (R$)</label>
-                      <input
-                        className="w-full border border-amber-300 bg-white rounded-lg px-3 py-1.5 text-[12px] font-semibold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                        value={manualCommission.rep}
-                        inputMode="decimal"
-                        onChange={e => setManualCommission(c => c ? { ...c, rep: e.target.value } : c)}
-                        onBlur={e => {
-                          const v = parseFloat(e.target.value.replace(',', '.'))
-                          if (!isNaN(v) && v >= 0) setManualCommission(c => c ? { ...c, rep: v.toFixed(2).replace('.', ',') } : c)
-                        }}
-                        placeholder="0,00"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-outline mb-1">Com. Escritório (R$)</label>
-                      <input
-                        className="w-full border border-amber-300 bg-white rounded-lg px-3 py-1.5 text-[12px] font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                        value={manualCommission.office}
-                        inputMode="decimal"
-                        onChange={e => setManualCommission(c => c ? { ...c, office: e.target.value } : c)}
-                        onBlur={e => {
-                          const v = parseFloat(e.target.value.replace(',', '.'))
-                          if (!isNaN(v) && v >= 0) setManualCommission(c => c ? { ...c, office: v.toFixed(2).replace('.', ',') } : c)
-                        }}
-                        placeholder="0,00"
-                      />
-                    </div>
+                  {/* Grid 2 colunas: Rep | Escrit */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* ── Com. Representante ── */}
+                    {([
+                      { label: 'Com. Representante', color: 'emerald', pctKey: 'repPct', valKey: 'rep' },
+                      { label: 'Com. Escritório',    color: 'blue',    pctKey: 'officePct', valKey: 'office' },
+                    ] as const).map(({ label, color, pctKey, valKey }) => {
+                      const totalVal = Number(order?.total_value || 0)
+                      const inputCls = (c: string) =>
+                        `w-full border border-amber-300 bg-white rounded-lg px-2 py-1.5 text-[12px] font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400 text-${c}-700`
+                      return (
+                        <div key={valKey}>
+                          <label className="block text-[11px] font-semibold text-outline mb-1.5">{label}</label>
+                          <div className="flex gap-2">
+                            {/* Campo % */}
+                            <div className="flex-1">
+                              <p className="text-[10px] text-outline/60 mb-0.5">%</p>
+                              <div className="relative">
+                                <input
+                                  className={inputCls(color) + ' pr-5'}
+                                  value={manualCommission![pctKey]}
+                                  inputMode="decimal"
+                                  placeholder="0,00"
+                                  onChange={e => {
+                                    const txt = e.target.value
+                                    const pct = parseFloat(txt.replace(',', '.'))
+                                    const newVal = (!isNaN(pct) && totalVal > 0)
+                                      ? (totalVal * pct / 100).toFixed(2).replace('.', ',')
+                                      : manualCommission![valKey]
+                                    setManualCommission(c => c ? { ...c, [pctKey]: txt, [valKey]: newVal } : c)
+                                  }}
+                                  onBlur={e => {
+                                    const pct = parseFloat(e.target.value.replace(',', '.'))
+                                    if (!isNaN(pct) && pct >= 0) {
+                                      const newVal = totalVal > 0
+                                        ? (totalVal * pct / 100).toFixed(2).replace('.', ',')
+                                        : manualCommission![valKey]
+                                      setManualCommission(c => c ? {
+                                        ...c,
+                                        [pctKey]: pct.toFixed(2).replace('.', ','),
+                                        [valKey]: newVal,
+                                      } : c)
+                                    }
+                                  }}
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-outline/50 pointer-events-none">%</span>
+                              </div>
+                            </div>
+                            {/* Campo R$ */}
+                            <div className="flex-1">
+                              <p className="text-[10px] text-outline/60 mb-0.5">R$</p>
+                              <div className="relative">
+                                <input
+                                  className={inputCls(color) + ' pl-6'}
+                                  value={manualCommission![valKey]}
+                                  inputMode="decimal"
+                                  placeholder="0,00"
+                                  onChange={e => {
+                                    const txt = e.target.value
+                                    const val = parseFloat(txt.replace(',', '.'))
+                                    const newPct = (!isNaN(val) && totalVal > 0)
+                                      ? (val / totalVal * 100).toFixed(2).replace('.', ',')
+                                      : manualCommission![pctKey]
+                                    setManualCommission(c => c ? { ...c, [valKey]: txt, [pctKey]: newPct } : c)
+                                  }}
+                                  onBlur={e => {
+                                    const val = parseFloat(e.target.value.replace(',', '.'))
+                                    if (!isNaN(val) && val >= 0) {
+                                      const newPct = totalVal > 0
+                                        ? (val / totalVal * 100).toFixed(2).replace('.', ',')
+                                        : manualCommission![pctKey]
+                                      setManualCommission(c => c ? {
+                                        ...c,
+                                        [valKey]: val.toFixed(2).replace('.', ','),
+                                        [pctKey]: newPct,
+                                      } : c)
+                                    }
+                                  }}
+                                />
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-outline/50 pointer-events-none">R$</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <p className="text-[10px] text-amber-600">
