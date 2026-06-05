@@ -342,6 +342,38 @@ export function NewOrder() {
 
   const online = navigator.onLine
 
+  // ── Atalhos de teclado globais: ESC volta, Enter avança ──────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Não interfere se estiver em modal aberto
+      if (showNewClient) return
+      // Não interfere em textarea
+      if (e.target instanceof HTMLTextAreaElement) return
+
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        if (step === 0) {
+          navigate('/orders')
+        } else if (step === 2 && cart.length > 0) {
+          if (window.confirm(`Você tem ${cart.length} item(ns) no carrinho.\nVoltar irá esvaziar o carrinho.\n\nDeseja continuar?`)) {
+            setCart([])
+            setStep(1)
+          }
+        } else {
+          setStep(s => Math.max(0, s - 1))
+        }
+      }
+
+      // Enter no Step 0: seleciona o primeiro cliente da lista
+      if (e.key === 'Enter' && step === 0 && !selectedClient) {
+        const first = (document.querySelector('[data-client-card]') as HTMLElement)
+        if (first) first.click()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [step, showNewClient, selectedClient, cart, navigate])
+
   // Debounce da busca de clientes (300ms)
   const [debouncedClientSearch, setDebouncedClientSearch] = useState(clientSearch)
   useEffect(() => {
@@ -499,12 +531,9 @@ export function NewOrder() {
         return { online: false, offline_id }
       }
     },
-    onSuccess: (result) => {
-      if (result.online) {
-        navigate(`/orders/${result.id}`)
-      } else {
-        navigate('/orders')
-      }
+    onSuccess: () => {
+      // Sempre volta para o grid de pedidos após salvar
+      navigate('/orders')
     },
   })
 
@@ -533,10 +562,18 @@ export function NewOrder() {
                 }
               }}
               className="p-1.5 rounded-lg text-outline hover:bg-surface-container"
+              title="Voltar (ESC)"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <h1 className="text-[12px] font-bold text-on-surface">Novo Pedido</h1>
+            {/* Hint de atalhos */}
+            <div className="ml-auto flex items-center gap-2 text-[10px] text-outline/60">
+              <kbd className="px-1.5 py-0.5 bg-surface-container rounded border border-outline-variant font-mono">ESC</kbd>
+              <span>Voltar</span>
+              <kbd className="px-1.5 py-0.5 bg-surface-container rounded border border-outline-variant font-mono">↵</kbd>
+              <span>Confirmar</span>
+            </div>
           </div>
 
           {/* Step indicator */}
@@ -592,7 +629,7 @@ export function NewOrder() {
               <PageSpinner />
             ) : (
               <div className="space-y-1">
-                {(clients || []).map((c) => (
+                {(clients || []).map((c, idx) => (
                   <Card
                     key={c.id}
                     padding="md"
@@ -602,6 +639,7 @@ export function NewOrder() {
                       setStep(1)
                     }}
                     className={selectedClient?.id === c.id ? 'ring-2 ring-primary' : ''}
+                    {...(idx === 0 ? { 'data-client-card': 'true' } as Record<string, string> : {})}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">

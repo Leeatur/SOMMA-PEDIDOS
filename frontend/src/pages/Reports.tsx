@@ -1470,7 +1470,7 @@ export function Reports() {
                         ))}</tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {data.map((r:any) => (
+                        {data.map((r:any, i:number) => (
                           <tr key={i} className="hover:bg-surface-container-low/50">
                             <td className="px-3 py-2">
                               <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${r.situacao==='faturado'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}`}>
