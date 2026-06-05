@@ -1597,6 +1597,7 @@ function QuickAddModal({
                           value={sizes[s] || ''}
                           onChange={e => setSizes(prev => ({ ...prev, [s]: Math.max(0, parseInt(e.target.value) || 0) }))}
                           onFocus={e => e.target.select()}
+                          autoFocus={idx === 0}
                           tabIndex={idx + 1}
                           className="w-full text-center py-2.5 text-[13px] font-semibold text-on-surface focus:outline-none focus:bg-primary/5 bg-transparent"
                           placeholder="0" />
