@@ -247,6 +247,9 @@ export default function OrderEdit() {
   // Desconto de política (prazo) — afeta comissão, selecionado no grid
   const [policyDiscountPct, setPolicyDiscountPct] = useState<number>(0)
 
+  // Comissão manual — override dos valores calculados
+  const [manualCommission, setManualCommission] = useState<{ rep: string; office: string } | null>(null)
+
   // ── itens editáveis ──────────────────────────────────────────────────────────
 
   const [items, setItems] = useState<EditableItem[]>([])
@@ -312,6 +315,11 @@ export default function OrderEdit() {
     // Política de Prazo começa em 0 (separado do Desconto à Vista)
     // O usuário seleciona explicitamente clicando no grid se quiser aplicar desconto de prazo
     setPolicyDiscountPct(0)
+    // Inicializa comissão manual com os valores atuais do pedido
+    setManualCommission({
+      rep: String(Number(order.rep_commission_value || 0).toFixed(2)).replace('.', ','),
+      office: String(Number(order.office_commission_value || 0).toFixed(2)).replace('.', ','),
+    })
     setItems((order.items || []).map((it: OrderItemRaw) => ({
       ...it,
       draftSizes: initSizes(it),
@@ -466,16 +474,27 @@ export default function OrderEdit() {
         rep_id: isAdmin && form.rep_id && form.rep_id !== order.rep_id ? form.rep_id : undefined,
       })
 
-      // 3. Status mudou
+      // 3. Comissão manual (se admin ajustou manualmente)
+      if (isAdmin && manualCommission) {
+        const repV = parseFloat(manualCommission.rep.replace(',', '.')) || 0
+        const offV = parseFloat(manualCommission.office.replace(',', '.')) || 0
+        const origRep = Number(order.rep_commission_value || 0)
+        const origOff = Number(order.office_commission_value || 0)
+        if (Math.abs(repV - origRep) > 0.01 || Math.abs(offV - origOff) > 0.01) {
+          await ordersApi.updateCommission(id!, repV, offV)
+        }
+      }
+
+      // 4. Status mudou
       if (form.status_id && form.status_id !== order.status_id) {
         await ordersApi.updateStatus(id!, form.status_id)
       }
 
-      // 4. Remover itens marcados
+      // 5. Remover itens marcados
       const removedIds = items.filter(it => it.removed).map(it => it.id)
       await Promise.all(removedIds.map(iid => ordersApi.removeItem(id!, iid)))
 
-      // 5. Atualizar itens modificados (tamanhos, grade e preço unitário)
+      // 6. Atualizar itens modificados (tamanhos, grade e preço unitário)
       for (const it of activeItems) {
         const origItem = order.items?.find((o: OrderItemRaw) => o.id === it.id)
         if (!origItem) continue
@@ -767,6 +786,54 @@ export default function OrderEdit() {
                 <p className="text-[11px] text-outline mt-1">
                   💡 Desconto de prazo afeta comissão. Desconto à Vista é separado e não afeta comissão.
                 </p>
+              </div>
+            )}
+
+            {/* Ajuste Manual de Comissão (admin only) */}
+            {isAdmin && manualCommission && (
+              <div className="sm:col-span-2 lg:col-span-3">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                  <label className="block text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1">
+                    🔧 Ajuste Manual de Comissão
+                    <span className="ml-2 text-[10px] font-normal normal-case text-amber-600">
+                      — sobrescreve o cálculo automático
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-outline mb-1">Com. Representante (R$)</label>
+                      <input
+                        className="w-full border border-amber-300 bg-white rounded-lg px-3 py-1.5 text-[12px] font-semibold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        value={manualCommission.rep}
+                        inputMode="decimal"
+                        onChange={e => setManualCommission(c => c ? { ...c, rep: e.target.value } : c)}
+                        onBlur={e => {
+                          const v = parseFloat(e.target.value.replace(',', '.'))
+                          if (!isNaN(v) && v >= 0) setManualCommission(c => c ? { ...c, rep: v.toFixed(2).replace('.', ',') } : c)
+                        }}
+                        placeholder="0,00"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-outline mb-1">Com. Escritório (R$)</label>
+                      <input
+                        className="w-full border border-amber-300 bg-white rounded-lg px-3 py-1.5 text-[12px] font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        value={manualCommission.office}
+                        inputMode="decimal"
+                        onChange={e => setManualCommission(c => c ? { ...c, office: e.target.value } : c)}
+                        onBlur={e => {
+                          const v = parseFloat(e.target.value.replace(',', '.'))
+                          if (!isNaN(v) && v >= 0) setManualCommission(c => c ? { ...c, office: v.toFixed(2).replace('.', ',') } : c)
+                        }}
+                        placeholder="0,00"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-amber-600">
+                    Atual: Rep R$ {Number(order?.rep_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} ·
+                    Escr. R$ {Number(order?.office_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                  </p>
+                </div>
               </div>
             )}
 

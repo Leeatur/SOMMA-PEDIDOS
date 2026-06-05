@@ -289,6 +289,8 @@ export const ordersApi = {
   removeItem: (id: string, item_id: string) => apiClient.delete(`/orders/${id}/items/${item_id}`),
   updateItem: (id: string, item_id: string, data: { sizes?: Record<string, number>; boxes_count?: number; unit_price?: number; custom_grade?: Array<{color: string | null; sizes: Record<string, number>; total_pieces: number; sort_order: number}> }) =>
     apiClient.patch(`/orders/${id}/items/${item_id}`, data),
+  updateCommission: (id: string, rep_commission_value: number, office_commission_value: number) =>
+    apiClient.patch(`/orders/${id}/commission`, { rep_commission_value, office_commission_value }),
   changePriceTable: (id: string, price_table_id: string, discount_pct: number, commission_discount_pct?: number) =>
     apiClient.put(`/orders/${id}/price-table`, { price_table_id, discount_pct, commission_discount_pct }),
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),

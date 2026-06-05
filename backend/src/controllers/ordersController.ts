@@ -369,6 +369,28 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
   }
 }
 
+// Ajuste manual de comissão (admin only)
+export async function updateOrderCommission(req: AuthRequest, res: Response) {
+  if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode ajustar comissão' }); return }
+  const { rep_commission_value, office_commission_value } = req.body
+  const { rows: [order] } = await query('SELECT id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id])
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  const { rows: [updated] } = await query(
+    `UPDATE orders SET
+       rep_commission_value = $1,
+       office_commission_value = $2,
+       updated_at = NOW()
+     WHERE id = $3
+     RETURNING rep_commission_value, office_commission_value`,
+    [
+      parseFloat(String(rep_commission_value).replace(',', '.')) || 0,
+      parseFloat(String(office_commission_value).replace(',', '.')) || 0,
+      req.params.id
+    ]
+  )
+  res.json(updated)
+}
+
 // Atualiza campos de informação do pedido
 export async function updateOrderInfo(req: AuthRequest, res: Response) {
   const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id, rep_id, transportadora } = req.body
