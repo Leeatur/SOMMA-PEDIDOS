@@ -1178,6 +1178,7 @@ export function Products() {
             <input
               value={search}
               onChange={e => handleSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') { handleSearch(''); e.currentTarget.blur() } }}
               placeholder="Referência, nome, fábrica..."
               className="w-full h-11 pl-10 pr-4 bg-surface-container-low border border-outline-variant/60 rounded-xl text-[12px] focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
@@ -1338,6 +1339,7 @@ export function Products() {
               placeholder="Buscar por referência, nome, modelo, categoria, fábrica..."
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Escape') { handleSearch(''); e.currentTarget.blur() } }}
               leftIcon={<Search className="h-4 w-4" />}
             />
           </div>
