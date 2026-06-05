@@ -439,12 +439,10 @@ export default function OrderEdit() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
 
-  const handleSaveAndBack = async () => {
-    await handleSave()
-    navigate('/orders')
-  }
-
-  const handleSave = async () => {
+  // destination: para onde navegar ao salvar com sucesso
+  // 'detail'  → /orders/:id  (padrão do botão "Salvar")
+  // 'list'    → /orders      (botão "Salvar e Voltar")
+  const handleSave = async (destination: 'detail' | 'list' = 'detail') => {
     if (!order) return
     setSaving(true)
     setSaveError('')
@@ -455,8 +453,9 @@ export default function OrderEdit() {
       const totalDiscount = policyDiscountPct + cashDiscount
       const oldTotalDiscount = Number(order.discount_pct) || 0
 
-      // 1. Desconto ou política mudou → recalcula preços e comissão
-      if (isAdmin && (Math.abs(totalDiscount - oldTotalDiscount) > 0.001 || policyDiscountPct !== undefined)) {
+      // 1. Só recalcula via changePriceTable se o desconto realmente mudou
+      // (evita resetar preços manuais desnecessariamente)
+      if (isAdmin && Math.abs(totalDiscount - oldTotalDiscount) > 0.001) {
         // Passa commission_discount_pct separado = só o desconto de PRAZO para comissão
         await ordersApi.changePriceTable(id!, order.price_table_id, totalDiscount, policyDiscountPct)
       }
@@ -481,7 +480,7 @@ export default function OrderEdit() {
         const origRep = Number(order.rep_commission_value || 0)
         const origOff = Number(order.office_commission_value || 0)
         if (Math.abs(repV - origRep) > 0.01 || Math.abs(offV - origOff) > 0.01) {
-          await ordersApi.updateCommission(id!, repV, offV)
+          await ordersApi.updateCommission(id!, { rep_commission_value: repV, office_commission_value: offV })
         }
       }
 
@@ -536,7 +535,7 @@ export default function OrderEdit() {
 
       qc.invalidateQueries({ queryKey: ['order', id], refetchType: 'all' })
       qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' })
-      navigate(`/orders/${id}`)
+      navigate(destination === 'list' ? '/orders' : `/orders/${id}`)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
       setSaveError(msg || 'Erro ao salvar. Tente novamente.')
@@ -598,13 +597,13 @@ export default function OrderEdit() {
             <X size={15} /> Cancelar
           </button>
           {/* Salvar e Voltar */}
-          <button onClick={handleSaveAndBack} disabled={saving}
+          <button onClick={() => handleSave('list')} disabled={saving}
             className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60 shrink-0">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             {saving ? 'Salvando...' : 'Salvar e Voltar'}
           </button>
           {/* Salvar (fica na tela) */}
-          <button onClick={handleSave} disabled={saving}
+          <button onClick={() => handleSave('detail')} disabled={saving}
             className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60 shrink-0">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             {saving ? '...' : 'Salvar'}
@@ -793,9 +792,12 @@ export default function OrderEdit() {
             {isAdmin && manualCommission && (
               <div className="sm:col-span-2 lg:col-span-3">
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
-                  <label className="block text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1 flex items-center gap-2">
+                  <label className="block text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1 flex items-center gap-2 flex-wrap">
                     🔧 Ajuste Manual de Comissão
                     <span className="text-[10px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded-full">ADMIN</span>
+                    {order?.commission_manual_override && (
+                      <span className="text-[10px] font-bold bg-orange-600 text-white px-1.5 py-0.5 rounded-full">⚠ OVERRIDE ATIVO</span>
+                    )}
                     <span className="text-[10px] font-normal normal-case text-amber-600">
                       — sobrescreve o cálculo automático
                     </span>
@@ -830,10 +832,27 @@ export default function OrderEdit() {
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-amber-600">
-                    Atual: Rep R$ {Number(order?.rep_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} ·
-                    Escr. R$ {Number(order?.office_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
-                  </p>
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <p className="text-[10px] text-amber-600">
+                      Atual: Rep R$ {Number(order?.rep_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} ·
+                      Escr. R$ {Number(order?.office_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                      {order?.commission_manual_override && <span className="ml-1 font-bold text-orange-600">(ajuste manual)</span>}
+                    </p>
+                    {order?.commission_manual_override && (
+                      <button
+                        type="button"
+                        className="text-[10px] text-red-600 underline hover:text-red-800"
+                        onClick={async () => {
+                          if (!confirm('Resetar comissão para o cálculo automático?')) return
+                          await ordersApi.resetCommission(id!)
+                          qc.invalidateQueries({ queryKey: ['order', id], refetchType: 'all' })
+                          qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' })
+                        }}
+                      >
+                        Resetar para automático
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -988,12 +1007,12 @@ export default function OrderEdit() {
             className="hidden sm:flex items-center justify-center gap-2 px-5 py-2 rounded-xl border border-outline-variant text-[12px] text-on-surface-variant hover:bg-surface-container">
             <Eye size={16} /> Visualizar
           </button>
-          <button onClick={handleSave} disabled={saving}
+          <button onClick={() => handleSave('detail')} disabled={saving}
             className="sm:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {saving ? '...' : 'Salvar'}
           </button>
-          <button onClick={handleSaveAndBack} disabled={saving}
+          <button onClick={() => handleSave('list')} disabled={saving}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {saving ? 'Salvando...' : 'Salvar e Voltar'}
@@ -1250,9 +1269,13 @@ function ItemRow({
               type="text" inputMode="decimal"
               value={priceText}
               onChange={e => {
-                // Só atualiza o texto — NÃO chama onPriceChange durante digitação
-                // para evitar o loop: onChange → state update → useEffect → reset
-                setPriceText(e.target.value)
+                const newText = e.target.value
+                isEditingPrice.current = true
+                setPriceText(newText)
+                // Atualiza o estado pai IMEDIATAMENTE para garantir que
+                // handleSave() leia o valor correto mesmo sem blur prévio
+                const v = parseFloat(newText.replace(',', '.'))
+                if (!isNaN(v) && v > 0) onPriceChange?.(v)
               }}
               onBlur={e => {
                 isEditingPrice.current = false
@@ -1261,7 +1284,7 @@ function ItemRow({
                 if (!isNaN(v) && v > 0) {
                   const formatted = v.toFixed(2).replace('.', ',')
                   setPriceText(formatted)
-                  onPriceChange?.(v)  // só atualiza o estado pai ao sair do campo
+                  onPriceChange?.(v)  // garante formato final correto no pai
                 } else {
                   setPriceText(Number(unitPrice).toFixed(2).replace('.', ','))
                 }

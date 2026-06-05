@@ -348,15 +348,23 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
     )
     const allTotals = await computeOrderTotals(allItems, disc, order.price_table_id, dbClient as any)
 
-    await dbClient.query(
-      `UPDATE orders SET
-         total_pieces=$1, total_value=$2,
-         rep_commission_value=$3, office_commission_value=$4,
-         updated_at=NOW()
-       WHERE id=$5`,
-      [allTotals.totalPieces, allTotals.totalValue,
-       allTotals.repCommissionValue, allTotals.officeCommissionValue, orderId]
-    )
+    if (order.commission_manual_override) {
+      // Comissão manual ativa → preserva valores de comissão, atualiza apenas peças/valor
+      await dbClient.query(
+        `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
+        [allTotals.totalPieces, allTotals.totalValue, orderId]
+      )
+    } else {
+      await dbClient.query(
+        `UPDATE orders SET
+           total_pieces=$1, total_value=$2,
+           rep_commission_value=$3, office_commission_value=$4,
+           updated_at=NOW()
+         WHERE id=$5`,
+        [allTotals.totalPieces, allTotals.totalValue,
+         allTotals.repCommissionValue, allTotals.officeCommissionValue, orderId]
+      )
+    }
 
     await dbClient.query('COMMIT')
     res.json({ message: 'Itens adicionados', total_pieces: allTotals.totalPieces, total_value: allTotals.totalValue })
@@ -370,23 +378,85 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
 }
 
 // Ajuste manual de comissão (admin only)
+// Aceita pct (%) ou value (R$). Quando pct é fornecido, calcula value = total_value * pct / 100
+// e atualiza ambos os campos (pct e value) na tabela orders.
 export async function updateOrderCommission(req: AuthRequest, res: Response) {
   if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode ajustar comissão' }); return }
-  const { rep_commission_value, office_commission_value } = req.body
-  const { rows: [order] } = await query('SELECT id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id])
+  const {
+    rep_commission_value, office_commission_value,
+    rep_commission_pct, office_commission_pct,
+  } = req.body
+
+  const { rows: [order] } = await query(
+    'SELECT id, total_value FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
+  )
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+
+  const totalVal = Number(order.total_value) || 0
+
+  // Se pct fornecido: calcula value = total * pct / 100 e salva os dois
+  // Se só value fornecido: usa value diretamente
+  const repPct  = rep_commission_pct  !== undefined ? parseFloat(String(rep_commission_pct).replace(',','.'))  : null
+  const offPct  = office_commission_pct !== undefined ? parseFloat(String(office_commission_pct).replace(',','.')) : null
+  const repVal  = repPct  !== null ? Math.round(totalVal * repPct  / 100 * 100) / 100
+                                   : parseFloat(String(rep_commission_value).replace(',','.'))  || 0
+  const offVal  = offPct  !== null ? Math.round(totalVal * offPct  / 100 * 100) / 100
+                                   : parseFloat(String(office_commission_value).replace(',','.')) || 0
+
+  // Constrói UPDATE dinâmico — só altera pct quando veio no body
+  const sets = [
+    'rep_commission_value = $1',
+    'office_commission_value = $2',
+    'commission_manual_override = TRUE',
+    'updated_at = NOW()',
+  ]
+  const params: unknown[] = [repVal, offVal, req.params.id]
+
+  if (repPct !== null && !isNaN(repPct)) {
+    sets.push(`rep_commission_pct = $${params.length + 1}`)
+    params.splice(params.length - 1, 0, repPct)  // insere antes do id
+  }
+  if (offPct !== null && !isNaN(offPct)) {
+    sets.push(`office_commission_pct = $${params.length + 1}`)
+    params.splice(params.length - 1, 0, offPct)
+  }
+
+  const { rows: [updated] } = await query(
+    `UPDATE orders SET ${sets.join(', ')} WHERE id = $${params.length}
+     RETURNING rep_commission_value, office_commission_value,
+               rep_commission_pct, office_commission_pct, commission_manual_override`,
+    params
+  )
+  res.json(updated)
+}
+
+// Reset da comissão manual — volta ao cálculo automático (admin only)
+export async function resetOrderCommission(req: AuthRequest, res: Response) {
+  if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode resetar comissão' }); return }
+  const { rows: [order] } = await query(
+    `SELECT id, price_table_id, discount_pct, rep_commission_pct, office_commission_pct
+     FROM orders WHERE id=$1 AND deleted_at IS NULL`, [req.params.id]
+  )
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+
+  // Recalcula a comissão com base no valor total atual dos itens
+  const { rows: [totals] } = await query(
+    `SELECT COALESCE(SUM(unit_price * total_pieces), 0) AS val_full FROM order_items WHERE order_id=$1`,
+    [order.id]
+  )
+  const valFull = Math.round(Number(totals.val_full) * 100) / 100
+  const newRep = Math.round(valFull * order.rep_commission_pct / 100 * 100) / 100
+  const newOff = Math.round(valFull * order.office_commission_pct / 100 * 100) / 100
+
   const { rows: [updated] } = await query(
     `UPDATE orders SET
        rep_commission_value = $1,
        office_commission_value = $2,
+       commission_manual_override = FALSE,
        updated_at = NOW()
      WHERE id = $3
-     RETURNING rep_commission_value, office_commission_value`,
-    [
-      parseFloat(String(rep_commission_value).replace(',', '.')) || 0,
-      parseFloat(String(office_commission_value).replace(',', '.')) || 0,
-      req.params.id
-    ]
+     RETURNING rep_commission_value, office_commission_value, commission_manual_override`,
+    [newRep, newOff, order.id]
   )
   res.json(updated)
 }
@@ -450,21 +520,30 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
      FROM order_items WHERE order_id=$1`,
     [id]
   )
-  const { rows: [o] } = await query('SELECT rep_commission_pct, office_commission_pct FROM orders WHERE id=$1', [id])
+  const { rows: [o] } = await query('SELECT rep_commission_pct, office_commission_pct, commission_manual_override FROM orders WHERE id=$1', [id])
   const newValue = Number(totals.val)
   const newValueFull = Number(totals.val_full)  // base de comissão = preço cheio
-  await query(
-    `UPDATE orders SET total_pieces=$1, total_value=$2,
-       rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
-     WHERE id=$5`,
-    [
-      Number(totals.pcs),
-      newValue,
-      Math.round(newValueFull * o.rep_commission_pct / 100 * 100) / 100,
-      Math.round(newValueFull * o.office_commission_pct / 100 * 100) / 100,
-      id,
-    ]
-  )
+
+  if (o.commission_manual_override) {
+    // Comissão manual ativa → preserva os valores, atualiza apenas peças/valor
+    await query(
+      `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
+      [Number(totals.pcs), newValue, id]
+    )
+  } else {
+    await query(
+      `UPDATE orders SET total_pieces=$1, total_value=$2,
+         rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
+       WHERE id=$5`,
+      [
+        Number(totals.pcs),
+        newValue,
+        Math.round(newValueFull * o.rep_commission_pct / 100 * 100) / 100,
+        Math.round(newValueFull * o.office_commission_pct / 100 * 100) / 100,
+        id,
+      ]
+    )
+  }
   res.json({ ok: true })
 }
 
@@ -587,6 +666,7 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
          total_commission_pct=$3, rep_commission_pct=$4, office_commission_pct=$5,
          total_pieces=$6, total_value=$7,
          rep_commission_value=$8, office_commission_value=$9,
+         commission_manual_override=FALSE,
          updated_at=NOW()
        WHERE id=$10`,
       [
@@ -711,18 +791,27 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
   )
   const newValue = Math.round(Number(totals.val) * 100) / 100
   const newValueFull = Math.round(Number(totals.val_full) * 100) / 100
-  await query(
-    `UPDATE orders SET total_pieces=$1, total_value=$2,
-       rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
-     WHERE id=$5`,
-    [
-      Number(totals.pcs),
-      newValue,
-      Math.round(newValueFull * order.rep_commission_pct / 100 * 100) / 100,
-      Math.round(newValueFull * order.office_commission_pct / 100 * 100) / 100,
-      id,
-    ]
-  )
+
+  if (order.commission_manual_override) {
+    // Comissão manual ativa → preserva os valores, atualiza apenas peças/valor
+    await query(
+      `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
+      [Number(totals.pcs), newValue, id]
+    )
+  } else {
+    await query(
+      `UPDATE orders SET total_pieces=$1, total_value=$2,
+         rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
+       WHERE id=$5`,
+      [
+        Number(totals.pcs),
+        newValue,
+        Math.round(newValueFull * order.rep_commission_pct / 100 * 100) / 100,
+        Math.round(newValueFull * order.office_commission_pct / 100 * 100) / 100,
+        id,
+      ]
+    )
+  }
 
   res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
 }
