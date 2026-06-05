@@ -1123,6 +1123,11 @@ function ItemRow({
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
 
+  // Estado local para o campo de preço — evita race condition entre onBlur e Salvar
+  const [priceText, setPriceText] = useState(Number(unitPrice).toFixed(2).replace('.', ','))
+  // Sincroniza se o unitPrice mudar externamente
+  useEffect(() => { setPriceText(Number(unitPrice).toFixed(2).replace('.', ',')) }, [unitPrice])
+
   // Tamanhos únicos de toda a grade pack
   const gradeSizes = sortSizes(
     [...new Set((draftGrade || []).flatMap(gc => Object.keys(gc.sizes)))]
@@ -1168,16 +1173,24 @@ function ItemRow({
           <span className="text-outline/60 text-[11px]">R$</span>
           <input
             type="text" inputMode="decimal"
-            defaultValue={Number(unitPrice).toFixed(2).replace('.', ',')}
-            key={`price-${unitPrice}`}
+            value={priceText}
+            onChange={e => {
+              setPriceText(e.target.value)
+              // Atualiza o estado imediatamente ao digitar (sem esperar blur)
+              const raw = e.target.value.replace(',', '.')
+              const v = parseFloat(raw)
+              if (!isNaN(v) && v > 0) onPriceChange?.(v)
+            }}
             onBlur={e => {
+              // Formata ao sair do campo
               const raw = e.target.value.replace(',', '.')
               const v = parseFloat(raw)
               if (!isNaN(v) && v > 0) {
+                const formatted = v.toFixed(2).replace('.', ',')
+                setPriceText(formatted)
                 onPriceChange?.(v)
-                e.target.value = v.toFixed(2).replace('.', ',')
               } else {
-                e.target.value = Number(unitPrice).toFixed(2).replace('.', ',')
+                setPriceText(Number(unitPrice).toFixed(2).replace('.', ','))
               }
             }}
             onFocus={e => e.target.select()}
