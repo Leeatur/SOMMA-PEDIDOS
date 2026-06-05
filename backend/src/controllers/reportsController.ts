@@ -95,6 +95,7 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
       o.rep_commission_pct::numeric,
       o.office_commission_value::numeric,
       o.office_commission_pct::numeric,
+      o.commission_manual_override,
       CASE WHEN COALESCE(s.is_final, false) = true
            THEN o.total_value ELSE 0 END::numeric                   AS valor_faturado,
       CASE WHEN COALESCE(s.is_final, false) = false

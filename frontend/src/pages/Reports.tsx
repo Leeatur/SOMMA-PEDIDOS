@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useMemo, useRef } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi } from '../api/client'
@@ -57,6 +57,7 @@ interface CommissionRow {
   rep_commission_pct: number
   office_commission_value: number
   office_commission_pct: number
+  commission_manual_override: boolean
   valor_faturado: number
   falta_faturar: number
   status_name: string | null
@@ -475,6 +476,16 @@ export function Reports() {
   const [dateTo, setDateTo] = useState(todayStr())
   const [factoryId, setFactoryId] = useState('')
   const [repId, setRepId] = useState('')
+
+  // Edição inline de comissão no relatório
+  const qc = useQueryClient()
+  const [editingComm, setEditingComm] = useState<{ orderId: string; field: 'rep' | 'office'; value: string } | null>(null)
+  const commInputRef = useRef<HTMLInputElement>(null)
+
+  async function saveInlineCommission(orderId: string, repVal: number, offVal: number) {
+    await ordersApi.updateCommission(orderId, repVal, offVal)
+    qc.invalidateQueries({ queryKey: ['rpt-commissions'], refetchType: 'all' })
+  }
 
   // Configuração de colunas — Comissões
   const commColDefs = COMM_COL_DEFS.filter(c => c.id !== 'com_escr' || isAdmin)
@@ -929,8 +940,34 @@ export function Reports() {
                               {colVisible('cidade') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>}
                               {colVisible('uf') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.uf || '—'}</td>}
                               {colVisible('valor') && <td className="px-2 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>}
-                              {colVisible('com_rep') && <td className="px-2 py-1 text-right whitespace-nowrap"><span className="font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</span><span className="text-emerald-600/70 ml-0.5 text-[12px]">({fmtPct(r.rep_commission_pct)})</span></td>}
-                              {colVisible('com_escr') && isAdmin && <td className="px-2 py-1 text-right whitespace-nowrap"><span className="font-bold text-blue-700">{fmtR(r.office_commission_value)}</span><span className="text-blue-600/70 ml-0.5 text-[12px]">({fmtPct(r.office_commission_pct)})</span></td>}
+                              {colVisible('com_rep') && (
+                                <td className="px-2 py-1 text-right whitespace-nowrap" onClick={e => { if (!isAdmin) return; e.stopPropagation(); setEditingComm({ orderId: r.id, field: 'rep', value: String(Number(r.rep_commission_value).toFixed(2)).replace('.', ',') }); setTimeout(() => commInputRef.current?.select(), 30) }}>
+                                  {isAdmin && editingComm?.orderId === r.id && editingComm.field === 'rep' ? (
+                                    <input ref={commInputRef} className="w-20 text-right border border-emerald-400 rounded px-1 py-0.5 text-[12px] font-bold text-emerald-700 focus:outline-none" value={editingComm.value}
+                                      onChange={e => setEditingComm(c => c ? { ...c, value: e.target.value } : c)}
+                                      onBlur={async () => { const v = parseFloat(editingComm.value.replace(',','.')); if (!isNaN(v)) await saveInlineCommission(r.id, v, Number(r.office_commission_value)); setEditingComm(null) }}
+                                      onKeyDown={async e => { if (e.key === 'Enter') { const v = parseFloat(editingComm.value.replace(',','.')); if (!isNaN(v)) await saveInlineCommission(r.id, v, Number(r.office_commission_value)); setEditingComm(null) } else if (e.key === 'Escape') setEditingComm(null) }} />
+                                  ) : (
+                                    <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-emerald-700'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}`} title={isAdmin ? 'Clique para editar' : undefined}>{fmtR(r.rep_commission_value)}</span>
+                                  )}
+                                  {!editingComm || editingComm.orderId !== r.id ? <span className="text-emerald-600/70 ml-0.5 text-[12px]">({fmtPct(r.rep_commission_pct)})</span> : null}
+                                  {r.commission_manual_override && <span className="ml-1 text-[9px] font-bold text-orange-500">M</span>}
+                                </td>
+                              )}
+                              {colVisible('com_escr') && isAdmin && (
+                                <td className="px-2 py-1 text-right whitespace-nowrap" onClick={e => { e.stopPropagation(); setEditingComm({ orderId: r.id, field: 'office', value: String(Number(r.office_commission_value).toFixed(2)).replace('.', ',') }); setTimeout(() => commInputRef.current?.select(), 30) }}>
+                                  {editingComm?.orderId === r.id && editingComm.field === 'office' ? (
+                                    <input ref={commInputRef} className="w-20 text-right border border-blue-400 rounded px-1 py-0.5 text-[12px] font-bold text-blue-700 focus:outline-none" value={editingComm.value}
+                                      onChange={e => setEditingComm(c => c ? { ...c, value: e.target.value } : c)}
+                                      onBlur={async () => { const v = parseFloat(editingComm.value.replace(',','.')); if (!isNaN(v)) await saveInlineCommission(r.id, Number(r.rep_commission_value), v); setEditingComm(null) }}
+                                      onKeyDown={async e => { if (e.key === 'Enter') { const v = parseFloat(editingComm.value.replace(',','.')); if (!isNaN(v)) await saveInlineCommission(r.id, Number(r.rep_commission_value), v); setEditingComm(null) } else if (e.key === 'Escape') setEditingComm(null) }} />
+                                  ) : (
+                                    <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-blue-700'} cursor-pointer hover:underline`} title="Clique para editar">{fmtR(r.office_commission_value)}</span>
+                                  )}
+                                  {!editingComm || editingComm.orderId !== r.id ? <span className="text-blue-600/70 ml-0.5 text-[12px]">({fmtPct(r.office_commission_pct)})</span> : null}
+                                  {r.commission_manual_override && <span className="ml-1 text-[9px] font-bold text-orange-500">M</span>}
+                                </td>
+                              )}
                               {colVisible('faturado') && <td className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>}
                               {colVisible('a_faturar') && <td className="px-2 py-1 text-right whitespace-nowrap">{Number(r.falta_faturar) > 0 ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span> : <span className="text-on-surface-variant/50">—</span>}</td>}
                             </tr>
