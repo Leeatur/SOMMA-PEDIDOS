@@ -378,24 +378,54 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
 }
 
 // Ajuste manual de comissão (admin only)
+// Aceita pct (%) ou value (R$). Quando pct é fornecido, calcula value = total_value * pct / 100
+// e atualiza ambos os campos (pct e value) na tabela orders.
 export async function updateOrderCommission(req: AuthRequest, res: Response) {
   if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode ajustar comissão' }); return }
-  const { rep_commission_value, office_commission_value } = req.body
-  const { rows: [order] } = await query('SELECT id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id])
+  const {
+    rep_commission_value, office_commission_value,
+    rep_commission_pct, office_commission_pct,
+  } = req.body
+
+  const { rows: [order] } = await query(
+    'SELECT id, total_value FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
+  )
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+
+  const totalVal = Number(order.total_value) || 0
+
+  // Se pct fornecido: calcula value = total * pct / 100 e salva os dois
+  // Se só value fornecido: usa value diretamente
+  const repPct  = rep_commission_pct  !== undefined ? parseFloat(String(rep_commission_pct).replace(',','.'))  : null
+  const offPct  = office_commission_pct !== undefined ? parseFloat(String(office_commission_pct).replace(',','.')) : null
+  const repVal  = repPct  !== null ? Math.round(totalVal * repPct  / 100 * 100) / 100
+                                   : parseFloat(String(rep_commission_value).replace(',','.'))  || 0
+  const offVal  = offPct  !== null ? Math.round(totalVal * offPct  / 100 * 100) / 100
+                                   : parseFloat(String(office_commission_value).replace(',','.')) || 0
+
+  // Constrói UPDATE dinâmico — só altera pct quando veio no body
+  const sets = [
+    'rep_commission_value = $1',
+    'office_commission_value = $2',
+    'commission_manual_override = TRUE',
+    'updated_at = NOW()',
+  ]
+  const params: unknown[] = [repVal, offVal, req.params.id]
+
+  if (repPct !== null && !isNaN(repPct)) {
+    sets.push(`rep_commission_pct = $${params.length + 1}`)
+    params.splice(params.length - 1, 0, repPct)  // insere antes do id
+  }
+  if (offPct !== null && !isNaN(offPct)) {
+    sets.push(`office_commission_pct = $${params.length + 1}`)
+    params.splice(params.length - 1, 0, offPct)
+  }
+
   const { rows: [updated] } = await query(
-    `UPDATE orders SET
-       rep_commission_value = $1,
-       office_commission_value = $2,
-       commission_manual_override = TRUE,
-       updated_at = NOW()
-     WHERE id = $3
-     RETURNING rep_commission_value, office_commission_value, commission_manual_override`,
-    [
-      parseFloat(String(rep_commission_value).replace(',', '.')) || 0,
-      parseFloat(String(office_commission_value).replace(',', '.')) || 0,
-      req.params.id
-    ]
+    `UPDATE orders SET ${sets.join(', ')} WHERE id = $${params.length}
+     RETURNING rep_commission_value, office_commission_value,
+               rep_commission_pct, office_commission_pct, commission_manual_override`,
+    params
   )
   res.json(updated)
 }

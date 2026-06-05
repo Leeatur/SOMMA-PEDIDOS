@@ -480,7 +480,7 @@ export default function OrderEdit() {
         const origRep = Number(order.rep_commission_value || 0)
         const origOff = Number(order.office_commission_value || 0)
         if (Math.abs(repV - origRep) > 0.01 || Math.abs(offV - origOff) > 0.01) {
-          await ordersApi.updateCommission(id!, repV, offV)
+          await ordersApi.updateCommission(id!, { rep_commission_value: repV, office_commission_value: offV })
         }
       }
 
