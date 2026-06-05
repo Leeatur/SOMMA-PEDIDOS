@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { publicPortalApi } from '../api/client'
 import {
-  ShoppingCart, Package, ChevronRight, ChevronDown, ChevronUp,
+  ShoppingCart, Package, ChevronDown, ChevronUp,
   CheckCircle, ArrowLeft, X, Search, RefreshCw,
 } from 'lucide-react'
 
@@ -130,9 +130,21 @@ export function CustomerPortal() {
       .catch(() => { setErrorMsg('Link inválido ou expirado.'); setStep('error') })
   }, [token])
 
-  // Load catalog when factory selected (fluxo legado)
+  // Load catalog para fluxo legado (com fábricas) — carrega tudo sem precisar selecionar fábrica
   useEffect(() => {
-    if (!selectedFactory || !token) return
+    if (!token) return
+    if (factories.length > 0 && catalog.length === 0 && !catalogLoading) {
+      // Carrega catálogo completo (todas as fábricas) sem exigir seleção
+      setCatalogLoading(true)
+      publicPortalApi.getCatalog(token)
+        .then(r => { setCatalog(r.data.price_tables || []); setCatalogLoading(false) })
+        .catch(() => setCatalogLoading(false))
+    }
+  }, [factories, token])
+
+  // Mantém compatibilidade: se factory foi selecionada manualmente, recarrega
+  useEffect(() => {
+    if (!selectedFactory || !token || catalog.length > 0) return
     setCatalogLoading(true)
     publicPortalApi.getCatalog(token, { factory_id: selectedFactory.id })
       .then(r => { setCatalog(r.data.price_tables || []); setCatalogLoading(false) })
@@ -151,6 +163,10 @@ export function CustomerPortal() {
         setCnpjLoading(false); return
       }
       setClientData(d)
+      // Se há apenas uma fábrica, seleciona automaticamente (sem mostrar seletor)
+      if (factories.length === 1) {
+        setSelectedFactory(factories[0])
+      }
       setStep('catalog')
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -359,26 +375,8 @@ export function CustomerPortal() {
               </div>
             )}
 
-            {/* Fluxo legado: seleção de fábrica (só quando não há price_table_ids) */}
-            {!selectedFactory && factories.length > 0 && (
-              <div className="p-4 space-y-3">
-                <h3 className="font-bold text-gray-800">Escolha a marca:</h3>
-                {factories.map(f => (
-                  <button key={f.id} onClick={() => setSelectedFactory(f)}
-                    className="w-full bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3 hover:border-purple-400 hover:bg-purple-50 transition-all">
-                    {f.logo_url
-                      ? <img src={f.logo_url} alt={f.name} className="h-10 w-20 object-contain" />
-                      : <div className="h-10 w-20 bg-gray-100 rounded-lg flex items-center justify-center text-xs font-bold text-gray-500">{f.name.slice(0,6)}</div>
-                    }
-                    <span className="font-semibold text-gray-800">{f.name}</span>
-                    <ChevronRight className="h-4 w-4 text-gray-400 ml-auto" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Catálogo direto (price_table_ids) OU após selecionar fábrica */}
-            {(selectedFactory || factories.length === 0) && (
+            {/* Catálogo direto — sem seleção de fábrica */}
+            {(
               <div>
                 {/* Header com voltar (só no fluxo com fábrica selecionada) */}
                 {selectedFactory && (
