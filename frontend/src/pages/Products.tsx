@@ -145,16 +145,27 @@ function ProductDetailModal({
   useEffect(() => {
     if (!isAdmin) return
     const handler = (e: ClipboardEvent) => {
+      // 1. Tenta via items (cópia de imagem no browser, screenshot com Ctrl)
       const items = e.clipboardData?.items
-      if (!items) return
-      for (const item of Array.from(items)) {
-        if (item.type.startsWith('image/')) {
-          const raw = item.getAsFile()
-          if (raw) {
-            const file = new File([raw], `paste-${Date.now()}.jpg`, { type: raw.type })
-            uploadRef.current(file)
-            break
+      if (items) {
+        for (const item of Array.from(items)) {
+          if (item.type.startsWith('image/')) {
+            const raw = item.getAsFile()
+            if (raw) {
+              const file = new File([raw], `paste-${Date.now()}.jpg`, { type: raw.type })
+              uploadRef.current(file)
+              return
+            }
           }
+        }
+      }
+      // 2. Fallback via files (alguns sistemas enviam screenshot como File)
+      const files = e.clipboardData?.files
+      if (files && files.length > 0) {
+        const f = files[0]
+        if (f.type.startsWith('image/')) {
+          const file = new File([f], `paste-${Date.now()}.jpg`, { type: f.type })
+          uploadRef.current(file)
         }
       }
     }
