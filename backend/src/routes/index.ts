@@ -16,6 +16,7 @@ import * as prospecting from '../controllers/prospectingController'
 import * as portal from '../controllers/portalController'
 import * as goals from '../controllers/goalsController'
 import * as pdf from '../controllers/pdfController'
+import * as pe from '../controllers/peController'
 
 const router = Router()
 
@@ -164,3 +165,10 @@ router.get('/reports/abc-clients', authenticate, reports.abcClientsReport)
 router.get('/reports/period-comparison', authenticate, reports.periodComparisonReport)
 router.get('/reports/region', authenticate, reports.regionReport)
 router.get('/reports/commission-projection', authenticate, reports.commissionProjectionReport)
+
+// ── Pronta Entrega ────────────────────────────────────────────────────────────
+router.get('/pe', authenticate, pe.listPeCatalogs)
+router.post('/pe', authenticate, pe.createPeCatalog)
+router.post('/pe/:id/import', authenticate, upload.single('file'), pe.importPeExcel)
+router.patch('/pe/:id/toggle', authenticate, pe.togglePeCatalog)
+router.delete('/pe/:id', authenticate, pe.deletePeCatalog)

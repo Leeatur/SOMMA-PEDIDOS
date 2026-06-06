@@ -401,3 +401,15 @@ export const publicPortalApi = {
     apiClient.get(`/public/portal/${token}/catalog`, { params }),
   submitOrder: (token: string, data: object) => apiClient.post(`/public/portal/${token}/order`, data),
 }
+
+export const peApi = {
+  list: () => apiClient.get('/pe'),
+  create: (data: { name: string; factory_id: string }) => apiClient.post('/pe', data),
+  import: (id: string, file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return apiClient.post(`/pe/${id}/import`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
+  toggle: (id: string) => apiClient.patch(`/pe/${id}/toggle`),
+  delete: (id: string) => apiClient.delete(`/pe/${id}`),
+}
