@@ -830,9 +830,9 @@ function ProductCard({ product, cartItems, onOpenModal }: {
       onClick={() => onOpenModal(product)}
     >
       {/* Imagem */}
-      <div className="aspect-square bg-gray-50 overflow-hidden relative">
+      <div className="aspect-[3/4] bg-white overflow-hidden relative">
         {product.image_url
-          ? <img src={product.image_url} alt={product.reference} className="w-full h-full object-cover" loading="lazy" />
+          ? <img src={product.image_url} alt={product.reference} className="w-full h-full object-contain" loading="lazy" />
           : <div className="w-full h-full flex items-center justify-center text-gray-200"><Package className="h-10 w-10" /></div>
         }
         {inCart > 0 && (
