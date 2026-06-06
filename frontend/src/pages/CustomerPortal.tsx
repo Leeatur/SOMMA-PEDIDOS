@@ -445,6 +445,14 @@ export function CustomerPortal() {
         {/* ── STEP: CART ── */}
         {step === 'cart' && (
           <div className="p-4 space-y-3 pb-32">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setStep('catalog')}
+                className="flex items-center gap-1.5 text-sm text-purple-700 font-semibold hover:text-purple-900 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" /> Voltar ao catálogo
+              </button>
+            </div>
             <h3 className="font-bold text-gray-900">Seu pedido</h3>
             {clientData && (
               <div className="bg-purple-50 rounded-xl p-3 text-xs text-purple-800">
