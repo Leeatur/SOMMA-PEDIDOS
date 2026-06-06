@@ -24,7 +24,7 @@ const navPrimary: NavItem[] = [
   { to: '/clients',      label: 'Clientes',       icon: <Users className="h-4 w-4" /> },
   { to: '/products',     label: 'Produtos',       icon: <Package className="h-4 w-4" /> },
   { to: '/reports',      label: 'Relatórios',     icon: <BarChart2 className="h-4 w-4" /> },
-  { to: '/portals',        label: 'Portal Cliente',  icon: <Link2 className="h-4 w-4" /> },
+  { to: '/portals',        label: 'Catálogos',        icon: <Link2 className="h-4 w-4" /> },
   { to: '/pronta-entrega', label: 'Pronta Entrega',  icon: <PackageCheck className="h-4 w-4" /> },
 ]
 
