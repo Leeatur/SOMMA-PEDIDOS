@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X } from 'lucide-react'
-import { productsApi, priceTablesApi } from '../api/client'
+import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, FileDown } from 'lucide-react'
+import { productsApi, priceTablesApi, apiClient } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
@@ -1322,6 +1322,20 @@ export function Products() {
             >
               <Archive className="h-4 w-4" />
               <span className="hidden sm:inline">Fotos ZIP</span>
+            </button>
+            <button
+              onClick={async () => {
+                const r = await apiClient.get('/products/sem-fotos', { responseType: 'blob' })
+                const url = URL.createObjectURL(r.data)
+                const a = document.createElement('a')
+                a.href = url; a.download = 'sem-fotos.xlsx'; a.click()
+                URL.revokeObjectURL(url)
+              }}
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg px-3 py-1 transition-colors"
+              title="Baixar relatório de produtos sem foto"
+            >
+              <FileDown className="h-4 w-4" />
+              <span className="hidden sm:inline">Sem Foto</span>
             </button>
             <ColumnConfigButton
               defs={PRODUCT_COL_DEFS}

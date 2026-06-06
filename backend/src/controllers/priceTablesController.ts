@@ -760,3 +760,58 @@ export async function updateGradeConfig(req: AuthRequest, res: Response) {
     client.release()
   }
 }
+
+// ── Relatório de produtos sem foto ────────────────────────────────────────────
+export async function downloadSemFotos(req: AuthRequest, res: Response) {
+  const XLSX = await import('xlsx')
+
+  const { rows } = await query(`
+    SELECT
+      f.name   AS fabrica,
+      pt.name  AS tabela,
+      p.reference,
+      p.product_name AS nome,
+      p.type,
+      p.active
+    FROM products p
+    JOIN price_tables pt ON pt.id = p.price_table_id
+    JOIN factories    f  ON f.id  = pt.factory_id
+    WHERE (p.image_url IS NULL OR p.image_url = '')
+    ORDER BY f.name, pt.name, p.reference
+  `)
+
+  // Agrupa por fábrica/tabela para sheet de resumo
+  const groups: Record<string, { total: number }> = {}
+  for (const r of rows) {
+    const key = `${r.fabrica} — ${r.tabela}`
+    if (!groups[key]) groups[key] = { total: 0 }
+    groups[key].total++
+  }
+
+  const wb = XLSX.utils.book_new()
+
+  // Aba 1: Resumo
+  const resumoData = [
+    ['Fábrica / Tabela', 'Qtd sem foto'],
+    ...Object.entries(groups).map(([k, v]) => [k, v.total]),
+    [],
+    ['TOTAL', rows.length],
+  ]
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumoData), 'Resumo')
+
+  // Aba 2: Lista completa
+  const listaData = [
+    ['Fábrica', 'Tabela', 'Referência', 'Nome', 'Tipo', 'Status'],
+    ...rows.map(r => [
+      r.fabrica, r.tabela, r.reference, r.nome,
+      r.type === 'regular' ? 'Regular' : 'Pack',
+      r.active ? 'Ativo' : 'Inativo',
+    ]),
+  ]
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(listaData), 'Produtos sem Foto')
+
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  res.setHeader('Content-Disposition', 'attachment; filename="sem-fotos.xlsx"')
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  res.send(buf)
+}
