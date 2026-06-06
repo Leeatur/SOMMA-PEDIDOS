@@ -167,7 +167,7 @@ export const priceTablesApi = {
 }
 
 export const productsApi = {
-  list: (params: { price_table_id?: string; search?: string; type?: string; include_inactive?: boolean }) =>
+  list: (params: { price_table_id?: string; search?: string; type?: string; include_inactive?: boolean; sem_foto?: boolean }) =>
     apiClient.get('/products', { params }),
   update: (id: string, data: {
     reference: string
