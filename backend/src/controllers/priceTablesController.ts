@@ -272,7 +272,7 @@ export async function uploadProductImage(req: AuthRequest, res: Response) {
 }
 
 export async function listProducts(req: AuthRequest, res: Response) {
-  const { price_table_id, search, type, include_inactive } = req.query
+  const { price_table_id, search, type, include_inactive, sem_foto } = req.query
   const isAdmin = req.user?.role === 'admin'
   let sql = `
     SELECT p.*,
@@ -293,6 +293,7 @@ export async function listProducts(req: AuthRequest, res: Response) {
   }
   if (price_table_id) { sql += ` AND p.price_table_id = $${idx++}`; params.push(price_table_id) }
   if (type) { sql += ` AND p.type = $${idx++}`; params.push(type) }
+  if (sem_foto === 'true') { sql += ` AND (p.image_url IS NULL OR p.image_url = '')` }
   if (search) {
     sql += ` AND (
       p.reference ILIKE $${idx} OR p.product_name ILIKE $${idx} OR

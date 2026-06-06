@@ -1079,6 +1079,7 @@ export function Products() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<'active' | 'all' | 'inactive'>('active')
+  const [semFoto, setSemFoto] = useState(false)
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const [showZipImport, setShowZipImport] = useState(false)
@@ -1094,12 +1095,13 @@ export function Products() {
   }
 
   const { data: rawProducts, isLoading } = useQuery<Product[]>({
-    queryKey: ['all-products', debouncedSearch, typeFilter, activeFilter],
+    queryKey: ['all-products', debouncedSearch, typeFilter, activeFilter, semFoto],
     queryFn: () =>
       productsApi.list({
         search: debouncedSearch || undefined,
         type: typeFilter || undefined,
         include_inactive: isAdmin && activeFilter !== 'active' ? true : undefined,
+        sem_foto: semFoto ? true : undefined,
       }).then(r => r.data),
   })
 
@@ -1315,6 +1317,18 @@ export function Products() {
                 ))}
               </div>
             )}
+            <button
+              onClick={() => setSemFoto(v => !v)}
+              className={`flex items-center gap-1.5 text-[12px] font-semibold rounded-lg px-3 py-1 border transition-colors ${
+                semFoto
+                  ? 'bg-amber-500 text-white border-amber-500'
+                  : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200'
+              }`}
+              title="Filtrar produtos sem foto"
+            >
+              <ImageIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Sem Foto</span>
+            </button>
             <button
               onClick={() => setShowZipImport(true)}
               className="flex items-center gap-1.5 text-[12px] font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-1 transition-colors"
