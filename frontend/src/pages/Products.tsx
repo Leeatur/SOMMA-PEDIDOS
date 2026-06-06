@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, FileDown } from 'lucide-react'
 import { productsApi, priceTablesApi, apiClient } from '../api/client'
@@ -120,6 +120,12 @@ function ProductDetailModal({
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !isAdmin) return
+    await uploadImageFile(file)
+    e.target.value = ''
+  }
+
+  async function uploadImageFile(file: File) {
+    if (!isAdmin) return
     setUploadingImage(true)
     try {
       const r = await productsApi.uploadImage(p.id, file)
@@ -128,8 +134,30 @@ function ProductDetailModal({
       onUpdated({ image_url: newUrl })
       qc.invalidateQueries({ queryKey: ['all-products'] })
     } catch { /* erro silencioso */ }
-    finally { setUploadingImage(false); e.target.value = '' }
+    finally { setUploadingImage(false) }
   }
+
+  // Paste global (Ctrl+V / Cmd+V) — cola foto direto nesta referência
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    if (!isAdmin) return
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          const named = new File([file], `paste-${Date.now()}.jpg`, { type: file.type })
+          uploadImageFile(named)
+          break
+        }
+      }
+    }
+  }, [isAdmin, p.id]) // eslint-disable-line
+
+  useEffect(() => {
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [handlePaste])
 
   // ── Edit mode state ──────────────────────────────────────────────────────
   const [editing, setEditing] = useState(false)
@@ -486,8 +514,11 @@ function ProductDetailModal({
               ) : (
                 <>
                   <ImageIcon className="h-6 w-6 mb-1" />
-                  <span className="text-[12px] font-semibold">
+                  <span className="text-[12px] font-semibold text-center leading-tight">
                     {currentImageUrl ? 'Substituir foto' : 'Adicionar foto'}
+                  </span>
+                  <span className="text-[10px] opacity-80 mt-0.5">
+                    clique ou cole (Ctrl+V)
                   </span>
                 </>
               )}
