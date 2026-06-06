@@ -39,6 +39,7 @@ interface OrderItemRaw {
   size_range: string | null
   boxes_count: number
   unit_price: number
+  original_unit_price: number | null   // preço original da tabela (antes de ajuste manual)
   total_pieces: number
   subtotal: number
   sizes: Record<string, number> | null
@@ -989,7 +990,8 @@ export default function OrderEdit() {
                 <tr className="bg-surface-container-low text-on-surface-variant text-[12px]">
                   <th className="px-4 py-1 text-left font-medium w-8">#</th>
                   <th className="px-2 py-1 text-left font-medium">Produto</th>
-                  <th className="px-3 py-1 text-right font-medium whitespace-nowrap">R$ Unit. <span className="text-[10px] text-primary/60 font-normal">(clique p/ editar)</span></th>
+                  <th className="px-3 py-1 text-right font-medium whitespace-nowrap text-outline/70">R$ Tabela</th>
+                  <th className="px-3 py-1 text-right font-medium whitespace-nowrap">Preço Final <span className="text-[10px] text-primary/60 font-normal">(editável)</span></th>
                   <th className="px-3 py-1 text-center font-medium">Quantidades / Grade</th>
                   <th className="px-3 py-1 text-right font-medium">Peças</th>
                   <th className="px-3 py-1 text-right font-medium">Total</th>
@@ -1008,6 +1010,7 @@ export default function OrderEdit() {
                     imageUrl={it.image_url}
                     type={it.type}
                     unitPrice={it.unit_price}
+                    originalUnitPrice={it.original_unit_price}
                     gradeConfigs={it.grade_configs}
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
@@ -1032,6 +1035,7 @@ export default function OrderEdit() {
                     imageUrl={it.image_url}
                     type={it.type}
                     unitPrice={it.unit_price}
+                    originalUnitPrice={null}
                     gradeConfigs={it.grade_configs}
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
@@ -1262,6 +1266,7 @@ interface ItemRowProps {
   imageUrl: string | null
   type: 'regular' | 'pack'
   unitPrice: number
+  originalUnitPrice: number | null   // preço original da tabela
   gradeConfigs: GradeConfig[] | null
   draftSizes: Record<string, number>
   draftBoxes: number
@@ -1277,7 +1282,7 @@ interface ItemRowProps {
 }
 
 function ItemRow({
-  index, reference, productName, imageUrl, type, unitPrice,
+  index, reference, productName, imageUrl, type, unitPrice, originalUnitPrice,
   gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
   onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
   productObservation,
@@ -1334,7 +1339,17 @@ function ItemRow({
         </div>
       </td>
 
-      {/* Preço unit. — editável */}
+      {/* R$ Tabela — preço original (somente leitura) */}
+      <td className="px-3 py-2 text-right text-[12px] align-middle whitespace-nowrap text-outline/70">
+        {originalUnitPrice != null && originalUnitPrice !== unitPrice
+          ? <span className="line-through text-outline/50">{Number(originalUnitPrice).toFixed(2).replace('.', ',')}</span>
+          : originalUnitPrice != null
+            ? Number(originalUnitPrice).toFixed(2).replace('.', ',')
+            : <span className="text-outline/30">—</span>
+        }
+      </td>
+
+      {/* Preço Final — editável */}
       <td className="px-3 py-2 text-right text-[12px] align-middle whitespace-nowrap">
         <div className="flex flex-col items-end gap-0.5">
           <div className="flex items-center gap-0.5">
