@@ -222,10 +222,10 @@ export function Portals() {
                   </a>
 
                   <button
-                    onClick={() => window.confirm('Excluir este link? O cliente não conseguirá mais acessar.') && deleteMut.mutate(portal.id)}
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 text-[12px] transition-colors ml-auto"
+                    onClick={() => window.confirm('Excluir este catálogo? O cliente não conseguirá mais acessar o link.') && deleteMut.mutate(portal.id)}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 text-red-500 text-[12px] font-semibold hover:bg-red-50 transition-colors ml-auto"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir
                   </button>
                 </div>
               </div>
