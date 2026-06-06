@@ -104,6 +104,39 @@ export function CustomerPortal() {
   const [modalProduct, setModalProduct] = useState<Product | null>(null)
   const [selectedPayment, setSelectedPayment] = useState(PAYMENT_OPTIONS[0])
 
+  // ── Persistência no sessionStorage — sobrevive ao F5 ─────────────────────
+  const SESSION_KEY = token ? `portal_session_${token}` : null
+
+  // Salva sempre que step/clientData/cart/pagamento mudam
+  useEffect(() => {
+    if (!SESSION_KEY || step === 'loading' || step === 'error' || step === 'success' || !clientData) return
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+      step,
+      clientData,
+      cart,
+      selectedPaymentValue: selectedPayment.value,
+    }))
+  }, [step, clientData, cart, selectedPayment, SESSION_KEY])
+
+  // Restaura assim que o catálogo ficar disponível (catalog > 0 = pronto)
+  const [sessionRestored, setSessionRestored] = useState(false)
+  useEffect(() => {
+    if (!SESSION_KEY || catalog.length === 0 || sessionRestored) return
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    if (!raw) return
+    try {
+      const s = JSON.parse(raw)
+      if (s.clientData)  setClientData(s.clientData)
+      if (s.cart?.length) setCart(s.cart)
+      if (s.selectedPaymentValue) {
+        const p = PAYMENT_OPTIONS.find(o => o.value === s.selectedPaymentValue)
+        if (p) setSelectedPayment(p)
+      }
+      if (s.step && ['catalog', 'cart'].includes(s.step)) setStep(s.step)
+    } catch { /* ignore */ }
+    setSessionRestored(true)
+  }, [catalog, SESSION_KEY, sessionRestored])
+
   // Load portal info — se tem price_tables, carrega catálogo direto
   useEffect(() => {
     if (!token) return
@@ -262,6 +295,8 @@ export function CustomerPortal() {
       })
       setOrderResult(r.data)
       setStep('success')
+      if (SESSION_KEY) sessionStorage.removeItem(SESSION_KEY)
+      setCart([])
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
       alert(msg || 'Erro ao enviar pedido. Tente novamente.')
@@ -562,9 +597,12 @@ export function CustomerPortal() {
                 : <><CheckCircle className="h-5 w-5" /> Finalizar e Enviar Pedido</>
             }
           </button>
-          <p className="text-center text-[11px] text-gray-400">
-            Após confirmar, o pedido vai para análise do representante
-          </p>
+          <button
+            onClick={() => setStep('catalog')}
+            className="w-full py-2.5 rounded-2xl font-semibold text-sm text-purple-700 border border-purple-200 hover:bg-purple-50 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+          >
+            <ArrowLeft className="h-4 w-4" /> Voltar ao Catálogo
+          </button>
         </div>
       )}
 
@@ -809,7 +847,11 @@ function ProductCard({ product, cartItems, onOpenModal }: {
 
   return (
     <div
-      className="border border-gray-200 rounded-xl overflow-hidden bg-white active:scale-[0.98] transition-transform cursor-pointer shadow-sm hover:shadow-md hover:border-purple-200"
+      className={`rounded-xl overflow-hidden active:scale-[0.98] transition-transform cursor-pointer ${
+        inCart > 0
+          ? 'border-2 border-green-500 bg-green-50 shadow-md shadow-green-100'
+          : 'border border-gray-200 bg-white shadow-sm hover:shadow-md hover:border-purple-200'
+      }`}
       onClick={() => onOpenModal(product)}
     >
       {/* Imagem */}
