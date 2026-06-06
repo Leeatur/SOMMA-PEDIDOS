@@ -80,31 +80,80 @@ async function getPortal(token: string) {
   return portal
 }
 
-// GET /public/portal/:token — info do portal (nome rep, fábricas disponíveis)
+// Helper: busca produtos + grade_configs de uma lista de tableIds
+async function fetchCatalogProducts(tableIds: string[]) {
+  if (!tableIds.length) return []
+  const { rows } = await query(
+    `SELECT p.id, p.reference, p.product_name, p.model, p.size_range, p.base_price,
+            p.type, p.image_url, p.observation, p.price_table_id, p.blocked_sizes,
+            COALESCE(
+              (SELECT json_agg(json_build_object('color',gc.color,'sizes',gc.sizes,'total_pieces',gc.total_pieces) ORDER BY gc.sort_order)
+               FROM grade_configs gc WHERE gc.product_id = p.id),
+              '[]'::json
+            ) AS grade_configs
+     FROM products p
+     WHERE p.price_table_id = ANY($1) AND p.active = true
+     ORDER BY p.reference`,
+    [tableIds]
+  )
+  return rows
+}
+
+// GET /public/portal/:token — info do portal + catálogo completo em um único request
 export async function getPortalInfo(req: Request, res: Response) {
   const portal = await getPortal(req.params.token)
   if (!portal) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
 
-  // Se tem tabelas específicas, retorna apenas elas
+  const portalMeta = { id: portal.id, name: portal.name, rep_name: portal.rep_name }
+
+  // Fluxo principal: tabelas específicas → retorna catálogo completo de uma vez
   if (portal.price_table_ids?.length > 0) {
     const { rows: priceTables } = await query(
-      `SELECT pt.id, pt.name, pt.collection, pt.season, pt.year, f.id as factory_id, f.name as factory_name, f.logo_url
-       FROM price_tables pt JOIN factories f ON f.id=pt.factory_id
-       WHERE pt.id = ANY($1) AND pt.active=true ORDER BY f.name, pt.name`,
+      `SELECT pt.id, pt.name, pt.collection, pt.season, pt.year,
+              f.id as factory_id, f.name as factory_name, f.logo_url
+       FROM price_tables pt JOIN factories f ON f.id = pt.factory_id
+       WHERE pt.id = ANY($1) AND pt.active = true
+       ORDER BY f.name, pt.name`,
       [portal.price_table_ids]
     )
-    res.json({ portal: { id: portal.id, name: portal.name, rep_name: portal.rep_name }, price_tables: priceTables, factories: [] })
+    const products = await fetchCatalogProducts(priceTables.map((t: { id: string }) => t.id))
+    const tables = priceTables.map((t: Record<string, unknown>) => ({
+      ...t,
+      products: products.filter((p: { price_table_id: string }) => p.price_table_id === t.id),
+    }))
+    res.json({ portal: portalMeta, price_tables: tables, factories: [] })
     return
   }
 
-  // Fallback: filtra por fábricas
+  // Fluxo legado: filtra por fábricas → retorna catálogo completo também
   const { rows: factories } = await query(
     portal.factory_ids?.length > 0
       ? `SELECT f.id, f.name, f.logo_url FROM factories f WHERE f.id = ANY($1) AND f.active=true ORDER BY f.name`
       : `SELECT f.id, f.name, f.logo_url FROM factories f WHERE f.active=true ORDER BY f.name`,
     portal.factory_ids?.length > 0 ? [portal.factory_ids] : []
   )
-  res.json({ portal: { id: portal.id, name: portal.name, rep_name: portal.rep_name }, factories, price_tables: [] })
+
+  // Busca tabelas e produtos das fábricas
+  if (factories.length > 0) {
+    const factoryIds = factories.map((f: { id: string }) => f.id)
+    const { rows: priceTables } = await query(
+      `SELECT pt.id, pt.name, pt.collection, pt.season, pt.year,
+              f.id as factory_id, f.name as factory_name, f.logo_url
+       FROM price_tables pt JOIN factories f ON f.id = pt.factory_id
+       WHERE pt.factory_id = ANY($1) AND pt.active = true
+       ORDER BY f.name, pt.name`,
+      [factoryIds]
+    )
+    const products = await fetchCatalogProducts(priceTables.map((t: { id: string }) => t.id))
+    const tables = priceTables.map((t: Record<string, unknown>) => ({
+      ...t,
+      products: products.filter((p: { price_table_id: string }) => p.price_table_id === t.id),
+    }))
+    res.json({ portal: portalMeta, factories, price_tables: tables })
+    return
+  }
+
+  res.json({ portal: portalMeta, factories: [], price_tables: [] })
 }
 
 // POST /public/portal/:token/lookup-cnpj — valida CNPJ e retorna dados do cliente
