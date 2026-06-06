@@ -85,9 +85,9 @@ export function Portals() {
       <div className="bg-white border-b border-outline-variant px-5 py-3 lg:px-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-lg font-bold text-on-surface">Portal de Pedidos</h1>
+            <h1 className="font-display text-lg font-bold text-on-surface">Catálogos</h1>
             <p className="text-[12px] text-outline mt-0.5">
-              Gere links para clientes fazerem pedidos online
+              Catálogos de pedido para clientes — compartilhe por WhatsApp
             </p>
           </div>
           <Button onClick={() => setCreateOpen(true)} icon={<Plus className="h-4 w-4" />} size="sm">
