@@ -24,6 +24,7 @@ export async function listPortals(req: AuthRequest, res: Response) {
      LEFT JOIN unnest(cp.factory_ids) fid ON true
      LEFT JOIN factories f ON f.id = fid
      WHERE cp.rep_id = $1
+       AND NOT EXISTS (SELECT 1 FROM pe_catalogs pe WHERE pe.portal_id = cp.id)
      GROUP BY cp.id, u.name
      ORDER BY cp.created_at DESC`,
     [repId]
@@ -62,7 +63,19 @@ export async function updatePortal(req: AuthRequest, res: Response) {
 }
 
 export async function deletePortal(req: AuthRequest, res: Response) {
-  await query('DELETE FROM customer_portals WHERE id=$1 AND rep_id=$2', [req.params.id, req.user!.id])
+  const isAdmin = req.user!.role === 'admin'
+  const { rows: [portal] } = await query(
+    'SELECT id, rep_id FROM customer_portals WHERE id=$1', [req.params.id]
+  )
+  if (!portal) { res.status(404).json({ error: 'Catálogo não encontrado' }); return }
+  if (!isAdmin && portal.rep_id !== req.user!.id) {
+    res.status(403).json({ error: 'Sem permissão' }); return
+  }
+  // Bloqueia exclusão de portais vinculados a PE (devem ser excluídos pela aba Pronta Entrega)
+  const { rows: [pe] } = await query('SELECT id FROM pe_catalogs WHERE portal_id=$1', [portal.id])
+  if (pe) { res.status(409).json({ error: 'Este link pertence a um catálogo de Pronta Entrega. Exclua pela aba Pronta Entrega.' }); return }
+
+  await query('DELETE FROM customer_portals WHERE id=$1', [portal.id])
   res.status(204).send()
 }
 
