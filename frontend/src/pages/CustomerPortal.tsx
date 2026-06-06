@@ -93,7 +93,7 @@ export function CustomerPortal() {
   const [clientData, setClientData] = useState<ClientData | null>(null)
 
   const [catalog, setCatalog] = useState<PriceTable[]>([])
-  const [catalogLoading, setCatalogLoading] = useState(false)
+  const [catalogLoading] = useState(false)
   const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null)
   const [expandedTable, setExpandedTable] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -137,52 +137,27 @@ export function CustomerPortal() {
     setSessionRestored(true)
   }, [catalog, SESSION_KEY, sessionRestored])
 
-  // Load portal info — se tem price_tables, carrega catálogo direto
+  // Load portal info + catálogo em UM único request (getInfo já retorna produtos)
   useEffect(() => {
     if (!token) return
     publicPortalApi.getInfo(token)
       .then(r => {
         setPortalInfo(r.data.portal)
-        const pts = r.data.price_tables || []
-        const facs = r.data.factories || []
-        if (pts.length > 0) {
-          // Novo fluxo: tabelas específicas → carrega catálogo direto
-          setCatalogLoading(true)
-          publicPortalApi.getCatalog(token).then(cat => {
-            setCatalog(cat.data.price_tables || [])
-            setCatalogLoading(false)
-          }).catch(() => setCatalogLoading(false))
+        const pts: PriceTable[] = r.data.price_tables || []
+        const facs: Factory[]   = r.data.factories   || []
+
+        // Se getInfo já trouxe produtos, usa direto — sem segundo request
+        const hasProducts = pts.some(t => Array.isArray(t.products))
+        if (pts.length > 0 && hasProducts) {
+          setCatalog(pts)
           setFactories([])
-          setStep('cnpj')
-        } else {
-          // Fluxo legado: seleciona fábrica
+        } else if (facs.length > 0) {
           setFactories(facs)
-          setStep('cnpj')
         }
+        setStep('cnpj')
       })
       .catch(() => { setErrorMsg('Link inválido ou expirado.'); setStep('error') })
   }, [token])
-
-  // Load catalog para fluxo legado (com fábricas) — carrega tudo sem precisar selecionar fábrica
-  useEffect(() => {
-    if (!token) return
-    if (factories.length > 0 && catalog.length === 0 && !catalogLoading) {
-      // Carrega catálogo completo (todas as fábricas) sem exigir seleção
-      setCatalogLoading(true)
-      publicPortalApi.getCatalog(token)
-        .then(r => { setCatalog(r.data.price_tables || []); setCatalogLoading(false) })
-        .catch(() => setCatalogLoading(false))
-    }
-  }, [factories, token])
-
-  // Mantém compatibilidade: se factory foi selecionada manualmente, recarrega
-  useEffect(() => {
-    if (!selectedFactory || !token || catalog.length > 0) return
-    setCatalogLoading(true)
-    publicPortalApi.getCatalog(token, { factory_id: selectedFactory.id })
-      .then(r => { setCatalog(r.data.price_tables || []); setCatalogLoading(false) })
-      .catch(() => setCatalogLoading(false))
-  }, [selectedFactory, token])
 
   async function handleCnpj() {
     const clean = cnpjInput.replace(/\D/g, '')
