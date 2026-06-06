@@ -116,13 +116,7 @@ function ProductDetailModal({
   // ── Image upload state ───────────────────────────────────────────────────
   const [uploadingImage, setUploadingImage] = useState(false)
   const [currentImageUrl, setCurrentImageUrl] = useState(p.image_url)
-
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !isAdmin) return
-    await uploadImageFile(file)
-    e.target.value = ''
-  }
+  const pasteZoneRef = useRef<HTMLDivElement>(null)
 
   async function uploadImageFile(file: File) {
     if (!isAdmin) return
@@ -137,41 +131,38 @@ function ProductDetailModal({
     finally { setUploadingImage(false) }
   }
 
-  // Ref sempre aponta para a versão mais atual de uploadImageFile (evita stale closure)
-  const uploadRef = useRef(uploadImageFile)
-  uploadRef.current = uploadImageFile
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !isAdmin) return
+    await uploadImageFile(file)
+    e.target.value = ''
+  }
 
-  // Paste global — escuta no document enquanto o modal estiver aberto
-  useEffect(() => {
+  function handlePasteEvent(e: React.ClipboardEvent | ClipboardEvent) {
     if (!isAdmin) return
-    const handler = (e: ClipboardEvent) => {
-      // 1. Tenta via items (cópia de imagem no browser, screenshot com Ctrl)
-      const items = e.clipboardData?.items
-      if (items) {
-        for (const item of Array.from(items)) {
-          if (item.type.startsWith('image/')) {
-            const raw = item.getAsFile()
-            if (raw) {
-              const file = new File([raw], `paste-${Date.now()}.jpg`, { type: raw.type })
-              uploadRef.current(file)
-              return
-            }
-          }
-        }
-      }
-      // 2. Fallback via files (alguns sistemas enviam screenshot como File)
-      const files = e.clipboardData?.files
-      if (files && files.length > 0) {
-        const f = files[0]
-        if (f.type.startsWith('image/')) {
-          const file = new File([f], `paste-${Date.now()}.jpg`, { type: f.type })
-          uploadRef.current(file)
-        }
+    const cd = (e as React.ClipboardEvent).clipboardData ?? (e as ClipboardEvent).clipboardData
+    if (!cd) return
+    // Via items
+    for (const item of Array.from(cd.items ?? [])) {
+      if (item.type.startsWith('image/')) {
+        const raw = item.getAsFile()
+        if (raw) { uploadImageFile(new File([raw], `paste-${Date.now()}.jpg`, { type: raw.type })); return }
       }
     }
-    document.addEventListener('paste', handler)
-    return () => document.removeEventListener('paste', handler)
-  }, [isAdmin])
+    // Via files
+    const f = cd.files?.[0]
+    if (f?.type.startsWith('image/')) uploadImageFile(new File([f], `paste-${Date.now()}.jpg`, { type: f.type }))
+  }
+
+  // Auto-foca a zona de paste quando o modal abre
+  useEffect(() => { pasteZoneRef.current?.focus() }, [])
+
+  // Também escuta no document como fallback
+  useEffect(() => {
+    const h = (e: ClipboardEvent) => handlePasteEvent(e)
+    document.addEventListener('paste', h)
+    return () => document.removeEventListener('paste', h)
+  }, [isAdmin, p.id])
 
   // ── Edit mode state ──────────────────────────────────────────────────────
   const [editing, setEditing] = useState(false)
@@ -504,8 +495,13 @@ function ProductDetailModal({
           </div>
         )}
 
-        {/* Imagem + botão upload/substituir */}
-        <div className="relative group">
+        {/* Imagem + botão upload/substituir (tabIndex para receber paste) */}
+        <div
+          ref={pasteZoneRef}
+          tabIndex={0}
+          onPaste={handlePasteEvent}
+          className="relative group outline-none focus:ring-2 focus:ring-primary/30 rounded-xl"
+        >
           {currentImageUrl ? (
             <div className="w-full aspect-square max-h-64 overflow-hidden rounded-xl bg-surface-container">
               <img src={currentImageUrl} alt={p.reference} className="w-full h-full object-contain" />
@@ -539,7 +535,7 @@ function ProductDetailModal({
               <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
             </label>
           )}
-        </div>
+        </div>{/* fim pasteZone */}
 
         <div className="flex items-start gap-2 flex-wrap">
           <Badge variant={p.type === 'pack' ? 'purple' : 'info'}>
