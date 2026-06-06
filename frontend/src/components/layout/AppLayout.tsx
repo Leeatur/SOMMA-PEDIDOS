@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, MapPin, Link2, ChevronDown,
+  BarChart2, Trash2, MapPin, Link2, ChevronDown, PackageCheck,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -24,7 +24,8 @@ const navPrimary: NavItem[] = [
   { to: '/clients',      label: 'Clientes',       icon: <Users className="h-4 w-4" /> },
   { to: '/products',     label: 'Produtos',       icon: <Package className="h-4 w-4" /> },
   { to: '/reports',      label: 'Relatórios',     icon: <BarChart2 className="h-4 w-4" /> },
-  { to: '/portals',      label: 'Portal Cliente', icon: <Link2 className="h-4 w-4" /> },
+  { to: '/portals',        label: 'Portal Cliente',  icon: <Link2 className="h-4 w-4" /> },
+  { to: '/pronta-entrega', label: 'Pronta Entrega',  icon: <PackageCheck className="h-4 w-4" /> },
 ]
 
 // Itens no dropdown "Mais"

@@ -20,6 +20,7 @@ import OrderEdit from './pages/OrderEdit'
 import { Prospecting } from './pages/Prospecting'
 import { CustomerPortal } from './pages/CustomerPortal'
 import { Portals } from './pages/Portals'
+import { ProntaEntrega } from './pages/ProntaEntrega'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuthStore()
@@ -61,6 +62,7 @@ export function App() {
 <Route path="/products" element={<Products />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/portals" element={<Portals />} />
+        <Route path="/pronta-entrega" element={<ProntaEntrega />} />
         <Route path="/settings" element={<Settings />} />
 
         {/* Admin-only routes */}
