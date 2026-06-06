@@ -679,7 +679,6 @@ export function Reports() {
     { id: 'inactive',       label: '⚠️ Clientes Inativos' },
     { id: 'clients',        label: 'Clientes' },
     { id: 'collections',    label: 'Curva ABC Produtos' },
-    { id: 'catalog',        label: 'Catálogo' },
   ]
   const TABS = ALL_TABS.filter(t => !t.adminOnly || isAdmin)
 
