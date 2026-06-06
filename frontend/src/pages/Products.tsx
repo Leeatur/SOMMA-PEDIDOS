@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, FileDown } from 'lucide-react'
 import { productsApi, priceTablesApi, apiClient } from '../api/client'
@@ -137,27 +137,30 @@ function ProductDetailModal({
     finally { setUploadingImage(false) }
   }
 
-  // Paste global (Ctrl+V / Cmd+V) — cola foto direto nesta referência
-  const handlePaste = useCallback((e: ClipboardEvent) => {
+  // Ref sempre aponta para a versão mais atual de uploadImageFile (evita stale closure)
+  const uploadRef = useRef(uploadImageFile)
+  uploadRef.current = uploadImageFile
+
+  // Paste global — escuta no document enquanto o modal estiver aberto
+  useEffect(() => {
     if (!isAdmin) return
-    const items = e.clipboardData?.items
-    if (!items) return
-    for (const item of Array.from(items)) {
-      if (item.type.startsWith('image/')) {
-        const file = item.getAsFile()
-        if (file) {
-          const named = new File([file], `paste-${Date.now()}.jpg`, { type: file.type })
-          uploadImageFile(named)
-          break
+    const handler = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const raw = item.getAsFile()
+          if (raw) {
+            const file = new File([raw], `paste-${Date.now()}.jpg`, { type: raw.type })
+            uploadRef.current(file)
+            break
+          }
         }
       }
     }
-  }, [isAdmin, p.id]) // eslint-disable-line
-
-  useEffect(() => {
-    document.addEventListener('paste', handlePaste)
-    return () => document.removeEventListener('paste', handlePaste)
-  }, [handlePaste])
+    document.addEventListener('paste', handler)
+    return () => document.removeEventListener('paste', handler)
+  }, [isAdmin])
 
   // ── Edit mode state ──────────────────────────────────────────────────────
   const [editing, setEditing] = useState(false)
