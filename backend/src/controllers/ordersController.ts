@@ -982,3 +982,52 @@ export async function duplicateOrder(req: AuthRequest, res: Response) {
     dbClient.release()
   }
 }
+
+// ── Resumo rápido de pedidos para a aba Orders ───────────────────────────────
+export async function ordersSummary(req: AuthRequest, res: Response) {
+  const { date_from, date_to, rep_id } = req.query
+  const isAdmin = req.user!.role === 'admin'
+
+  const params: unknown[] = []
+  let where = `WHERE o.deleted_at IS NULL`
+
+  if (!isAdmin) { params.push(req.user!.id); where += ` AND o.rep_id = $${params.length}` }
+  else if (rep_id) { params.push(rep_id); where += ` AND o.rep_id = $${params.length}` }
+  if (date_from) { params.push(`${date_from} 00:00:00`); where += ` AND o.created_at >= $${params.length}` }
+  if (date_to)   { params.push(`${date_to} 23:59:59`);   where += ` AND o.created_at <= $${params.length}` }
+
+  const base = `FROM orders o
+    JOIN users u     ON u.id = o.rep_id
+    JOIN factories f ON f.id = o.factory_id
+    LEFT JOIN order_statuses s ON s.id = o.status_id
+    ${where}`
+
+  const [byDay, byRep, byFactory, byStatus] = await Promise.all([
+    query(`SELECT DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') AS dia,
+             COUNT(*)::int AS pedidos,
+             COALESCE(SUM(o.total_value),0)::numeric AS total
+           ${base} GROUP BY dia ORDER BY dia DESC LIMIT 30`, params),
+
+    query(`SELECT u.name AS vendedor,
+             COUNT(*)::int AS pedidos,
+             COALESCE(SUM(o.total_value),0)::numeric AS total
+           ${base} GROUP BY u.id, u.name ORDER BY total DESC`, params),
+
+    query(`SELECT f.name AS fabrica,
+             COUNT(*)::int AS pedidos,
+             COALESCE(SUM(o.total_value),0)::numeric AS total
+           ${base} GROUP BY f.id, f.name ORDER BY total DESC`, params),
+
+    query(`SELECT COALESCE(s.name,'Sem status') AS status, s.color,
+             COUNT(*)::int AS pedidos,
+             COALESCE(SUM(o.total_value),0)::numeric AS total
+           ${base} GROUP BY s.id, s.name, s.color ORDER BY total DESC`, params),
+  ])
+
+  res.json({
+    by_day:     byDay.rows,
+    by_rep:     byRep.rows,
+    by_factory: byFactory.rows,
+    by_status:  byStatus.rows,
+  })
+}

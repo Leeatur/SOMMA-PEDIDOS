@@ -257,6 +257,8 @@ export const ordersApi = {
     search?: string
   }) => apiClient.get('/orders', { params }),
   get: (id: string) => apiClient.get(`/orders/${id}`),
+  summary: (params?: { date_from?: string; date_to?: string; rep_id?: string }) =>
+    apiClient.get('/orders/summary', { params }),
   create: (data: {
     client_id: string
     factory_id: string
