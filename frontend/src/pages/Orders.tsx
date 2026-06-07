@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   PlusCircle,
+  BarChart3,
 } from 'lucide-react'
 import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -196,6 +197,57 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
   )
 }
 
+// ─── Resumo de Vendas (relatórios rápidos) ───────────────────────────────────
+
+interface OrdersSummary {
+  by_day: { dia: string; pedidos: number; total: number }[]
+  by_rep: { vendedor: string; pedidos: number; total: number }[]
+  by_factory: { fabrica: string; pedidos: number; total: number }[]
+  by_status: { status: string; color: string | null; pedidos: number; total: number }[]
+}
+
+interface SummaryCardRow { label: string; pedidos: number; total: number; color?: string | null }
+
+// Evita o problema de fuso-horário: formata "YYYY-MM-DD..." direto em "DD/MM/AAAA"
+function formatDiaBR(dia: string): string {
+  if (!dia) return ''
+  const m = String(dia).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!m) return String(dia)
+  return `${m[3]}/${m[2]}/${m[1]}`
+}
+
+function SummaryCard({ title, rows, loading }: { title: string; rows: SummaryCardRow[]; loading?: boolean }) {
+  const grandTotal = rows.reduce((acc, r) => acc + (Number(r.total) || 0), 0)
+  return (
+    <div className="bg-white border border-outline-variant/60 rounded-xl p-3 flex flex-col min-w-0">
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-outline truncate">{title}</p>
+        <p className="text-[12px] font-bold text-on-surface whitespace-nowrap">{formatCurrency(grandTotal)}</p>
+      </div>
+      <div className="space-y-0.5 max-h-60 overflow-auto pr-1">
+        {loading ? (
+          <p className="text-[12px] text-outline/60 py-6 text-center">Carregando…</p>
+        ) : rows.length === 0 ? (
+          <p className="text-[12px] text-outline/60 py-6 text-center">Sem dados no período</p>
+        ) : (
+          rows.map((r, i) => (
+            <div key={i} className="flex items-center justify-between gap-2 text-[12px] py-1 px-1.5 rounded-lg hover:bg-surface-container-low transition-colors">
+              <div className="flex items-center gap-1.5 min-w-0">
+                {r.color && <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />}
+                <span className="truncate text-on-surface-variant">{r.label || '—'}</span>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-outline text-[11px]">{r.pedidos} ped.</span>
+                <span className="font-semibold text-on-surface whitespace-nowrap">{formatCurrency(r.total)}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function Orders() {
@@ -210,6 +262,7 @@ export function Orders() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const [showSummary, setShowSummary] = useState(false)
 
   const { data: statuses } = useQuery<Status[]>({
     queryKey: ['statuses'],
@@ -231,6 +284,16 @@ export function Orders() {
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
       }).then((r) => r.data),
+  })
+
+  const { data: summary, isLoading: summaryLoading } = useQuery<OrdersSummary>({
+    queryKey: ['orders-summary', dateFrom, dateTo],
+    queryFn: () =>
+      ordersApi.summary({
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+      }).then((r) => r.data),
+    enabled: showSummary,
   })
 
   const colDefs = ALL_COL_DEFS.filter(c => c.id !== 'rep' || isAdmin)
@@ -388,6 +451,18 @@ export function Orders() {
             <div className="flex items-center gap-2">
               <ColumnConfigButton defs={colDefs} config={config} onSave={save} onReset={reset} />
               <button
+                onClick={() => setShowSummary(!showSummary)}
+                className={`flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors ${
+                  showSummary
+                    ? 'text-primary border-primary/40 bg-primary/10'
+                    : 'text-outline border-outline-variant bg-white hover:text-on-surface-variant'
+                }`}
+                title="Resumo de vendas"
+              >
+                <BarChart3 className="h-4 w-4" />
+                Resumo
+              </button>
+              <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors ${
                   showFilters || statusFilter || factoryFilter || dateFrom || dateTo
@@ -441,6 +516,45 @@ export function Orders() {
             </div>
           )}
         </div>
+
+        {/* Resumo de Vendas — relatórios rápidos */}
+        {showSummary && (
+          <div className="border-b border-outline-variant bg-surface-container-low/40 px-8 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                Resumo de Vendas
+              </h3>
+              <p className="text-[11px] text-outline">
+                {dateFrom || dateTo
+                  ? `Período: ${dateFrom ? formatDate(dateFrom) : '...'} a ${dateTo ? formatDate(dateTo) : '...'}`
+                  : 'Use os filtros de data acima para definir o período (sem filtro = todos os pedidos)'}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              <SummaryCard
+                title="Vendas por dia"
+                loading={summaryLoading}
+                rows={(summary?.by_day || []).map(r => ({ label: formatDiaBR(r.dia), pedidos: r.pedidos, total: Number(r.total) }))}
+              />
+              <SummaryCard
+                title="Vendas por vendedor"
+                loading={summaryLoading}
+                rows={(summary?.by_rep || []).map(r => ({ label: r.vendedor, pedidos: r.pedidos, total: Number(r.total) }))}
+              />
+              <SummaryCard
+                title="Vendas por fábrica"
+                loading={summaryLoading}
+                rows={(summary?.by_factory || []).map(r => ({ label: r.fabrica, pedidos: r.pedidos, total: Number(r.total) }))}
+              />
+              <SummaryCard
+                title="Vendas por status"
+                loading={summaryLoading}
+                rows={(summary?.by_status || []).map(r => ({ label: r.status, pedidos: r.pedidos, total: Number(r.total), color: r.color }))}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Desktop Table */}
         {isLoading ? (
