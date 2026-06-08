@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BarChart2, ChevronDown, ChevronRight } from 'lucide-react'
+import { BarChart2, ChevronDown, ChevronRight, Printer, Download, TrendingUp, Users, Package, Award } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -465,6 +465,67 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
   )
 }
 
+// ─── CSV export ──────────────────────────────────────────────────────────────
+// Gera CSV com BOM UTF-8 (abre direto no Excel com acentos corretos)
+
+function exportCsv(filename: string, headers: string[], rows: (string | number)[][]) {
+  const escape = (v: string | number) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const csv = [headers, ...rows].map(r => r.map(escape).join(',')).join('\r\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = filename + '.csv'; a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ─── CSS de impressão ─────────────────────────────────────────────────────────
+
+const PRINT_CSS = `
+  @media print {
+    header, nav, .no-print { display: none !important; }
+    .reports-sidebar { display: none !important; }
+    .main-content { overflow: visible !important; }
+    .reports-content { padding: 0 !important; }
+    body { font-size: 11pt; background: white !important; }
+    @page { margin: 1.5cm; size: A4 landscape; }
+    table { border-collapse: collapse; width: 100%; font-size: 10pt; }
+    th, td { border: 1px solid #ddd; padding: 4px 8px; }
+    th { background-color: #f3f4f6 !important; print-color-adjust: exact; }
+    .print-title { font-size: 16pt; font-weight: bold; margin-bottom: 4px; }
+    .print-subtitle { font-size: 10pt; color: #555; margin-bottom: 12px; }
+    .print-period { font-size: 9pt; color: #888; margin-bottom: 16px; }
+  }
+`
+
+// ─── Metadados dos relatórios ─────────────────────────────────────────────────
+
+interface ReportMeta { id: Tab; title: string; description: string; group: string }
+
+const REPORT_META: ReportMeta[] = [
+  // Vendas
+  { id: 'orders',         group: 'vendas',    title: 'Resumo de Vendas',          description: 'Totais de pedidos, valor e comissões no período selecionado, com evolução diária.' },
+  { id: 'evolution',      group: 'vendas',    title: 'Evolução Mensal',            description: 'Crescimento mês a mês: número de pedidos, valor total e clientes atendidos.' },
+  { id: 'comparison',     group: 'vendas',    title: 'Comparativo de Períodos',    description: 'Compare o período selecionado com o período imediatamente anterior.' },
+  // Clientes
+  { id: 'clients',        group: 'clientes',  title: 'Por Cliente',                description: 'Ranking de clientes por valor comprado no período, com total de pedidos e unidades.' },
+  { id: 'abc',            group: 'clientes',  title: 'Curva ABC de Clientes',      description: 'Classifica clientes em A (80% da receita), B (15%) e C (5%) — foco no que importa.' },
+  { id: 'inactive',       group: 'clientes',  title: 'Clientes Inativos',          description: 'Clientes que não fizeram pedidos nos últimos X dias. Identifique quem precisa de contato.' },
+  { id: 'region',         group: 'clientes',  title: 'Por Região / UF',            description: 'Distribuição geográfica das vendas por estado e cidade.' },
+  // Produtos
+  { id: 'products',       group: 'produtos',  title: 'Produtos Mais Vendidos',     description: 'Referências com maior volume de vendas no período — em quantidade e valor.' },
+  { id: 'collections',    group: 'produtos',  title: 'Curva ABC de Produtos',      description: 'Quais coleções e produtos concentram o maior faturamento.' },
+  // Equipe
+  { id: 'commissions',    group: 'equipe',    title: 'Comissões por Pedido',       description: 'Detalhamento de comissões por vendedor e pedido, com status de faturamento.' },
+  { id: 'repperformance', group: 'equipe',    title: 'Performance da Equipe',      description: 'Ranking comparativo de desempenho entre vendedores no período.' },
+  { id: 'projection',     group: 'equipe',    title: 'Projeção de Comissões',      description: 'Comissões em aberto (a faturar) por vendedor — previsão de recebimento.' },
+]
+
+const GROUPS = [
+  { id: 'vendas',    label: 'Vendas',    icon: <TrendingUp className="h-3.5 w-3.5" /> },
+  { id: 'clientes',  label: 'Clientes',  icon: <Users className="h-3.5 w-3.5" /> },
+  { id: 'produtos',  label: 'Produtos',  icon: <Package className="h-3.5 w-3.5" /> },
+  { id: 'equipe',    label: 'Equipe',    icon: <Award className="h-3.5 w-3.5" /> },
+]
+
 // ─── main component ───────────────────────────────────────────────────────────
 
 export function Reports() {
@@ -667,103 +728,169 @@ export function Reports() {
 
   // ─── tabs config ───────────────────────────────────────────────────────────
 
-  const ALL_TABS: { id: Tab; label: string; adminOnly?: boolean }[] = [
-    { id: 'orders',         label: 'Visão Geral' },
-    { id: 'commissions',    label: 'Comissões' },
-    { id: 'evolution',      label: '📈 Evolução Mensal' },
-    { id: 'comparison',     label: '⚖️ Comparativo' },
-    { id: 'abc',            label: '🏅 Curva ABC Clientes' },
-    { id: 'region',         label: '🗺️ Por Região/UF' },
-    { id: 'projection',     label: '💰 Projeção Comissão' },
-    { id: 'repperformance', label: '🏆 Performance Reps', adminOnly: true },
-    { id: 'inactive',       label: '⚠️ Clientes Inativos' },
-    { id: 'clients',        label: 'Clientes' },
-    { id: 'collections',    label: 'Curva ABC Produtos' },
-  ]
-  const TABS = ALL_TABS.filter(t => !t.adminOnly || isAdmin)
+  // ─── Relatórios visíveis para este usuário ────────────────────────────────
+  const VISIBLE_META = REPORT_META.filter(r =>
+    r.id !== 'repperformance' || isAdmin
+  )
+  const currentMeta = VISIBLE_META.find(r => r.id === tab) ?? VISIBLE_META[0]
+
+  // ─── Export CSV por relatório ─────────────────────────────────────────────
+  function handleExport() {
+    const period = `${dateFrom}_${dateTo}`
+    if (tab === 'orders' && ordersQ.data) {
+      exportCsv(`resumo-vendas-${period}`, ['Data','Pedidos','Peças','Valor Total'],
+        ordersQ.data.byDay.map(r => [fmtDatePtBR(r.date), r.order_count, r.total_pieces, fmtR(r.total_value)]))
+    } else if (tab === 'commissions' && commissionsQ.data) {
+      const commRows = commSearch.trim()
+        ? commissionsQ.data.filter(r => [r.vendedor,r.industria,r.razao_social,r.cliente,r.nr_ped_fabrica,r.status_name].some(v=>String(v||'').toLowerCase().includes(commSearch.toLowerCase())))
+        : commissionsQ.data
+      exportCsv(`comissoes-${period}`,
+        ['Data','Vendedor','Fornecedor','Nº Fábrica','Razão Social','Cidade','UF','Valor','Com. Rep','Com. Escr.','Status'],
+        commRows.map(r => [fmtDatePtBR(r.data_venda), r.vendedor, r.industria, r.nr_ped_fabrica||'', r.razao_social, r.cidade||'', r.uf||'', r.total_value, r.rep_commission_value, r.office_commission_value, r.status_name||'']))
+    } else if (tab === 'clients' && clientsQ.data) {
+      exportCsv(`clientes-${period}`,['Cliente','Cidade','UF','Pedidos','Peças','Valor Total'],
+        clientsQ.data.map(r=>[r.name, r.city, r.state, r.order_count, r.total_pieces, fmtR(r.total_value)]))
+    } else if (tab === 'products' && productsQ.data) {
+      exportCsv(`produtos-${period}`,['Referência','Pedidos','Peças','Valor Total'],
+        productsQ.data.map(r=>[r.reference, r.order_count, r.total_pieces, fmtR(r.total_value)]))
+    } else if (tab === 'evolution' && evolutionQ.data) {
+      exportCsv(`evolucao-mensal`, ['Mês','Pedidos','Valor Total','Clientes Atendidos','Peças'],
+        (evolutionQ.data as any[]).map(r=>[r.mes||r.month||'', r.total_pedidos, fmtR(r.total_value), r.clientes_atendidos, r.total_pieces]))
+    } else if (tab === 'inactive' && inactiveQ.data) {
+      exportCsv(`clientes-inativos`, ['Cliente','Cidade','UF','Vendedor','Último Pedido','Dias Inativo'],
+        (inactiveQ.data as any[]).map(r=>[r.client_name, r.city||'', r.state||'', r.rep_name||'', fmtDatePtBR(r.last_order_date), r.days_inactive]))
+    } else if (tab === 'region' && regionQ.data) {
+      exportCsv(`por-regiao-${period}`, ['UF','Pedidos','Clientes','Valor Total'],
+        (regionQ.data as any[]).map(r=>[r.state, r.pedidos, r.clientes, fmtR(r.total_value)]))
+    } else if (tab === 'abc' && abcQ.data) {
+      exportCsv(`abc-clientes-${period}`, ['Classe','Cliente','Cidade','Pedidos','Valor Total','% Acumulado'],
+        (abcQ.data as any[]).map(r=>[r.classe, r.name, r.city||'', r.order_count, fmtR(r.total_value), `${Number(r.pct_acumulado||0).toFixed(1)}%`]))
+    } else if (tab === 'repperformance' && repPerfQ.data) {
+      exportCsv(`performance-equipe-${period}`, ['Vendedor','Pedidos','Peças','Valor Total','Com. Rep'],
+        (repPerfQ.data as any[]).map(r=>[r.rep_name, r.total_pedidos, r.total_pieces, fmtR(r.total_value), fmtR(r.comissao_rep)]))
+    } else if (tab === 'comparison' && comparisonQ.data) {
+      exportCsv(`comparativo-${period}`, ['Métrica','Período Atual','Período Anterior','Variação'],
+        [
+          ['Valor Total', fmtR((comparisonQ.data as any).current?.total_value||0), fmtR((comparisonQ.data as any).previous?.total_value||0), ''],
+          ['Pedidos', (comparisonQ.data as any).current?.total_pedidos||0, (comparisonQ.data as any).previous?.total_pedidos||0, ''],
+          ['Peças', (comparisonQ.data as any).current?.total_pieces||0, (comparisonQ.data as any).previous?.total_pieces||0, ''],
+        ])
+    } else if (tab === 'projection' && projectionQ.data) {
+      exportCsv(`projecao-comissoes`, ['Vendedor','Status','Pedidos','Valor Pedidos','Com. Rep','Com. Escr.'],
+        (projectionQ.data as any[]).map(r=>[r.rep_name, r.situacao, r.pedidos, fmtR(r.total_value), fmtR(r.comissao_rep), fmtR(r.comissao_escritorio)]))
+    } else {
+      alert('Carregue o relatório antes de exportar.')
+    }
+  }
 
   // ─── render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="pb-24 lg:pb-0">
+    <div className="pb-24 lg:pb-0 reports-page">
+      <style>{PRINT_CSS}</style>
 
-      {/* ── sticky header ── */}
-      <div className="bg-white border-b border-outline-variant px-4 py-2.5 lg:px-8 space-y-1.5">
-        <div className="w-full space-y-1.5">
+      {/* ══ HEADER FIXO: título + filtros (visível na tela, oculto na impressão) ══ */}
+      <div className="no-print bg-white border-b border-outline-variant px-4 py-2.5 lg:px-8">
+        <div className="flex items-center gap-2 mb-2">
+          <BarChart2 className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-bold text-on-surface">Relatórios</h1>
+          <span className="text-[12px] text-outline ml-1">— selecione um relatório na barra lateral</span>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <BarChart2 className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-bold text-on-surface">Relatórios</h1>
-          </div>
-
-          {/* ── filters ── */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* date inputs */}
-            <input
-              type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <span className="text-outline/70 text-[12px]">–</span>
-            <input
-              type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-
-            {/* quick range buttons */}
-            <div className="flex gap-1">
-              {[{ label: '7d', d: 7 }, { label: '30d', d: 30 }, { label: '90d', d: 90 }].map(r => (
-                <button
-                  key={r.label} onClick={() => setRange(r.d)}
-                  className="px-2.5 py-1.5 text-[12px] font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg transition-colors"
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-
-            {/* factory filter */}
-            {(
-              <select
-                value={factoryId} onChange={e => setFactoryId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-              >
-                <option value="">Todas as fábricas</option>
-                {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
-            )}
-
-            {/* rep filter — admin only, hidden on products tab */}
-            {isAdmin && tab !== 'products' && (
-              <select
-                value={repId} onChange={e => setRepId(e.target.value)}
-                className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-              >
-                <option value="">Todos os representantes</option>
-                {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-            )}
-          </div>
-
-          {/* ── tab bar ── */}
-          <div className="flex gap-0 border-b border-outline-variant">
-            {TABS.map(t => (
-              <button
-                key={t.id} onClick={() => setTab(t.id)}
-                className={`px-4 py-1.5 text-[12px] font-medium border-b-2 transition-colors -mb-px ${
-                  tab === t.id
-                    ? 'border-blue-600 text-primary'
-                    : 'border-transparent text-outline hover:text-on-surface-variant'
-                }`}
-              >
-                {t.label}
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-2">
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary" />
+          <span className="text-outline/70 text-[12px]">–</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary" />
+          <div className="flex gap-1">
+            {[{ label: 'Hoje', d: 1 }, { label: '7 dias', d: 7 }, { label: '30 dias', d: 30 }, { label: '90 dias', d: 90 }].map(r => (
+              <button key={r.label} onClick={() => setRange(r.d)}
+                className="px-2.5 py-1 text-[11px] font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg transition-colors">
+                {r.label}
               </button>
             ))}
           </div>
+          <select value={factoryId} onChange={e => setFactoryId(e.target.value)}
+            className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Todos os fornecedores</option>
+            {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+          {isAdmin && tab !== 'products' && (
+            <select value={repId} onChange={e => setRepId(e.target.value)}
+              className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="">Todos os vendedores</option>
+              {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          )}
+        </div>
+
+        {/* Tabs mobile (scroll horizontal) */}
+        <div className="lg:hidden flex gap-0 overflow-x-auto scrollbar-hide border-b border-outline-variant mt-2 -mb-[1px]">
+          {VISIBLE_META.map(r => (
+            <button key={r.id} onClick={() => setTab(r.id as Tab)}
+              className={`px-4 py-1.5 text-[11px] font-medium border-b-2 whitespace-nowrap transition-colors -mb-px ${
+                tab === r.id ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface-variant'}`}>
+              {r.title}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ── tab content ── */}
-      <div className={`px-4 py-3 lg:px-6`}>
+      {/* ══ CORPO: sidebar lateral (desktop) + conteúdo ══ */}
+      <div className="flex">
+
+        {/* ── Sidebar lateral (desktop only) ── */}
+        <aside className="reports-sidebar no-print hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-outline-variant bg-white sticky top-[52px] h-[calc(100vh-100px)] overflow-y-auto py-3">
+          {GROUPS.map(group => {
+            const items = VISIBLE_META.filter(r => r.group === group.id)
+            if (!items.length) return null
+            return (
+              <div key={group.id} className="mb-3">
+                <div className="flex items-center gap-1.5 px-4 py-1 text-[10px] font-black uppercase tracking-wider text-outline/60">
+                  {group.icon} {group.label}
+                </div>
+                {items.map(r => (
+                  <button key={r.id} onClick={() => setTab(r.id as Tab)}
+                    className={`w-full text-left px-4 py-2 text-[12px] font-medium transition-all border-l-2 ${
+                      tab === r.id
+                        ? 'border-primary bg-primary/5 text-primary font-semibold'
+                        : 'border-transparent text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                    }`}>
+                    {r.title}
+                  </button>
+                ))}
+              </div>
+            )
+          })}
+        </aside>
+
+        {/* ── Área de conteúdo ── */}
+        <div className="flex-1 min-w-0 reports-content px-4 py-4 lg:px-6">
+
+          {/* Cabeçalho do relatório ativo — visível na impressão */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+            <div>
+              <h2 className="print-title text-xl font-bold text-on-surface">{currentMeta.title}</h2>
+              <p className="print-subtitle text-[12px] text-outline mt-1 max-w-lg">{currentMeta.description}</p>
+              <p className="print-period text-[11px] text-outline/60 mt-0.5">
+                Período: {fmtDatePtBR(dateFrom)} – {fmtDatePtBR(dateTo)}
+                {factoryId && factories ? ` · ${factories.find(f=>f.id===factoryId)?.name}` : ''}
+                {repId && reps.length ? ` · ${reps.find(u=>u.id===repId)?.name}` : ''}
+              </p>
+            </div>
+            <div className="flex gap-2 no-print flex-shrink-0">
+              <button onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors">
+                <Printer className="h-3.5 w-3.5" /> Imprimir / PDF
+              </button>
+              <button onClick={handleExport}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                <Download className="h-3.5 w-3.5" /> Exportar Excel
+              </button>
+            </div>
+          </div>
 
         {/* ═══ VISÃO GERAL ══════════════════════════════════════════════════ */}
         {tab === 'orders' && (
@@ -1612,6 +1739,7 @@ export function Reports() {
           })()
         )}
 
+        </div>
       </div>
     </div>
   )
