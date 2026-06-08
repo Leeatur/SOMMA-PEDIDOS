@@ -41,7 +41,7 @@ import { PageSpinner } from '../components/ui/Spinner'
 import { formatCurrency, formatDateTime, formatOrderNumber, formatPct } from '../utils/format'
 
 interface GradeConfig {
-  id: string
+  id?: string
   color: string | null
   sizes: Record<string, number>
   total_pieces: number
@@ -60,6 +60,7 @@ interface OrderItem {
   total_pieces: number
   subtotal: number
   sizes: Record<string, number> | null
+  custom_grade: GradeConfig[] | null
   grade_configs: GradeConfig[] | null
 }
 
@@ -804,6 +805,11 @@ export function OrderDetail() {
                                 </tbody>
                               </table>
                           </div>
+                        </>
+                      ) : item.custom_grade && item.custom_grade.length > 0 ? (
+                        <>
+                          <p className="text-[12px] font-medium text-on-surface-variant mb-1.5">Composição da grade (escolhida pelo cliente):</p>
+                          <GradeDisplay configs={item.custom_grade} boxCount={item.boxes_count} />
                         </>
                       ) : item.grade_configs && item.grade_configs.length > 0 ? (
                         <>

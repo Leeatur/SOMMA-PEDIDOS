@@ -51,6 +51,7 @@ interface OrderItem {
   total_pieces: number
   subtotal: number
   sizes: Record<string, number> | null
+  custom_grade: GradeConfig[] | null
   grade_configs: GradeConfig[] | null
 }
 
@@ -128,8 +129,13 @@ export function OrderPrint() {
     // Produto regular: usa item.sizes
     if (item.sizes && Object.keys(item.sizes).length > 0) {
       Object.keys(item.sizes).forEach(s => allSizes.add(s.trim()))
+    } else if (item.custom_grade && item.custom_grade.length > 0) {
+      // Pack com grade personalizada (escolhida pelo cliente, ex.: portal/PE)
+      for (const gc of item.custom_grade) {
+        Object.keys(gc.sizes).forEach(s => allSizes.add(s.trim()))
+      }
     } else if (item.grade_configs) {
-      // Pack: usa grade_configs
+      // Pack: usa grade_configs (template do produto)
       for (const gc of item.grade_configs) {
         Object.keys(gc.sizes).forEach(s => allSizes.add(s.trim()))
       }
@@ -160,6 +166,8 @@ export function OrderPrint() {
   for (const item of order.items) {
     const hasCustomSizes = item.sizes && Object.keys(item.sizes).length > 0
       && Object.values(item.sizes).some(v => (v || 0) > 0)
+    const hasCustomGrade = !!item.custom_grade && item.custom_grade.length > 0
+      && item.custom_grade.some(gc => Object.values(gc.sizes || {}).some(v => (v || 0) > 0))
 
     if (hasCustomSizes && item.sizes) {
       // Produto regular: uma linha com as quantidades reais por tamanho
@@ -170,9 +178,10 @@ export function OrderPrint() {
         sizeCols[s] = item.sizes[s] || 0
       }
       const gradeLabel = sortSizes(Object.keys(item.sizes).filter(s => (item.sizes![s] || 0) > 0)).join('/')
-      // Preço Tab. = original da tabela. R$ ajustado = unit_price (pode ter sido ajustado manualmente)
+      // Preço Tab. = original da tabela. R$ c/Desc. = preço (possivelmente ajustado manualmente)
+      // com o Desconto à Vista do pedido aplicado — mesma lógica usada no cálculo do pedido (subtotal).
       const tabPrice = item.original_unit_price ?? item.unit_price
-      const adjPrice = item.unit_price
+      const adjPrice = item.unit_price * (1 - actualDiscPct / 100)
       const discPct = tabPrice > 0 ? Math.round((1 - adjPrice / tabPrice) * 10000) / 100 : actualDiscPct
       rows.push({
         seq,
@@ -187,10 +196,40 @@ export function OrderPrint() {
         discPct: discPct,
         total: adjPrice * qtde,
       })
+    } else if (hasCustomGrade && item.custom_grade) {
+      // Pack com grade personalizada escolhida pelo cliente (ex.: pedidos via portal/PE)
+      // — usa a grade realmente selecionada (custom_grade), não o template do produto
+      const tabPriceCustom = item.original_unit_price ?? item.unit_price
+      const adjPriceCustom = item.unit_price * (1 - actualDiscPct / 100)
+      const discPctCustom = tabPriceCustom > 0 ? Math.round((1 - adjPriceCustom / tabPriceCustom) * 10000) / 100 : actualDiscPct
+
+      for (const gc of item.custom_grade) {
+        seq++
+        const qtde = (gc.total_pieces || Object.values(gc.sizes || {}).reduce((s, v) => s + (v || 0), 0)) * item.boxes_count
+        const sizeCols: Record<string, number> = {}
+        for (const s of sizes) {
+          const rawVal = gc.sizes[s] ?? gc.sizes[s + ' '] ?? gc.sizes[' ' + s] ?? 0
+          sizeCols[s] = rawVal * item.boxes_count
+        }
+        const gradeLabel = sortSizes(Object.keys(gc.sizes)).join('/')
+        rows.push({
+          seq,
+          reference: item.reference,
+          product_name: item.product_name || '',
+          color: gc.color || '',
+          gradeLabel,
+          sizeCols,
+          qtde,
+          unitPriceBase: tabPriceCustom,
+          unitPriceDisc: adjPriceCustom,
+          discPct: discPctCustom,
+          total: adjPriceCustom * qtde,
+        })
+      }
     } else if (item.grade_configs && item.grade_configs.length > 0) {
-      // Pack: unit_price é preço POR PEÇA.
+      // Pack: unit_price é preço POR PEÇA — usa o template padrão de grade do produto
       const tabPricePack = item.original_unit_price ?? item.unit_price
-      const adjPricePack = item.unit_price
+      const adjPricePack = item.unit_price * (1 - actualDiscPct / 100)
       const discPctPack = tabPricePack > 0 ? Math.round((1 - adjPricePack / tabPricePack) * 10000) / 100 : actualDiscPct
 
       for (const gc of item.grade_configs) {
@@ -222,7 +261,7 @@ export function OrderPrint() {
       const qtde = item.total_pieces || item.boxes_count
       const sizeCols: Record<string, number> = {}
       const tabP2 = item.original_unit_price ?? item.unit_price
-      const adjP2 = item.unit_price
+      const adjP2 = item.unit_price * (1 - actualDiscPct / 100)
       const disc2 = tabP2 > 0 ? Math.round((1 - adjP2 / tabP2) * 10000) / 100 : actualDiscPct
       rows.push({
         seq,
