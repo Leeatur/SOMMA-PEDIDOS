@@ -404,15 +404,24 @@ export async function updateProduct(req: AuthRequest, res: Response) {
   if (!reference || base_price === undefined) {
     res.status(400).json({ error: 'reference e base_price são obrigatórios' }); return
   }
-  const setPriceTable = price_table_id ? `, price_table_id=$10` : ''
   const params: unknown[] = [reference, product_name || null, model || null, size_range || null, base_price, category || null, observation || null, type, id]
   if (price_table_id) params.splice(8, 0, price_table_id) // insert before id
   const sql = price_table_id
     ? `UPDATE products SET reference=$1, product_name=$2, model=$3, size_range=$4, base_price=$5, category=$6, observation=$7, type=$8, price_table_id=$9, updated_at=NOW() WHERE id=$10 RETURNING *`
     : `UPDATE products SET reference=$1, product_name=$2, model=$3, size_range=$4, base_price=$5, category=$6, observation=$7, type=$8, updated_at=NOW() WHERE id=$9 RETURNING *`
-  const { rows } = await query(sql, params)
-  if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
-  res.json(rows[0])
+  try {
+    const { rows } = await query(sql, params)
+    if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
+    res.json(rows[0])
+  } catch (err) {
+    const pgErr = err as { code?: string }
+    if (pgErr.code === '23505') {
+      res.status(409).json({ error: `Já existe um produto com a referência "${reference}" nesta tabela de preços. Escolha outra referência ou edite o produto existente.` })
+      return
+    }
+    console.error('Erro ao atualizar produto:', err)
+    res.status(500).json({ error: 'Erro ao salvar produto' })
+  }
 }
 
 export async function deleteProduct(req: AuthRequest, res: Response) {
