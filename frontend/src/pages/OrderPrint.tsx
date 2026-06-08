@@ -226,8 +226,14 @@ export function OrderPrint() {
           total: adjPriceCustom * qtde,
         })
       }
-    } else if (item.grade_configs && item.grade_configs.length > 0) {
-      // Pack: unit_price é preço POR PEÇA — usa o template padrão de grade do produto
+    } else if (
+      item.grade_configs && item.grade_configs.length > 0 &&
+      item.grade_configs.reduce((s, gc) => s + (gc.total_pieces || 0), 0) * item.boxes_count === item.total_pieces
+    ) {
+      // Pack: unit_price é preço POR PEÇA — usa o template padrão de grade do produto.
+      // Só exibe a composição do template quando o total bate com o total_pieces real do
+      // item: se não bater (ex.: pedidos antigos do portal/PE sem a grade real registrada),
+      // mostrar o template seria enganoso (quantidades fictícias) — cai no fallback abaixo.
       const tabPricePack = item.original_unit_price ?? item.unit_price
       const adjPricePack = item.unit_price * (1 - actualDiscPct / 100)
       const discPctPack = tabPricePack > 0 ? Math.round((1 - adjPricePack / tabPricePack) * 10000) / 100 : actualDiscPct
