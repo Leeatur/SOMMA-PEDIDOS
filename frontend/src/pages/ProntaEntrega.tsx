@@ -21,7 +21,7 @@ interface PeCatalog {
   created_at: string
 }
 interface ImportResult {
-  imported: number; refs_in_file: number; not_found: string[]
+  imported: number; refs_in_file: number; not_found: string[]; no_photo: string[]
 }
 
 const BASE = 'https://somma-pedidos-production.up.railway.app'
@@ -157,6 +157,11 @@ export function ProntaEntrega() {
                     {importResult!.not_found.length > 0 && (
                       <p className="text-[12px] text-amber-700 mt-1">
                         ⚠ {importResult!.not_found.length} refs não encontradas no sistema: {importResult!.not_found.join(', ')}
+                      </p>
+                    )}
+                    {importResult!.no_photo?.length > 0 && (
+                      <p className="text-[12px] text-amber-700 mt-1">
+                        🚫 {importResult!.no_photo.length} ref{importResult!.no_photo.length !== 1 ? 's' : ''} sem foto cadastrada — eliminada{importResult!.no_photo.length !== 1 ? 's' : ''} automaticamente do catálogo: {importResult!.no_photo.join(', ')}
                       </p>
                     )}
                   </>
@@ -332,6 +337,7 @@ export function ProntaEntrega() {
             </select>
             <p className="text-[11px] text-outline/70 mt-1">
               A importação busca referências nos produtos desta fábrica.
+              Referências sem foto cadastrada são eliminadas automaticamente do catálogo.
             </p>
           </div>
         </div>

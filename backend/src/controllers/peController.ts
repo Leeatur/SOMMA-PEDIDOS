@@ -26,7 +26,37 @@ function refsFromBuffer(buf: Buffer): string[] {
 
 // ─── Listagem ────────────────────────────────────────────────────────────────
 
+/**
+ * Remove automaticamente do(s) catálogo(s) de Pronta Entrega quaisquer produtos
+ * sem foto cadastrada (image_url vazio/nulo). Roda toda vez que a lista de
+ * catálogos PE é carregada — autolimpeza contínua, além do filtro já aplicado
+ * na importação (que impede a entrada de referências sem foto).
+ */
+async function removePeProductsWithoutPhoto() {
+  const { rows: affected } = await query(`
+    SELECT p.id, p.price_table_id
+    FROM products p
+    JOIN pe_catalogs pc ON pc.price_table_id = p.price_table_id
+    WHERE p.image_url IS NULL OR btrim(p.image_url) = ''
+  `)
+  if (affected.length === 0) return
+
+  const ids = affected.map(r => r.id)
+  await query('DELETE FROM grade_configs WHERE product_id = ANY($1)', [ids])
+  await query('DELETE FROM products WHERE id = ANY($1)', [ids])
+
+  const tableIds = [...new Set(affected.map(r => r.price_table_id))]
+  await query(`
+    UPDATE pe_catalogs pc
+       SET item_count = (SELECT count(*) FROM products WHERE price_table_id = pc.price_table_id),
+           updated_at = NOW()
+     WHERE pc.price_table_id = ANY($1)
+  `, [tableIds])
+}
+
 export async function listPeCatalogs(req: AuthRequest, res: Response) {
+  await removePeProductsWithoutPhoto()
+
   const { rows } = await query(`
     SELECT
       pe.id, pe.name, pe.active, pe.item_count, pe.last_import_at, pe.created_at,
@@ -134,12 +164,17 @@ export async function importPeExcel(req: AuthRequest, res: Response) {
     const found     = sourceProducts.map(p => p.reference)
     const notFound  = refs.filter(r => !found.includes(r))
 
+    // Referências sem foto NÃO entram no catálogo de Pronta Entrega — são eliminadas automaticamente
+    const hasPhoto   = (p: { image_url: string | null }) => !!(p.image_url && String(p.image_url).trim() !== '')
+    const withPhoto  = sourceProducts.filter(hasPhoto)
+    const noPhoto    = sourceProducts.filter(p => !hasPhoto(p)).map(p => p.reference)
+
     // Limpa produtos antigos do PE
     await client.query('DELETE FROM grade_configs WHERE product_id IN (SELECT id FROM products WHERE price_table_id=$1)', [pe.price_table_id])
     await client.query('DELETE FROM products WHERE price_table_id=$1', [pe.price_table_id])
 
-    // Insere produtos novos
-    for (const p of sourceProducts) {
+    // Insere produtos novos (somente os que possuem foto)
+    for (const p of withPhoto) {
       const { rows: [np] } = await client.query(`
         INSERT INTO products
           (price_table_id, reference, product_name, model, size_range,
@@ -160,14 +195,15 @@ export async function importPeExcel(req: AuthRequest, res: Response) {
     // Atualiza contagem e data de importação
     await client.query(
       `UPDATE pe_catalogs SET item_count=$1, last_import_at=NOW(), updated_at=NOW() WHERE id=$2`,
-      [sourceProducts.length, id]
+      [withPhoto.length, id]
     )
 
     await client.query('COMMIT')
     res.json({
       ok: true,
-      imported: sourceProducts.length,
+      imported: withPhoto.length,
       not_found: notFound,
+      no_photo: noPhoto,
       refs_in_file: refs.length,
     })
   } catch (err) {
