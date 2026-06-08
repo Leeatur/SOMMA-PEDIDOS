@@ -339,6 +339,9 @@ export async function submitPortalOrder(req: Request, res: Response) {
   )
 
   // Insere itens — comissão calculada sobre o preço CHEIO (sem desconto à vista)
+  // unit_price/original_unit_price ficam com o preço de TABELA (cheio); o Desconto à Vista
+  // (discount_pct, salvo no pedido) é aplicado depois no momento de exibir/imprimir —
+  // exatamente a mesma lógica usada para pedidos normais (computeOrderTotals/createOrder).
   let totalPieces = 0; let totalValue = 0; let totalValueFull = 0
   for (const item of items) {
     const discountedPrice = item.unit_price * (1 - discPct/100)
@@ -346,10 +349,19 @@ export async function submitPortalOrder(req: Request, res: Response) {
     const subtotal = Math.round(discountedPrice * pieces * 100) / 100
     const subtotalFull = Math.round(item.unit_price * pieces * 100) / 100
     totalPieces += pieces; totalValue += subtotal; totalValueFull += subtotalFull
+
+    // Grade real escolhida pelo cliente: "sizes" (produto regular) ou "custom_grade" (pack)
+    const sizesMap = item.sizes && typeof item.sizes === 'object' && Object.keys(item.sizes).length > 0
+      ? item.sizes
+      : null
+    const customGradeArr = Array.isArray(item.grade) && item.grade.length > 0 ? item.grade : null
+
     await query(
-      `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, custom_grade)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [order.id, item.product_id, item.reference, item.boxes_count||1, item.unit_price, pieces, subtotal, JSON.stringify(item.grade||null)]
+      `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, original_unit_price, total_pieces, subtotal, sizes, custom_grade)
+       VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$8,$9)`,
+      [order.id, item.product_id, item.reference, item.boxes_count||1, item.unit_price, pieces, subtotal,
+       sizesMap ? JSON.stringify(sizesMap) : null,
+       customGradeArr ? JSON.stringify(customGradeArr) : null]
     )
   }
 
