@@ -26,7 +26,26 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
+        // Desativa o fallback de navegação pré-cacheado (index.html). Por padrão o
+        // Workbox serve um index.html "congelado" do cache para qualquer navegação —
+        // mas esse HTML aponta para os arquivos JS/CSS com hash da build em que foi
+        // gerado. A cada novo deploy esses arquivos antigos são removidos do servidor,
+        // então abrir o app (inclusive pelo ícone na tela de início do iPad/Android)
+        // carregava um index.html cacheado apontando para um bundle que não existe
+        // mais (404) e a página ficava em branco, sem o React nunca montar.
+        // Com `navigateFallback` desligado e a rota abaixo, a navegação sempre busca
+        // o index.html mais recente da rede primeiro (com cache só como reserva).
+        navigateFallback: undefined,
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache-v2',
+              networkTimeoutSeconds: 8,
+              expiration: { maxEntries: 5, maxAgeSeconds: 24 * 60 * 60 },
+            },
+          },
           {
             urlPattern: /^https?:\/\/.*\/api\//,
             handler: 'NetworkFirst',
