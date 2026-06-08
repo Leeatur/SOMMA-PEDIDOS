@@ -119,6 +119,7 @@ function ProductDetailModal({
   const [isDragging, setIsDragging] = useState(false)
   const [imageUploadError, setImageUploadError] = useState('')
   const [imageSyncMsg, setImageSyncMsg] = useState('')
+  const [editSyncMsg, setEditSyncMsg] = useState('')
   const pasteZoneRef = useRef<HTMLDivElement>(null)
 
   async function uploadImageFile(file: File) {
@@ -240,6 +241,7 @@ function ProductDetailModal({
   async function handleSave() {
     setSaving(true)
     setSaveError('')
+    setEditSyncMsg('')
     try {
       const res = await productsApi.update(p.id, {
         reference: editForm.reference,
@@ -256,6 +258,7 @@ function ProductDetailModal({
         .filter(row => Object.values(row.sizes).some(v => v > 0))
         .map((row, i) => ({ color: row.color || null, sizes: row.sizes, sort_order: i }))
       const gradeRes = await productsApi.updateGrade(p.id, gradePayload)
+      const gradeConfigs = (gradeRes.data?.rows ?? gradeRes.data) || []
       onUpdated({
         reference: res.data.reference,
         product_name: res.data.product_name,
@@ -265,9 +268,15 @@ function ProductDetailModal({
         category: res.data.category,
         observation: res.data.observation,
         type: res.data.type,
-        grade_configs: gradeRes.data,
+        grade_configs: gradeConfigs,
       })
       qc.invalidateQueries({ queryKey: ['all-products'] })
+      const productSynced = (res.data as { synced_count?: number }).synced_count || 0
+      const gradeSynced = (gradeRes.data as { synced_count?: number })?.synced_count || 0
+      const syncedCount = Math.max(productSynced, gradeSynced)
+      if (syncedCount > 0) {
+        setEditSyncMsg(`Alterações também aplicadas automaticamente em mais ${syncedCount} tabela${syncedCount > 1 ? 's' : ''} com a referência ${res.data.reference} (preço de cada tabela permanece independente).`)
+      }
       setEditing(false)
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -572,6 +581,11 @@ function ProductDetailModal({
         {imageSyncMsg && (
           <p className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
             <Check className="h-3 w-3" /> {imageSyncMsg}
+          </p>
+        )}
+        {editSyncMsg && (
+          <p className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
+            <Check className="h-3 w-3" /> {editSyncMsg}
           </p>
         )}
 
