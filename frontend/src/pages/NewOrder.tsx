@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -329,6 +329,27 @@ export function NewOrder() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
   const [quickAddProduct, setQuickAddProduct] = useState<Product | null>(null)
+  // Referência ao campo de busca: usada para devolver o foco automaticamente
+  // (reabrir "card" de busca pronto para a próxima referência) após cada item confirmado
+  const productSearchRef = useRef<HTMLInputElement | null>(null)
+  const focusProductSearch = useCallback(() => {
+    // Pequeno atraso para aguardar o fechamento do modal antes de focar
+    setTimeout(() => productSearchRef.current?.focus(), 80)
+  }, [])
+
+  // Mede a altura do header fixo para "grudar" o card de busca logo abaixo dele,
+  // mantendo-o sempre visível mesmo com a lista de produtos rolada
+  const headerRef = useRef<HTMLDivElement | null>(null)
+  const [headerHeight, setHeaderHeight] = useState(0)
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const update = () => setHeaderHeight(el.offsetHeight)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // Step 4: Review
   const [discountPct, setDiscountPct] = useState<string>('0')
@@ -549,7 +570,7 @@ export function NewOrder() {
   return (
     <div className="pb-24 lg:pb-0 min-h-screen bg-surface-container-low">
       {/* Header */}
-      <div className="bg-white border-b border-outline-variant px-4 py-2 lg:px-8 sticky top-0 z-10">
+      <div ref={headerRef} className="bg-white border-b border-outline-variant px-4 py-2 lg:px-8 sticky top-0 z-10">
         <div className="w-full">
           <div className="flex items-center gap-3 mb-2">
             <button
@@ -774,42 +795,67 @@ export function NewOrder() {
                 <p className="text-[12px] text-outline">{selectedTable?.name} — {selectedTable?.factory_name}</p>
               </div>
               {cart.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="info">{cart.length} itens</Badge>
-                  <Button size="sm" onClick={() => setStep(3)}>
-                    Revisar <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <Badge variant="info">{cart.length} itens</Badge>
               )}
             </div>
 
-            {/* Search + filter */}
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  placeholder="Referência, nome... (Enter para adicionar)"
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  leftIcon={<Search className="h-4 w-4" />}
-                  onClear={() => setProductSearch('')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && products && products.length > 0) {
-                      e.preventDefault()
-                      setQuickAddProduct(products[0])
-                      setProductSearch('')
-                    }
-                  }}
-                />
+            {/* ── Card de busca: sempre visível e "renovado" após cada item confirmado ──
+                Contém o campo de busca da próxima referência + botão Finalizar Pedido,
+                para que o vendedor possa lançar referência após referência sem perder
+                de vista a opção de encerrar o pedido (ajuste solicitado p/ mobile e web) */}
+            <div
+              className="sticky z-20 bg-white rounded-xl border border-outline-variant shadow-sm p-2 space-y-2"
+              style={{ top: headerHeight }}
+            >
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input
+                    ref={productSearchRef}
+                    placeholder="Referência, nome... (Enter para adicionar)"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    leftIcon={<Search className="h-4 w-4" />}
+                    onClear={() => setProductSearch('')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && products && products.length > 0) {
+                        e.preventDefault()
+                        setQuickAddProduct(products[0])
+                        setProductSearch('')
+                      }
+                    }}
+                  />
+                </div>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="border border-outline-variant rounded-lg px-2 py-1.5 text-[12px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                >
+                  <option value="">Todos</option>
+                  <option value="regular">Regular</option>
+                  <option value="pack">Pack</option>
+                </select>
               </div>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="border border-outline-variant rounded-lg px-2 py-1.5 text-[12px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+
+              {/* Botão Finalizar Pedido — sempre presente junto ao card de busca */}
+              <button
+                type="button"
+                disabled={cart.length === 0}
+                onClick={() => cart.length > 0 && setStep(3)}
+                className={`w-full flex items-center justify-center gap-2 rounded-lg py-2 text-[12px] font-bold transition-all ${
+                  cart.length > 0
+                    ? 'bg-green-600 hover:bg-green-700 active:scale-[0.98] text-white shadow-md'
+                    : 'bg-surface-container text-outline/60 cursor-not-allowed'
+                }`}
               >
-                <option value="">Todos</option>
-                <option value="regular">Regular</option>
-                <option value="pack">Pack</option>
-              </select>
+                <Check className="h-3.5 w-3.5" />
+                Finalizar Pedido
+                {cart.length > 0 && (
+                  <span className="font-normal text-white/80">
+                    · {cart.length} item{cart.length > 1 ? 'ns' : ''} · {formatCurrency(totals.totalValue)}
+                  </span>
+                )}
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
             </div>
 
             {loadingProducts ? (
@@ -975,14 +1021,14 @@ export function NewOrder() {
                   <span className="text-white/70">{cart.length} item{cart.length > 1 ? 'ns' : ''} · {totals.totalPieces} pç</span>
                   <span className="font-bold text-base">{formatCurrency(totals.totalValue)}</span>
                 </div>
-                {/* Botão Fechar Pedido */}
+                {/* Botão Finalizar Pedido */}
                 <button
                   type="button"
                   onClick={() => setStep(3)}
                   className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 active:scale-[0.98] text-white rounded-2xl shadow-2xl py-4 text-base font-bold transition-all"
                   style={{ boxShadow: '0 8px 32px rgba(22,163,74,0.5)' }}
                 >
-                  Fechar Pedido
+                  Finalizar Pedido
                   <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
@@ -1389,6 +1435,11 @@ export function NewOrder() {
               setCart([...cart, { product: p, boxes_count: boxes, sizes, unit_price: price, observation }])
             }
             setQuickAddProduct(null)
+            // Ao confirmar o lançamento da referência, devolve o foco ao campo de busca
+            // (o "card novo de busca") já pronto para a próxima referência — o botão
+            // Finalizar Pedido permanece sempre visível ali ao lado
+            setProductSearch('')
+            focusProductSearch()
           }}
         />
       )}
