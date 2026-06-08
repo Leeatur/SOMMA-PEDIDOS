@@ -860,6 +860,9 @@ export function Reports() {
                   rows.reduce((s, r) => s + Number(r[key] || 0), 0)
                 const fmtDate = (d: string) => fmtDatePtBR(d)
                 const fmtPct = (v: number) => `${Number(v || 0).toFixed(2).replace('.', ',')}%`
+                const totalSold = sum('total_value')
+                // % do total da comissão sobre o valor total vendido no período filtrado
+                const pctOfTotalSold = (v: number) => totalSold > 0 ? (v / totalSold) * 100 : 0
                 return (
                   <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                     {/* Barra de busca + config colunas */}
@@ -1042,9 +1045,17 @@ export function Reports() {
                         <tfoot>
                           <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
                             <td className="px-2 py-1.5 text-on-surface-variant" colSpan={['data','vendedor','industria','nr_fabrica','razao_social','nome_fantasia','cidade','uf'].filter(colVisible).length}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
-                            <td className="px-2 py-1.5 text-right text-on-surface">{fmtR(sum('total_value'))}</td>
-                            <td className="px-2 py-1.5 text-right text-emerald-700">{fmtR(sum('rep_commission_value'))}</td>
-                            {isAdmin && <td className="px-2 py-1.5 text-right text-blue-700">{fmtR(sum('office_commission_value'))}</td>}
+                            <td className="px-2 py-1.5 text-right text-on-surface">{fmtR(totalSold)}</td>
+                            <td className="px-2 py-1.5 text-right text-emerald-700">
+                              {fmtR(sum('rep_commission_value'))}
+                              <span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(pctOfTotalSold(sum('rep_commission_value')))})</span>
+                            </td>
+                            {isAdmin && (
+                              <td className="px-2 py-1.5 text-right text-blue-700">
+                                {fmtR(sum('office_commission_value'))}
+                                <span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(pctOfTotalSold(sum('office_commission_value')))})</span>
+                              </td>
+                            )}
                             <td className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
                             <td className="px-2 py-1.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
                           </tr>
@@ -1053,6 +1064,7 @@ export function Reports() {
                     </div>
                     <div className="px-4 py-1.5 bg-surface-container-lowest border-t border-outline-variant/50 text-[12px] text-outline/70">
                       * Valor Faturado = pedidos com status <strong>final</strong>. Falta Faturar = demais pedidos.
+                      O percentual ao lado do total de comissão representa o quanto a comissão total representa sobre o valor total vendido no período filtrado.
                     </div>
                   </div>
                 )
