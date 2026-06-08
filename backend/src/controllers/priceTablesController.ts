@@ -264,7 +264,16 @@ export async function uploadProductImage(req: AuthRequest, res: Response) {
       [imageUrl, req.params.id]
     )
     if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
-    res.json(rows[0])
+
+    // Sincroniza a mesma foto em todos os produtos com a MESMA referência
+    // (a referência se repete em várias tabelas de preço — ex: catálogo normal,
+    // Pronta Entrega, coleções diferentes — e todas devem exibir a mesma foto)
+    const synced = await query(
+      'UPDATE products SET image_url=$1, updated_at=NOW() WHERE reference=$2 AND id<>$3 RETURNING id',
+      [imageUrl, rows[0].reference, rows[0].id]
+    )
+
+    res.json({ ...rows[0], synced_count: synced.rows.length })
   } catch (err) {
     console.error('Erro upload imagem produto:', err)
     res.status(500).json({ error: 'Erro ao salvar imagem' })

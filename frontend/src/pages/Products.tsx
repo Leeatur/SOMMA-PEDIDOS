@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, FileDown } from 'lucide-react'
+import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, FileDown, Check } from 'lucide-react'
 import { productsApi, priceTablesApi, apiClient } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
@@ -118,18 +118,24 @@ function ProductDetailModal({
   const [currentImageUrl, setCurrentImageUrl] = useState(p.image_url)
   const [isDragging, setIsDragging] = useState(false)
   const [imageUploadError, setImageUploadError] = useState('')
+  const [imageSyncMsg, setImageSyncMsg] = useState('')
   const pasteZoneRef = useRef<HTMLDivElement>(null)
 
   async function uploadImageFile(file: File) {
     if (!isAdmin) return
     setUploadingImage(true)
     setImageUploadError('')
+    setImageSyncMsg('')
     try {
       const r = await productsApi.uploadImage(p.id, file)
       const newUrl = r.data.image_url || r.data.url || ''
       setCurrentImageUrl(newUrl)
       onUpdated({ image_url: newUrl })
       qc.invalidateQueries({ queryKey: ['all-products'] })
+      const syncedCount = (r.data as { synced_count?: number }).synced_count || 0
+      if (syncedCount > 0) {
+        setImageSyncMsg(`Foto também aplicada automaticamente em mais ${syncedCount} tabela${syncedCount > 1 ? 's' : ''} com a referência ${p.reference}.`)
+      }
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
       setImageUploadError(msg || 'Erro ao enviar a imagem. Tente novamente.')
@@ -561,6 +567,11 @@ function ProductDetailModal({
         </div>
         {imageUploadError && (
           <p className="text-[11px] text-red-600 font-medium mt-1">{imageUploadError}</p>
+        )}
+        {imageSyncMsg && (
+          <p className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
+            <Check className="h-3 w-3" /> {imageSyncMsg}
+          </p>
         )}
 
         <div className="flex items-start gap-2 flex-wrap">
