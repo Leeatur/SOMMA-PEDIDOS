@@ -28,7 +28,6 @@ const navPrimary: NavItem[] = [
   { to: '/reports',       label: 'Relatórios',    icon: <BarChart2 className="h-4 w-4" /> },
   { to: '/portals',       label: 'Catálogos',     icon: <Link2 className="h-4 w-4" /> },
   { to: '/pronta-entrega',label: 'Pronta Entrega',icon: <PackageCheck className="h-4 w-4" /> },
-  { to: '/orders/alerts', label: 'Alertas',       icon: <BellRing className="h-4 w-4" /> },
 ]
 
 // Itens no dropdown "Mais"
@@ -87,9 +86,7 @@ export function AppLayout() {
     staleTime: 60 * 1000,
   })
 
-  const visiblePrimary = navPrimary.map(item =>
-    item.to === '/orders/alerts' ? { ...item, badge: alertsCount } : item
-  )
+  const visiblePrimary = navPrimary
   const visibleMore = navMore.filter(item => !item.adminOnly || isAdmin)
 
   useEffect(() => { if (online) syncPendingOrders() }, [online])
@@ -201,6 +198,20 @@ export function AppLayout() {
 
         {/* Spacer */}
         <div className="flex-1" />
+
+        {/* Sino de alertas */}
+        <button
+          onClick={() => navigate('/orders/alerts')}
+          title="Alertas de pedidos em atraso"
+          className="relative p-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors mr-1"
+        >
+          <BellRing className="h-5 w-5" />
+          {alertsCount > 0 && (
+            <span className="absolute top-0.5 right-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
+              {alertsCount > 99 ? '99+' : alertsCount}
+            </span>
+          )}
+        </button>
 
         {/* Novo pedido */}
         <button
