@@ -21,18 +21,18 @@ interface NavItem {
 
 // Itens principais no topo
 const navPrimary: NavItem[] = [
-  { to: '/dashboard',    label: 'Dashboard',      icon: <LayoutDashboard className="h-4 w-4" /> },
-  { to: '/orders',       label: 'Pedidos',        icon: <ShoppingCart className="h-4 w-4" /> },
-  { to: '/clients',      label: 'Clientes',       icon: <Users className="h-4 w-4" /> },
-  { to: '/products',     label: 'Produtos',       icon: <Package className="h-4 w-4" /> },
-  { to: '/reports',      label: 'Relatórios',     icon: <BarChart2 className="h-4 w-4" /> },
-  { to: '/portals',        label: 'Catálogos',        icon: <Link2 className="h-4 w-4" /> },
-  { to: '/pronta-entrega', label: 'Pronta Entrega',  icon: <PackageCheck className="h-4 w-4" /> },
+  { to: '/dashboard',     label: 'Dashboard',     icon: <LayoutDashboard className="h-4 w-4" /> },
+  { to: '/orders',        label: 'Pedidos',       icon: <ShoppingCart className="h-4 w-4" /> },
+  { to: '/clients',       label: 'Clientes',      icon: <Users className="h-4 w-4" /> },
+  { to: '/products',      label: 'Produtos',      icon: <Package className="h-4 w-4" /> },
+  { to: '/reports',       label: 'Relatórios',    icon: <BarChart2 className="h-4 w-4" /> },
+  { to: '/portals',       label: 'Catálogos',     icon: <Link2 className="h-4 w-4" /> },
+  { to: '/pronta-entrega',label: 'Pronta Entrega',icon: <PackageCheck className="h-4 w-4" /> },
+  { to: '/orders/alerts', label: 'Alertas',       icon: <BellRing className="h-4 w-4" /> },
 ]
 
 // Itens no dropdown "Mais"
 const navMore: NavItem[] = [
-  { to: '/orders/alerts', label: 'Alertas',     icon: <BellRing className="h-4 w-4" /> },
   { to: '/prospecting',  label: 'Prospecção',  icon: <MapPin className="h-4 w-4" /> },
   { to: '/price-tables', label: 'Tabelas',     icon: <Tags className="h-4 w-4" />, adminOnly: true },
   { to: '/factories',    label: 'Fábricas',    icon: <Building2 className="h-4 w-4" />, adminOnly: true },
@@ -87,11 +87,10 @@ export function AppLayout() {
     staleTime: 60 * 1000,
   })
 
-  const visiblePrimary = navPrimary
-  const visibleMore = navMore
-    .filter(item => !item.adminOnly || isAdmin)
-    .map(item => item.to === '/orders/alerts' ? { ...item, badge: alertsCount } : item)
-  const hasAlerts = alertsCount > 0
+  const visiblePrimary = navPrimary.map(item =>
+    item.to === '/orders/alerts' ? { ...item, badge: alertsCount } : item
+  )
+  const visibleMore = navMore.filter(item => !item.adminOnly || isAdmin)
 
   useEffect(() => { if (online) syncPendingOrders() }, [online])
 
@@ -157,6 +156,11 @@ export function AppLayout() {
           <NavLink key={item.to} to={item.to} className={navLinkCls}>
             {item.icon}
             {item.label}
+            {!!item.badge && (
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+                {item.badge > 99 ? '99+' : item.badge}
+              </span>
+            )}
           </NavLink>
         ))}
 
@@ -164,13 +168,10 @@ export function AppLayout() {
         <div ref={moreRef} className="relative">
           <button
             onClick={() => setMoreOpen(v => !v)}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
           >
             Mais
             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-            {hasAlerts && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border border-[#1e293b]" />
-            )}
           </button>
           {moreOpen && (
             <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
