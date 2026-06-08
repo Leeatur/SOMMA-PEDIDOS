@@ -1,5 +1,6 @@
 import { Response } from 'express'
 import path from 'path'
+import { PoolClient } from 'pg'
 import { query, pool } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 import { importExcel, buildDefaultGrade, ImportedProduct } from '../services/import/excelImporter'
@@ -410,9 +411,28 @@ export async function updateProduct(req: AuthRequest, res: Response) {
     ? `UPDATE products SET reference=$1, product_name=$2, model=$3, size_range=$4, base_price=$5, category=$6, observation=$7, type=$8, price_table_id=$9, updated_at=NOW() WHERE id=$10 RETURNING *`
     : `UPDATE products SET reference=$1, product_name=$2, model=$3, size_range=$4, base_price=$5, category=$6, observation=$7, type=$8, updated_at=NOW() WHERE id=$9 RETURNING *`
   try {
+    // Captura a referência ANTES da edição, para localizar corretamente os "irmãos"
+    // (mesmo produto cadastrado em outras tabelas de preço/coleções) mesmo quando a
+    // própria referência está sendo alterada nesta edição
+    const { rows: currentRows } = await query('SELECT reference FROM products WHERE id=$1', [id])
+    if (!currentRows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
+    const oldReference = currentRows[0].reference as string
+
     const { rows } = await query(sql, params)
     if (!rows[0]) { res.status(404).json({ error: 'Produto não encontrado' }); return }
-    res.json(rows[0])
+
+    // Propaga as alterações (exceto preço, tabela de preço e a própria referência) para
+    // todos os outros produtos com a MESMA referência — ou seja, o mesmo modelo
+    // cadastrado em outras coleções/tabelas de preço
+    const synced = await query(
+      `UPDATE products
+          SET product_name=$1, model=$2, size_range=$3, category=$4, observation=$5, type=$6, updated_at=NOW()
+        WHERE reference=$7 AND id<>$8
+        RETURNING id`,
+      [product_name || null, model || null, size_range || null, category || null, observation || null, type, oldReference, rows[0].id]
+    )
+
+    res.json({ ...rows[0], synced_count: synced.rows.length })
   } catch (err) {
     const pgErr = err as { code?: string }
     if (pgErr.code === '23505') {
@@ -753,6 +773,18 @@ export async function uploadPhotoByRef(req: AuthRequest, res: Response) {
   }
 }
 
+async function replaceGradeConfigs(client: PoolClient, productId: string, grade_configs: { color?: string | null; sizes: Record<string, number> }[]) {
+  await client.query('DELETE FROM grade_configs WHERE product_id=$1', [productId])
+  for (let i = 0; i < grade_configs.length; i++) {
+    const g = grade_configs[i]
+    const total = Object.values(g.sizes as Record<string, number>).reduce((a, b) => a + b, 0)
+    await client.query(
+      'INSERT INTO grade_configs (product_id, color, sizes, total_pieces, sort_order) VALUES ($1,$2,$3,$4,$5)',
+      [productId, g.color || null, JSON.stringify(g.sizes), total, i]
+    )
+  }
+}
+
 export async function updateGradeConfig(req: AuthRequest, res: Response) {
   const { product_id } = req.params
   const { grade_configs } = req.body
@@ -760,20 +792,29 @@ export async function updateGradeConfig(req: AuthRequest, res: Response) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    await client.query('DELETE FROM grade_configs WHERE product_id=$1', [product_id])
-    for (let i = 0; i < grade_configs.length; i++) {
-      const g = grade_configs[i]
-      const total = Object.values(g.sizes as Record<string, number>).reduce((a, b) => a + b, 0)
-      await client.query(
-        'INSERT INTO grade_configs (product_id, color, sizes, total_pieces, sort_order) VALUES ($1,$2,$3,$4,$5)',
-        [product_id, g.color || null, JSON.stringify(g.sizes), total, i]
+    await replaceGradeConfigs(client, product_id, grade_configs)
+
+    // Propaga a mesma grade (cores/tamanhos) para os demais produtos com a MESMA
+    // referência — ou seja, o mesmo modelo cadastrado em outras coleções/tabelas de preço
+    const { rows: prodRows } = await client.query('SELECT reference FROM products WHERE id=$1', [product_id])
+    let syncedCount = 0
+    if (prodRows[0]) {
+      const { rows: siblings } = await client.query(
+        'SELECT id FROM products WHERE reference=$1 AND id<>$2',
+        [prodRows[0].reference, product_id]
       )
+      for (const sibling of siblings) {
+        await replaceGradeConfigs(client, sibling.id, grade_configs)
+      }
+      syncedCount = siblings.length
     }
+
     await client.query('COMMIT')
     const { rows } = await client.query('SELECT * FROM grade_configs WHERE product_id=$1 ORDER BY sort_order', [product_id])
-    res.json(rows)
+    res.json({ rows, synced_count: syncedCount })
   } catch (err) {
     await client.query('ROLLBACK')
+    console.error('Erro ao atualizar grade:', err)
     res.status(500).json({ error: 'Erro ao atualizar grade' })
   } finally {
     client.release()
