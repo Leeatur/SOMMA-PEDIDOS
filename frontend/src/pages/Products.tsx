@@ -269,8 +269,9 @@ function ProductDetailModal({
       })
       qc.invalidateQueries({ queryKey: ['all-products'] })
       setEditing(false)
-    } catch {
-      setSaveError('Erro ao salvar. Verifique os dados e tente novamente.')
+    } catch (err) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setSaveError(msg || 'Erro ao salvar. Verifique os dados e tente novamente.')
     } finally {
       setSaving(false)
     }
