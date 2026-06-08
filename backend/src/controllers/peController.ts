@@ -240,18 +240,24 @@ export async function deletePeCatalog(req: AuthRequest, res: Response) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
+
+    // O registro pe_catalogs referencia customer_portals via portal_id (sem cascade),
+    // então precisa ser removido ANTES do portal — caso contrário o banco rejeita a
+    // exclusão do portal por violação de chave estrangeira (e toda a operação falha)
+    await client.query('DELETE FROM pe_catalogs WHERE id=$1', [pe.id])
+
     if (pe.price_table_id) {
       await client.query('DELETE FROM grade_configs WHERE product_id IN (SELECT id FROM products WHERE price_table_id=$1)', [pe.price_table_id])
       await client.query('DELETE FROM products WHERE price_table_id=$1', [pe.price_table_id])
       await client.query('DELETE FROM price_tables WHERE id=$1', [pe.price_table_id])
     }
     if (pe.portal_id) await client.query('DELETE FROM customer_portals WHERE id=$1', [pe.portal_id])
-    await client.query('DELETE FROM pe_catalogs WHERE id=$1', [pe.id])
+
     await client.query('COMMIT')
     res.status(204).send()
   } catch (err) {
     await client.query('ROLLBACK')
-    console.error(err)
+    console.error('Erro ao excluir catálogo PE:', err)
     res.status(500).json({ error: 'Erro ao excluir catálogo PE' })
   } finally {
     client.release()
