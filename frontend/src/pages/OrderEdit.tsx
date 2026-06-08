@@ -575,7 +575,7 @@ export default function OrderEdit() {
     ? labelCls
     : 'block text-[12px] font-semibold text-amber-600 mb-1'
 
-  const reps = usersList.filter(u => u.role === 'rep' || u.role === 'admin')
+  const reps = usersList.filter(u => u.role === 'representante' || u.role === 'admin')
 
   if (isLoading || !order) return <PageSpinner />
 
