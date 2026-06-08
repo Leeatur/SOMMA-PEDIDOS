@@ -32,7 +32,8 @@ interface CartItem {
   subtotal: number
 }
 
-const MIN_ORDER_VALUE = 2500
+// Pedido mínimo de R$ 2.500,00 — exigido apenas em catálogos de Pronta Entrega (portal.is_pe)
+const PE_MIN_ORDER_VALUE = 2500
 const MIN_PIECES_PER_REF = 1
 
 const PAYMENT_OPTIONS = [
@@ -83,7 +84,7 @@ export function CustomerPortal() {
 
   // Steps: 'loading' | 'cnpj' | 'catalog' | 'cart' | 'success' | 'error'
   const [step, setStep] = useState<string>('loading')
-  const [portalInfo, setPortalInfo] = useState<{ name: string; rep_name: string } | null>(null)
+  const [portalInfo, setPortalInfo] = useState<{ name: string; rep_name: string; is_pe?: boolean } | null>(null)
   const [factories, setFactories] = useState<Factory[]>([])
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -227,11 +228,13 @@ export function CustomerPortal() {
   const cartDiscount = selectedPayment.discount  // % desconto à vista
   const cartTotal = cartSubtotal * (1 - cartDiscount / 100)
   const cartPieces = cart.reduce((s, i) => s + i.total_pieces, 0)
+  // Pedido mínimo só se aplica a catálogos de Pronta Entrega
+  const minOrderValue = portalInfo?.is_pe ? PE_MIN_ORDER_VALUE : 0
 
   async function handleSubmit() {
     if (!cart.length || !clientData) return
-    if (cartSubtotal < MIN_ORDER_VALUE) {
-      alert(`Pedido mínimo de ${fmtR(MIN_ORDER_VALUE)}. Seu pedido está em ${fmtR(cartSubtotal)}.`)
+    if (cartSubtotal < minOrderValue) {
+      alert(`Pedido mínimo de ${fmtR(minOrderValue)}. Seu pedido está em ${fmtR(cartSubtotal)}.`)
       return
     }
     // Pega a tabela de preço do primeiro item do carrinho
@@ -523,8 +526,8 @@ export function CustomerPortal() {
                 <span className="text-gray-800">Total</span>
                 <span className="text-purple-700 text-lg">{fmtR(cartTotal)}</span>
               </div>
-              {cartSubtotal < MIN_ORDER_VALUE && (
-                <p className="text-[11px] text-amber-600 text-center">⚠️ Mínimo {fmtR(MIN_ORDER_VALUE)} · faltam {fmtR(MIN_ORDER_VALUE - cartSubtotal)}</p>
+              {cartSubtotal < minOrderValue && (
+                <p className="text-[11px] text-amber-600 text-center">⚠️ Mínimo {fmtR(minOrderValue)} · faltam {fmtR(minOrderValue - cartSubtotal)}</p>
               )}
             </div>
           </div>
@@ -558,17 +561,17 @@ export function CustomerPortal() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-3 pb-4 safe-bottom space-y-2">
           <button
             onClick={handleSubmit}
-            disabled={submitting || !cart.length || cartSubtotal < MIN_ORDER_VALUE}
+            disabled={submitting || !cart.length || cartSubtotal < minOrderValue}
             className="w-full text-white py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              background: cartSubtotal < MIN_ORDER_VALUE ? '#9ca3af' : 'linear-gradient(135deg, #059669, #047857)',
-              boxShadow: cartSubtotal >= MIN_ORDER_VALUE ? '0 4px 20px rgba(5,150,105,0.4)' : 'none'
+              background: cartSubtotal < minOrderValue ? '#9ca3af' : 'linear-gradient(135deg, #059669, #047857)',
+              boxShadow: cartSubtotal >= minOrderValue ? '0 4px 20px rgba(5,150,105,0.4)' : 'none'
             }}
           >
             {submitting
               ? <><RefreshCw className="h-5 w-5 animate-spin" /> Enviando pedido...</>
-              : cartSubtotal < MIN_ORDER_VALUE
-                ? `⚠️ Mínimo ${fmtR(MIN_ORDER_VALUE)}`
+              : cartSubtotal < minOrderValue
+                ? `⚠️ Mínimo ${fmtR(minOrderValue)}`
                 : <><CheckCircle className="h-5 w-5" /> Finalizar e Enviar Pedido</>
             }
           </button>

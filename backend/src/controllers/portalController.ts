@@ -117,7 +117,9 @@ export async function getPortalInfo(req: Request, res: Response) {
   const portal = await getPortal(req.params.token)
   if (!portal) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
 
-  const portalMeta = { id: portal.id, name: portal.name, rep_name: portal.rep_name }
+  // Catálogos de Pronta Entrega têm pedido mínimo de R$ 2.500,00 — links normais não têm mínimo
+  const { rows: [pe] } = await query('SELECT id FROM pe_catalogs WHERE portal_id=$1', [portal.id])
+  const portalMeta = { id: portal.id, name: portal.name, rep_name: portal.rep_name, is_pe: !!pe }
 
   // Fluxo principal: tabelas específicas → retorna catálogo completo de uma vez
   if (portal.price_table_ids?.length > 0) {
@@ -277,6 +279,19 @@ export async function submitPortalOrder(req: Request, res: Response) {
 
   if (!cnpj || !client_name || !price_table_id || !factory_id || !items?.length) {
     res.status(400).json({ error: 'Dados obrigatórios faltando' }); return
+  }
+
+  // Pedido mínimo de R$ 2.500,00 — exigido apenas para catálogos de Pronta Entrega
+  // (validação espelhada no backend para não depender só da checagem do front-end)
+  const PE_MIN_ORDER_VALUE = 2500
+  const { rows: [peCatalog] } = await query('SELECT id FROM pe_catalogs WHERE portal_id=$1', [portal.id])
+  if (peCatalog) {
+    const cartSubtotal = items.reduce((s: number, it: { unit_price?: number; total_pieces?: number }) =>
+      s + (Number(it.unit_price) || 0) * (Number(it.total_pieces) || 0), 0)
+    if (cartSubtotal < PE_MIN_ORDER_VALUE) {
+      res.status(400).json({ error: `Pedido mínimo de R$ ${PE_MIN_ORDER_VALUE.toFixed(2).replace('.', ',')} para Pronta Entrega. Seu pedido está em R$ ${cartSubtotal.toFixed(2).replace('.', ',')}.` })
+      return
+    }
   }
 
   // Verifica se a fábrica é permitida
