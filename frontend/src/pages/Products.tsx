@@ -117,18 +117,23 @@ function ProductDetailModal({
   const [uploadingImage, setUploadingImage] = useState(false)
   const [currentImageUrl, setCurrentImageUrl] = useState(p.image_url)
   const [isDragging, setIsDragging] = useState(false)
+  const [imageUploadError, setImageUploadError] = useState('')
   const pasteZoneRef = useRef<HTMLDivElement>(null)
 
   async function uploadImageFile(file: File) {
     if (!isAdmin) return
     setUploadingImage(true)
+    setImageUploadError('')
     try {
       const r = await productsApi.uploadImage(p.id, file)
       const newUrl = r.data.image_url || r.data.url || ''
       setCurrentImageUrl(newUrl)
       onUpdated({ image_url: newUrl })
       qc.invalidateQueries({ queryKey: ['all-products'] })
-    } catch { /* erro silencioso */ }
+    } catch (err) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setImageUploadError(msg || 'Erro ao enviar a imagem. Tente novamente.')
+    }
     finally { setUploadingImage(false) }
   }
 
@@ -554,6 +559,9 @@ function ProductDetailModal({
             </label>
           )}
         </div>
+        {imageUploadError && (
+          <p className="text-[11px] text-red-600 font-medium mt-1">{imageUploadError}</p>
+        )}
 
         <div className="flex items-start gap-2 flex-wrap">
           <Badge variant={p.type === 'pack' ? 'purple' : 'info'}>
