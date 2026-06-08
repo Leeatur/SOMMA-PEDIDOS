@@ -271,6 +271,21 @@ CREATE TABLE IF NOT EXISTS customer_portals (
 CREATE INDEX IF NOT EXISTS idx_customer_portals_token ON customer_portals(token);
 CREATE INDEX IF NOT EXISTS idx_customer_portals_rep ON customer_portals(rep_id);
 
+-- Dispensa de alertas de "aniversário" de pedidos (a cada 15 dias) — v7
+-- Cada linha registra que o alerta de um pedido para um determinado marco
+-- (15, 30, 45... dias) foi dispensado. Como o marco faz parte da chave,
+-- o alerta volta a aparecer naturalmente no próximo múltiplo de 15 dias
+-- caso o pedido continue em aberto.
+CREATE TABLE IF NOT EXISTS order_alert_dismissals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  milestone_days INTEGER NOT NULL,
+  dismissed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  dismissed_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(order_id, milestone_days)
+);
+CREATE INDEX IF NOT EXISTS idx_order_alert_dismissals_order ON order_alert_dismissals(order_id);
+
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_prospecting_rep ON prospecting_contacts(rep_id);
 CREATE INDEX IF NOT EXISTS idx_prospecting_status ON prospecting_contacts(status);

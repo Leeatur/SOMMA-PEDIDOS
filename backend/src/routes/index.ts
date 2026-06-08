@@ -91,6 +91,8 @@ router.post('/clients/import/confirm', authenticate, upload.single('file'), clie
 // Pedidos
 router.get('/orders/:id/pdf', authenticate, pdf.getOrderPdf)
 router.get('/orders/summary', authenticate, orders.ordersSummary)
+router.get('/orders/alerts', authenticate, orders.listOrderAlerts)
+router.post('/orders/:id/alerts/dismiss', authenticate, orders.dismissOrderAlert)
 router.get('/orders', authenticate, orders.listOrders)
 router.get('/orders/trash', authenticate, requireAdmin, orders.listTrashedOrders)
 router.get('/orders/:id', authenticate, orders.getOrder)

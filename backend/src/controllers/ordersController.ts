@@ -1031,3 +1031,79 @@ export async function ordersSummary(req: AuthRequest, res: Response) {
     by_status:  byStatus.rows,
   })
 }
+
+// ── Alertas de "aniversário" (a cada 15 dias desde a emissão) ─────────────────
+// Lista pedidos cuja idade (dias desde created_at) atingiu um múltiplo de 15
+// (15, 30, 45, 60...) e que ainda não foram dispensados PARA AQUELE MARCO
+// específico — assim, se o pedido continuar parado, o alerta reaparece
+// naturalmente no marco seguinte. Objetivo: cobrar a fábrica por pedidos
+// atrasados na entrega.
+export async function listOrderAlerts(req: AuthRequest, res: Response) {
+  const isAdmin = req.user!.role === 'admin'
+
+  const params: unknown[] = []
+  let repFilter = ''
+  if (!isAdmin) { params.push(req.user!.id); repFilter = ` AND oa.rep_id = $${params.length}` }
+
+  const { rows } = await query(
+    `WITH order_ages AS (
+       SELECT o.*,
+         GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (NOW() - o.created_at)) / 86400))::int AS age_days
+       FROM orders o
+       WHERE o.deleted_at IS NULL
+     )
+     SELECT
+       oa.id, oa.order_number, oa.created_at, oa.delivery_date,
+       oa.total_value, oa.total_pieces, oa.payment_terms,
+       oa.age_days,
+       (FLOOR(oa.age_days / 15) * 15)::int AS milestone_days,
+       c.id AS client_id, c.name AS client_name, c.trade_name AS client_trade_name, c.city AS client_city,
+       u.id AS rep_id, u.name AS rep_name,
+       f.name AS factory_name,
+       s.name AS status_name, s.color AS status_color
+     FROM order_ages oa
+     JOIN clients c ON c.id = oa.client_id
+     JOIN users u ON u.id = oa.rep_id
+     JOIN factories f ON f.id = oa.factory_id
+     LEFT JOIN order_statuses s ON s.id = oa.status_id
+     WHERE oa.age_days >= 15
+       AND (s.is_final IS NOT TRUE)
+       AND NOT EXISTS (
+         SELECT 1 FROM order_alert_dismissals d
+         WHERE d.order_id = oa.id AND d.milestone_days = (FLOOR(oa.age_days / 15) * 15)::int
+       )
+       ${repFilter}
+     ORDER BY oa.age_days DESC, oa.created_at ASC`,
+    params
+  )
+  res.json(rows)
+}
+
+// Dispensa o alerta de um pedido para o marco de dias informado (ex.: 15, 30, 45...).
+// Por ser específico ao marco, o alerta volta a aparecer no marco seguinte caso
+// o pedido continue parado — permitindo "excluir a notificação quando necessário"
+// sem escondê-la para sempre.
+export async function dismissOrderAlert(req: AuthRequest, res: Response) {
+  const isAdmin = req.user!.role === 'admin'
+  const milestoneDays = Number(req.body?.milestone_days)
+
+  if (!Number.isInteger(milestoneDays) || milestoneDays < 15 || milestoneDays % 15 !== 0) {
+    res.status(400).json({ error: 'milestone_days inválido' }); return
+  }
+
+  const { rows: [order] } = await query(
+    'SELECT id, rep_id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
+  )
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  if (!isAdmin && order.rep_id !== req.user!.id) {
+    res.status(403).json({ error: 'Acesso negado' }); return
+  }
+
+  await query(
+    `INSERT INTO order_alert_dismissals (order_id, milestone_days, dismissed_by)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (order_id, milestone_days) DO NOTHING`,
+    [order.id, milestoneDays, req.user!.id]
+  )
+  res.json({ ok: true })
+}

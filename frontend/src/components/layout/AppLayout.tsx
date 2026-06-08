@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, MapPin, Link2, ChevronDown, PackageCheck,
+  BarChart2, Trash2, MapPin, Link2, ChevronDown, PackageCheck, BellRing,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -15,6 +16,7 @@ interface NavItem {
   label: string
   icon: React.ReactNode
   adminOnly?: boolean
+  badge?: number
 }
 
 // Itens principais no topo
@@ -30,6 +32,7 @@ const navPrimary: NavItem[] = [
 
 // Itens no dropdown "Mais"
 const navMore: NavItem[] = [
+  { to: '/orders/alerts', label: 'Alertas',     icon: <BellRing className="h-4 w-4" /> },
   { to: '/prospecting',  label: 'Prospecção',  icon: <MapPin className="h-4 w-4" /> },
   { to: '/price-tables', label: 'Tabelas',     icon: <Tags className="h-4 w-4" />, adminOnly: true },
   { to: '/factories',    label: 'Fábricas',    icon: <Building2 className="h-4 w-4" />, adminOnly: true },
@@ -75,8 +78,20 @@ export function AppLayout() {
   const moreRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
 
+  // Alertas de pedidos parados há 15+ dias — recarrega periodicamente para o badge
+  const { data: alertsCount = 0 } = useQuery({
+    queryKey: ['order-alerts-count'],
+    queryFn: () => ordersApi.alerts().then(r => (r.data as unknown[]).length),
+    enabled: !!accessToken,
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+  })
+
   const visiblePrimary = navPrimary
-  const visibleMore = navMore.filter(item => !item.adminOnly || isAdmin)
+  const visibleMore = navMore
+    .filter(item => !item.adminOnly || isAdmin)
+    .map(item => item.to === '/orders/alerts' ? { ...item, badge: alertsCount } : item)
+  const hasAlerts = alertsCount > 0
 
   useEffect(() => { if (online) syncPendingOrders() }, [online])
 
@@ -149,10 +164,13 @@ export function AppLayout() {
         <div ref={moreRef} className="relative">
           <button
             onClick={() => setMoreOpen(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
           >
             Mais
             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+            {hasAlerts && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border border-[#1e293b]" />
+            )}
           </button>
           {moreOpen && (
             <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
@@ -169,6 +187,11 @@ export function AppLayout() {
                 >
                   <span className="text-outline">{item.icon}</span>
                   {item.label}
+                  {!!item.badge && (
+                    <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -269,6 +292,11 @@ export function AppLayout() {
                   }
                 >
                   {item.icon} {item.label}
+                  {!!item.badge && (
+                    <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </nav>
