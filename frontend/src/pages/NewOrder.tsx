@@ -333,8 +333,12 @@ export function NewOrder() {
   // (reabrir "card" de busca pronto para a próxima referência) após cada item confirmado
   const productSearchRef = useRef<HTMLInputElement | null>(null)
   const focusProductSearch = useCallback(() => {
-    // Pequeno atraso para aguardar o fechamento do modal antes de focar
-    setTimeout(() => productSearchRef.current?.focus(), 80)
+    // IMPORTANTE: no iOS/Safari (incl. PWA instalado), o teclado só aparece se o
+    // .focus() acontecer de forma SÍNCRONA dentro do gesto do usuário (clique/tecla).
+    // Qualquer setTimeout/Promise quebra essa cadeia e o campo foca "silenciosamente"
+    // sem abrir o teclado — por isso chamamos direto, sem atraso. O input do card de
+    // busca já fica montado por trás do modal (não desmonta ao abrir/fechar).
+    productSearchRef.current?.focus()
   }, [])
 
   // Mede a altura do header fixo para "grudar" o card de busca logo abaixo dele,
