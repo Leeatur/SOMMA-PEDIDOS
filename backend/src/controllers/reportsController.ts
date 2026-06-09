@@ -32,7 +32,7 @@ export async function ordersReport(req: AuthRequest, res: Response) {
   const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
   const factoryId = req.query.factory_id as string | undefined
 
-  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const params: unknown[] = [from, to]
   const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
 
   const [summaryRes, byDayRes] = await Promise.all([
@@ -44,7 +44,7 @@ export async function ordersReport(req: AuthRequest, res: Response) {
         COALESCE(SUM(o.rep_commission_value), 0)::numeric      AS rep_commission_value,
         COALESCE(SUM(o.office_commission_value), 0)::numeric   AS office_commission_value
       FROM orders o
-      WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
+      WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     `, [...params]),
     query(`
       SELECT
@@ -53,7 +53,7 @@ export async function ordersReport(req: AuthRequest, res: Response) {
         COALESCE(SUM(o.total_pieces), 0)::int                 AS total_pieces,
         COALESCE(SUM(o.total_value), 0)::numeric              AS total_value
       FROM orders o
-      WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
+      WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
       GROUP BY DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo')
       ORDER BY date
     `, [...params]),
@@ -68,7 +68,7 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
   const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
   const factoryId = req.query.factory_id as string | undefined
 
-  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const params: unknown[] = [from, to]
   const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
 
   const { rows } = await query(`
@@ -108,7 +108,7 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
     JOIN factories f ON f.id = o.factory_id
     LEFT JOIN order_statuses s ON s.id = o.status_id
     WHERE o.deleted_at IS NULL
-      AND o.created_at BETWEEN $1 AND $2 ${cond}
+      AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     ORDER BY o.created_at DESC
   `, params)
 
@@ -121,7 +121,7 @@ export async function clientsReport(req: AuthRequest, res: Response) {
   const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
   const factoryId = req.query.factory_id as string | undefined
 
-  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const params: unknown[] = [from, to]
   const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
 
   const { rows } = await query(`
@@ -136,7 +136,7 @@ export async function clientsReport(req: AuthRequest, res: Response) {
       COALESCE(SUM(o.total_value), 0)::numeric   AS total_value
     FROM orders o
     JOIN clients c ON c.id = o.client_id
-    WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
+    WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     GROUP BY c.id, c.name, c.trade_name, c.city, c.state
     ORDER BY total_value DESC
   `, params)
@@ -152,7 +152,7 @@ export async function collectionsReport(req: AuthRequest, res: Response) {
   const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
 
   // Constrói parâmetros e cláusulas em um único array sequencial
-  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const params: unknown[] = [from, to]
   let salesCond = ''  // filtros dentro do subquery de vendas
   let ptWhere   = ''  // filtro na tabela de preços
 
@@ -193,7 +193,7 @@ export async function collectionsReport(req: AuthRequest, res: Response) {
       FROM order_items oi
       JOIN orders o ON o.id = oi.order_id
         AND o.deleted_at IS NULL
-        AND o.created_at BETWEEN $1 AND $2
+        AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date
         ${salesCond}
       GROUP BY oi.product_id
     ) sales ON sales.product_id = p.id
@@ -244,7 +244,7 @@ export async function productsReport(req: AuthRequest, res: Response) {
   const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
   const factoryId = req.query.factory_id as string | undefined
 
-  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const params: unknown[] = [from, to]
   const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
 
   const { rows } = await query(`
@@ -255,7 +255,7 @@ export async function productsReport(req: AuthRequest, res: Response) {
       COALESCE(SUM(oi.subtotal), 0)::numeric           AS total_value
     FROM order_items oi
     JOIN orders o ON o.id = oi.order_id
-    WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
+    WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     GROUP BY oi.reference
     ORDER BY total_pieces DESC
     LIMIT 100
@@ -433,7 +433,7 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
   const [from, to] = dateRange(req)
   const factoryId = req.query.factory_id as string | undefined
 
-  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const params: unknown[] = [from, to]
   let cond = ''
   if (factoryId) { cond += ` AND o.factory_id = $3`; params.push(factoryId) }
 
@@ -452,7 +452,7 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
     FROM users u
     LEFT JOIN orders o ON o.rep_id = u.id
       AND o.deleted_at IS NULL
-      AND o.created_at BETWEEN $1 AND $2
+      AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date
       ${cond}
     WHERE u.role = 'representante' AND u.active = true
     GROUP BY u.id, u.name
@@ -469,7 +469,7 @@ export async function abcClientsReport(req: AuthRequest, res: Response) {
   const factoryId = req.query.factory_id as string | undefined
   const [from, to] = dateRange(req)
 
-  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const params: unknown[] = [from, to]
   const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
 
   const { rows } = await query(`
@@ -484,7 +484,7 @@ export async function abcClientsReport(req: AuthRequest, res: Response) {
       FROM clients c
       LEFT JOIN users u ON u.id = c.rep_id
       JOIN orders o ON o.client_id = c.id AND o.deleted_at IS NULL
-        AND o.created_at BETWEEN $1 AND $2 ${cond}
+        AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
       WHERE c.active = true
       GROUP BY c.id, c.name, c.trade_name, c.city, c.state, u.name
     ),
@@ -522,7 +522,7 @@ export async function periodComparisonReport(req: AuthRequest, res: Response) {
   const prevTo   = new Date(fromD.getTime() - 86400000).toISOString().split('T')[0]
 
   const makeQuery = async (f: string, t: string) => {
-    const params: unknown[] = [`${f} 00:00:00`, `${t} 23:59:59`]
+    const params: unknown[] = [f, t]
     const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
     const { rows } = await query(`
       SELECT
@@ -534,7 +534,7 @@ export async function periodComparisonReport(req: AuthRequest, res: Response) {
         COUNT(DISTINCT o.client_id)::int                       AS clientes_atendidos,
         COALESCE(AVG(o.total_value), 0)::numeric               AS ticket_medio
       FROM orders o
-      WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
+      WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     `, params)
     return rows[0]
   }
@@ -554,7 +554,7 @@ export async function regionReport(req: AuthRequest, res: Response) {
   const factoryId = req.query.factory_id as string | undefined
   const [from, to] = dateRange(req)
 
-  const params: unknown[] = [`${from} 00:00:00`, `${to} 23:59:59`]
+  const params: unknown[] = [from, to]
   const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
 
   const { rows } = await query(`
@@ -568,7 +568,7 @@ export async function regionReport(req: AuthRequest, res: Response) {
       COALESCE(SUM(o.rep_commission_value), 0)::numeric AS comissao_rep
     FROM orders o
     JOIN clients c ON c.id = o.client_id
-    WHERE o.deleted_at IS NULL AND o.created_at BETWEEN $1 AND $2 ${cond}
+    WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     GROUP BY c.state
     ORDER BY total_value DESC
   `, params)

@@ -993,8 +993,8 @@ export async function ordersSummary(req: AuthRequest, res: Response) {
 
   if (!isAdmin) { params.push(req.user!.id); where += ` AND o.rep_id = $${params.length}` }
   else if (rep_id) { params.push(rep_id); where += ` AND o.rep_id = $${params.length}` }
-  if (date_from) { params.push(`${date_from} 00:00:00`); where += ` AND o.created_at >= $${params.length}` }
-  if (date_to)   { params.push(`${date_to} 23:59:59`);   where += ` AND o.created_at <= $${params.length}` }
+  if (date_from) { params.push(date_from); where += ` AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= $${params.length}::date` }
+  if (date_to)   { params.push(date_to);   where += ` AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= $${params.length}::date` }
 
   const base = `FROM orders o
     JOIN users u     ON u.id = o.rep_id
