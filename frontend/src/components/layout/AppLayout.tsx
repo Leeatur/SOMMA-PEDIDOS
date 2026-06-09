@@ -19,7 +19,7 @@ interface NavItem {
   badge?: number
 }
 
-// Itens principais no topo
+// Itens principais no topo — todos visíveis
 const navPrimary: NavItem[] = [
   { to: '/dashboard',     label: 'Dashboard',     icon: <LayoutDashboard className="h-4 w-4" /> },
   { to: '/orders',        label: 'Pedidos',       icon: <ShoppingCart className="h-4 w-4" /> },
@@ -28,17 +28,16 @@ const navPrimary: NavItem[] = [
   { to: '/reports',       label: 'Relatórios',    icon: <BarChart2 className="h-4 w-4" /> },
   { to: '/portals',       label: 'Catálogos',     icon: <Link2 className="h-4 w-4" /> },
   { to: '/pronta-entrega',label: 'Pronta Entrega',icon: <PackageCheck className="h-4 w-4" /> },
+  { to: '/prospecting',   label: 'Prospecção',    icon: <MapPin className="h-4 w-4" /> },
 ]
 
-// Itens no dropdown "Mais"
-const navMore: NavItem[] = [
-  { to: '/prospecting',  label: 'Prospecção',  icon: <MapPin className="h-4 w-4" /> },
-  { to: '/price-tables', label: 'Tabelas',     icon: <Tags className="h-4 w-4" />, adminOnly: true },
-  { to: '/factories',    label: 'Fábricas',    icon: <Building2 className="h-4 w-4" />, adminOnly: true },
-  { to: '/statuses',     label: 'Status',      icon: <Package className="h-4 w-4" />, adminOnly: true },
-  { to: '/users',        label: 'Usuários',    icon: <UserCog className="h-4 w-4" />, adminOnly: true },
-  { to: '/orders/trash', label: 'Lixeira',     icon: <Trash2 className="h-4 w-4" />, adminOnly: true },
-  { to: '/settings',     label: 'Ajustes',     icon: <Settings className="h-4 w-4" /> },
+// Itens admin — ficam no dropdown do usuário
+const navAdmin: NavItem[] = [
+  { to: '/price-tables', label: 'Tabelas',   icon: <Tags className="h-4 w-4" />,    adminOnly: true },
+  { to: '/factories',    label: 'Fábricas',  icon: <Building2 className="h-4 w-4" />, adminOnly: true },
+  { to: '/statuses',     label: 'Status',    icon: <Package className="h-4 w-4" />,  adminOnly: true },
+  { to: '/users',        label: 'Usuários',  icon: <UserCog className="h-4 w-4" />,  adminOnly: true },
+  { to: '/orders/trash', label: 'Lixeira',   icon: <Trash2 className="h-4 w-4" />,  adminOnly: true },
 ]
 
 function useOnlineStatus() {
@@ -72,9 +71,7 @@ export function AppLayout() {
   const online = useOnlineStatus()
   const isAdmin = user?.role === 'admin'
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
-  const moreRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
 
   // Alertas de pedidos parados há 15+ dias — recarrega periodicamente para o badge
@@ -87,14 +84,13 @@ export function AppLayout() {
   })
 
   const visiblePrimary = navPrimary
-  const visibleMore = navMore.filter(item => !item.adminOnly || isAdmin)
+  const visibleAdmin = navAdmin.filter(item => !item.adminOnly || isAdmin)
 
   useEffect(() => { if (online) syncPendingOrders() }, [online])
 
   // Fecha dropdowns ao clicar fora
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false)
       if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false)
     }
     document.addEventListener('mousedown', handler)
@@ -141,7 +137,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="hidden lg:flex sticky top-0 z-40 items-center gap-1 px-4 shadow-lg flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%)', height: 52 }}
+        style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #1e40af 100%)', height: 52 }}
       >
         {/* Logo */}
         <NavLink to="/dashboard" className="flex-shrink-0 mr-3">
@@ -160,41 +156,6 @@ export function AppLayout() {
             )}
           </NavLink>
         ))}
-
-        {/* Dropdown "Mais" */}
-        <div ref={moreRef} className="relative">
-          <button
-            onClick={() => setMoreOpen(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
-          >
-            Mais
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-          </button>
-          {moreOpen && (
-            <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
-              {visibleMore.map(item => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMoreOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium transition-colors ${
-                      isActive ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-container-low'
-                    }`
-                  }
-                >
-                  <span className="text-outline">{item.icon}</span>
-                  {item.label}
-                  {!!item.badge && (
-                    <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
-                </NavLink>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Spacer */}
         <div className="flex-1" />
@@ -250,6 +211,21 @@ export function AppLayout() {
                 className="flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors">
                 <Settings className="h-4 w-4 text-outline" /> Ajustes
               </NavLink>
+              {isAdmin && visibleAdmin.length > 0 && (
+                <>
+                  <div className="mx-4 my-1 border-t border-outline-variant/20" />
+                  <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-outline">Administração</p>
+                  {visibleAdmin.map(item => (
+                    <NavLink key={item.to} to={item.to} onClick={() => setUserOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center gap-2 px-4 py-2 text-[13px] transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-container-low'}`
+                      }>
+                      <span className="text-outline">{item.icon}</span> {item.label}
+                    </NavLink>
+                  ))}
+                </>
+              )}
+              <div className="mx-4 my-1 border-t border-outline-variant/20" />
               <button onClick={handleLogout}
                 className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors">
                 <LogOut className="h-4 w-4" /> Sair
@@ -264,7 +240,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="lg:hidden sticky top-0 z-40 flex items-center px-4 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1e293b, #334155)', height: 52 }}
+        style={{ background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)', height: 52 }}
       >
         <button onClick={() => setMobileOpen(true)} className="p-1.5 text-white/70 hover:text-white mr-2">
           <Menu className="h-5 w-5" />
@@ -284,7 +260,7 @@ export function AppLayout() {
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <div className="relative w-72 flex flex-col"
-            style={{ background: 'linear-gradient(180deg, #1e293b, #0f172a)' }}>
+            style={{ background: 'linear-gradient(180deg, #1e3a8a, #1e40af)' }}>
             <div className="flex items-center justify-between px-5 py-4">
               <img src="/logo-somma-branco.svg" alt="Somma" className="h-10 w-auto" />
               <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white">
@@ -292,7 +268,7 @@ export function AppLayout() {
               </button>
             </div>
             <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
-              {[...visiblePrimary, ...visibleMore].map(item => (
+              {[...visiblePrimary, ...(isAdmin ? visibleAdmin : [])].map(item => (
                 <NavLink
                   key={item.to}
                   to={item.to}
