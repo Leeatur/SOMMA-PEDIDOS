@@ -797,7 +797,7 @@ const PRODUCT_COL_DEFS: ColumnDef[] = [
   { id: 'category',    label: 'Categoria',  defaultVisible: false },
   { id: 'factory',     label: 'Fábrica' },
   { id: 'table',       label: 'Tabela' },
-  { id: 'observation', label: 'Observação', defaultVisible: false },
+  { id: 'observation', label: 'Observação' },
 ]
 
 function ProductRow({
@@ -1360,6 +1360,11 @@ export function Products() {
                       </div>
                       {p.factory_name && (
                         <p className="text-[12px] text-outline mt-1 truncate">{p.factory_name}</p>
+                      )}
+                      {p.observation && (
+                        <p className="text-[11px] text-orange-500 mt-1 truncate" title={p.observation}>
+                          {p.observation}
+                        </p>
                       )}
                       {isAdmin && (
                         <button
