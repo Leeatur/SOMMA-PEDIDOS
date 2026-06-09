@@ -71,7 +71,9 @@ export function AppLayout() {
   const online = useOnlineStatus()
   const isAdmin = user?.role === 'admin'
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
 
   // Alertas de pedidos parados há 15+ dias — recarrega periodicamente para o badge
@@ -91,6 +93,7 @@ export function AppLayout() {
   // Fecha dropdowns ao clicar fora
   useEffect(() => {
     const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false)
       if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false)
     }
     document.addEventListener('mousedown', handler)
@@ -157,6 +160,38 @@ export function AppLayout() {
           </NavLink>
         ))}
 
+        {/* Dropdown "Mais" — admin only */}
+        {isAdmin && (
+          <div ref={moreRef} className="relative">
+            <button
+              onClick={() => setMoreOpen(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
+            >
+              Mais
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {moreOpen && (
+              <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
+                {visibleAdmin.map(item => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMoreOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium transition-colors ${
+                        isActive ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-container-low'
+                      }`
+                    }
+                  >
+                    <span className="text-outline">{item.icon}</span>
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Spacer */}
         <div className="flex-1" />
 
@@ -211,21 +246,6 @@ export function AppLayout() {
                 className="flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors">
                 <Settings className="h-4 w-4 text-outline" /> Ajustes
               </NavLink>
-              {isAdmin && visibleAdmin.length > 0 && (
-                <>
-                  <div className="mx-4 my-1 border-t border-outline-variant/20" />
-                  <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-outline">Administração</p>
-                  {visibleAdmin.map(item => (
-                    <NavLink key={item.to} to={item.to} onClick={() => setUserOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center gap-2 px-4 py-2 text-[13px] transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-container-low'}`
-                      }>
-                      <span className="text-outline">{item.icon}</span> {item.label}
-                    </NavLink>
-                  ))}
-                </>
-              )}
-              <div className="mx-4 my-1 border-t border-outline-variant/20" />
               <button onClick={handleLogout}
                 className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors">
                 <LogOut className="h-4 w-4" /> Sair
