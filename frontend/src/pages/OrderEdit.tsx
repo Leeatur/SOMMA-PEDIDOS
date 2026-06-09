@@ -37,6 +37,7 @@ interface OrderItemRaw {
   type: 'regular' | 'pack'
   image_url: string | null
   size_range: string | null
+  blocked_sizes: string[] | null
   boxes_count: number
   unit_price: number
   original_unit_price: number | null   // preço original da tabela (antes de ajuste manual)
@@ -1202,7 +1203,8 @@ function OrderEditQuickModal({
   const sort = (s: string[]) => [...s].sort((a,b)=>{const ai=SIZE_ORD.indexOf(a.trim().toUpperCase()),bi=SIZE_ORD.indexOf(b.trim().toUpperCase()); if(ai===-1&&bi===-1)return a.localeCompare(b); if(ai===-1)return 1; if(bi===-1)return -1; return ai-bi})
   const parseRange = (r: string) => { const m=r.match(/^(\d+)-(\d+)$/); if(m){const s=parseInt(m[1]),e=parseInt(m[2]),arr=[]; for(let i=s;i<=e;i+=2)arr.push(String(i)); return arr} return r.includes(',')?r.split(',').map(x=>x.trim()):[r] }
 
-  const allSizes = isPack ? [] : (() => { if(grades.length){const s=new Set<string>(); grades.forEach(g=>Object.keys(g.sizes).forEach(k=>s.add(k.trim()))); return sort([...s])} return sort(parseRange(product.size_range||'')) })()
+  const blockedNew = new Set((product.blocked_sizes || []).map(s => s.trim().toUpperCase()))
+  const allSizes = (isPack ? [] : (() => { if(grades.length){const s=new Set<string>(); grades.forEach(g=>Object.keys(g.sizes).forEach(k=>s.add(k.trim()))); return sort([...s])} return sort(parseRange(product.size_range||'')) })()).filter(s => !blockedNew.has(s.trim().toUpperCase()))
 
   const [sizes, setSizes] = useState<Record<string,number>>(() => Object.fromEntries(allSizes.map(s=>[s,0])))
   const [boxes, setBoxes] = useState(1)
