@@ -306,27 +306,65 @@ function SizeDisplay({ sizes }: { sizes: Record<string, number> }) {
   )
 }
 
+// ─── Rascunho automático do pedido (auto-save / auto-recover) ────────────────
+// Salva o pedido em andamento no aparelho a cada alteração e recupera
+// automaticamente se a página recarregar (ex.: pull-to-refresh no celular),
+// evitando que o vendedor perca o pedido que ainda não foi finalizado.
+const ORDER_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000 // descarta rascunhos com +7 dias
+
+function orderDraftKey(userId?: string) {
+  return `somma_neworder_draft_${userId || 'anon'}`
+}
+
+function loadOrderDraft(userId?: string): Record<string, any> | null {
+  try {
+    const raw = localStorage.getItem(orderDraftKey(userId))
+    if (!raw) return null
+    const draft = JSON.parse(raw)
+    if (!draft || typeof draft !== 'object') return null
+    if (draft.savedAt && Date.now() - draft.savedAt > ORDER_DRAFT_TTL_MS) {
+      localStorage.removeItem(orderDraftKey(userId))
+      return null
+    }
+    return draft
+  } catch {
+    return null
+  }
+}
+
+function saveOrderDraft(userId: string | undefined, draft: Record<string, unknown>) {
+  try {
+    localStorage.setItem(orderDraftKey(userId), JSON.stringify({ ...draft, savedAt: Date.now() }))
+  } catch { /* ignora se o armazenamento estiver cheio */ }
+}
+
+function clearOrderDraft(userId?: string) {
+  try { localStorage.removeItem(orderDraftKey(userId)) } catch { /* noop */ }
+}
+
 // ─── Página principal ────────────────────────────────────────────────────────
 export function NewOrder() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
-  const [step, setStep] = useState(0)
+  // Recupera o rascunho salvo (se houver) uma única vez, no primeiro render
+  const d = useRef(loadOrderDraft(user?.id)).current
+  const [step, setStep] = useState<number>(() => d?.step ?? 0)
 
   // Step 1: Client
   const [clientSearch, setClientSearch] = useState('')
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [selectedClient, setSelectedClient] = useState<Client | null>(() => d?.selectedClient ?? null)
   const [showNewClient, setShowNewClient] = useState(false)
 
   // Step 2: Price table
-  const [selectedFactory, setSelectedFactory] = useState('')
-  const [selectedTable, setSelectedTable] = useState<PriceTable | null>(null)
+  const [selectedFactory, setSelectedFactory] = useState<string>(() => d?.selectedFactory ?? '')
+  const [selectedTable, setSelectedTable] = useState<PriceTable | null>(() => d?.selectedTable ?? null)
 
   // Step 3: Products
   const [productSearch, setProductSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-  const [cart, setCart] = useState<CartItem[]>([])
+  const [cart, setCart] = useState<CartItem[]>(() => d?.cart ?? [])
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
   const [quickAddProduct, setQuickAddProduct] = useState<Product | null>(null)
   // Referência ao campo de busca: usada para devolver o foco automaticamente
@@ -356,15 +394,33 @@ export function NewOrder() {
   }, [])
 
   // Step 4: Review
-  const [discountPct, setDiscountPct] = useState<string>('0')
-  const [customDiscount, setCustomDiscount] = useState(false)
-  const [cashDiscountPct, setCashDiscountPct] = useState<string>('0') // desconto à vista
-  const [notes, setNotes] = useState('')
-  const [paymentTerms, setPaymentTerms] = useState('')
-  const [freightType, setFreightType] = useState('CIF')
-  const [deliveryDate, setDeliveryDate] = useState('')
-  const [buyerName, setBuyerName] = useState('')
-  const [industryOrderNumber, setIndustryOrderNumber] = useState('')
+  const [discountPct, setDiscountPct] = useState<string>(() => d?.discountPct ?? '0')
+  const [customDiscount, setCustomDiscount] = useState<boolean>(() => d?.customDiscount ?? false)
+  const [cashDiscountPct, setCashDiscountPct] = useState<string>(() => d?.cashDiscountPct ?? '0') // desconto à vista
+  const [notes, setNotes] = useState<string>(() => d?.notes ?? '')
+  const [paymentTerms, setPaymentTerms] = useState<string>(() => d?.paymentTerms ?? '')
+  const [freightType, setFreightType] = useState<string>(() => d?.freightType ?? 'CIF')
+  const [deliveryDate, setDeliveryDate] = useState<string>(() => d?.deliveryDate ?? '')
+  const [buyerName, setBuyerName] = useState<string>(() => d?.buyerName ?? '')
+  const [industryOrderNumber, setIndustryOrderNumber] = useState<string>(() => d?.industryOrderNumber ?? '')
+
+  // Auto-save: grava o rascunho do pedido a cada alteração (debounce 400ms).
+  // Só salva quando há conteúdo de verdade; senão limpa o rascunho.
+  useEffect(() => {
+    const hasContent = !!(selectedClient || cart.length || selectedTable ||
+      notes || paymentTerms || buyerName || deliveryDate || industryOrderNumber)
+    if (!hasContent) { clearOrderDraft(user?.id); return }
+    const t = setTimeout(() => {
+      saveOrderDraft(user?.id, {
+        step, selectedClient, selectedFactory, selectedTable, cart,
+        discountPct, customDiscount, cashDiscountPct, notes, paymentTerms,
+        freightType, deliveryDate, buyerName, industryOrderNumber,
+      })
+    }, 400)
+    return () => clearTimeout(t)
+  }, [user?.id, step, selectedClient, selectedFactory, selectedTable, cart,
+      discountPct, customDiscount, cashDiscountPct, notes, paymentTerms,
+      freightType, deliveryDate, buyerName, industryOrderNumber])
 
   const online = navigator.onLine
 
@@ -558,6 +614,8 @@ export function NewOrder() {
       }
     },
     onSuccess: () => {
+      // Pedido finalizado: descarta o rascunho salvo
+      clearOrderDraft(user?.id)
       // Invalida e força refetch imediato (ignora staleTime)
       qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' })
       qc.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' })
