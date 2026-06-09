@@ -1,42 +1,52 @@
-name: Backup diário PostgreSQL
+name: 🗄️ Backup Diário PostgreSQL
 
 on:
   schedule:
     - cron: '0 4 * * *'   # todo dia às 04:00 UTC (01:00 Brasília)
-  workflow_dispatch:        # permite rodar manualmente
+  workflow_dispatch:
+    inputs:
+      motivo:
+        description: 'Motivo do backup manual (opcional)'
+        required: false
+        default: 'Backup manual solicitado'
 
 jobs:
   backup:
+    name: Dump PostgreSQL → GitHub Artifacts
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Instalar PostgreSQL client
+      - name: ⚙️ Instalar PostgreSQL client
         run: sudo apt-get install -y postgresql-client
 
-      - name: Criar pasta de backups
-        run: mkdir -p backups
-
-      - name: Dump do banco
+      - name: 🗄️ Dump do banco
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          FILENAME="backups/backup_$(date +'%Y-%m-%d_%H-%M').sql.gz"
-          pg_dump "$DATABASE_URL" | gzip > "$FILENAME"
-          echo "Backup salvo: $FILENAME"
+          mkdir -p backups
+          STAMP=$(TZ='America/Sao_Paulo' date '+%Y-%m-%d_%H-%M')
+          FILE="backups/backup_${STAMP}.sql.gz"
+          echo "🕐 Iniciando backup: $(TZ='America/Sao_Paulo' date '+%d/%m/%Y %H:%M:%S') (Brasília)"
+          pg_dump "$DATABASE_URL" | gzip > "$FILE"
+          echo "STAMP=$STAMP" >> $GITHUB_ENV
+          ls -lh "$FILE"
+          echo "✅ Backup gerado"
 
-      - name: Remover backups com mais de 30 dias
-        run: |
-          find backups/ -name "*.sql.gz" -mtime +30 -delete
-          echo "Limpeza concluída"
+      - name: 📤 Upload do backup como artifact (90 dias)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-postgres-${{ env.STAMP }}
+          path: backups/
+          retention-days: 90
+          if-no-files-found: error
 
-      - name: Commit e push do backup
+      - name: 📊 Resumo
+        if: always()
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f backups/
-          git diff --staged --quiet || git commit -m "backup: $(date +'%Y-%m-%d %H:%M') UTC"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "## 🗄️ Backup Diário PostgreSQL — SOMMA-PEDIDOS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Data/Hora (Brasília)** | $(TZ='America/Sao_Paulo' date '+%d/%m/%Y %H:%M:%S') |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Trigger** | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Retenção** | 90 dias (GitHub Artifacts) |" >> $GITHUB_STEP_SUMMARY
