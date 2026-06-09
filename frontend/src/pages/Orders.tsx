@@ -284,6 +284,8 @@ export function Orders() {
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
       }).then((r) => r.data),
+    // Tempo real: recarrega a lista a cada 20s (só com a aba em foco)
+    refetchInterval: 20000,
   })
 
   const { data: summary, isLoading: summaryLoading } = useQuery<OrdersSummary>({
@@ -294,6 +296,7 @@ export function Orders() {
         date_to: dateTo || undefined,
       }).then((r) => r.data),
     enabled: showSummary,
+    refetchInterval: 20000,
   })
 
   const colDefs = ALL_COL_DEFS.filter(c => c.id !== 'rep' || isAdmin)
