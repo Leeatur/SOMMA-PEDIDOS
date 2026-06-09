@@ -1020,7 +1020,7 @@ function StatCard({
         )}
       </div>
       <p className="text-[12px] font-bold uppercase text-outline tracking-wide mb-1.5">{label}</p>
-      <p className={`font-display font-bold text-on-surface leading-none ${large ? 'text-[38px]' : 'text-[28px]'}`}>
+      <p className={`font-display font-bold text-on-surface leading-none truncate ${large ? 'text-[22px] lg:text-[38px]' : 'text-[17px] lg:text-[28px]'}`}>
         {value}
       </p>
     </div>
