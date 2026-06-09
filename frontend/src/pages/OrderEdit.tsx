@@ -194,6 +194,41 @@ function calcSubtotal(item: EditableItem | NewItem): number {
 
 // ── componente principal ───────────────────────────────────────────────────────
 
+// ─── Rascunho automático da edição de pedido (auto-save / auto-recover) ──────
+// Mesmo princípio do Novo Pedido: salva as edições não salvas no aparelho e
+// recupera ao recarregar a página. Chaveado por usuário + id do pedido.
+const ORDER_EDIT_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+function orderEditDraftKey(userId?: string, orderId?: string) {
+  return `somma_orderedit_draft_${userId || 'anon'}_${orderId || ''}`
+}
+
+function loadOrderEditDraft(userId?: string, orderId?: string): Record<string, any> | null {
+  try {
+    const raw = localStorage.getItem(orderEditDraftKey(userId, orderId))
+    if (!raw) return null
+    const draft = JSON.parse(raw)
+    if (!draft || typeof draft !== 'object') return null
+    if (draft.savedAt && Date.now() - draft.savedAt > ORDER_EDIT_DRAFT_TTL_MS) {
+      localStorage.removeItem(orderEditDraftKey(userId, orderId))
+      return null
+    }
+    return draft
+  } catch {
+    return null
+  }
+}
+
+function saveOrderEditDraft(userId: string | undefined, orderId: string | undefined, draft: Record<string, unknown>) {
+  try {
+    localStorage.setItem(orderEditDraftKey(userId, orderId), JSON.stringify({ ...draft, savedAt: Date.now() }))
+  } catch { /* ignora se o armazenamento estiver cheio */ }
+}
+
+function clearOrderEditDraft(userId?: string, orderId?: string) {
+  try { localStorage.removeItem(orderEditDraftKey(userId, orderId)) } catch { /* noop */ }
+}
+
 export default function OrderEdit() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -297,10 +332,33 @@ export default function OrderEdit() {
   }, [order?.price_table_id])
 
   // ── inicializa form quando order carrega ─────────────────────────────────────
+  // Controle do rascunho automático: 'hydrated' vira true após a 1ª carga;
+  // 'baseline' guarda o estado salvo p/ só persistir rascunho em edição real.
+  const hydratedRef = useRef(false)
+  const baselineRef = useRef<string>('')
 
   useEffect(() => {
     if (!order) return
-    setForm({
+    // Recupera rascunho de edição não salvo para ESTE pedido (se houver)
+    const draft = loadOrderEditDraft(user?.id, id)
+    if (draft) {
+      setForm(draft.form)
+      setPolicyDiscountPct(draft.policyDiscountPct ?? 0)
+      setManualCommission(draft.manualCommission ?? null)
+      setItems(draft.items ?? [])
+      setNewItems(draft.newItems ?? [])
+      baselineRef.current = JSON.stringify({
+        form: draft.form,
+        policyDiscountPct: draft.policyDiscountPct ?? 0,
+        manualCommission: draft.manualCommission ?? null,
+        items: draft.items ?? [],
+        newItems: draft.newItems ?? [],
+      })
+      hydratedRef.current = true
+      return
+    }
+    // Sem rascunho: popula a partir do pedido salvo no banco
+    const baseForm = {
       client_id: order.client_id || '',
       client_display: order.client_name || order.client_trade_name || '',
       buyer_name: order.buyer_name || '',
@@ -315,25 +373,41 @@ export default function OrderEdit() {
       // Política de Prazo começa em 0 — admin seleciona no grid se quiser aplicar
       discount_pct: String(order.discount_pct ?? '0'),
       notes: order.notes || '',
-    })
+    }
     // Política de Prazo começa em 0 (separado do Desconto à Vista)
-    // O usuário seleciona explicitamente clicando no grid se quiser aplicar desconto de prazo
-    setPolicyDiscountPct(0)
-    // Inicializa comissão manual com os valores atuais do pedido
-    setManualCommission({
+    // Comissão manual inicializa com os valores atuais do pedido
+    const baseComm = {
       rep:       String(Number(order.rep_commission_value    || 0).toFixed(2)).replace('.', ','),
       repPct:    String(Number(order.rep_commission_pct      || 0).toFixed(2)).replace('.', ','),
       office:    String(Number(order.office_commission_value || 0).toFixed(2)).replace('.', ','),
       officePct: String(Number(order.office_commission_pct   || 0).toFixed(2)).replace('.', ','),
-    })
-    setItems((order.items || []).map((it: OrderItemRaw) => ({
+    }
+    const baseItems = (order.items || []).map((it: OrderItemRaw) => ({
       ...it,
       draftSizes: initSizes(it),
       draftBoxes: it.boxes_count || 1,
       draftGrade: initDraftGrade(it),
       removed: false,
-    })))
-  }, [order])
+    }))
+    setForm(baseForm)
+    setPolicyDiscountPct(0)
+    setManualCommission(baseComm)
+    setItems(baseItems)
+    baselineRef.current = JSON.stringify({ form: baseForm, policyDiscountPct: 0, manualCommission: baseComm, items: baseItems, newItems: [] })
+    hydratedRef.current = true
+  }, [order, id, user?.id])
+
+  // Auto-save: grava o rascunho das edições não salvas (debounce 400ms),
+  // apenas quando o estado diverge do que está salvo no banco (baseline).
+  useEffect(() => {
+    if (!order || !hydratedRef.current) return
+    const snapshot = JSON.stringify({ form, policyDiscountPct, manualCommission, items, newItems })
+    if (snapshot === baselineRef.current) return
+    const t = setTimeout(() => {
+      saveOrderEditDraft(user?.id, id, { form, policyDiscountPct, manualCommission, items, newItems })
+    }, 400)
+    return () => clearTimeout(t)
+  }, [order, id, user?.id, form, policyDiscountPct, manualCommission, items, newItems])
 
   // ── handlers de itens ────────────────────────────────────────────────────────
 
@@ -551,6 +625,8 @@ export default function OrderEdit() {
         await ordersApi.addItems(id!, toAdd)
       }
 
+      // Edições salvas: descarta o rascunho deste pedido
+      clearOrderEditDraft(user?.id, id)
       qc.invalidateQueries({ queryKey: ['order', id], refetchType: 'all' })
       qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' })
       navigate(destination === 'list' ? '/orders' : `/orders/${id}`)
