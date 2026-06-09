@@ -239,20 +239,6 @@ export function AppLayout() {
                 className="flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors">
                 <Settings className="h-4 w-4 text-outline" /> Ajustes
               </NavLink>
-              {isAdmin && visibleAdmin.length > 0 && (
-                <>
-                  <div className="mx-4 my-1 border-t border-outline-variant/20" />
-                  <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-outline">Administração</p>
-                  {visibleAdmin.map(item => (
-                    <NavLink key={item.to} to={item.to} onClick={() => setUserOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center gap-2 px-4 py-2 text-[13px] transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-container-low'}`
-                      }>
-                      <span className="text-outline">{item.icon}</span> {item.label}
-                    </NavLink>
-                  ))}
-                </>
-              )}
               <div className="mx-4 my-1 border-t border-outline-variant/20" />
               <button onClick={handleLogout}
                 className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors">
