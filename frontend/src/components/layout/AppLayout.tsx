@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, MapPin, Link2, ChevronDown, PackageCheck, BellRing,
+  BarChart2, Trash2, MapPin, Link2, ChevronDown, PackageCheck,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
@@ -75,15 +74,6 @@ export function AppLayout() {
   const [userOpen, setUserOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
-
-  // Alertas de pedidos parados há 15+ dias — recarrega periodicamente para o badge
-  const { data: alertsCount = 0 } = useQuery({
-    queryKey: ['order-alerts-count'],
-    queryFn: () => ordersApi.alerts().then(r => (r.data as unknown[]).length),
-    enabled: !!accessToken,
-    refetchInterval: 5 * 60 * 1000,
-    staleTime: 60 * 1000,
-  })
 
   const visiblePrimary = navPrimary
   const visibleAdmin = navAdmin.filter(item => !item.adminOnly || isAdmin)
@@ -187,20 +177,6 @@ export function AppLayout() {
 
         {/* Spacer */}
         <div className="flex-1" />
-
-        {/* Sino de alertas */}
-        <button
-          onClick={() => navigate('/orders/alerts')}
-          title="Alertas de pedidos em atraso"
-          className="relative p-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors mr-1"
-        >
-          <BellRing className="h-5 w-5" />
-          {alertsCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
-              {alertsCount > 99 ? '99+' : alertsCount}
-            </span>
-          )}
-        </button>
 
         {/* Novo pedido */}
         <button
