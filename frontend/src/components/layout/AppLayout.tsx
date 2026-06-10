@@ -28,7 +28,6 @@ const navPrimary: NavItem[] = [
   { to: '/reports',       label: 'Relatórios',    icon: <BarChart2 className="h-4 w-4" /> },
   { to: '/portals',       label: 'Catálogos',     icon: <Link2 className="h-4 w-4" /> },
   { to: '/pronta-entrega',label: 'Pronta Entrega',icon: <PackageCheck className="h-4 w-4" /> },
-  { to: '/prospecting',   label: 'Prospecção',    icon: <MapPin className="h-4 w-4" /> },
 ]
 
 // Itens admin — ficam no dropdown do usuário
