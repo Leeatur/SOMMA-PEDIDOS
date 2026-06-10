@@ -36,7 +36,6 @@ const navAdmin: NavItem[] = [
   { to: '/price-tables',        label: 'Tabelas',        icon: <Tags className="h-4 w-4" />,       adminOnly: true },
   { to: '/factories',           label: 'Fábricas',       icon: <Building2 className="h-4 w-4" />,  adminOnly: true },
   { to: '/statuses',            label: 'Status',         icon: <Package className="h-4 w-4" />,    adminOnly: true },
-  { to: '/payment-conditions',  label: 'Cond. Pagam.',   icon: <CreditCard className="h-4 w-4" />, adminOnly: true },
   { to: '/users',               label: 'Usuários',       icon: <UserCog className="h-4 w-4" />,    adminOnly: true },
   { to: '/orders/trash',        label: 'Lixeira',        icon: <Trash2 className="h-4 w-4" />,     adminOnly: true },
 ]
@@ -160,6 +159,13 @@ export function AppLayout() {
             )}
           </NavLink>
         ))}
+
+        {/* Cond. Pagamento — link direto, admin only */}
+        {isAdmin && (
+          <NavLink to="/payment-conditions" className={navLinkCls}>
+            <CreditCard className="h-4 w-4" /> Cond. Pagam.
+          </NavLink>
+        )}
 
         {/* Dropdown "Mais" — admin only */}
         {isAdmin && (
