@@ -434,11 +434,6 @@ export async function updateProduct(req: AuthRequest, res: Response) {
 
     res.json({ ...rows[0], synced_count: synced.rows.length })
   } catch (err) {
-    const pgErr = err as { code?: string }
-    if (pgErr.code === '23505') {
-      res.status(409).json({ error: `Já existe um produto com a referência "${reference}" nesta tabela de preços. Escolha outra referência ou edite o produto existente.` })
-      return
-    }
     console.error('Erro ao atualizar produto:', err)
     res.status(500).json({ error: 'Erro ao salvar produto' })
   }

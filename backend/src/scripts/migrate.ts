@@ -72,8 +72,7 @@ CREATE TABLE IF NOT EXISTS products (
   image_url VARCHAR(500),
   active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(price_table_id, reference)
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Composição da Grade Fechada por Produto
@@ -299,6 +298,10 @@ CREATE INDEX IF NOT EXISTS idx_orders_factory ON orders(factory_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_clients_rep ON clients(rep_id);
 CREATE INDEX IF NOT EXISTS idx_discount_rules_table ON discount_commission_rules(price_table_id);
+
+-- Remove restrição UNIQUE(price_table_id, reference) para permitir que a mesma referência
+-- exista em múltiplas tabelas de preço e quantas vezes for necessário dentro da mesma tabela
+ALTER TABLE products DROP CONSTRAINT IF EXISTS products_price_table_id_reference_key;
 `
 
 async function migrate() {

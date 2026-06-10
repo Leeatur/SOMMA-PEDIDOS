@@ -62,7 +62,20 @@ process.on('unhandledRejection', (reason) => {
   console.error('unhandledRejection:', reason)
 })
 
-app.listen(PORT, () => {
+// Migration automática: remove restrição UNIQUE(price_table_id, reference) para permitir
+// que a mesma referência exista em múltiplas tabelas de preço e quantas vezes for necessário.
+async function runStartupMigrations() {
+  try {
+    const { query } = await import('./config/database')
+    await query('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_price_table_id_reference_key')
+    console.log('✅ Migration: constraint products_price_table_id_reference_key removida (ou já não existia)')
+  } catch (err) {
+    console.warn('⚠️  Migration startup falhou (não crítico):', err)
+  }
+}
+
+app.listen(PORT, async () => {
+  await runStartupMigrations()
   console.log(`🚀 Somma Pedidos rodando em http://localhost:${PORT}`)
   if (isProd) console.log('📦 Servindo frontend buildado')
 })
