@@ -846,11 +846,11 @@ export function Reports() {
         <aside className={`reports-sidebar no-print hidden lg:flex flex-col flex-shrink-0 border-r border-outline-variant bg-white sticky top-[52px] h-[calc(100vh-100px)] transition-all duration-200 ${sidebarCollapsed ? 'w-10' : 'w-56'}`}>
 
           {/* Botão recolher — fixo no topo, fora do scroll */}
-          <div className={`flex-shrink-0 flex ${sidebarCollapsed ? 'justify-center' : 'justify-end'} p-2 border-b border-outline-variant/30`}>
+          <div className={`flex-shrink-0 flex ${sidebarCollapsed ? 'justify-center' : 'justify-end'} p-2 border-b border-gray-200`}>
             <button
               onClick={() => setSidebarCollapsed(v => !v)}
               title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
-              className="flex items-center justify-center w-7 h-7 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors border border-outline-variant/40"
+              className="flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors border border-gray-300"
             >
               {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </button>
