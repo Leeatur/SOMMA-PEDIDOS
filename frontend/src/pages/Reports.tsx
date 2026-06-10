@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BarChart2, ChevronDown, ChevronRight, Printer, Download, TrendingUp, Users, Package, Award } from 'lucide-react'
+import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -533,6 +533,7 @@ export function Reports() {
   const isAdmin = user?.role === 'admin'
 
   const [tab, setTab] = useState<Tab>('orders')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [dateFrom, setDateFrom] = useState(daysAgoStr(29))
   const [dateTo, setDateTo] = useState(todayStr())
   const [factoryId, setFactoryId] = useState('')
@@ -842,8 +843,19 @@ export function Reports() {
       <div className="flex">
 
         {/* ── Sidebar lateral (desktop only) ── */}
-        <aside className="reports-sidebar no-print hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-outline-variant bg-white sticky top-[52px] h-[calc(100vh-100px)] overflow-y-auto py-3">
-          {GROUPS.map(group => {
+        <aside className={`reports-sidebar no-print hidden lg:flex flex-col flex-shrink-0 border-r border-outline-variant bg-white sticky top-[52px] h-[calc(100vh-100px)] overflow-y-auto transition-all duration-200 ${sidebarCollapsed ? 'w-10' : 'w-56'}`}>
+          {/* Botão recolher/expandir */}
+          <div className={`flex ${sidebarCollapsed ? 'justify-center' : 'justify-end'} px-2 pt-2 pb-1`}>
+            <button
+              onClick={() => setSidebarCollapsed(v => !v)}
+              title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
+              className="p-1 rounded hover:bg-surface-container-low text-outline/60 hover:text-on-surface transition-colors"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
+          </div>
+
+          {!sidebarCollapsed && GROUPS.map(group => {
             const items = VISIBLE_META.filter(r => r.group === group.id)
             if (!items.length) return null
             return (
@@ -864,6 +876,23 @@ export function Reports() {
               </div>
             )
           })}
+
+          {sidebarCollapsed && (
+            <div className="flex flex-col items-center gap-1 pt-1">
+              {VISIBLE_META.map(r => (
+                <button
+                  key={r.id}
+                  onClick={() => { setTab(r.id as Tab); setSidebarCollapsed(false) }}
+                  title={r.title}
+                  className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+                    tab === r.id ? 'bg-primary/10 text-primary' : 'text-outline/60 hover:bg-surface-container-low hover:text-on-surface'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold">{r.title.slice(0, 2)}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </aside>
 
         {/* ── Área de conteúdo ── */}
