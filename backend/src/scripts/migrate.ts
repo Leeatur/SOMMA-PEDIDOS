@@ -304,9 +304,11 @@ CREATE TABLE IF NOT EXISTS payment_conditions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(200) NOT NULL,
   sort_order INTEGER DEFAULT 0,
+  admin_only BOOLEAN DEFAULT false,
   active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE payment_conditions ADD COLUMN IF NOT EXISTS admin_only BOOLEAN DEFAULT false;
 
 -- Remove restrição UNIQUE(price_table_id, reference) para permitir que a mesma referência
 -- exista em múltiplas tabelas de preço e quantas vezes for necessário dentro da mesma tabela

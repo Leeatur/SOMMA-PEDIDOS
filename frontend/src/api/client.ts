@@ -410,7 +410,7 @@ export const publicPortalApi = {
 export const paymentConditionsApi = {
   list: () => apiClient.get('/payment-conditions'),
   create: (data: { name: string; sort_order?: number }) => apiClient.post('/payment-conditions', data),
-  update: (id: string, data: { name: string; sort_order?: number; active?: boolean }) => apiClient.put(`/payment-conditions/${id}`, data),
+  update: (id: string, data: { name: string; sort_order?: number; active?: boolean; admin_only?: boolean }) => apiClient.put(`/payment-conditions/${id}`, data),
   delete: (id: string) => apiClient.delete(`/payment-conditions/${id}`),
   reorder: (order: { id: string; sort_order: number }[]) => apiClient.post('/payment-conditions/reorder', { order }),
 }

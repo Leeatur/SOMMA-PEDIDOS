@@ -3,8 +3,12 @@ import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 
 export async function listConditions(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  // Reps só veem condições não marcadas como admin_only
   const { rows } = await query(
-    'SELECT * FROM payment_conditions WHERE active=true ORDER BY sort_order, name'
+    isAdmin
+      ? 'SELECT * FROM payment_conditions WHERE active=true ORDER BY sort_order, name'
+      : 'SELECT * FROM payment_conditions WHERE active=true AND admin_only=false ORDER BY sort_order, name'
   )
   res.json(rows)
 }
@@ -20,11 +24,11 @@ export async function createCondition(req: AuthRequest, res: Response) {
 }
 
 export async function updateCondition(req: AuthRequest, res: Response) {
-  const { name, sort_order, active } = req.body
+  const { name, sort_order, active, admin_only } = req.body
   if (!name?.trim()) { res.status(400).json({ error: 'Nome é obrigatório' }); return }
   const { rows } = await query(
-    'UPDATE payment_conditions SET name=$1, sort_order=$2, active=$3 WHERE id=$4 RETURNING *',
-    [name.trim(), sort_order ?? 0, active ?? true, req.params.id]
+    'UPDATE payment_conditions SET name=$1, sort_order=$2, active=$3, admin_only=$4 WHERE id=$5 RETURNING *',
+    [name.trim(), sort_order ?? 0, active ?? true, admin_only ?? false, req.params.id]
   )
   if (!rows[0]) { res.status(404).json({ error: 'Condição não encontrada' }); return }
   res.json(rows[0])

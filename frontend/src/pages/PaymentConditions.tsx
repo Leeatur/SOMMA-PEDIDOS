@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, GripVertical, Check, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, GripVertical, Check, X, ShieldCheck } from 'lucide-react'
 import { paymentConditionsApi } from '../api/client'
 
 interface Condition {
   id: string
   name: string
   sort_order: number
+  admin_only: boolean
   active: boolean
 }
 
@@ -39,6 +40,11 @@ export function PaymentConditions() {
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => paymentConditionsApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['payment-conditions'] }),
+  })
+
+  const toggleAdminOnlyMut = useMutation({
+    mutationFn: (c: Condition) => paymentConditionsApi.update(c.id, { name: c.name, sort_order: c.sort_order, admin_only: !c.admin_only }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['payment-conditions'] }),
   })
 
@@ -145,7 +151,21 @@ export function PaymentConditions() {
               ) : (
                 <>
                   <span className="flex-1 text-[13px] text-on-surface font-medium">{c.name}</span>
+                  {/* Badge admin_only sempre visível */}
+                  {c.admin_only && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5 flex-shrink-0">
+                      <ShieldCheck className="h-3 w-3" /> Adm
+                    </span>
+                  )}
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Toggle só-admin */}
+                    <button
+                      onClick={() => toggleAdminOnlyMut.mutate(c)}
+                      title={c.admin_only ? 'Visível apenas para Admin — clique para liberar para todos' : 'Clique para restringir ao Admin'}
+                      className={`p-1.5 rounded-lg transition-colors ${c.admin_only ? 'bg-violet-100 text-violet-600 hover:bg-violet-200' : 'hover:bg-violet-50 text-outline hover:text-violet-500'}`}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                    </button>
                     <button onClick={() => startEdit(c)} className="p-1.5 rounded-lg hover:bg-surface-container-low text-outline">
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
