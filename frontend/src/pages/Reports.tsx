@@ -843,56 +843,60 @@ export function Reports() {
       <div className="flex">
 
         {/* ── Sidebar lateral (desktop only) ── */}
-        <aside className={`reports-sidebar no-print hidden lg:flex flex-col flex-shrink-0 border-r border-outline-variant bg-white sticky top-[52px] h-[calc(100vh-100px)] overflow-y-auto transition-all duration-200 ${sidebarCollapsed ? 'w-10' : 'w-56'}`}>
-          {/* Botão recolher/expandir */}
-          <div className={`flex ${sidebarCollapsed ? 'justify-center' : 'justify-end'} px-2 pt-2 pb-1`}>
+        <aside className={`reports-sidebar no-print hidden lg:flex flex-col flex-shrink-0 border-r border-outline-variant bg-white sticky top-[52px] h-[calc(100vh-100px)] transition-all duration-200 ${sidebarCollapsed ? 'w-10' : 'w-56'}`}>
+
+          {/* Botão recolher — fixo no topo, fora do scroll */}
+          <div className={`flex-shrink-0 flex ${sidebarCollapsed ? 'justify-center' : 'justify-end'} p-2 border-b border-outline-variant/30`}>
             <button
               onClick={() => setSidebarCollapsed(v => !v)}
               title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
-              className="p-1 rounded hover:bg-surface-container-low text-outline/60 hover:text-on-surface transition-colors"
+              className="flex items-center justify-center w-7 h-7 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors border border-outline-variant/40"
             >
-              {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </button>
           </div>
 
-          {!sidebarCollapsed && GROUPS.map(group => {
-            const items = VISIBLE_META.filter(r => r.group === group.id)
-            if (!items.length) return null
-            return (
-              <div key={group.id} className="mb-3">
-                <div className="flex items-center gap-1.5 px-4 py-1 text-[10px] font-black uppercase tracking-wider text-outline/60">
-                  {group.icon} {group.label}
+          {/* Itens do menu — scrolláveis */}
+          <div className="flex-1 overflow-y-auto py-3">
+            {!sidebarCollapsed && GROUPS.map(group => {
+              const items = VISIBLE_META.filter(r => r.group === group.id)
+              if (!items.length) return null
+              return (
+                <div key={group.id} className="mb-3">
+                  <div className="flex items-center gap-1.5 px-4 py-1 text-[10px] font-black uppercase tracking-wider text-outline/60">
+                    {group.icon} {group.label}
+                  </div>
+                  {items.map(r => (
+                    <button key={r.id} onClick={() => setTab(r.id as Tab)}
+                      className={`w-full text-left px-4 py-2 text-[12px] font-medium transition-all border-l-2 ${
+                        tab === r.id
+                          ? 'border-primary bg-primary/5 text-primary font-semibold'
+                          : 'border-transparent text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                      }`}>
+                      {r.title}
+                    </button>
+                  ))}
                 </div>
-                {items.map(r => (
-                  <button key={r.id} onClick={() => setTab(r.id as Tab)}
-                    className={`w-full text-left px-4 py-2 text-[12px] font-medium transition-all border-l-2 ${
-                      tab === r.id
-                        ? 'border-primary bg-primary/5 text-primary font-semibold'
-                        : 'border-transparent text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
-                    }`}>
-                    {r.title}
+              )
+            })}
+
+            {sidebarCollapsed && (
+              <div className="flex flex-col items-center gap-1">
+                {VISIBLE_META.map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => { setTab(r.id as Tab); setSidebarCollapsed(false) }}
+                    title={r.title}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                      tab === r.id ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                    }`}
+                  >
+                    <span className="text-[10px] font-bold leading-none">{r.title.slice(0, 2)}</span>
                   </button>
                 ))}
               </div>
-            )
-          })}
-
-          {sidebarCollapsed && (
-            <div className="flex flex-col items-center gap-1 pt-1">
-              {VISIBLE_META.map(r => (
-                <button
-                  key={r.id}
-                  onClick={() => { setTab(r.id as Tab); setSidebarCollapsed(false) }}
-                  title={r.title}
-                  className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
-                    tab === r.id ? 'bg-primary/10 text-primary' : 'text-outline/60 hover:bg-surface-container-low hover:text-on-surface'
-                  }`}
-                >
-                  <span className="text-[10px] font-bold">{r.title.slice(0, 2)}</span>
-                </button>
-              ))}
-            </div>
-          )}
+            )}
+          </div>
         </aside>
 
         {/* ── Área de conteúdo ── */}
