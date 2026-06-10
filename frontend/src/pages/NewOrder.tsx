@@ -106,6 +106,7 @@ interface PriceTable {
   season: string | null
   year: number | null
   discount_rules?: DiscountRule[]
+  is_pe?: boolean
 }
 
 interface DiscountRule {
@@ -532,7 +533,10 @@ export function NewOrder() {
     // Desconto à vista NÃO mexe na comissão — comissão é sobre o desconto da tabela
     const tableDiscountedValue = grossValue * (1 - discountNum / 100)
     const totalValue = tableDiscountedValue * (1 - cashDiscountNum / 100)
-    const rule = findMatchingRule(discountNum)
+    const matchedRule = findMatchingRule(discountNum)
+    // Tabelas de Pronta Entrega: comissão padrão 6% repres. + 4% escritório quando não há regras
+    const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4 }
+    const rule = matchedRule ?? (tableDetail?.is_pe ? PE_DEFAULT : null)
     // Admin: 100% comissão vai para escritório, 0% para rep
     const repCommPct = (isAdmin && rule) ? 0 : (rule?.rep_commission_pct || 0)
     const offCommPct = (isAdmin && rule) ? rule.total_commission_pct : (rule?.office_commission_pct || 0)

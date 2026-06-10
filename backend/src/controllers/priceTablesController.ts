@@ -46,7 +46,11 @@ export async function getPriceTable(req: AuthRequest, res: Response) {
     'SELECT * FROM discount_commission_rules WHERE price_table_id=$1 ORDER BY discount_pct',
     [req.params.id]
   )
-  res.json({ ...rows[0], discount_rules: rules })
+  // Indica se é tabela de Pronta Entrega (para carregamento automático de comissão padrão)
+  const { rows: peRows } = await query(
+    'SELECT id FROM pe_catalogs WHERE price_table_id=$1 LIMIT 1', [req.params.id]
+  )
+  res.json({ ...rows[0], discount_rules: rules, is_pe: peRows.length > 0 })
 }
 
 // Preview do Excel antes de confirmar importação

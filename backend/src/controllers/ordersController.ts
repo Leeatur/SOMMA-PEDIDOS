@@ -89,7 +89,18 @@ async function computeOrderTotals(
      ORDER BY ABS(discount_pct - $2) ASC LIMIT 1`,
     [priceTableId, commPct]
   )
-  const rule = rules[0] || { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }
+  // Comissão padrão para Pronta Entrega: 6% repres. + 4% escritório
+  // Usada quando a tabela não possui regras de desconto/comissão cadastradas
+  const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4 }
+  let rule = rules[0] || null
+  if (!rule) {
+    const { rows: peRows } = await (client as any).query(
+      'SELECT id FROM pe_catalogs WHERE price_table_id=$1 LIMIT 1', [priceTableId]
+    )
+    rule = peRows.length > 0
+      ? PE_DEFAULT
+      : { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }
+  }
 
   return {
     enrichedItems,
