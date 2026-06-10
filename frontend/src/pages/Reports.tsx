@@ -842,22 +842,19 @@ export function Reports() {
       {/* ══ CORPO: sidebar lateral (desktop) + conteúdo ══ */}
       <div className="flex">
 
-        {/* ── Sidebar lateral (desktop only) ── */}
-        <aside className={`reports-sidebar no-print hidden lg:flex flex-col flex-shrink-0 border-r border-outline-variant bg-white sticky top-[52px] h-[calc(100vh-100px)] transition-all duration-200 ${sidebarCollapsed ? 'w-10' : 'w-56'}`}>
+        {/* ── Sidebar lateral (desktop only) — wrapper relativo para o botão flutuante ── */}
+        <div className={`reports-sidebar no-print hidden lg:block relative flex-shrink-0 transition-all duration-200 ${sidebarCollapsed ? 'w-10' : 'w-56'}`}>
 
-          {/* Botão recolher — fixo no topo, fora do scroll */}
-          <div className={`flex-shrink-0 flex ${sidebarCollapsed ? 'justify-center' : 'justify-end'} p-2 border-b border-gray-200`}>
-            <button
-              onClick={() => setSidebarCollapsed(v => !v)}
-              title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
-              className="flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors border border-gray-300"
-            >
-              {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </button>
-          </div>
+          {/* Botão flutuante na borda direita — sempre visível, estilo VS Code */}
+          <button
+            onClick={() => setSidebarCollapsed(v => !v)}
+            title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
+            className="absolute top-5 -right-3 z-20 w-6 h-6 flex items-center justify-center bg-white border-2 border-gray-300 rounded-full shadow-md text-gray-500 hover:text-primary hover:border-primary transition-colors"
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+          </button>
 
-          {/* Itens do menu — scrolláveis */}
-          <div className="flex-1 overflow-y-auto py-3">
+          <aside className="flex flex-col w-full h-[calc(100vh-100px)] border-r border-outline-variant bg-white sticky top-[52px] overflow-y-auto py-3">
             {!sidebarCollapsed && GROUPS.map(group => {
               const items = VISIBLE_META.filter(r => r.group === group.id)
               if (!items.length) return null
@@ -871,7 +868,7 @@ export function Reports() {
                       className={`w-full text-left px-4 py-2 text-[12px] font-medium transition-all border-l-2 ${
                         tab === r.id
                           ? 'border-primary bg-primary/5 text-primary font-semibold'
-                          : 'border-transparent text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                          : 'border-transparent text-on-surface-variant hover:bg-gray-50 hover:text-on-surface'
                       }`}>
                       {r.title}
                     </button>
@@ -881,14 +878,14 @@ export function Reports() {
             })}
 
             {sidebarCollapsed && (
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-1 pt-2">
                 {VISIBLE_META.map(r => (
                   <button
                     key={r.id}
                     onClick={() => { setTab(r.id as Tab); setSidebarCollapsed(false) }}
                     title={r.title}
                     className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
-                      tab === r.id ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                      tab === r.id ? 'bg-primary/10 text-primary' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700'
                     }`}
                   >
                     <span className="text-[10px] font-bold leading-none">{r.title.slice(0, 2)}</span>
@@ -896,8 +893,8 @@ export function Reports() {
                 ))}
               </div>
             )}
-          </div>
-        </aside>
+          </aside>
+        </div>
 
         {/* ── Área de conteúdo ── */}
         <div className="flex-1 min-w-0 reports-content px-4 py-4 lg:px-6">
