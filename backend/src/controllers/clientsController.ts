@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import * as XLSX from 'xlsx'
 import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 
@@ -60,6 +61,96 @@ export async function deleteClient(req: AuthRequest, res: Response) {
   if (!existing) { res.status(404).json({ error: 'Cliente não encontrado' }); return }
   await query('UPDATE clients SET active=false, updated_at=NOW() WHERE id=$1', [req.params.id])
   res.status(204).send()
+}
+
+export async function exportClients(req: AuthRequest, res: Response) {
+  const { search, rep_id } = req.query
+  const isAdmin = req.user!.role === 'admin'
+
+  let sql = `
+    SELECT c.name, c.trade_name, c.cnpj, c.cpf, c.state_registration,
+           c.address, c.city, c.state, c.zip, c.phone, c.whatsapp,
+           c.email, c.notes, u.name AS rep_name,
+           COUNT(DISTINCT o.id)::int AS total_pedidos,
+           COALESCE(SUM(o.total_value), 0)::numeric AS total_comprado
+    FROM clients c
+    LEFT JOIN users u ON u.id = c.rep_id
+    LEFT JOIN orders o ON o.client_id = c.id AND o.deleted_at IS NULL
+    WHERE c.active = true
+  `
+  const params: unknown[] = []
+
+  if (!isAdmin) {
+    params.push(req.user!.id)
+    sql += ` AND c.rep_id = $${params.length}`
+  } else if (rep_id) {
+    params.push(rep_id)
+    sql += ` AND c.rep_id = $${params.length}`
+  }
+
+  if (search) {
+    params.push(`%${search}%`)
+    const idx = params.length
+    sql += ` AND (c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR
+      c.cnpj ILIKE $${idx} OR c.cpf ILIKE $${idx} OR c.city ILIKE $${idx})`
+  }
+
+  sql += ' GROUP BY c.id, u.name ORDER BY c.name'
+  const { rows } = await query(sql, params)
+
+  // ── Monta a planilha ──
+  const data = rows.map(r => ({
+    'Razão Social':        r.name             || '',
+    'Nome Fantasia':       r.trade_name        || '',
+    'CNPJ':                r.cnpj              || '',
+    'CPF':                 r.cpf               || '',
+    'Insc. Estadual':      r.state_registration|| '',
+    'Endereço':            r.address           || '',
+    'Cidade':              r.city              || '',
+    'UF':                  r.state             || '',
+    'CEP':                 r.zip               || '',
+    'Telefone':            r.phone             || '',
+    'WhatsApp':            r.whatsapp          || '',
+    'E-mail':              r.email             || '',
+    'Representante':       r.rep_name          || '',
+    'Total de Pedidos':    r.total_pedidos,
+    'Total Comprado (R$)': Number(r.total_comprado).toFixed(2),
+    'Notas':               r.notes             || '',
+  }))
+
+  const ws = XLSX.utils.json_to_sheet(data)
+
+  // Larguras das colunas
+  ws['!cols'] = [
+    { wch: 35 }, // Razão Social
+    { wch: 25 }, // Nome Fantasia
+    { wch: 18 }, // CNPJ
+    { wch: 14 }, // CPF
+    { wch: 18 }, // Insc. Estadual
+    { wch: 35 }, // Endereço
+    { wch: 20 }, // Cidade
+    { wch: 5  }, // UF
+    { wch: 10 }, // CEP
+    { wch: 15 }, // Telefone
+    { wch: 15 }, // WhatsApp
+    { wch: 28 }, // E-mail
+    { wch: 20 }, // Representante
+    { wch: 14 }, // Total Pedidos
+    { wch: 18 }, // Total Comprado
+    { wch: 30 }, // Notas
+  ]
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Clientes')
+
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const today = new Date().toISOString().split('T')[0]
+
+  res.set({
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': `attachment; filename="clientes-${today}.xlsx"`,
+  })
+  res.send(buf)
 }
 
 export async function updateClient(req: AuthRequest, res: Response) {

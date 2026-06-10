@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, Plus, Edit2, Search, Upload, Trash2, X } from 'lucide-react'
+import { Users, Plus, Edit2, Search, Upload, Trash2, X, FileDown } from 'lucide-react'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
-import { clientsApi, usersApi } from '../api/client'
+import { clientsApi, usersApi, apiClient } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Button } from '../components/ui/Button'
 import { Input, MaskedInput, Textarea, Select } from '../components/ui/Input'
@@ -67,6 +67,7 @@ export function Clients() {
   const [open, setOpen] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [showNewCnpj, setShowNewCnpj] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [editing, setEditing] = useState<Client | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [errors, setErrors] = useState<Partial<FormState>>({})
@@ -87,6 +88,23 @@ export function Clients() {
 
   const [sortCol, setSortCol] = useState<string>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const params: Record<string, string> = {}
+      if (debouncedSearch) params.search = debouncedSearch
+      const r = await apiClient.get('/clients/export/xlsx', { params, responseType: 'blob' })
+      const url = URL.createObjectURL(r.data)
+      const a = document.createElement('a')
+      const today = new Date().toISOString().split('T')[0]
+      a.href = url
+      a.download = `clientes-${today}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { alert('Erro ao exportar clientes.') }
+    finally { setExporting(false) }
+  }
 
   function handleSort(col: string) {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -302,12 +320,21 @@ export function Clients() {
         <div className="px-4 pt-3 pb-2 bg-white border-b border-outline-variant/60 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-display text-lg font-bold text-on-surface">Clientes</h2>
-            <button
-              onClick={() => setShowNewCnpj(true)}
-              className="flex items-center gap-1.5 bg-primary text-white text-[12px] font-semibold px-3.5 py-1 rounded-xl active:scale-95 transition-transform"
-            >
-              <Plus className="h-4 w-4" /> Novo
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 text-[12px] font-semibold px-2.5 py-1 rounded-xl active:scale-95 transition-transform disabled:opacity-60"
+              >
+                <FileDown className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setShowNewCnpj(true)}
+                className="flex items-center gap-1.5 bg-primary text-white text-[12px] font-semibold px-3.5 py-1 rounded-xl active:scale-95 transition-transform"
+              >
+                <Plus className="h-4 w-4" /> Novo
+              </button>
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline" />
@@ -437,6 +464,15 @@ export function Clients() {
               onSave={save}
               onReset={reset}
             />
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg px-3 py-1 transition-colors disabled:opacity-60"
+              title="Exportar clientes para Excel"
+            >
+              <FileDown className="h-4 w-4" />
+              <span className="hidden sm:inline">{exporting ? 'Exportando…' : 'Exportar'}</span>
+            </button>
             <button
               onClick={() => setShowImport(true)}
               className="flex items-center gap-1.5 text-[12px] font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg px-3 py-1 transition-colors"
