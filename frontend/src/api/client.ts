@@ -407,6 +407,14 @@ export const publicPortalApi = {
   submitOrder: (token: string, data: object) => apiClient.post(`/public/portal/${token}/order`, data),
 }
 
+export const paymentConditionsApi = {
+  list: () => apiClient.get('/payment-conditions'),
+  create: (data: { name: string; sort_order?: number }) => apiClient.post('/payment-conditions', data),
+  update: (id: string, data: { name: string; sort_order?: number; active?: boolean }) => apiClient.put(`/payment-conditions/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/payment-conditions/${id}`),
+  reorder: (order: { id: string; sort_order: number }[]) => apiClient.post('/payment-conditions/reorder', { order }),
+}
+
 export const peApi = {
   list: () => apiClient.get('/pe'),
   create: (data: { name: string; factory_id: string }) => apiClient.post('/pe', data),

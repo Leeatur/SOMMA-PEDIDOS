@@ -22,6 +22,7 @@ import { Prospecting } from './pages/Prospecting'
 import { CustomerPortal } from './pages/CustomerPortal'
 import { Portals } from './pages/Portals'
 import { ProntaEntrega } from './pages/ProntaEntrega'
+import { PaymentConditions } from './pages/PaymentConditions'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuthStore()
@@ -56,6 +57,7 @@ export function App() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/new" element={<NewOrder />} />
         <Route path="/orders/trash" element={<RequireAdmin><OrdersTrash /></RequireAdmin>} />
+        <Route path="/payment-conditions" element={<RequireAdmin><PaymentConditions /></RequireAdmin>} />
         <Route path="/orders/alerts" element={<OrderAlertsPage />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
         <Route path="/orders/:id/edit" element={<OrderEdit />} />

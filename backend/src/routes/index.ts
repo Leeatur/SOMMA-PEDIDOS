@@ -17,6 +17,7 @@ import * as portal from '../controllers/portalController'
 import * as goals from '../controllers/goalsController'
 import * as pdf from '../controllers/pdfController'
 import * as pe from '../controllers/peController'
+import * as paymentConds from '../controllers/paymentConditionsController'
 
 const router = Router()
 
@@ -141,6 +142,13 @@ router.post('/statuses', authenticate, requireAdmin, statuses.createStatus)
 router.put('/statuses/:id', authenticate, requireAdmin, statuses.updateStatus)
 router.delete('/statuses/:id', authenticate, requireAdmin, statuses.deleteStatus)
 router.post('/statuses/reorder', authenticate, requireAdmin, statuses.reorderStatuses)
+
+// Condições de pagamento pré-cadastradas
+router.get   ('/payment-conditions',         authenticate,              paymentConds.listConditions)
+router.post  ('/payment-conditions',         authenticate, requireAdmin, paymentConds.createCondition)
+router.put   ('/payment-conditions/:id',     authenticate, requireAdmin, paymentConds.updateCondition)
+router.delete('/payment-conditions/:id',     authenticate, requireAdmin, paymentConds.deleteCondition)
+router.post  ('/payment-conditions/reorder', authenticate, requireAdmin, paymentConds.reorderConditions)
 
 // ── Portal de Pedidos (autenticado — gerenciamento pelo rep)
 router.get('/portals', authenticate, portal.listPortals)

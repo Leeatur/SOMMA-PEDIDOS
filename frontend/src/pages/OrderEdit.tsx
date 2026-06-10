@@ -6,7 +6,7 @@ import {
   Loader2, Eye, Printer, Check,
 } from 'lucide-react'
 import {
-  ordersApi, clientsApi, usersApi, statusesApi, productsApi, priceTablesApi,
+  ordersApi, clientsApi, usersApi, statusesApi, productsApi, priceTablesApi, paymentConditionsApi,
 } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { formatCurrency, formatOrderNumber } from '../utils/format'
@@ -253,6 +253,12 @@ export default function OrderEdit() {
     queryKey: ['users'],
     queryFn: () => usersApi.list().then(r => r.data),
     enabled: isAdmin,
+  })
+
+  const { data: paymentConditions = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['payment-conditions'],
+    queryFn: () => paymentConditionsApi.list().then(r => r.data),
+    staleTime: 5 * 60 * 1000,
   })
 
   // Tabela de política (desconto × comissão) da tabela de preço do pedido
@@ -788,9 +794,18 @@ export default function OrderEdit() {
               <label className={warnLabelCls(form.payment_terms)}>
                 Cond. Pagamento {!form.payment_terms.trim() && <span className="text-amber-500">⚠</span>}
               </label>
-              <input className={warnCls(form.payment_terms)} value={form.payment_terms}
+              <input
+                list="payment-conditions-list-edit"
+                className={warnCls(form.payment_terms)}
+                value={form.payment_terms}
                 onChange={e => setForm(f => ({ ...f, payment_terms: e.target.value }))}
-                placeholder="Ex: 30/60/90" />
+                placeholder="Selecione ou digite..."
+              />
+              {paymentConditions.length > 0 && (
+                <datalist id="payment-conditions-list-edit">
+                  {paymentConditions.map(c => <option key={c.id} value={c.name} />)}
+                </datalist>
+              )}
             </div>
 
             {/* Vendedor (admin only) */}

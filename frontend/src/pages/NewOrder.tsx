@@ -19,7 +19,7 @@ import {
   Info,
   X,
 } from 'lucide-react'
-import { clientsApi, priceTablesApi, productsApi, ordersApi, factoriesApi } from '../api/client'
+import { clientsApi, priceTablesApi, productsApi, ordersApi, factoriesApi, paymentConditionsApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { db } from '../db/db'
 import { Button } from '../components/ui/Button'
@@ -487,6 +487,12 @@ export function NewOrder() {
     queryKey: ['price-table-detail', selectedTable?.id],
     queryFn: () => priceTablesApi.get(selectedTable!.id).then((r) => r.data),
     enabled: !!selectedTable?.id && step >= 3,
+  })
+
+  const { data: paymentConditions = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['payment-conditions'],
+    queryFn: () => paymentConditionsApi.list().then(r => r.data),
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: products, isLoading: loadingProducts } = useQuery<Product[]>({
@@ -1224,13 +1230,19 @@ export function NewOrder() {
                 </label>
                 <input
                   type="text"
+                  list="payment-conditions-list"
                   value={paymentTerms}
                   onChange={(e) => setPaymentTerms(e.target.value)}
-                  placeholder="Ex: 30/60/90 dias"
+                  placeholder="Selecione ou digite..."
                   className={paymentTerms.trim()
                     ? 'w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary'
                     : 'w-full border-2 border-amber-400 rounded-lg px-3 py-1.5 text-[12px] bg-amber-50 text-on-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-500'}
                 />
+                {paymentConditions.length > 0 && (
+                  <datalist id="payment-conditions-list">
+                    {paymentConditions.map(c => <option key={c.id} value={c.name} />)}
+                  </datalist>
+                )}
               </div>
               <div>
                 <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Tipo de Frete</label>

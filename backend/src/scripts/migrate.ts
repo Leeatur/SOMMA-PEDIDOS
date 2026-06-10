@@ -299,6 +299,15 @@ CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_clients_rep ON clients(rep_id);
 CREATE INDEX IF NOT EXISTS idx_discount_rules_table ON discount_commission_rules(price_table_id);
 
+-- Condições de pagamento pré-cadastradas (selecionáveis no formulário de pedidos)
+CREATE TABLE IF NOT EXISTS payment_conditions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(200) NOT NULL,
+  sort_order INTEGER DEFAULT 0,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Remove restrição UNIQUE(price_table_id, reference) para permitir que a mesma referência
 -- exista em múltiplas tabelas de preço e quantas vezes for necessário dentro da mesma tabela
 ALTER TABLE products DROP CONSTRAINT IF EXISTS products_price_table_id_reference_key;
