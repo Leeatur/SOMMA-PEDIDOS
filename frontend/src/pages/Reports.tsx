@@ -1019,6 +1019,9 @@ export function Reports() {
                 const fmtDate = (d: string) => fmtDatePtBR(d)
                 const fmtPct = (v: number) => `${Number(v || 0).toFixed(2).replace('.', ',')}%`
                 const totalSold = sum('total_value')
+                // Soma efetiva das comissões — usa fallback calculado igual às células das linhas
+                const totalRepComm = rows.reduce((s, r) => s + (Number(r.rep_commission_value) || (Number(r.total_value) * Number(r.rep_commission_pct) / 100)), 0)
+                const totalOffComm = rows.reduce((s, r) => s + (Number(r.office_commission_value) || (Number(r.total_value) * Number(r.office_commission_pct) / 100)), 0)
                 // % do total da comissão sobre o valor total vendido no período filtrado
                 const pctOfTotalSold = (v: number) => totalSold > 0 ? (v / totalSold) * 100 : 0
                 return (
@@ -1205,13 +1208,13 @@ export function Reports() {
                             <td className="px-2 py-1.5 text-right text-on-surface">{fmtR(totalSold)}</td>
                             {colVisible('politica') && <td className="px-2 py-1.5 text-right text-on-surface-variant/50">—</td>}
                             <td className="px-2 py-1.5 text-right text-emerald-700">
-                              {fmtR(sum('rep_commission_value'))}
-                              <span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(pctOfTotalSold(sum('rep_commission_value')))})</span>
+                              {fmtR(totalRepComm)}
+                              <span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(pctOfTotalSold(totalRepComm))})</span>
                             </td>
                             {isAdmin && (
                               <td className="px-2 py-1.5 text-right text-blue-700">
-                                {fmtR(sum('office_commission_value'))}
-                                <span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(pctOfTotalSold(sum('office_commission_value')))})</span>
+                                {fmtR(totalOffComm)}
+                                <span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(pctOfTotalSold(totalOffComm))})</span>
                               </td>
                             )}
                             <td className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
