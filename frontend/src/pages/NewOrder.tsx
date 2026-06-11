@@ -28,6 +28,7 @@ import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
 import { NewClientModal, CreatedClient } from '../components/ui/NewClientModal'
+import { useVoiceInput, parseReferenceFromSpeech, parseGradeFromSpeech } from '../hooks/useVoiceInput'
 import { formatCurrency, formatPct } from '../utils/format'
 import { maskPercent, parseDecimal } from '../utils/masks'
 
@@ -370,6 +371,16 @@ export function NewOrder() {
   const [quickAddProduct, setQuickAddProduct] = useState<Product | null>(null)
   // Referência ao campo de busca: usada para devolver o foco automaticamente
   // (reabrir "card" de busca pronto para a próxima referência) após cada item confirmado
+  // ── Voz: busca de referência ─────────────────────────────────────────────────
+  const voicePendingRef = useRef(false)
+  const voiceRef = useVoiceInput({
+    onResult: (text) => {
+      const ref = parseReferenceFromSpeech(text)
+      setProductSearch(ref)
+      voicePendingRef.current = true // sinaliza que voz está esperando produtos
+    },
+  })
+
   const productSearchRef = useRef<HTMLInputElement | null>(null)
   const focusProductSearch = useCallback(() => {
     // IMPORTANTE: no iOS/Safari (incl. PWA instalado), o teclado só aparece se o
@@ -505,6 +516,15 @@ export function NewOrder() {
       }).then((r) => r.data),
     enabled: step === 2 && !!selectedTable?.id,
   })
+
+  // Auto-seleciona primeiro produto quando voz reconheceu uma referência
+  useEffect(() => {
+    if (voicePendingRef.current && products && products.length > 0) {
+      voicePendingRef.current = false
+      setQuickAddProduct(products[0])
+      setProductSearch('')
+    }
+  }, [products])
 
   // Calculations
   const discountNum = parseDecimal(discountPct) || 0
@@ -897,6 +917,23 @@ export function NewOrder() {
                     }}
                   />
                 </div>
+                {/* Botão microfone — busca por voz */}
+                {voiceRef.status !== 'unsupported' && (
+                  <button
+                    type="button"
+                    onClick={voiceRef.toggle}
+                    title={voiceRef.status === 'listening' ? 'Parar gravação' : 'Falar referência'}
+                    className={`flex-shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${
+                      voiceRef.status === 'listening'
+                        ? 'bg-red-500 border-red-500 text-white animate-pulse shadow-lg shadow-red-200'
+                        : 'border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary hover:bg-primary/5'
+                    }`}
+                  >
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                  </button>
+                )}
                 <select
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
@@ -1555,6 +1592,21 @@ function QuickAddModal({
   const [boxes, setBoxes] = useState(cartItem?.boxes_count || 1)
   const [observation, setObservation] = useState(cartItem?.observation || '')
   const [customPrice, setCustomPrice] = useState<number>(cartItem?.unit_price || Number(product.base_price))
+  const [voiceGradeMsg, setVoiceGradeMsg] = useState('')
+
+  // Microfone para preencher grade por voz (apenas produtos REGULAR)
+  const voiceGrade = useVoiceInput({
+    onResult: (text) => {
+      const parsed = parseGradeFromSpeech(text, allSizes)
+      if (Object.keys(parsed).length > 0) {
+        setSizes(prev => ({ ...prev, ...parsed }))
+        setVoiceGradeMsg(`✓ ${Object.entries(parsed).map(([s, q]) => `${s}×${q}`).join('  ')}`)
+      } else {
+        setVoiceGradeMsg('Não entendi — tente: "36 dois 38 três"')
+      }
+      setTimeout(() => setVoiceGradeMsg(''), 3000)
+    },
+  })
 
   // Pack: total = TODAS as cores × caixas (ex: 6 cores × 6 pç/cor = 36 pç/cx)
   const totalPiecesPerBox = grades.reduce((s, g) => s + g.total_pieces, 0) || 0
@@ -1731,7 +1783,31 @@ function QuickAddModal({
                   </div>
                 )}
               </div>
-              <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Quantidades por tamanho</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] text-outline font-semibold uppercase tracking-wide">Quantidades por tamanho</p>
+                {voiceGrade.status !== 'unsupported' && (
+                  <button
+                    type="button"
+                    onClick={voiceGrade.toggle}
+                    title={voiceGrade.status === 'listening' ? 'Parar — processando...' : 'Falar grade: "36 dois 38 três"'}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
+                      voiceGrade.status === 'listening'
+                        ? 'bg-red-500 border-red-500 text-white animate-pulse'
+                        : 'border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary'
+                    }`}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                    {voiceGrade.status === 'listening' ? 'Ouvindo...' : 'Falar grade'}
+                  </button>
+                )}
+              </div>
+              {voiceGradeMsg && (
+                <p className={`text-[11px] mb-2 font-medium ${voiceGradeMsg.startsWith('✓') ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {voiceGradeMsg}
+                </p>
+              )}
               {(product.blocked_sizes || []).length > 0 && (
                 <p className="text-[11px] text-amber-600 mb-2">🚫 Bloqueados: {(product.blocked_sizes || []).join(', ')}</p>
               )}
