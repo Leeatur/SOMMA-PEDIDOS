@@ -210,7 +210,31 @@ export async function getOrder(req: AuthRequest, res: Response) {
     [req.params.id]
   )
 
-  res.json({ ...rows[0], items, history })
+  // Auto-correção silenciosa: se os totais da tabela orders divergem dos order_items, recalcula
+  const order = rows[0]
+  const realPcs  = items.reduce((s: number, it: { total_pieces: number }) => s + Number(it.total_pieces), 0)
+  const realVal  = items.reduce((s: number, it: { subtotal: number }) => s + Number(it.subtotal), 0)
+  const storedPcs = Number(order.total_pieces)
+  const storedVal = Number(order.total_value)
+  if (Math.abs(realPcs - storedPcs) > 0 || Math.abs(realVal - storedVal) > 0.01) {
+    const realValFull = items.reduce((s: number, it: { unit_price: number; total_pieces: number }) => s + Number(it.unit_price) * Number(it.total_pieces), 0)
+    if (order.commission_manual_override) {
+      await query(`UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
+        [realPcs, Math.round(realVal * 100) / 100, order.id])
+    } else {
+      await query(
+        `UPDATE orders SET total_pieces=$1, total_value=$2, rep_commission_value=$3, office_commission_value=$4, updated_at=NOW() WHERE id=$5`,
+        [realPcs, Math.round(realVal * 100) / 100,
+         Math.round(realValFull * order.rep_commission_pct / 100 * 100) / 100,
+         Math.round(realValFull * order.office_commission_pct / 100 * 100) / 100,
+         order.id]
+      )
+    }
+    order.total_pieces = realPcs
+    order.total_value  = Math.round(realVal * 100) / 100
+  }
+
+  res.json({ ...order, items, history })
 }
 
 export async function createOrder(req: AuthRequest, res: Response) {
