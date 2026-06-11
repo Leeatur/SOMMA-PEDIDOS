@@ -1049,6 +1049,13 @@ export function Reports() {
                         </span>
                       )}
                       <ColumnConfigButton defs={commColDefs} config={commConfig} onSave={saveCommCols} onReset={resetCommCols} />
+                      <button
+                        onClick={() => { resetCommCols() }}
+                        title="Restaurar ordem padrão das colunas"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold border border-orange-300 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors flex-shrink-0 whitespace-nowrap"
+                      >
+                        ↺ Resetar colunas
+                      </button>
                     </div>
                     <p className="text-[11px] text-outline/50 px-3 py-1 bg-surface-container-low/50 border-b border-outline-variant/20">
                       Arraste a borda direita para redimensionar · Arraste o cabeçalho para reordenar
