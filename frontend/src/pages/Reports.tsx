@@ -575,7 +575,6 @@ export function Reports() {
   // Configuração de colunas — Comissões
   const commColDefs = COMM_COL_DEFS.filter(c => c.id !== 'com_escr' || isAdmin)
   const { orderedDefs: commCols, config: commConfig, save: saveCommCols, reset: resetCommCols } = useColumnConfig('report-commissions', commColDefs)
-  const colVisible = (id: string) => commCols.find(c => c.id === id)?.visible !== false
 
   // Busca no relatório de comissões
   const [commSearch, setCommSearch] = useState('')
@@ -1117,109 +1116,113 @@ export function Reports() {
                         <tbody className="divide-y divide-gray-50">
                           {rows.map(r => (
                             <tr key={r.id} className="hover:bg-surface-container-low/50 cursor-pointer" onClick={() => window.open(`/orders/${r.id}`, '_self')}>
-                              {colVisible('data') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>}
-                              {colVisible('vendedor') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.vendedor}</td>}
-                              {colVisible('industria') && <td className="px-2 py-1 whitespace-nowrap font-medium text-on-surface">{r.industria}</td>}
-                              {colVisible('nr_fabrica') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.nr_ped_fabrica || '—'}</td>}
-                              {colVisible('razao_social') && <td className="px-2 py-1 max-w-[160px]"><span className="block truncate text-on-surface font-medium" title={r.razao_social}>{r.razao_social}</span></td>}
-                              {colVisible('nome_fantasia') && <td className="px-2 py-1 max-w-[130px]"><span className="block truncate text-on-surface-variant" title={r.cliente || ''}>{r.cliente || '—'}</span></td>}
-                              {colVisible('cidade') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>}
-                              {colVisible('uf') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.uf || '—'}</td>}
-                              {colVisible('valor') && <td className="px-2 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>}
-                              {colVisible('politica') && <td className="px-2 py-1 text-right whitespace-nowrap text-on-surface-variant">{r.discount_pct ? fmtPct(r.discount_pct) : '—'}</td>}
-                              {colVisible('com_rep') && (() => {
-                                const isEditing = isAdmin && editingComm?.orderId === r.id && editingComm.field === 'rep'
-                                const preview = isEditing ? previewValue(editingComm!.pctText, editingComm!.totalValue) : null
-                                return (
-                                  <td className="px-2 py-1 text-right whitespace-nowrap"
-                                    onClick={e => {
-                                      if (!isAdmin) return
-                                      e.stopPropagation()
-                                      setEditingComm({ orderId: r.id, field: 'rep', pctText: String(Number(r.rep_commission_pct).toFixed(1)), totalValue: Number(r.total_value), currentRepPct: Number(r.rep_commission_pct), currentOffPct: Number(r.office_commission_pct) })
-                                      setTimeout(() => commInputRef.current?.select(), 30)
-                                    }}>
-                                    {isEditing ? (
-                                      <div className="flex flex-col items-end gap-0.5">
-                                        <div className="flex items-center gap-0.5">
-                                          <input ref={commInputRef}
-                                            className="w-14 text-right border border-emerald-400 rounded px-1 py-0.5 text-[12px] font-bold text-emerald-700 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                                            value={editingComm!.pctText}
-                                            onChange={e => setEditingComm(c => c ? { ...c, pctText: e.target.value } : c)}
-                                            onBlur={saveInlineCommission}
-                                            onKeyDown={e => { if (e.key === 'Enter') saveInlineCommission(); else if (e.key === 'Escape') setEditingComm(null) }} />
-                                          <span className="text-emerald-600 text-[11px] font-bold">%</span>
+                              {commCols.filter(c => c.visible && (c.id !== 'com_escr' || isAdmin)).map(col => {
+                                const id = col.id
+                                if (id === 'data') return <td key={id} className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>
+                                if (id === 'vendedor') return <td key={id} className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.vendedor}</td>
+                                if (id === 'industria') return <td key={id} className="px-2 py-1 whitespace-nowrap font-medium text-on-surface">{r.industria}</td>
+                                if (id === 'nr_fabrica') return <td key={id} className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.nr_ped_fabrica || '—'}</td>
+                                if (id === 'razao_social') return <td key={id} className="px-2 py-1 max-w-[160px]"><span className="block truncate text-on-surface font-medium" title={r.razao_social}>{r.razao_social}</span></td>
+                                if (id === 'nome_fantasia') return <td key={id} className="px-2 py-1 max-w-[130px]"><span className="block truncate text-on-surface-variant" title={r.cliente || ''}>{r.cliente || '—'}</span></td>
+                                if (id === 'cidade') return <td key={id} className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>
+                                if (id === 'uf') return <td key={id} className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.uf || '—'}</td>
+                                if (id === 'valor') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>
+                                if (id === 'politica') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap text-on-surface-variant">{r.discount_pct ? fmtPct(r.discount_pct) : '—'}</td>
+                                if (id === 'com_rep') {
+                                  const isEditing = isAdmin && editingComm?.orderId === r.id && editingComm.field === 'rep'
+                                  const preview = isEditing ? previewValue(editingComm!.pctText, editingComm!.totalValue) : null
+                                  return (
+                                    <td key={id} className="px-2 py-1 text-right whitespace-nowrap"
+                                      onClick={e => {
+                                        if (!isAdmin) return
+                                        e.stopPropagation()
+                                        setEditingComm({ orderId: r.id, field: 'rep', pctText: String(Number(r.rep_commission_pct).toFixed(1)), totalValue: Number(r.total_value), currentRepPct: Number(r.rep_commission_pct), currentOffPct: Number(r.office_commission_pct) })
+                                        setTimeout(() => commInputRef.current?.select(), 30)
+                                      }}>
+                                      {isEditing ? (
+                                        <div className="flex flex-col items-end gap-0.5">
+                                          <div className="flex items-center gap-0.5">
+                                            <input ref={commInputRef}
+                                              className="w-14 text-right border border-emerald-400 rounded px-1 py-0.5 text-[12px] font-bold text-emerald-700 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                              value={editingComm!.pctText}
+                                              onChange={e => setEditingComm(c => c ? { ...c, pctText: e.target.value } : c)}
+                                              onBlur={saveInlineCommission}
+                                              onKeyDown={e => { if (e.key === 'Enter') saveInlineCommission(); else if (e.key === 'Escape') setEditingComm(null) }} />
+                                            <span className="text-emerald-600 text-[11px] font-bold">%</span>
+                                          </div>
+                                          {preview !== null && <span className="text-[10px] text-emerald-600/80">≈ {fmtR(preview)}</span>}
                                         </div>
-                                        {preview !== null && <span className="text-[10px] text-emerald-600/80">≈ {fmtR(preview)}</span>}
-                                      </div>
-                                    ) : (
-                                      <div className="flex justify-end items-center gap-1">
-                                        <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-emerald-700'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}`}
-                                          title={isAdmin ? 'Clique para editar' : undefined}>
-                                          {fmtR(Number(r.rep_commission_value) || (Number(r.total_value) * Number(r.rep_commission_pct) / 100))}
-                                        </span>
-                                        <span className="text-emerald-600/70 text-[12px]">({fmtPct(r.rep_commission_pct)})</span>
-                                      </div>
-                                    )}
-                                  </td>
-                                )
-                              })()}
-                              {colVisible('com_escr') && isAdmin && (() => {
-                                const isEditing = editingComm?.orderId === r.id && editingComm.field === 'office'
-                                const preview = isEditing ? previewValue(editingComm!.pctText, editingComm!.totalValue) : null
-                                return (
-                                  <td className="px-2 py-1 text-right whitespace-nowrap"
-                                    onClick={e => {
-                                      e.stopPropagation()
-                                      setEditingComm({ orderId: r.id, field: 'office', pctText: String(Number(r.office_commission_pct).toFixed(1)), totalValue: Number(r.total_value), currentRepPct: Number(r.rep_commission_pct), currentOffPct: Number(r.office_commission_pct) })
-                                      setTimeout(() => commInputRef.current?.select(), 30)
-                                    }}>
-                                    {isEditing ? (
-                                      <div className="flex flex-col items-end gap-0.5">
-                                        <div className="flex items-center gap-0.5">
-                                          <input ref={commInputRef}
-                                            className="w-14 text-right border border-blue-400 rounded px-1 py-0.5 text-[12px] font-bold text-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                                            value={editingComm!.pctText}
-                                            onChange={e => setEditingComm(c => c ? { ...c, pctText: e.target.value } : c)}
-                                            onBlur={saveInlineCommission}
-                                            onKeyDown={e => { if (e.key === 'Enter') saveInlineCommission(); else if (e.key === 'Escape') setEditingComm(null) }} />
-                                          <span className="text-blue-600 text-[11px] font-bold">%</span>
+                                      ) : (
+                                        <div className="flex justify-end items-center gap-1">
+                                          <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-emerald-700'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}`}
+                                            title={isAdmin ? 'Clique para editar' : undefined}>
+                                            {fmtR(Number(r.rep_commission_value) || (Number(r.total_value) * Number(r.rep_commission_pct) / 100))}
+                                          </span>
+                                          <span className="text-emerald-600/70 text-[12px]">({fmtPct(r.rep_commission_pct)})</span>
                                         </div>
-                                        {preview !== null && <span className="text-[10px] text-blue-600/80">≈ {fmtR(preview)}</span>}
-                                      </div>
-                                    ) : (
-                                      <div className="flex justify-end items-center gap-1">
-                                        <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-blue-700'} cursor-pointer hover:underline`}
-                                          title="Clique para editar">
-                                          {fmtR(Number(r.office_commission_value) || (Number(r.total_value) * Number(r.office_commission_pct) / 100))}
-                                        </span>
-                                        <span className="text-blue-600/70 text-[12px]">({fmtPct(r.office_commission_pct)})</span>
-                                      </div>
-                                    )}
-                                  </td>
-                                )
-                              })()}
-                              {colVisible('faturado') && <td className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>}
-                              {colVisible('a_faturar') && <td className="px-2 py-1 text-right whitespace-nowrap">{Number(r.falta_faturar) > 0 ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span> : <span className="text-on-surface-variant/50">—</span>}</td>}
+                                      )}
+                                    </td>
+                                  )
+                                }
+                                if (id === 'com_escr') {
+                                  const isEditing = editingComm?.orderId === r.id && editingComm.field === 'office'
+                                  const preview = isEditing ? previewValue(editingComm!.pctText, editingComm!.totalValue) : null
+                                  return (
+                                    <td key={id} className="px-2 py-1 text-right whitespace-nowrap"
+                                      onClick={e => {
+                                        e.stopPropagation()
+                                        setEditingComm({ orderId: r.id, field: 'office', pctText: String(Number(r.office_commission_pct).toFixed(1)), totalValue: Number(r.total_value), currentRepPct: Number(r.rep_commission_pct), currentOffPct: Number(r.office_commission_pct) })
+                                        setTimeout(() => commInputRef.current?.select(), 30)
+                                      }}>
+                                      {isEditing ? (
+                                        <div className="flex flex-col items-end gap-0.5">
+                                          <div className="flex items-center gap-0.5">
+                                            <input ref={commInputRef}
+                                              className="w-14 text-right border border-blue-400 rounded px-1 py-0.5 text-[12px] font-bold text-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                              value={editingComm!.pctText}
+                                              onChange={e => setEditingComm(c => c ? { ...c, pctText: e.target.value } : c)}
+                                              onBlur={saveInlineCommission}
+                                              onKeyDown={e => { if (e.key === 'Enter') saveInlineCommission(); else if (e.key === 'Escape') setEditingComm(null) }} />
+                                            <span className="text-blue-600 text-[11px] font-bold">%</span>
+                                          </div>
+                                          {preview !== null && <span className="text-[10px] text-blue-600/80">≈ {fmtR(preview)}</span>}
+                                        </div>
+                                      ) : (
+                                        <div className="flex justify-end items-center gap-1">
+                                          <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-blue-700'} cursor-pointer hover:underline`}
+                                            title="Clique para editar">
+                                            {fmtR(Number(r.office_commission_value) || (Number(r.total_value) * Number(r.office_commission_pct) / 100))}
+                                          </span>
+                                          <span className="text-blue-600/70 text-[12px]">({fmtPct(r.office_commission_pct)})</span>
+                                        </div>
+                                      )}
+                                    </td>
+                                  )
+                                }
+                                if (id === 'faturado') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
+                                if (id === 'a_faturar') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap">{Number(r.falta_faturar) > 0 ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span> : <span className="text-on-surface-variant/50">—</span>}</td>
+                                return null
+                              })}
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
-                          <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
-                            <td className="px-2 py-1.5 text-on-surface-variant" colSpan={['data','vendedor','industria','nr_fabrica','razao_social','nome_fantasia','cidade','uf'].filter(colVisible).length}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
-                            <td className="px-2 py-1.5 text-right text-on-surface">{fmtR(totalSold)}</td>
-                            {colVisible('politica') && <td className="px-2 py-1.5 text-right text-on-surface-variant/50">—</td>}
-                            <td className="px-2 py-1.5 text-right text-emerald-700">
-                              {fmtR(totalRepComm)}
-                              <span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(avgRepPct)})</span>
-                            </td>
-                            {isAdmin && (
-                              <td className="px-2 py-1.5 text-right text-blue-700">
-                                {fmtR(totalOffComm)}
-                                <span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(avgOffPct)})</span>
-                              </td>
-                            )}
-                            <td className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
-                            <td className="px-2 py-1.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
+                          <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[12px]">
+                            {(() => {
+                              const textIds = ['data','vendedor','industria','nr_fabrica','razao_social','nome_fantasia','cidade','uf']
+                              const firstVisTextId = commCols.find(c => c.visible && textIds.includes(c.id))?.id
+                              return commCols.filter(c => c.visible && (c.id !== 'com_escr' || isAdmin)).map(col => {
+                                const id = col.id
+                                if (textIds.includes(id)) return <td key={id} className="px-2 py-1.5 text-on-surface-variant">{id === firstVisTextId ? `Total — ${rows.length} pedido${rows.length !== 1 ? 's' : ''}` : ''}</td>
+                                if (id === 'valor')    return <td key={id} className="px-2 py-1.5 text-right text-on-surface">{fmtR(totalSold)}</td>
+                                if (id === 'politica') return <td key={id} className="px-2 py-1.5 text-right text-on-surface-variant/50">—</td>
+                                if (id === 'com_rep')  return <td key={id} className="px-2 py-1.5 text-right text-emerald-700">{fmtR(totalRepComm)}<span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(avgRepPct)})</span></td>
+                                if (id === 'com_escr') return <td key={id} className="px-2 py-1.5 text-right text-blue-700">{fmtR(totalOffComm)}<span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(avgOffPct)})</span></td>
+                                if (id === 'faturado') return <td key={id} className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
+                                if (id === 'a_faturar') return <td key={id} className="px-2 py-1.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
+                                return null
+                              })
+                            })()}
                           </tr>
                         </tfoot>
                       </table>
