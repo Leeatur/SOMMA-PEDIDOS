@@ -518,7 +518,7 @@ export function CustomerPortal() {
               </div>
               {selectedPayment.discount > 0 && (
                 <div className="flex items-center justify-between text-sm text-green-700">
-                  <span>Desconto à Vista ({selectedPayment.discount}%)</span>
+                  <span>Desconto Comercial ({selectedPayment.discount}%)</span>
                   <span>− {fmtR(cartSubtotal * selectedPayment.discount / 100)}</span>
                 </div>
               )}

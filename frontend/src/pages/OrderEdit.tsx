@@ -376,12 +376,12 @@ export default function OrderEdit() {
       rep_id: order.rep_id || '',
       status_id: order.status_id || '',
       industry_order_number: order.industry_order_number || '',
-      // Desconto à Vista = desconto salvo no pedido (assume que era à vista, não de prazo)
+      // Desconto Comercial = desconto salvo no pedido (assume que era à vista, não de prazo)
       // Política de Prazo começa em 0 — admin seleciona no grid se quiser aplicar
       discount_pct: String(order.discount_pct ?? '0'),
       notes: order.notes || '',
     }
-    // Política de Prazo começa em 0 (separado do Desconto à Vista)
+    // Política de Prazo começa em 0 (separado do Desconto Comercial)
     // Comissão manual inicializa com os valores atuais do pedido
     const baseComm = {
       rep:       String(Number(order.rep_commission_value    || 0).toFixed(2)).replace('.', ','),
@@ -534,7 +534,7 @@ export default function OrderEdit() {
     setSaving(true)
     setSaveError('')
     try {
-      // Desconto à Vista (cash) — só reduz preço do cliente, NÃO afeta comissão
+      // Desconto Comercial (cash) — só reduz preço do cliente, NÃO afeta comissão
       const cashDiscount = parseFloat(form.discount_pct.replace(',', '.')) || 0
       // Desconto de Política (prazo) — afeta comissão (selecionado no grid)
       const totalDiscount = policyDiscountPct + cashDiscount
@@ -840,14 +840,14 @@ export default function OrderEdit() {
             {/* Desconto */}
             {isAdmin && (
               <div>
-                <label className={labelCls}>Desconto à Vista %</label>
+                <label className={labelCls}>Desconto Comercial %</label>
                 <input className={inputCls} value={form.discount_pct} inputMode="decimal"
                   onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))}
                   placeholder="0,00" />
               </div>
             )}
 
-            {/* Tabela de Política de Prazo — SEPARADA do Desconto à Vista */}
+            {/* Tabela de Política de Prazo — SEPARADA do Desconto Comercial */}
             {isAdmin && discountRules.length > 0 && (
               <div className="sm:col-span-2 lg:col-span-3">
                 <label className={labelCls}>
@@ -893,7 +893,7 @@ export default function OrderEdit() {
                   </table>
                 </div>
                 <p className="text-[11px] text-outline mt-1">
-                  💡 Desconto de prazo afeta comissão. Desconto à Vista é separado e não afeta comissão.
+                  💡 Desconto de prazo afeta comissão. Desconto Comercial é separado e não afeta comissão.
                 </p>
               </div>
             )}

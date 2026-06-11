@@ -125,6 +125,7 @@ const COMM_COL_DEFS: ColumnDef[] = [
   { id: 'cidade',         label: 'Cidade' },
   { id: 'uf',             label: 'UF' },
   { id: 'valor',          label: 'Valor',         alwaysVisible: true },
+  { id: 'politica',       label: 'Política' },
   { id: 'com_rep',        label: 'Com. Rep' },
   { id: 'com_escr',       label: 'Com. Escr.' },
   { id: 'faturado',       label: 'Faturado' },
@@ -583,7 +584,7 @@ export function Reports() {
   const COMM_DEFAULT_WIDTHS: Record<string, number> = {
     data: 80, vendedor: 110, industria: 90, nr_fabrica: 90,
     razao_social: 160, nome_fantasia: 130, cidade: 100, uf: 45,
-    valor: 110, com_rep: 130, com_escr: 120, faturado: 100, a_faturar: 100,
+    valor: 110, politica: 80, com_rep: 130, com_escr: 120, faturado: 100, a_faturar: 100,
   }
   const { widths: commWidths, save: saveCommWidths } = useColumnResize('report-commissions-widths', COMM_DEFAULT_WIDTHS)
 
@@ -1060,10 +1061,10 @@ export function Reports() {
                                 data:'Data', vendedor:'Vendedor', industria:'Indústria',
                                 nr_fabrica:'Nr. Fábrica', razao_social:'Razão Social',
                                 nome_fantasia:'Nome Fantasia', cidade:'Cidade', uf:'UF',
-                                valor:'Valor', com_rep:'Com. Rep', com_escr:'Com. Escr.',
+                                valor:'Valor', politica:'Política', com_rep:'Com. Rep', com_escr:'Com. Escr.',
                                 faturado:'Faturado', a_faturar:'A Faturar',
                               }
-                              const isRight = ['valor','com_rep','com_escr','faturado','a_faturar'].includes(colId)
+                              const isRight = ['valor','politica','com_rep','com_escr','faturado','a_faturar'].includes(colId)
                               return (
                                 <th
                                   key={colId}
@@ -1121,6 +1122,7 @@ export function Reports() {
                               {colVisible('cidade') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.cidade || '—'}</td>}
                               {colVisible('uf') && <td className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{r.uf || '—'}</td>}
                               {colVisible('valor') && <td className="px-2 py-1 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(r.total_value)}</td>}
+                              {colVisible('politica') && <td className="px-2 py-1 text-right whitespace-nowrap text-on-surface-variant">{r.discount_pct ? fmtPct(r.discount_pct) : '—'}</td>}
                               {colVisible('com_rep') && (() => {
                                 const isEditing = isAdmin && editingComm?.orderId === r.id && editingComm.field === 'rep'
                                 const preview = isEditing ? previewValue(editingComm!.pctText, editingComm!.totalValue) : null
@@ -1203,6 +1205,7 @@ export function Reports() {
                           <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
                             <td className="px-2 py-1.5 text-on-surface-variant" colSpan={['data','vendedor','industria','nr_fabrica','razao_social','nome_fantasia','cidade','uf'].filter(colVisible).length}>Total — {rows.length} pedido{rows.length !== 1 ? 's' : ''}</td>
                             <td className="px-2 py-1.5 text-right text-on-surface">{fmtR(totalSold)}</td>
+                            {colVisible('politica') && <td className="px-2 py-1.5 text-right text-on-surface-variant/50">—</td>}
                             <td className="px-2 py-1.5 text-right text-emerald-700">
                               {fmtR(sum('rep_commission_value'))}
                               <span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(pctOfTotalSold(sum('rep_commission_value')))})</span>

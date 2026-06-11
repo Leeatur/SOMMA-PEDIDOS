@@ -179,7 +179,7 @@ export function OrderPrint() {
       }
       const gradeLabel = sortSizes(Object.keys(item.sizes).filter(s => (item.sizes![s] || 0) > 0)).join('/')
       // Preço Tab. = original da tabela. R$ c/Desc. = preço (possivelmente ajustado manualmente)
-      // com o Desconto à Vista do pedido aplicado — mesma lógica usada no cálculo do pedido (subtotal).
+      // com o Desconto Comercial do pedido aplicado — mesma lógica usada no cálculo do pedido (subtotal).
       const tabPrice = item.original_unit_price ?? item.unit_price
       const adjPrice = item.unit_price * (1 - actualDiscPct / 100)
       const discPct = tabPrice > 0 ? Math.round((1 - adjPrice / tabPrice) * 10000) / 100 : actualDiscPct
@@ -493,11 +493,11 @@ export function OrderPrint() {
             <div className="value">{fmt(totalGross)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Total c/ Desconto à Vista (R$)</div>
+            <div className="label">Total c/ Desconto Comercial (R$)</div>
             <div className="value">{fmt(totalNet)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Desconto à Vista R$ Total</div>
+            <div className="label">Desconto Comercial R$ Total</div>
             <div className="value">{fmt(totalDiscount)}</div>
           </div>
           <div className="grand-total-cell">

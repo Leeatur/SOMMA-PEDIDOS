@@ -1299,7 +1299,7 @@ export function NewOrder() {
 
               {/* Desconto */}
               <div className="p-3 border-b border-outline-variant/50">
-                <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">Desconto à Vista</h3>
+                <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">Desconto Comercial</h3>
                 {discountRules.length > 0 && !customDiscount ? (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
@@ -1387,10 +1387,10 @@ export function NewOrder() {
                 )}
               </div>
 
-              {/* Desconto à Vista */}
+              {/* Desconto Comercial */}
               <div className="p-3 border-b border-outline-variant/50">
                 <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">
-                  Desconto à Vista
+                  Desconto Comercial
                 </h3>
                 <div className="flex items-center gap-3">
                   {/* Input numérico simples com % inline */}
@@ -1438,7 +1438,7 @@ export function NewOrder() {
                 )}
                 {cashDiscountNum > 0 && (
                   <div className="flex justify-between text-emerald-600">
-                    <span>Desconto à vista ({formatPct(cashDiscountNum)}):</span>
+                    <span>Desconto Comercial ({formatPct(cashDiscountNum)}):</span>
                     <span>−{formatCurrency(totals.grossValue * cashDiscountNum / 100)}</span>
                   </div>
                 )}
