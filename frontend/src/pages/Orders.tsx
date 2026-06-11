@@ -180,14 +180,12 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
           {o.client_city && (
             <span className="text-[12px] text-outline">{o.client_city}</span>
           )}
-          {o.rep_name && (
-            <span className="text-[12px] text-outline flex items-center gap-0.5">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-              </svg>
-              {o.rep_name}
-            </span>
-          )}
+          <span className="text-[12px] text-orange-500 font-bold flex items-center gap-0.5">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+            </svg>
+            {o.rep_name || '(sem vendedor)'}
+          </span>
         </div>
 
         {/* Row 4: bottom — date + pieces + value */}
