@@ -33,9 +33,24 @@ app.get('/health', (_, res) => res.json({ status: 'ok', ts: new Date() }))
 // Em produção, serve o frontend buildado (arquivo gerado em frontend/dist)
 if (isProd) {
   const frontendDist = path.join(__dirname, '../../frontend/dist')
-  app.use(express.static(frontendDist))
+  // Assets com hash no nome (JS/CSS/imagens) → cache de 1 ano
+  // index.html → nunca cachear, para PWA/home screen sempre buscar versão nova
+  app.use(express.static(frontendDist, {
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+        res.setHeader('Pragma', 'no-cache')
+        res.setHeader('Expires', '0')
+      }
+    }
+  }))
   // SPA fallback — todas as rotas não-API retornam index.html
-  app.get('*', (_, res) => res.sendFile(path.join(frontendDist, 'index.html')))
+  app.get('*', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    res.setHeader('Pragma', 'no-cache')
+    res.setHeader('Expires', '0')
+    res.sendFile(path.join(frontendDist, 'index.html'))
+  })
 }
 
 // Tratador de erros do Multer (arquivo muito grande, tipo inválido, etc.)
