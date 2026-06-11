@@ -102,17 +102,17 @@ async function computeOrderTotals(
       : { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }
   }
 
+  const netValue = Math.round(totalValue * 100) / 100  // preço líquido = base de comissão
   return {
     enrichedItems,
     totalPieces,
-    totalValue: Math.round(totalValue * 100) / 100,
-    totalValueFull: Math.round(totalValueFull * 100) / 100,  // preço cheio — base de comissão
+    totalValue: netValue,
     totalCommissionPct: rule.total_commission_pct,
     repCommissionPct: rule.rep_commission_pct,
     officeCommissionPct: rule.office_commission_pct,
-    // Comissão baseada no valor CHEIO (sem desconto à vista)
-    repCommissionValue: Math.round(totalValueFull * rule.rep_commission_pct / 100 * 100) / 100,
-    officeCommissionValue: Math.round(totalValueFull * rule.office_commission_pct / 100 * 100) / 100,
+    // Comissão sempre baseada no valor LÍQUIDO (após desconto)
+    repCommissionValue: Math.round(netValue * rule.rep_commission_pct / 100 * 100) / 100,
+    officeCommissionValue: Math.round(netValue * rule.office_commission_pct / 100 * 100) / 100,
   }
 }
 
@@ -219,15 +219,16 @@ export async function getOrder(req: AuthRequest, res: Response) {
   const storedVal = Number(order.total_value)
   if (Math.abs(realPcs - storedPcs) > 0 || Math.abs(realVal - storedVal) > 0.01) {
     const realValFull = items.reduce((s: number, it: { unit_price: number; total_pieces: number }) => s + Number(it.unit_price) * Number(it.total_pieces), 0)
+    const fixedVal = Math.round(realVal * 100) / 100
     if (order.commission_manual_override) {
       await query(`UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
-        [realPcs, Math.round(realVal * 100) / 100, order.id])
+        [realPcs, fixedVal, order.id])
     } else {
       await query(
         `UPDATE orders SET total_pieces=$1, total_value=$2, rep_commission_value=$3, office_commission_value=$4, updated_at=NOW() WHERE id=$5`,
-        [realPcs, Math.round(realVal * 100) / 100,
-         Math.round(realValFull * order.rep_commission_pct / 100 * 100) / 100,
-         Math.round(realValFull * order.office_commission_pct / 100 * 100) / 100,
+        [realPcs, fixedVal,
+         Math.round(fixedVal * order.rep_commission_pct / 100 * 100) / 100,
+         Math.round(fixedVal * order.office_commission_pct / 100 * 100) / 100,
          order.id]
       )
     }
@@ -264,9 +265,9 @@ export async function createOrder(req: AuthRequest, res: Response) {
     const repCommPct   = isAdminOrder ? 0 : totals.repCommissionPct
     const offCommPct   = isAdminOrder ? totals.totalCommissionPct : totals.officeCommissionPct
     const repCommVal   = isAdminOrder ? 0 : totals.repCommissionValue
-    // Admin: 100% da comissão vai para o escritório, calculada sobre preço CHEIO (sem desconto)
+    // Admin: 100% da comissão vai para o escritório, calculada sobre preço LÍQUIDO
     const offCommVal   = isAdminOrder
-      ? Math.round(totals.totalValueFull * totals.totalCommissionPct / 100 * 100) / 100
+      ? Math.round(totals.totalValue * totals.totalCommissionPct / 100 * 100) / 100
       : totals.officeCommissionValue
 
     const { rows: [order] } = await dbClient.query(
@@ -425,23 +426,20 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
   } = req.body
 
   const { rows: [order] } = await query(
-    `SELECT o.id, o.total_value,
-            COALESCE((SELECT SUM(unit_price * total_pieces) FROM order_items WHERE order_id=o.id), o.total_value) AS total_value_full
-     FROM orders o WHERE o.id=$1 AND o.deleted_at IS NULL`,
-    [req.params.id]
+    'SELECT id, total_value FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
   )
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
-  // Base de comissão = preço cheio (sem desconto à vista), consistente com cálculo automático
-  const totalValFull = Number(order.total_value_full) || Number(order.total_value) || 0
+  // Base de comissão = preço líquido (após desconto)
+  const totalVal = Number(order.total_value) || 0
 
-  // Se pct fornecido: calcula value = totalValFull * pct / 100 e salva os dois
+  // Se pct fornecido: calcula value = totalVal * pct / 100 e salva os dois
   // Se só value fornecido: usa value diretamente
   const repPct  = rep_commission_pct  !== undefined ? parseFloat(String(rep_commission_pct).replace(',','.'))  : null
   const offPct  = office_commission_pct !== undefined ? parseFloat(String(office_commission_pct).replace(',','.')) : null
-  const repVal  = repPct  !== null ? Math.round(totalValFull * repPct  / 100 * 100) / 100
+  const repVal  = repPct  !== null ? Math.round(totalVal * repPct  / 100 * 100) / 100
                                    : parseFloat(String(rep_commission_value).replace(',','.'))  || 0
-  const offVal  = offPct  !== null ? Math.round(totalValFull * offPct  / 100 * 100) / 100
+  const offVal  = offPct  !== null ? Math.round(totalVal * offPct  / 100 * 100) / 100
                                    : parseFloat(String(office_commission_value).replace(',','.')) || 0
 
   // Constrói UPDATE dinâmico — id vai SEMPRE por último como $N final
@@ -484,14 +482,14 @@ export async function resetOrderCommission(req: AuthRequest, res: Response) {
   )
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
-  // Recalcula a comissão com base no valor total atual dos itens
+  // Recalcula a comissão com base no valor líquido (após desconto)
   const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(unit_price * total_pieces), 0) AS val_full FROM order_items WHERE order_id=$1`,
+    `SELECT COALESCE(SUM(subtotal), 0) AS val_net FROM order_items WHERE order_id=$1`,
     [order.id]
   )
-  const valFull = Math.round(Number(totals.val_full) * 100) / 100
-  const newRep = Math.round(valFull * order.rep_commission_pct / 100 * 100) / 100
-  const newOff = Math.round(valFull * order.office_commission_pct / 100 * 100) / 100
+  const valNet = Math.round(Number(totals.val_net) * 100) / 100
+  const newRep = Math.round(valNet * order.rep_commission_pct / 100 * 100) / 100
+  const newOff = Math.round(valNet * order.office_commission_pct / 100 * 100) / 100
 
   const { rows: [updated] } = await query(
     `UPDATE orders SET
@@ -558,19 +556,16 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
 
   await query('DELETE FROM order_items WHERE id=$1', [item_id])
 
-  // Recalcula totais do pedido
+  // Recalcula totais do pedido — comissão sobre preço líquido (subtotal)
   const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val,
-            COALESCE(SUM(unit_price * total_pieces),0) AS val_full
+    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
      FROM order_items WHERE order_id=$1`,
     [id]
   )
   const { rows: [o] } = await query('SELECT rep_commission_pct, office_commission_pct, commission_manual_override FROM orders WHERE id=$1', [id])
-  const newValue = Number(totals.val)
-  const newValueFull = Number(totals.val_full)  // base de comissão = preço cheio
+  const newValue = Math.round(Number(totals.val) * 100) / 100
 
   if (o.commission_manual_override) {
-    // Comissão manual ativa → preserva os valores, atualiza apenas peças/valor
     await query(
       `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
       [Number(totals.pcs), newValue, id]
@@ -583,8 +578,8 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
       [
         Number(totals.pcs),
         newValue,
-        Math.round(newValueFull * o.rep_commission_pct / 100 * 100) / 100,
-        Math.round(newValueFull * o.office_commission_pct / 100 * 100) / 100,
+        Math.round(newValue * o.rep_commission_pct / 100 * 100) / 100,
+        Math.round(newValue * o.office_commission_pct / 100 * 100) / 100,
         id,
       ]
     )
@@ -826,19 +821,15 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, newCustomGrade, effectiveUnitPrice, item_id]
   )
 
-  // Recalcula totais do pedido baseado no preço cheio (sem desconto à vista) para comissão
+  // Recalcula totais — comissão sobre preço líquido (subtotal)
   const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(total_pieces),0) AS pcs,
-            COALESCE(SUM(subtotal),0) AS val,
-            COALESCE(SUM(unit_price * total_pieces),0) AS val_full
+    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
      FROM order_items WHERE order_id=$1`,
     [id]
   )
   const newValue = Math.round(Number(totals.val) * 100) / 100
-  const newValueFull = Math.round(Number(totals.val_full) * 100) / 100
 
   if (order.commission_manual_override) {
-    // Comissão manual ativa → preserva os valores, atualiza apenas peças/valor
     await query(
       `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
       [Number(totals.pcs), newValue, id]
@@ -851,8 +842,8 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
       [
         Number(totals.pcs),
         newValue,
-        Math.round(newValueFull * order.rep_commission_pct / 100 * 100) / 100,
-        Math.round(newValueFull * order.office_commission_pct / 100 * 100) / 100,
+        Math.round(newValue * order.rep_commission_pct / 100 * 100) / 100,
+        Math.round(newValue * order.office_commission_pct / 100 * 100) / 100,
         id,
       ]
     )
@@ -874,14 +865,11 @@ export async function recalcOrderTotals(req: AuthRequest, res: Response) {
   }
 
   const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(total_pieces),0) AS pcs,
-            COALESCE(SUM(subtotal),0) AS val,
-            COALESCE(SUM(unit_price * total_pieces),0) AS val_full
+    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
      FROM order_items WHERE order_id=$1`,
     [id]
   )
   const newValue = Math.round(Number(totals.val) * 100) / 100
-  const newValueFull = Math.round(Number(totals.val_full) * 100) / 100
 
   if (order.commission_manual_override) {
     await query(
@@ -896,8 +884,8 @@ export async function recalcOrderTotals(req: AuthRequest, res: Response) {
       [
         Number(totals.pcs),
         newValue,
-        Math.round(newValueFull * order.rep_commission_pct / 100 * 100) / 100,
-        Math.round(newValueFull * order.office_commission_pct / 100 * 100) / 100,
+        Math.round(newValue * order.rep_commission_pct / 100 * 100) / 100,
+        Math.round(newValue * order.office_commission_pct / 100 * 100) / 100,
         id,
       ]
     )

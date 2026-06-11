@@ -10,6 +10,8 @@
     "migrate:prod": "node dist/scripts/migrate.js",
     "fix-pkte": "tsx src/scripts/fixPkteGrades.ts",
     "fix-pkte:prod": "node dist/scripts/fixPkteGrades.js",
+    "fix-commissions": "tsx src/scripts/fixCommissions.ts",
+    "fix-commissions:prod": "node dist/scripts/fixCommissions.js",
     "seed": "tsx src/scripts/seed.ts",
     "seed:prod": "node dist/scripts/seed.js"
   },
