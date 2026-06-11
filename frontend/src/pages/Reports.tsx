@@ -1148,11 +1148,13 @@ export function Reports() {
                                         {preview !== null && <span className="text-[10px] text-emerald-600/80">≈ {fmtR(preview)}</span>}
                                       </div>
                                     ) : (
-                                      <span
-                                        className={`font-bold text-[12px] ${r.commission_manual_override ? 'text-orange-600' : 'text-emerald-700'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}`}
-                                        title={isAdmin ? 'Clique para editar' : undefined}>
-                                        {fmtPct(r.rep_commission_pct)}
-                                      </span>
+                                      <div className="flex justify-end items-center gap-1">
+                                        <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-emerald-700'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}`}
+                                          title={isAdmin ? 'Clique para editar' : undefined}>
+                                          {fmtR(Number(r.rep_commission_value) || (Number(r.total_value) * Number(r.rep_commission_pct) / 100))}
+                                        </span>
+                                        <span className="text-emerald-600/70 text-[12px]">({fmtPct(r.rep_commission_pct)})</span>
+                                      </div>
                                     )}
                                   </td>
                                 )
@@ -1181,11 +1183,13 @@ export function Reports() {
                                         {preview !== null && <span className="text-[10px] text-blue-600/80">≈ {fmtR(preview)}</span>}
                                       </div>
                                     ) : (
-                                      <span
-                                        className={`font-bold text-[12px] ${r.commission_manual_override ? 'text-orange-600' : 'text-blue-700'} cursor-pointer hover:underline`}
-                                        title="Clique para editar">
-                                        {fmtPct(r.office_commission_pct)}
-                                      </span>
+                                      <div className="flex justify-end items-center gap-1">
+                                        <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-blue-700'} cursor-pointer hover:underline`}
+                                          title="Clique para editar">
+                                          {fmtR(Number(r.office_commission_value) || (Number(r.total_value) * Number(r.office_commission_pct) / 100))}
+                                        </span>
+                                        <span className="text-blue-600/70 text-[12px]">({fmtPct(r.office_commission_pct)})</span>
+                                      </div>
                                     )}
                                   </td>
                                 )
