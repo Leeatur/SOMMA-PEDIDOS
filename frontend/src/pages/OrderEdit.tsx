@@ -588,9 +588,9 @@ export default function OrderEdit() {
         await ordersApi.updateStatus(id!, form.status_id)
       }
 
-      // 5. Remover itens marcados
+      // 5. Remover itens marcados (sequencial para evitar race condition nos totais)
       const removedIds = items.filter(it => it.removed).map(it => it.id)
-      await Promise.all(removedIds.map(iid => ordersApi.removeItem(id!, iid)))
+      for (const iid of removedIds) { await ordersApi.removeItem(id!, iid) }
 
       // 6. Atualizar itens modificados (tamanhos, grade e preço unitário)
       for (const it of activeItems) {
@@ -631,6 +631,9 @@ export default function OrderEdit() {
         }))
         await ordersApi.addItems(id!, toAdd)
       }
+
+      // Recalcula totais finais a partir dos order_items (garante consistência)
+      await ordersApi.recalculate(id!)
 
       // Edições salvas: descarta o rascunho deste pedido
       clearOrderEditDraft(user?.id, id)

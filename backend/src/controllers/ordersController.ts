@@ -831,6 +831,50 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
   res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
 }
 
+// Recalcula totais de um pedido a partir dos order_items (corrige inconsistências)
+export async function recalcOrderTotals(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const isAdmin = req.user!.role === 'admin'
+  const { rows: [order] } = await query(
+    'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
+  )
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  if (!isAdmin && order.rep_id !== req.user!.id) {
+    res.status(403).json({ error: 'Acesso negado' }); return
+  }
+
+  const { rows: [totals] } = await query(
+    `SELECT COALESCE(SUM(total_pieces),0) AS pcs,
+            COALESCE(SUM(subtotal),0) AS val,
+            COALESCE(SUM(unit_price * total_pieces),0) AS val_full
+     FROM order_items WHERE order_id=$1`,
+    [id]
+  )
+  const newValue = Math.round(Number(totals.val) * 100) / 100
+  const newValueFull = Math.round(Number(totals.val_full) * 100) / 100
+
+  if (order.commission_manual_override) {
+    await query(
+      `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
+      [Number(totals.pcs), newValue, id]
+    )
+  } else {
+    await query(
+      `UPDATE orders SET total_pieces=$1, total_value=$2,
+         rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
+       WHERE id=$5`,
+      [
+        Number(totals.pcs),
+        newValue,
+        Math.round(newValueFull * order.rep_commission_pct / 100 * 100) / 100,
+        Math.round(newValueFull * order.office_commission_pct / 100 * 100) / 100,
+        id,
+      ]
+    )
+  }
+  res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
+}
+
 // Exclui um pedido (admin ou rep dono do pedido)
 export async function deleteOrder(req: AuthRequest, res: Response) {
   const isAdmin = req.user!.role === 'admin'
