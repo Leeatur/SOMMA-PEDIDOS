@@ -106,6 +106,7 @@ async function computeOrderTotals(
     enrichedItems,
     totalPieces,
     totalValue: Math.round(totalValue * 100) / 100,
+    totalValueFull: Math.round(totalValueFull * 100) / 100,  // preço cheio — base de comissão
     totalCommissionPct: rule.total_commission_pct,
     repCommissionPct: rule.rep_commission_pct,
     officeCommissionPct: rule.office_commission_pct,
@@ -263,8 +264,9 @@ export async function createOrder(req: AuthRequest, res: Response) {
     const repCommPct   = isAdminOrder ? 0 : totals.repCommissionPct
     const offCommPct   = isAdminOrder ? totals.totalCommissionPct : totals.officeCommissionPct
     const repCommVal   = isAdminOrder ? 0 : totals.repCommissionValue
+    // Admin: 100% da comissão vai para o escritório, calculada sobre preço CHEIO (sem desconto)
     const offCommVal   = isAdminOrder
-      ? Math.round(totals.totalValue * totals.totalCommissionPct / 100 * 100) / 100
+      ? Math.round(totals.totalValueFull * totals.totalCommissionPct / 100 * 100) / 100
       : totals.officeCommissionValue
 
     const { rows: [order] } = await dbClient.query(
@@ -423,19 +425,23 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
   } = req.body
 
   const { rows: [order] } = await query(
-    'SELECT id, total_value FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
+    `SELECT o.id, o.total_value,
+            COALESCE((SELECT SUM(unit_price * total_pieces) FROM order_items WHERE order_id=o.id), o.total_value) AS total_value_full
+     FROM orders o WHERE o.id=$1 AND o.deleted_at IS NULL`,
+    [req.params.id]
   )
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
-  const totalVal = Number(order.total_value) || 0
+  // Base de comissão = preço cheio (sem desconto à vista), consistente com cálculo automático
+  const totalValFull = Number(order.total_value_full) || Number(order.total_value) || 0
 
-  // Se pct fornecido: calcula value = total * pct / 100 e salva os dois
+  // Se pct fornecido: calcula value = totalValFull * pct / 100 e salva os dois
   // Se só value fornecido: usa value diretamente
   const repPct  = rep_commission_pct  !== undefined ? parseFloat(String(rep_commission_pct).replace(',','.'))  : null
   const offPct  = office_commission_pct !== undefined ? parseFloat(String(office_commission_pct).replace(',','.')) : null
-  const repVal  = repPct  !== null ? Math.round(totalVal * repPct  / 100 * 100) / 100
+  const repVal  = repPct  !== null ? Math.round(totalValFull * repPct  / 100 * 100) / 100
                                    : parseFloat(String(rep_commission_value).replace(',','.'))  || 0
-  const offVal  = offPct  !== null ? Math.round(totalVal * offPct  / 100 * 100) / 100
+  const offVal  = offPct  !== null ? Math.round(totalValFull * offPct  / 100 * 100) / 100
                                    : parseFloat(String(office_commission_value).replace(',','.')) || 0
 
   // Constrói UPDATE dinâmico — id vai SEMPRE por último como $N final

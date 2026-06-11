@@ -12,6 +12,7 @@ interface Order {
   total_value: number; total_pieces: number; status_name: string
   status_color: string; status_id: string; created_at: string; rep_name: string
   rep_commission_value: number
+  office_commission_value: number
 }
 
 interface DaySaleRow {
@@ -133,7 +134,7 @@ export function Dashboard() {
   // Métricas compartilhadas (baseadas no período filtrado)
   const totalPieces      = filteredOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
   const totalRepComm     = filteredOrders.reduce((s, o) => s + Number(o.rep_commission_value || 0), 0)
-  const totalOfficeComm  = filteredOrders.reduce((s, o) => s + Number((o as Order & {office_commission_value?:number}).office_commission_value || 0), 0)
+  const totalOfficeComm  = filteredOrders.reduce((s, o) => s + Number(o.office_commission_value || 0), 0)
   const ticketMedio      = filteredOrders.length > 0 ? totalValue / filteredOrders.length : 0
   const uniqueClients    = new Set(filteredOrders.map(o => o.client_name)).size
   const recentOrders     = [...allOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
@@ -820,7 +821,7 @@ export function Dashboard() {
               )}
               {isGrouped && cardModal === 'comissao' && (
                 Object.entries(
-                  rows.reduce((acc, o) => { const k = o.rep_name||'N/A'; if(!acc[k]) acc[k]={comm:0,orders:0}; acc[k].comm += Number((o as Order & {office_commission_value?:number}).office_commission_value||0); acc[k].orders++; return acc }, {} as Record<string,{comm:number;orders:number}>)
+                  rows.reduce((acc, o) => { const k = o.rep_name||'N/A'; if(!acc[k]) acc[k]={comm:0,orders:0}; acc[k].comm += Number(o.office_commission_value||0); acc[k].orders++; return acc }, {} as Record<string,{comm:number;orders:number}>)
                 ).sort((a,b)=>b[1].comm-a[1].comm).map(([rep,d]) => (
                   <div key={rep} className="flex items-center justify-between py-2 px-3 bg-surface-container-low rounded-xl">
                     <div><p className="font-semibold text-[13px]">{rep}</p><p className="text-[11px] text-outline">{d.orders} pedidos</p></div>
