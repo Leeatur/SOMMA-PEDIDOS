@@ -71,21 +71,48 @@ function ptWordToNum(word: string): string {
     treze: '13',
     catorze: '14', quatorze: '14',
     quinze: '15',
+    dezesseis: '16', dezessete: '17', dezoito: '18', dezenove: '19',
+    vinte: '20',
   }
   return map[word.toLowerCase()] ?? word
+}
+
+/**
+ * Normaliza aliases de letras faladas em português para os tamanhos reais.
+ * Ex: "pê" → "P", "gê gê" → "GG", "extra grande" → "XG"
+ */
+function normalizeLetterSizes(text: string): string {
+  return text
+    // multi-token aliases primeiro (ordem importa)
+    .replace(/extra\s+extra\s+grande/gi, 'EXG')
+    .replace(/extra\s+grande/gi, 'XG')
+    .replace(/gê\s+gê/gi, 'GG')
+    .replace(/g\s+g/gi, 'GG')
+    .replace(/x\s+g/gi, 'XG')
+    .replace(/e\s+x\s+g/gi, 'EXG')
+    // single-token aliases
+    .replace(/\bpê\b/gi, 'P')
+    .replace(/\bpe\b/gi, 'P')
+    .replace(/\beme\b/gi, 'M')
+    .replace(/\bgê\b/gi, 'G')
+    .replace(/\bge\b/gi, 'G')
 }
 
 /**
  * Recebe o texto reconhecido e os tamanhos disponíveis do produto.
  * Retorna mapa { tamanho: quantidade }.
  * Ex: "36 dois 38 três 40 um" → { "36": 2, "38": 3, "40": 1 }
+ * Ex: "P dois M três G quatro" → { "P": 2, "M": 3, "G": 4 }
  */
 export function parseGradeFromSpeech(
   text: string,
   availableSizes: string[],
 ): Record<string, number> {
-  // Normaliza: remove pontuação, substitui palavras numéricas
-  const tokens = text
+  // Normaliza aliases de letras antes de tokenizar
+  const normalized = normalizeLetterSizes(text)
+
+  // Tokeniza: remove pontuação, substitui palavras numéricas
+  const tokens = normalized
     .toLowerCase()
     .replace(/[,.;:]/g, ' ')
     .split(/\s+/)
@@ -97,13 +124,18 @@ export function parseGradeFromSpeech(
 
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i].toUpperCase()
-    // Verifica se o token é um tamanho disponível
-    const matched = sizesUpper.find(s => s === tok)
-    if (matched && i + 1 < tokens.length) {
-      const qty = parseInt(tokens[i + 1])
-      if (!isNaN(qty) && qty > 0 && qty <= 999) {
-        result[availableSizes[sizesUpper.indexOf(matched)]] = qty
-        i++ // pula o token de quantidade
+    // Verifica se o token corresponde a um tamanho disponível
+    const matchedIdx = sizesUpper.findIndex(s => s === tok)
+    if (matchedIdx >= 0 && i + 1 < tokens.length) {
+      const nextTok = tokens[i + 1]
+      // Se o próximo token é ele mesmo um tamanho, não usa como quantidade
+      const nextIsSize = sizesUpper.some(s => s === nextTok.toUpperCase())
+      if (!nextIsSize) {
+        const qty = parseInt(nextTok)
+        if (!isNaN(qty) && qty > 0 && qty <= 99) {
+          result[availableSizes[matchedIdx]] = qty
+          i++ // pula o token de quantidade
+        }
       }
     }
   }
