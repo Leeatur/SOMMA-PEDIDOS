@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, MapPin, Link2, ChevronDown, PackageCheck, BellRing, CreditCard,
+  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, BellRing, CreditCard,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
