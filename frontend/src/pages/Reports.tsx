@@ -1022,8 +1022,9 @@ export function Reports() {
                 // Soma efetiva das comissões — usa fallback calculado igual às células das linhas
                 const totalRepComm = rows.reduce((s, r) => s + (Number(r.rep_commission_value) || (Number(r.total_value) * Number(r.rep_commission_pct) / 100)), 0)
                 const totalOffComm = rows.reduce((s, r) => s + (Number(r.office_commission_value) || (Number(r.total_value) * Number(r.office_commission_pct) / 100)), 0)
-                // % do total da comissão sobre o valor total vendido no período filtrado
-                const pctOfTotalSold = (v: number) => totalSold > 0 ? (v / totalSold) * 100 : 0
+                // Média dos percentuais de comissão dos pedidos filtrados
+                const avgRepPct = rows.length > 0 ? rows.reduce((s, r) => s + Number(r.rep_commission_pct), 0) / rows.length : 0
+                const avgOffPct = rows.length > 0 ? rows.reduce((s, r) => s + Number(r.office_commission_pct), 0) / rows.length : 0
                 return (
                   <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                     {/* Barra de busca + config colunas */}
@@ -1209,12 +1210,12 @@ export function Reports() {
                             {colVisible('politica') && <td className="px-2 py-1.5 text-right text-on-surface-variant/50">—</td>}
                             <td className="px-2 py-1.5 text-right text-emerald-700">
                               {fmtR(totalRepComm)}
-                              <span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(pctOfTotalSold(totalRepComm))})</span>
+                              <span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(avgRepPct)})</span>
                             </td>
                             {isAdmin && (
                               <td className="px-2 py-1.5 text-right text-blue-700">
                                 {fmtR(totalOffComm)}
-                                <span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(pctOfTotalSold(totalOffComm))})</span>
+                                <span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(avgOffPct)})</span>
                               </td>
                             )}
                             <td className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
