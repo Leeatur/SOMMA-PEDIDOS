@@ -1148,7 +1148,7 @@ export function Reports() {
                                         {preview !== null && <span className="text-[10px] text-emerald-600/80">≈ {fmtR(preview)}</span>}
                                       </div>
                                     ) : (
-                                      <div className="inline-flex items-center gap-1">
+                                      <div className="flex justify-end items-center gap-1">
                                         <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-emerald-700'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}`}
                                           title={r.commission_manual_override ? 'Ajuste manual ativo — clique para editar' : isAdmin ? 'Clique para editar' : undefined}>
                                           {fmtR(r.rep_commission_value)}
@@ -1184,7 +1184,7 @@ export function Reports() {
                                         {preview !== null && <span className="text-[10px] text-blue-600/80">≈ {fmtR(preview)}</span>}
                                       </div>
                                     ) : (
-                                      <div className="inline-flex items-center gap-1">
+                                      <div className="flex justify-end items-center gap-1">
                                         <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-blue-700'} cursor-pointer hover:underline`}
                                           title={r.commission_manual_override ? 'Ajuste manual ativo — clique para editar' : 'Clique para editar'}>
                                           {fmtR(r.office_commission_value)}
