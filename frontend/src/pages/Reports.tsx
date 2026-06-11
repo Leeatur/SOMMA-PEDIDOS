@@ -125,7 +125,7 @@ const COMM_COL_DEFS: ColumnDef[] = [
   { id: 'cidade',         label: 'Cidade' },
   { id: 'uf',             label: 'UF' },
   { id: 'valor',          label: 'Valor',         alwaysVisible: true },
-  { id: 'politica',       label: 'Política' },
+  { id: 'politica',       label: 'Desc. Coml.' },
   { id: 'com_rep',        label: 'Com. Rep' },
   { id: 'com_escr',       label: 'Com. Escr.' },
   { id: 'faturado',       label: 'Faturado' },
@@ -1061,7 +1061,7 @@ export function Reports() {
                                 data:'Data', vendedor:'Vendedor', industria:'Indústria',
                                 nr_fabrica:'Nr. Fábrica', razao_social:'Razão Social',
                                 nome_fantasia:'Nome Fantasia', cidade:'Cidade', uf:'UF',
-                                valor:'Valor', politica:'Política', com_rep:'Com. Rep', com_escr:'Com. Escr.',
+                                valor:'Valor', politica:'Desc. Coml.', com_rep:'Com. Rep', com_escr:'Com. Escr.',
                                 faturado:'Faturado', a_faturar:'A Faturar',
                               }
                               const isRight = ['valor','politica','com_rep','com_escr','faturado','a_faturar'].includes(colId)
