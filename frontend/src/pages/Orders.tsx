@@ -37,6 +37,7 @@ interface Order {
   total_pieces: number
   discount_pct: number
   rep_commission_value: number
+  office_commission_value: number
   status_id: string | null
   status_name: string | null
   status_color: string | null
@@ -65,7 +66,8 @@ const ALL_COL_DEFS: ColumnDef[] = [
   { id: 'delivery',       label: 'Prev. Entrega',      defaultVisible: true },
   { id: 'payment',        label: 'Cond. Pagamento',    defaultVisible: true },
   { id: 'politica',       label: 'Política' },
-  { id: 'commission',     label: 'Comissão',           defaultVisible: false },
+  { id: 'commission',     label: 'Com. Rep.',          defaultVisible: false },
+  { id: 'com_escr',      label: 'Com. Escrit.',       defaultVisible: false },
   { id: 'discount',       label: 'Desconto',           defaultVisible: false },
   { id: 'table',          label: 'Tabela',             defaultVisible: false },
   { id: 'status',         label: 'Status' },
@@ -78,6 +80,7 @@ const COL_META: Record<string, { align?: string; width?: string }> = {
   items:       { align: 'text-center', width: 'w-16' },
   value:       { align: 'text-right',  width: 'w-28' },
   commission:  { align: 'text-right',  width: 'w-24' },
+  com_escr:   { align: 'text-right',  width: 'w-24' },
   discount:    { align: 'text-right',  width: 'w-20' },
   delivery:    { width: 'w-24' },
   payment:     { width: 'w-32' },
@@ -128,6 +131,7 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
     case 'delivery':  return <span className={`${cls} text-on-surface-variant whitespace-nowrap`}>{o.delivery_date ? (() => { const [y,m,d] = String(o.delivery_date).substring(0,10).split('-'); return `${d}/${m}/${y}` })() : '—'}</span>
     case 'payment':   return <span className={`${cls} text-on-surface-variant`}>{o.payment_terms || '—'}</span>
     case 'commission': return <span className={`${cls} text-right whitespace-nowrap ${o.rep_commission_value > 0 ? 'font-semibold text-emerald-600' : 'text-outline/50'}`}>{o.rep_commission_value > 0 ? formatCurrency(o.rep_commission_value) : '—'}</span>
+    case 'com_escr':   return <span className={`${cls} text-right whitespace-nowrap ${o.office_commission_value > 0 ? 'font-semibold text-blue-600' : 'text-outline/50'}`}>{o.office_commission_value > 0 ? formatCurrency(o.office_commission_value) : '—'}</span>
     case 'politica':  return <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold mx-2 inline-block ${o.discount_pct === 0 ? 'bg-blue-50 text-blue-700' : o.discount_pct <= 5 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>{o.discount_pct > 0 ? `${o.discount_pct}%` : '0%'}</span>
     case 'discount':  return <span className={`${cls} text-right whitespace-nowrap ${o.discount_pct > 0 ? 'font-semibold text-emerald-600' : 'text-outline/50'}`}>{o.discount_pct > 0 ? `-${o.discount_pct}%` : '—'}</span>
     case 'table':     return <span className={`${cls} text-outline/70`}>{o.price_table_name}</span>
@@ -305,7 +309,7 @@ export function Orders() {
     refetchInterval: 20000,
   })
 
-  const colDefs = ALL_COL_DEFS.filter(c => c.id !== 'rep' || isAdmin)
+  const colDefs = ALL_COL_DEFS.filter(c => (c.id !== 'rep' && c.id !== 'com_escr') || isAdmin)
   const { orderedDefs, config, save, reset } = useColumnConfig('orders', colDefs)
   const visibleCols = orderedDefs.filter(c => c.visible)
 
