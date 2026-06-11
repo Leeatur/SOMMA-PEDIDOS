@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Build cache bust: 2026-06-02-2246
+# Build cache bust: 2026-06-11-1145
 COPY . .
 
 RUN npm run build
