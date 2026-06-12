@@ -478,6 +478,14 @@ function exportCsv(filename: string, headers: string[], rows: (string | number)[
   URL.revokeObjectURL(url)
 }
 
+async function exportXlsx(filename: string, headers: string[], rows: (string | number)[][]) {
+  const XLSX = await import('xlsx')
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Dados')
+  XLSX.writeFile(wb, filename + '.xlsx')
+}
+
 // ─── CSS de impressão ─────────────────────────────────────────────────────────
 
 const PRINT_CSS = `
@@ -745,9 +753,18 @@ export function Reports() {
       const commRows = commSearch.trim()
         ? commissionsQ.data.filter(r => [r.vendedor,r.industria,r.razao_social,r.cliente,r.nr_ped_fabrica,r.status_name].some(v=>String(v||'').toLowerCase().includes(commSearch.toLowerCase())))
         : commissionsQ.data
-      exportCsv(`comissoes-${period}`,
-        ['Data','Vendedor','Fornecedor','Nº Fábrica','Razão Social','Cidade','UF','Valor','Com. Rep','Com. Escr.','Status'],
-        commRows.map(r => [fmtDatePtBR(r.data_venda), r.vendedor, r.industria, r.nr_ped_fabrica||'', r.razao_social, r.cidade||'', r.uf||'', r.total_value, r.rep_commission_value, r.office_commission_value, r.status_name||'']))
+      exportXlsx(`comissoes-${period}`,
+        ['Data','Vendedor','Fornecedor','Nº Fábrica','Razão Social','Cidade','UF','Valor','Desc. Com. %','Com. Rep','% Rep','Com. Escr.','% Escr.','Status'],
+        commRows.map(r => [
+          fmtDatePtBR(r.data_venda), r.vendedor, r.industria, r.nr_ped_fabrica||'', r.razao_social, r.cidade||'', r.uf||'',
+          Number(r.total_value),
+          Number(r.discount_pct||0),
+          Number(r.rep_commission_value),
+          Number(r.rep_commission_pct||0),
+          Number(r.office_commission_value),
+          Number(r.office_commission_pct||0),
+          r.status_name||'',
+        ]))
     } else if (tab === 'clients' && clientsQ.data) {
       exportCsv(`clientes-${period}`,['Cliente','Cidade','UF','Pedidos','Peças','Valor Total'],
         clientsQ.data.map(r=>[r.name, r.city, r.state, r.order_count, r.total_pieces, fmtR(r.total_value)]))
