@@ -25,7 +25,16 @@ interface ImportResult {
 }
 
 const BASE = 'https://somma-pedidos-production.up.railway.app'
-const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString('pt-BR') : '—'
+const fmtDate = (s: string | null): string => {
+  if (!s) return '—'
+  const str = String(s).trim()
+  if (str.includes('T') || str.includes('Z')) {
+    try { return new Date(str).toLocaleDateString('pt-BR') } catch { return str }
+  }
+  const [y, m, d] = str.substring(0, 10).split('-')
+  if (!y || !m || !d) return str
+  return `${d}/${m}/${y}`
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 

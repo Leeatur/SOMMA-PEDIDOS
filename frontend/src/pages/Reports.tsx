@@ -15,9 +15,11 @@ const fmtR = (v: number | string) =>
 const fmtN = (v: number | string) =>
   new Intl.NumberFormat('pt-BR').format(Number(v) || 0)
 
-function todayStr() { return new Date().toISOString().split('T')[0] }
+// Sempre em horário de Brasília — evita UTC→local (após 21h no Brasil o UTC já é o dia seguinte)
+const spFmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' })
+function todayStr() { return spFmt.format(new Date()) }
 function daysAgoStr(n: number) {
-  const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]
+  return spFmt.format(new Date(Date.now() - n * 86400000))
 }
 // Handles both "YYYY-MM-DD" strings and ISO timestamps returned by pg
 function fmtDatePtBR(d: string | Date): string {

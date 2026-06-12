@@ -27,9 +27,15 @@ function fmt(n: number | string | null | undefined) {
 
 function fmtDate(d: string | null | undefined) {
   if (!d) return '—'
-  try {
-    return new Date(d).toLocaleDateString('pt-BR')
-  } catch { return d }
+  const s = String(d).trim()
+  // Timestamp completo: usar Date() → converte para tz local
+  if (s.includes('T') || s.includes('Z')) {
+    try { return new Date(s).toLocaleDateString('pt-BR') } catch { return s }
+  }
+  // Data sem hora "YYYY-MM-DD": string split — evita UTC→local (-1 dia no Brasil)
+  const [y, m, day] = s.substring(0, 10).split('-')
+  if (!y || !m || !day) return s
+  return `${day}/${m}/${y}`
 }
 
 interface GradeConfig {

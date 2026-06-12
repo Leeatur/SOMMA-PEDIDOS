@@ -25,7 +25,14 @@ function fmt(n: number) {
 }
 
 function fmtDate(d: string) {
-  try { return new Date(d).toLocaleDateString('pt-BR') } catch { return d }
+  if (!d) return ''
+  const s = String(d).trim()
+  if (s.includes('T') || s.includes('Z')) {
+    try { return new Date(s).toLocaleDateString('pt-BR') } catch { return s }
+  }
+  const [y, m, day] = s.substring(0, 10).split('-')
+  if (!y || !m || !day) return s
+  return `${day}/${m}/${y}`
 }
 
 export function OrdersTrash() {
