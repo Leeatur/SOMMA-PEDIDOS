@@ -171,7 +171,33 @@ export function parseGradeFromSpeech(
       const nextTok = tokens[i + 1]
       // Se o próximo token é ele mesmo um tamanho, não usa como quantidade
       const nextIsSize = sizesUpper.some(s => s === nextTok.toUpperCase())
+
+      // Detecção de tamanho composto sem "e": o SR às vezes omite a conjunção,
+      // ex: "quarenta quatro" em vez de "quarenta e quatro".
+      // Nesse caso, após normalização, temos ["40","4","1",...] em vez de ["44","1",...].
+      // Heurística: se tok + nextTok formam um tamanho válido por soma (40+4=44)
+      // E o token seguinte (i+2) é uma quantidade válida (não é tamanho),
+      // interpreta como tamanho composto — sem risco de confundir "quarenta dois"
+      // (tamanho 40 qtd 2), pois nesse caso tokens[i+2] seria outro tamanho ou inexistente.
       if (!nextIsSize) {
+        const tokNum = parseInt(tok)
+        const nextNum = parseInt(nextTok)
+        if (!isNaN(tokNum) && !isNaN(nextNum)) {
+          const combinedSize = String(tokNum + nextNum)
+          const combIdx = sizesUpper.findIndex(s => s === combinedSize)
+          if (combIdx >= 0 && i + 2 < tokens.length) {
+            const qtyTok = tokens[i + 2]
+            const qty = parseInt(qtyTok)
+            const qtyIsSize = sizesUpper.some(s => s === qtyTok.toUpperCase())
+            if (!qtyIsSize && !isNaN(qty) && qty > 0 && qty <= 99) {
+              // Ex: "40 4 1" → tamanho 44, quantidade 1
+              result[availableSizes[combIdx]] = qty
+              i += 2 // pula os dois tokens do tamanho composto + o da quantidade
+              continue
+            }
+          }
+        }
+
         const qty = parseInt(nextTok)
         if (!isNaN(qty) && qty > 0 && qty <= 99) {
           result[availableSizes[matchedIdx]] = qty
