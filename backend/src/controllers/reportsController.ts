@@ -456,6 +456,7 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
       ${cond}
     WHERE u.role = 'representante' AND u.active = true
     GROUP BY u.id, u.name
+    HAVING COUNT(DISTINCT o.id) > 0
     ORDER BY total_value DESC
   `, params)
 

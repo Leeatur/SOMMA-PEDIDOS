@@ -1485,7 +1485,7 @@ export function Reports() {
                           <td className="px-3 py-2 whitespace-nowrap text-outline">{r.rep_name || '—'}</td>
                           <td className="px-3 py-2 whitespace-nowrap">
                             {r.ultimo_pedido
-                              ? <span className="text-outline">{new Date(r.ultimo_pedido+'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                              ? <span className="text-outline">{fmtDatePtBR(r.ultimo_pedido)}</span>
                               : <span className="text-red-500 font-bold">Nunca comprou</span>
                             }
                           </td>
@@ -1608,7 +1608,7 @@ export function Reports() {
                             <td className="px-3 py-2 font-bold text-primary">{fmtR(r.total_value)}</td>
                             <td className="px-3 py-2 text-center">{Number(r.pct).toFixed(1)}%</td>
                             <td className="px-3 py-2 text-center">{Number(r.pct_acum).toFixed(1)}%</td>
-                            <td className="px-3 py-2 whitespace-nowrap text-outline">{r.ultimo_pedido?new Date(r.ultimo_pedido+'T12:00').toLocaleDateString('pt-BR'):'—'}</td>
+                            <td className="px-3 py-2 whitespace-nowrap text-outline">{r.ultimo_pedido ? fmtDatePtBR(r.ultimo_pedido) : '—'}</td>
                           </tr>
                         ))}
                       </tbody>
