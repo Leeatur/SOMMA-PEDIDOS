@@ -621,6 +621,10 @@ export function NewOrder() {
           sizes: c.product.type === 'regular' ? c.sizes : undefined,
         })),
         discount_pct: effectiveDiscountNum,
+        // Separar desconto de prazo (comercial) do à vista:
+        // o lookup de comissão deve usar só o desconto comercial,
+        // mas o preço ao cliente usa o total (commercal + à vista).
+        commission_discount_pct: discountNum,
         notes: notes || undefined,
         payment_terms: paymentTerms || undefined,
         freight_type: freightType || 'CIF',
@@ -1427,7 +1431,7 @@ export function NewOrder() {
               {/* Desconto Comercial */}
               <div className="p-3 border-b border-outline-variant/50">
                 <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">
-                  Desconto Comercial
+                  Desc. À Vista
                 </h3>
                 <div className="flex items-center gap-3">
                   {/* Input numérico simples com % inline */}
@@ -1475,7 +1479,7 @@ export function NewOrder() {
                 )}
                 {cashDiscountNum > 0 && (
                   <div className="flex justify-between text-emerald-600">
-                    <span>Desconto Comercial ({formatPct(cashDiscountNum)}):</span>
+                    <span>Desc. À Vista ({formatPct(cashDiscountNum)}):</span>
                     <span>−{formatCurrency(totals.grossValue * cashDiscountNum / 100)}</span>
                   </div>
                 )}

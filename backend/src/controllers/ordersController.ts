@@ -241,8 +241,8 @@ export async function getOrder(req: AuthRequest, res: Response) {
 
 export async function createOrder(req: AuthRequest, res: Response) {
   const {
-    client_id, factory_id, price_table_id, items, discount_pct, notes, offline_id,
-    payment_terms, freight_type, delivery_date, industry_order_number, buyer_name,
+    client_id, factory_id, price_table_id, items, discount_pct, commission_discount_pct,
+    notes, offline_id, payment_terms, freight_type, delivery_date, industry_order_number, buyer_name,
   } = req.body
   if (!client_id || !factory_id || !price_table_id || !items?.length) {
     res.status(400).json({ error: 'Dados incompletos' }); return
@@ -258,7 +258,10 @@ export async function createOrder(req: AuthRequest, res: Response) {
     await dbClient.query('BEGIN')
 
     const disc = parseFloat(discount_pct) || 0
-    const totals = await computeOrderTotals(items, disc, price_table_id, dbClient as any)
+    // Bug fix: desconto de prazo (comercial) para lookup de comissão é separado do
+    // desconto à vista. Se não informado, usa o desconto total (compatibilidade).
+    const commDisc = commission_discount_pct !== undefined ? parseFloat(commission_discount_pct) || 0 : disc
+    const totals = await computeOrderTotals(items, disc, price_table_id, dbClient as any, commDisc)
 
     // Admin cria pedido: comissão 100% para o escritório, 0% para rep
     const isAdminOrder = req.user!.role === 'admin'
@@ -393,14 +396,18 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
         [allTotals.totalPieces, allTotals.totalValue, orderId]
       )
     } else {
+      // Bug fix: usa os % salvos no PEDIDO (que já respeitam admin vs. vendedor),
+      // não os % da regra de desconto — evita que pedidos de admin tenham o rep recebendo
+      // comissão indevidamente ao adicionar novos itens.
+      const newRepVal = Math.round(allTotals.totalValue * Number(order.rep_commission_pct)    / 100 * 100) / 100
+      const newOffVal = Math.round(allTotals.totalValue * Number(order.office_commission_pct) / 100 * 100) / 100
       await dbClient.query(
         `UPDATE orders SET
            total_pieces=$1, total_value=$2,
            rep_commission_value=$3, office_commission_value=$4,
            updated_at=NOW()
          WHERE id=$5`,
-        [allTotals.totalPieces, allTotals.totalValue,
-         allTotals.repCommissionValue, allTotals.officeCommissionValue, orderId]
+        [allTotals.totalPieces, allTotals.totalValue, newRepVal, newOffVal, orderId]
       )
     }
 
@@ -507,7 +514,10 @@ export async function resetOrderCommission(req: AuthRequest, res: Response) {
 // Atualiza campos de informação do pedido
 export async function updateOrderInfo(req: AuthRequest, res: Response) {
   const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id, rep_id, transportadora } = req.body
-  const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1', [req.params.id])
+  const { rows: [order] } = await query(
+    'SELECT rep_id, price_table_id, discount_pct, total_value, total_commission_pct, commission_manual_override FROM orders WHERE id=$1',
+    [req.params.id]
+  )
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
   const isAdmin = req.user!.role === 'admin'
   if (!isAdmin && order.rep_id !== req.user!.id) {
@@ -535,6 +545,35 @@ export async function updateOrderInfo(req: AuthRequest, res: Response) {
   sets.push(`transportadora=$${idx++}`);         params.push(transportadora ?? null)
   if (client_id) { sets.push(`client_id=$${idx++}`);  params.push(client_id) }
   if (rep_id && isAdmin) { sets.push(`rep_id=$${idx++}`); params.push(rep_id) }
+
+  // Bug fix: quando admin troca o rep, recalcula o split de comissão baseado no
+  // papel do novo representante (admin → 0% rep + 100% escrit; vendedor → 6% rep + 4% escrit).
+  // Só aplica se a comissão não estiver em modo manual e o rep estiver sendo alterado.
+  if (rep_id && isAdmin && !order.commission_manual_override) {
+    const { rows: [newRep] } = await query('SELECT role FROM users WHERE id=$1', [rep_id])
+    const isRepAdmin = newRep?.role === 'admin'
+
+    // Busca a regra de comissão pela tabela de preços e desconto do pedido
+    const { rows: rules } = await query(
+      `SELECT * FROM discount_commission_rules WHERE price_table_id=$1
+       ORDER BY ABS(discount_pct - $2) ASC LIMIT 1`,
+      [order.price_table_id, parseFloat(order.discount_pct) || 0]
+    )
+    const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4 }
+    const rule = rules[0] || PE_DEFAULT
+    const totalVal = Number(order.total_value) || 0
+
+    const newRepPct = isRepAdmin ? 0 : rule.rep_commission_pct
+    const newOffPct = isRepAdmin ? rule.total_commission_pct : rule.office_commission_pct
+    const newRepVal = Math.round(totalVal * newRepPct / 100 * 100) / 100
+    const newOffVal = Math.round(totalVal * newOffPct / 100 * 100) / 100
+
+    sets.push(`rep_commission_pct=$${idx++}`);    params.push(newRepPct)
+    sets.push(`office_commission_pct=$${idx++}`); params.push(newOffPct)
+    sets.push(`rep_commission_value=$${idx++}`);  params.push(newRepVal)
+    sets.push(`office_commission_value=$${idx++}`); params.push(newOffVal)
+  }
+
   sets.push('updated_at=NOW()')
 
   params.push(req.params.id)
