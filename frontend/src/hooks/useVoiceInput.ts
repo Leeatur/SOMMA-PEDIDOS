@@ -99,6 +99,46 @@ function normalizeLetterSizes(text: string): string {
 }
 
 /**
+ * Converte números por extenso em português para dígitos — cobre a faixa de
+ * tamanhos de roupa (20–60) que o ptWordToNum não trata.
+ * Compostos ANTES dos simples para evitar substituição parcial:
+ *   "quarenta e dois" → "42"  antes de  "quarenta" → "40"
+ */
+function normalizeNumberPhrases(text: string): string {
+  return text
+    // 50s
+    .replace(/cinquenta\s+e\s+oito/gi,   '58')
+    .replace(/cinquenta\s+e\s+seis/gi,   '56')
+    .replace(/cinquenta\s+e\s+quatro/gi, '54')
+    .replace(/cinquenta\s+e\s+duas?/gi,  '52')
+    .replace(/cinquenta\s+e\s+um[ao]?/gi,'51')
+    .replace(/\bcinquenta\b/gi,          '50')
+    // 40s
+    .replace(/quarenta\s+e\s+oito/gi,   '48')
+    .replace(/quarenta\s+e\s+seis/gi,   '46')
+    .replace(/quarenta\s+e\s+quatro/gi, '44')
+    .replace(/quarenta\s+e\s+tr[êe]s/gi,'43')
+    .replace(/quarenta\s+e\s+duas?/gi,  '42')
+    .replace(/quarenta\s+e\s+um[ao]?/gi,'41')
+    .replace(/\bquarenta\b/gi,          '40')
+    // 30s
+    .replace(/trinta\s+e\s+oito/gi,   '38')
+    .replace(/trinta\s+e\s+seis/gi,   '36')
+    .replace(/trinta\s+e\s+quatro/gi, '34')
+    .replace(/trinta\s+e\s+duas?/gi,  '32')
+    .replace(/trinta\s+e\s+um[ao]?/gi,'31')
+    .replace(/\btrinta\b/gi,          '30')
+    // 20s (tamanho infantil)
+    .replace(/vinte\s+e\s+oito/gi,   '28')
+    .replace(/vinte\s+e\s+seis/gi,   '26')
+    .replace(/vinte\s+e\s+quatro/gi, '24')
+    .replace(/vinte\s+e\s+duas?/gi,  '22')
+    .replace(/\bvinte\b/gi,          '20')
+    // 60s
+    .replace(/\bsessenta\b/gi, '60')
+}
+
+/**
  * Recebe o texto reconhecido e os tamanhos disponíveis do produto.
  * Retorna mapa { tamanho: quantidade }.
  * Ex: "36 dois 38 três 40 um" → { "36": 2, "38": 3, "40": 1 }
@@ -108,8 +148,9 @@ export function parseGradeFromSpeech(
   text: string,
   availableSizes: string[],
 ): Record<string, number> {
-  // Normaliza aliases de letras antes de tokenizar
-  const normalized = normalizeLetterSizes(text)
+  // Normaliza números por extenso (quarenta→40, trinta e seis→36 etc.)
+  // ANTES de letras, para evitar conflito com aliases
+  const normalized = normalizeLetterSizes(normalizeNumberPhrases(text))
 
   // Tokeniza: remove pontuação, substitui palavras numéricas
   const tokens = normalized
