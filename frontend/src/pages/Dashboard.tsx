@@ -136,9 +136,9 @@ export function Dashboard() {
 
   // Métricas compartilhadas (baseadas no período filtrado)
   const totalPieces      = filteredOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
-  // Calcula comissão: se override manual usa valor armazenado, senão calcula sempre por pct×valor
-  const effRepComm  = (o: Order) => o.commission_manual_override ? Number(o.rep_commission_value)    : Number(o.total_value) * Number(o.rep_commission_pct)    / 100
-  const effOffComm  = (o: Order) => o.commission_manual_override ? Number(o.office_commission_value) : Number(o.total_value) * Number(o.office_commission_pct) / 100
+  // PCT é sempre fonte da verdade; valor = pct × total (commission_manual_override só protege PCT de reset automático)
+  const effRepComm  = (o: Order) => Number(o.total_value) * Number(o.rep_commission_pct)    / 100
+  const effOffComm  = (o: Order) => Number(o.total_value) * Number(o.office_commission_pct) / 100
   const totalRepComm     = filteredOrders.reduce((s, o) => s + effRepComm(o), 0)
   const totalOfficeComm  = filteredOrders.reduce((s, o) => s + effOffComm(o), 0)
   const ticketMedio      = filteredOrders.length > 0 ? totalValue / filteredOrders.length : 0

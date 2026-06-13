@@ -1046,9 +1046,9 @@ export function Reports() {
                 const fmtDate = (d: string) => fmtDatePtBR(d)
                 const fmtPct = (v: number) => `${Number(v || 0).toFixed(2).replace('.', ',')}%`
                 const totalSold = sum('total_value')
-                // Soma efetiva: override manual usa valor salvo; demais calculam por pct×valor (alinhado com o backend)
-                const effRep = (r: CommissionRow) => r.commission_manual_override ? Number(r.rep_commission_value)    : Number(r.total_value) * Number(r.rep_commission_pct)    / 100
-                const effOff = (r: CommissionRow) => r.commission_manual_override ? Number(r.office_commission_value) : Number(r.total_value) * Number(r.office_commission_pct) / 100
+                // PCT é sempre fonte da verdade; valor = pct × total (commission_manual_override só protege PCT de reset automático)
+                const effRep = (r: CommissionRow) => Number(r.total_value) * Number(r.rep_commission_pct)    / 100
+                const effOff = (r: CommissionRow) => Number(r.total_value) * Number(r.office_commission_pct) / 100
                 const totalRepComm = rows.reduce((s, r) => s + effRep(r), 0)
                 const totalOffComm = rows.reduce((s, r) => s + effOff(r), 0)
                 // Média dos percentuais de comissão dos pedidos filtrados
@@ -1193,7 +1193,7 @@ export function Reports() {
                                         <div className="flex justify-end items-center gap-1">
                                           <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-emerald-700'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}`}
                                             title={isAdmin ? 'Clique para editar' : undefined}>
-                                            {fmtR(Number(r.rep_commission_value) || (Number(r.total_value) * Number(r.rep_commission_pct) / 100))}
+                                            {fmtR(Number(r.total_value) * Number(r.rep_commission_pct) / 100)}
                                           </span>
                                           <span className="text-emerald-600/70 text-[12px]">({fmtPct(r.rep_commission_pct)})</span>
                                         </div>
@@ -1228,7 +1228,7 @@ export function Reports() {
                                         <div className="flex justify-end items-center gap-1">
                                           <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-blue-700'} cursor-pointer hover:underline`}
                                             title="Clique para editar">
-                                            {fmtR(Number(r.office_commission_value) || (Number(r.total_value) * Number(r.office_commission_pct) / 100))}
+                                            {fmtR(Number(r.total_value) * Number(r.office_commission_pct) / 100)}
                                           </span>
                                           <span className="text-blue-600/70 text-[12px]">({fmtPct(r.office_commission_pct)})</span>
                                         </div>

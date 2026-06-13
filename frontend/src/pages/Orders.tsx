@@ -38,6 +38,8 @@ interface Order {
   discount_pct: number
   rep_commission_value: number
   office_commission_value: number
+  rep_commission_pct: number
+  office_commission_pct: number
   status_id: string | null
   status_name: string | null
   status_color: string | null
@@ -130,8 +132,8 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
     case 'value':     return <span className={`${cls} text-right font-bold text-on-surface whitespace-nowrap`}>{formatCurrency(o.total_value)}</span>
     case 'delivery':  return <span className={`${cls} text-on-surface-variant whitespace-nowrap`}>{o.delivery_date ? (() => { const [y,m,d] = String(o.delivery_date).substring(0,10).split('-'); return `${d}/${m}/${y}` })() : '—'}</span>
     case 'payment':   return <span className={`${cls} text-on-surface-variant`}>{o.payment_terms || '—'}</span>
-    case 'commission': return <span className={`${cls} text-right whitespace-nowrap ${o.rep_commission_value > 0 ? 'font-semibold text-emerald-600' : 'text-outline/50'}`}>{o.rep_commission_value > 0 ? formatCurrency(o.rep_commission_value) : '—'}</span>
-    case 'com_escr':   return <span className={`${cls} text-right whitespace-nowrap ${o.office_commission_value > 0 ? 'font-semibold text-blue-600' : 'text-outline/50'}`}>{o.office_commission_value > 0 ? formatCurrency(o.office_commission_value) : '—'}</span>
+    case 'commission': { const v = Number(o.total_value) * Number(o.rep_commission_pct)    / 100; return <span className={`${cls} text-right whitespace-nowrap ${v > 0 ? 'font-semibold text-emerald-600' : 'text-outline/50'}`}>{v > 0 ? formatCurrency(v) : '—'}</span> }
+    case 'com_escr':   { const v = Number(o.total_value) * Number(o.office_commission_pct) / 100; return <span className={`${cls} text-right whitespace-nowrap ${v > 0 ? 'font-semibold text-blue-600' : 'text-outline/50'}`}>{v > 0 ? formatCurrency(v) : '—'}</span> }
     case 'politica':  return <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold mx-2 inline-block ${o.discount_pct === 0 ? 'bg-blue-50 text-blue-700' : o.discount_pct <= 5 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>{o.discount_pct > 0 ? `${o.discount_pct}%` : '0%'}</span>
     case 'discount':  return <span className={`${cls} text-right whitespace-nowrap ${o.discount_pct > 0 ? 'font-semibold text-emerald-600' : 'text-outline/50'}`}>{o.discount_pct > 0 ? `-${o.discount_pct}%` : '—'}</span>
     case 'table':     return <span className={`${cls} text-outline/70`}>{o.price_table_name}</span>
@@ -343,7 +345,7 @@ export function Orders() {
     value:       o => Number(o.total_value) || 0,
     delivery:    o => o.delivery_date || '',
     payment:     o => o.payment_terms || '',
-    commission:  o => Number(o.rep_commission_value) || 0,
+    commission:  o => Number(o.total_value) * Number(o.rep_commission_pct) / 100,
     politica:    o => Number(o.discount_pct) || 0,
     status:      o => o.status_name?.toLowerCase() || '',
   }

@@ -456,21 +456,23 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
   } = req.body
 
   const { rows: [order] } = await query(
-    'SELECT id, total_value FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
+    'SELECT id, total_value, rep_commission_pct, office_commission_pct FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
   )
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
-  // Base de comissão = preço líquido (após desconto)
   const totalVal = Number(order.total_value) || 0
 
-  // Se pct fornecido: calcula value = totalVal * pct / 100 e salva os dois
-  // Se só value fornecido: usa value diretamente
-  const repPct  = rep_commission_pct  !== undefined ? parseFloat(String(rep_commission_pct).replace(',','.'))  : null
-  const offPct  = office_commission_pct !== undefined ? parseFloat(String(office_commission_pct).replace(',','.')) : null
-  const repVal  = repPct  !== null ? Math.round(totalVal * repPct  / 100 * 100) / 100
-                                   : parseFloat(String(rep_commission_value).replace(',','.'))  || 0
-  const offVal  = offPct  !== null ? Math.round(totalVal * offPct  / 100 * 100) / 100
-                                   : parseFloat(String(office_commission_value).replace(',','.')) || 0
+  // % informado tem prioridade; caso contrário usa o % atual do pedido no banco
+  // Value é SEMPRE recalculado a partir do % efetivo (nunca usa valor do body diretamente)
+  // Isso garante que editar rep_pct não zera o office_value (e vice-versa)
+  const repPctIn = rep_commission_pct  !== undefined ? parseFloat(String(rep_commission_pct).replace(',','.'))  : null
+  const offPctIn = office_commission_pct !== undefined ? parseFloat(String(office_commission_pct).replace(',','.')) : null
+  const effectiveRepPct = (repPctIn !== null && !isNaN(repPctIn)) ? repPctIn : Number(order.rep_commission_pct  || 0)
+  const effectiveOffPct = (offPctIn !== null && !isNaN(offPctIn)) ? offPctIn : Number(order.office_commission_pct || 0)
+  const repVal = Math.round(totalVal * effectiveRepPct / 100 * 100) / 100
+  const offVal = Math.round(totalVal * effectiveOffPct / 100 * 100) / 100
+  const repPct = effectiveRepPct
+  const offPct = effectiveOffPct
 
   // Constrói UPDATE dinâmico — id vai SEMPRE por último como $N final
   const sets: string[] = []
@@ -480,13 +482,8 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
 
   params.push(repVal);  sets.push(`rep_commission_value = $${p()}`)
   params.push(offVal);  sets.push(`office_commission_value = $${p()}`)
-
-  if (repPct !== null && !isNaN(repPct)) {
-    params.push(repPct);  sets.push(`rep_commission_pct = $${p()}`)
-  }
-  if (offPct !== null && !isNaN(offPct)) {
-    params.push(offPct);  sets.push(`office_commission_pct = $${p()}`)
-  }
+  params.push(repPct);  sets.push(`rep_commission_pct = $${p()}`)
+  params.push(offPct);  sets.push(`office_commission_pct = $${p()}`)
 
   sets.push('commission_manual_override = TRUE')
   sets.push('updated_at = NOW()')
