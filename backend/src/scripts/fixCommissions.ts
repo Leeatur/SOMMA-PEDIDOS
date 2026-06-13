@@ -23,11 +23,12 @@ export async function fixCommissions() {
     const repVal = Math.round(net * Number(o.rep_commission_pct) / 100 * 100) / 100
     const offVal = Math.round(net * Number(o.office_commission_pct) / 100 * 100) / 100
 
+    // Usa IS DISTINCT FROM para lidar corretamente com NULLs
     await query(
       `UPDATE orders
        SET rep_commission_value = $1, office_commission_value = $2
        WHERE id = $3
-         AND (ABS(rep_commission_value - $1) > 0.01 OR ABS(office_commission_value - $2) > 0.01)`,
+         AND (rep_commission_value IS DISTINCT FROM $1 OR office_commission_value IS DISTINCT FROM $2)`,
       [repVal, offVal, o.id]
     )
     fixed++

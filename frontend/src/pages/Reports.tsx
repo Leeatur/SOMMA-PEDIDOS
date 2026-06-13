@@ -1046,9 +1046,11 @@ export function Reports() {
                 const fmtDate = (d: string) => fmtDatePtBR(d)
                 const fmtPct = (v: number) => `${Number(v || 0).toFixed(2).replace('.', ',')}%`
                 const totalSold = sum('total_value')
-                // Soma efetiva das comissões — usa fallback calculado igual às células das linhas
-                const totalRepComm = rows.reduce((s, r) => s + (Number(r.rep_commission_value) || (Number(r.total_value) * Number(r.rep_commission_pct) / 100)), 0)
-                const totalOffComm = rows.reduce((s, r) => s + (Number(r.office_commission_value) || (Number(r.total_value) * Number(r.office_commission_pct) / 100)), 0)
+                // Soma efetiva: override manual usa valor salvo; demais calculam por pct×valor (alinhado com o backend)
+                const effRep = (r: CommissionRow) => r.commission_manual_override ? Number(r.rep_commission_value)    : Number(r.total_value) * Number(r.rep_commission_pct)    / 100
+                const effOff = (r: CommissionRow) => r.commission_manual_override ? Number(r.office_commission_value) : Number(r.total_value) * Number(r.office_commission_pct) / 100
+                const totalRepComm = rows.reduce((s, r) => s + effRep(r), 0)
+                const totalOffComm = rows.reduce((s, r) => s + effOff(r), 0)
                 // Média dos percentuais de comissão dos pedidos filtrados
                 const avgRepPct = rows.length > 0 ? rows.reduce((s, r) => s + Number(r.rep_commission_pct), 0) / rows.length : 0
                 const avgOffPct = rows.length > 0 ? rows.reduce((s, r) => s + Number(r.office_commission_pct), 0) / rows.length : 0

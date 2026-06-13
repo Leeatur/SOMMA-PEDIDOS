@@ -15,6 +15,7 @@ interface Order {
   office_commission_value: number
   rep_commission_pct: number
   office_commission_pct: number
+  commission_manual_override?: boolean
 }
 
 interface DaySaleRow {
@@ -135,9 +136,9 @@ export function Dashboard() {
 
   // Métricas compartilhadas (baseadas no período filtrado)
   const totalPieces      = filteredOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
-  // Fallback calculado: quando commission_value=0 usa pct×valor (igual ao Relatório de Comissões)
-  const effRepComm  = (o: Order) => Number(o.rep_commission_value)  || (Number(o.total_value) * Number(o.rep_commission_pct)    / 100)
-  const effOffComm  = (o: Order) => Number(o.office_commission_value) || (Number(o.total_value) * Number(o.office_commission_pct) / 100)
+  // Calcula comissão: se override manual usa valor armazenado, senão calcula sempre por pct×valor
+  const effRepComm  = (o: Order) => o.commission_manual_override ? Number(o.rep_commission_value)    : Number(o.total_value) * Number(o.rep_commission_pct)    / 100
+  const effOffComm  = (o: Order) => o.commission_manual_override ? Number(o.office_commission_value) : Number(o.total_value) * Number(o.office_commission_pct) / 100
   const totalRepComm     = filteredOrders.reduce((s, o) => s + effRepComm(o), 0)
   const totalOfficeComm  = filteredOrders.reduce((s, o) => s + effOffComm(o), 0)
   const ticketMedio      = filteredOrders.length > 0 ? totalValue / filteredOrders.length : 0
@@ -821,8 +822,8 @@ export function Dashboard() {
       else if (cardModal === 'hoje') { title = `Pedidos de Hoje (${todayOrders.length})`; rows = todayOrders }
       else if (cardModal === 'vendas') { title = `Vendas do Período`; rows = filteredOrders }
       else if (cardModal === 'comissao') { title = `Comissão Total Escritório`; rows = filteredOrders }
-      else if (cardModal === 'comissao_direto') { title = `Comissão Vendas Escritório (Direto/PE)`; rows = filteredOrders.filter(o => Number(o.rep_commission_value) === 0) }
-      else if (cardModal === 'comissao_rep') { title = `Comissão s/ Vendas de Representantes`; rows = filteredOrders.filter(o => Number(o.rep_commission_value) > 0) }
+      else if (cardModal === 'comissao_direto') { title = `Comissão Vendas Escritório (Direto/PE)`; rows = filteredOrders.filter(o => effRepComm(o) === 0) }
+      else if (cardModal === 'comissao_rep') { title = `Comissão s/ Vendas de Representantes`; rows = filteredOrders.filter(o => effRepComm(o) > 0) }
       else if (cardModal === 'pecas') { title = `Total de Peças por Fábrica`; rows = filteredOrders }
       else if (cardModal === 'ticket') { title = `Ticket Médio por Representante`; rows = filteredOrders }
       else if (cardModal === 'clientes') { title = `Clientes Atendidos`; rows = filteredOrders }

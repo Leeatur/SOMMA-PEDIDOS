@@ -41,8 +41,8 @@ export async function ordersReport(req: AuthRequest, res: Response) {
         COUNT(o.id)::int                                        AS order_count,
         COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
         COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
-        COALESCE(SUM(o.rep_commission_value), 0)::numeric      AS rep_commission_value,
-        COALESCE(SUM(o.office_commission_value), 0)::numeric   AS office_commission_value
+        COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.rep_commission_value    ELSE o.total_value * COALESCE(o.rep_commission_pct,0)/100    END), 0)::numeric AS rep_commission_value,
+        COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.office_commission_value ELSE o.total_value * COALESCE(o.office_commission_pct,0)/100 END), 0)::numeric AS office_commission_value
       FROM orders o
       WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     `, [...params]),
@@ -91,9 +91,9 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
       o.total_pieces,
       o.total_value::numeric,
       o.discount_pct::numeric,
-      o.rep_commission_value::numeric,
+      (CASE WHEN o.commission_manual_override THEN o.rep_commission_value    ELSE o.total_value * COALESCE(o.rep_commission_pct,0)/100    END)::numeric AS rep_commission_value,
       o.rep_commission_pct::numeric,
-      o.office_commission_value::numeric,
+      (CASE WHEN o.commission_manual_override THEN o.office_commission_value ELSE o.total_value * COALESCE(o.office_commission_pct,0)/100 END)::numeric AS office_commission_value,
       o.office_commission_pct::numeric,
       o.commission_manual_override,
       CASE WHEN COALESCE(s.is_final, false) = true
@@ -372,8 +372,8 @@ export async function salesEvolutionReport(req: AuthRequest, res: Response) {
       COUNT(o.id)::int                                        AS total_pedidos,
       COALESCE(SUM(o.total_value), 0)::numeric                AS total_value,
       COALESCE(SUM(o.total_pieces), 0)::int                   AS total_pieces,
-      COALESCE(SUM(o.rep_commission_value), 0)::numeric       AS rep_commission,
-      COALESCE(SUM(o.office_commission_value), 0)::numeric    AS office_commission,
+      COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.rep_commission_value    ELSE o.total_value * COALESCE(o.rep_commission_pct,0)/100    END), 0)::numeric AS rep_commission,
+      COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.office_commission_value ELSE o.total_value * COALESCE(o.office_commission_pct,0)/100 END), 0)::numeric AS office_commission,
       COUNT(DISTINCT o.client_id)::int                        AS clientes_atendidos,
       COALESCE(AVG(o.total_value), 0)::numeric                AS ticket_medio
     FROM orders o
@@ -444,8 +444,8 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
       COUNT(DISTINCT o.id)::int                              AS total_pedidos,
       COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
       COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
-      COALESCE(SUM(o.rep_commission_value), 0)::numeric      AS comissao_rep,
-      COALESCE(SUM(o.office_commission_value), 0)::numeric   AS comissao_escritorio,
+      COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.rep_commission_value    ELSE o.total_value * COALESCE(o.rep_commission_pct,0)/100    END), 0)::numeric AS comissao_rep,
+      COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.office_commission_value ELSE o.total_value * COALESCE(o.office_commission_pct,0)/100 END), 0)::numeric AS comissao_escritorio,
       COUNT(DISTINCT o.client_id)::int                       AS clientes_atendidos,
       COALESCE(AVG(o.total_value), 0)::numeric               AS ticket_medio,
       COALESCE(AVG(o.total_pieces), 0)::numeric              AS media_pecas_pedido
@@ -530,8 +530,8 @@ export async function periodComparisonReport(req: AuthRequest, res: Response) {
         COUNT(o.id)::int                                       AS total_pedidos,
         COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
         COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
-        COALESCE(SUM(o.rep_commission_value), 0)::numeric      AS rep_commission,
-        COALESCE(SUM(o.office_commission_value), 0)::numeric   AS office_commission,
+        COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.rep_commission_value    ELSE o.total_value * COALESCE(o.rep_commission_pct,0)/100    END), 0)::numeric AS rep_commission,
+        COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.office_commission_value ELSE o.total_value * COALESCE(o.office_commission_pct,0)/100 END), 0)::numeric AS office_commission,
         COUNT(DISTINCT o.client_id)::int                       AS clientes_atendidos,
         COALESCE(AVG(o.total_value), 0)::numeric               AS ticket_medio
       FROM orders o
@@ -566,7 +566,7 @@ export async function regionReport(req: AuthRequest, res: Response) {
       COALESCE(SUM(o.total_value), 0)::numeric          AS total_value,
       COALESCE(SUM(o.total_pieces), 0)::int             AS total_pieces,
       COALESCE(AVG(o.total_value), 0)::numeric          AS ticket_medio,
-      COALESCE(SUM(o.rep_commission_value), 0)::numeric AS comissao_rep
+      COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.rep_commission_value ELSE o.total_value * COALESCE(o.rep_commission_pct,0)/100 END), 0)::numeric AS comissao_rep
     FROM orders o
     JOIN clients c ON c.id = o.client_id
     WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
@@ -599,8 +599,8 @@ export async function commissionProjectionReport(req: AuthRequest, res: Response
       COUNT(o.id)::int                                       AS pedidos,
       COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
       COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
-      COALESCE(SUM(o.rep_commission_value), 0)::numeric      AS comissao_rep,
-      COALESCE(SUM(o.office_commission_value), 0)::numeric   AS comissao_escritorio,
+      COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.rep_commission_value    ELSE o.total_value * COALESCE(o.rep_commission_pct,0)/100    END), 0)::numeric AS comissao_rep,
+      COALESCE(SUM(CASE WHEN o.commission_manual_override THEN o.office_commission_value ELSE o.total_value * COALESCE(o.office_commission_pct,0)/100 END), 0)::numeric AS comissao_escritorio,
       CASE WHEN s.is_final THEN 'faturado' ELSE 'a_faturar' END AS situacao
     FROM orders o
     JOIN users u ON u.id = o.rep_id
