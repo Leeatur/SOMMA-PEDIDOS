@@ -4,6 +4,7 @@ import path from 'path'
 import dotenv from 'dotenv'
 import multer from 'multer'
 import routes from './routes'
+import { fixCommissions } from './scripts/fixCommissions'
 
 dotenv.config()
 
@@ -83,7 +84,10 @@ async function runStartupMigrations() {
   try {
     const { query } = await import('./config/database')
     await query('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_price_table_id_reference_key')
-    console.log('✅ Migration: constraint products_price_table_id_reference_key removida (ou já não existia)')
+    await query('ALTER TABLE price_tables ADD COLUMN IF NOT EXISTS max_cash_discount_pct NUMERIC(5,2) DEFAULT NULL')
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS needs_review_discount BOOLEAN DEFAULT FALSE')
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_discount_pct NUMERIC(5,2) DEFAULT NULL')
+    console.log('✅ Migrations de startup concluídas')
   } catch (err) {
     console.warn('⚠️  Migration startup falhou (não crítico):', err)
   }
@@ -91,6 +95,11 @@ async function runStartupMigrations() {
 
 app.listen(PORT, async () => {
   await runStartupMigrations()
+  try {
+    await fixCommissions()
+  } catch (err) {
+    console.warn('⚠️  fixCommissions falhou (não crítico):', err)
+  }
   console.log(`🚀 Somma Pedidos rodando em http://localhost:${PORT}`)
   if (isProd) console.log('📦 Servindo frontend buildado')
 })

@@ -136,6 +136,14 @@ export function Dashboard() {
   const totalRepComm     = filteredOrders.reduce((s, o) => s + Number(o.rep_commission_value || 0), 0)
   const totalOfficeComm  = filteredOrders.reduce((s, o) => s + Number(o.office_commission_value || 0), 0)
   const ticketMedio      = filteredOrders.length > 0 ? totalValue / filteredOrders.length : 0
+
+  // Comissão dividida: escritório direto (PE/admin, rep_commission=0) vs sobre representantes
+  const commEscritorioDireto   = filteredOrders
+    .filter(o => Number(o.rep_commission_value) === 0)
+    .reduce((s, o) => s + Number(o.office_commission_value || 0), 0)
+  const commEscritorioSobreRep = filteredOrders
+    .filter(o => Number(o.rep_commission_value) > 0)
+    .reduce((s, o) => s + Number(o.office_commission_value || 0), 0)
   const uniqueClients    = new Set(filteredOrders.map(o => o.client_name)).size
   const recentOrders     = [...allOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
 
@@ -291,16 +299,38 @@ export function Dashboard() {
 
       {/* ─── Cards extras Admin ──────────────────────────── */}
       {isAdmin && (
-        <div className="px-4 lg:px-8 mt-2">
-          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+        <div className="px-4 lg:px-8 mt-2 space-y-2.5">
+
+          {/* Row 1: 3 cards de comissão escritório */}
+          <div className="grid grid-cols-3 gap-2.5">
             <StatCard
               icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
               iconBg="bg-emerald-100"
-              label="Comissão Escritório"
-              value={formatCurrency(totalOfficeComm)}
+              label="Comissão Vendas Escritório"
+              value={formatCurrency(commEscritorioDireto)}
               accentColor="#10B981"
+              onClick={() => setCardModal('comissao_direto')}
+            />
+            <StatCard
+              icon={<Award className="h-4.5 w-4.5 text-teal-600" />}
+              iconBg="bg-teal-100"
+              label="Comissão s/ Repres."
+              value={formatCurrency(commEscritorioSobreRep)}
+              accentColor="#0D9488"
+              onClick={() => setCardModal('comissao_rep')}
+            />
+            <StatCard
+              icon={<Award className="h-4.5 w-4.5 text-indigo-600" />}
+              iconBg="bg-indigo-100"
+              label="Comissão Total Escritório"
+              value={formatCurrency(totalOfficeComm)}
+              accentColor="#4F46E5"
               onClick={() => setCardModal('comissao')}
             />
+          </div>
+
+          {/* Row 2: Peças, Ticket, Clientes */}
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
             <StatCard
               icon={<Package className="h-4.5 w-4.5 text-violet-600" />}
               iconBg="bg-violet-100"
@@ -785,7 +815,9 @@ export function Dashboard() {
       if (cardModal === 'pedidos') { title = `Pedidos do Período (${filteredOrders.length})`; rows = filteredOrders }
       else if (cardModal === 'hoje') { title = `Pedidos de Hoje (${todayOrders.length})`; rows = todayOrders }
       else if (cardModal === 'vendas') { title = `Vendas do Período`; rows = filteredOrders }
-      else if (cardModal === 'comissao') { title = `Comissão Escritório`; rows = filteredOrders }
+      else if (cardModal === 'comissao') { title = `Comissão Total Escritório`; rows = filteredOrders }
+      else if (cardModal === 'comissao_direto') { title = `Comissão Vendas Escritório (Direto/PE)`; rows = filteredOrders.filter(o => Number(o.rep_commission_value) === 0) }
+      else if (cardModal === 'comissao_rep') { title = `Comissão s/ Vendas de Representantes`; rows = filteredOrders.filter(o => Number(o.rep_commission_value) > 0) }
       else if (cardModal === 'pecas') { title = `Total de Peças por Fábrica`; rows = filteredOrders }
       else if (cardModal === 'ticket') { title = `Ticket Médio por Representante`; rows = filteredOrders }
       else if (cardModal === 'clientes') { title = `Clientes Atendidos`; rows = filteredOrders }
@@ -793,7 +825,8 @@ export function Dashboard() {
       else if (cardModal.startsWith('rep_')) { const parts = cardModal.split('_'); const factory = parts[1]; const rep = parts.slice(2).join('_'); title = `${rep} — ${factory}`; rows = filteredOrders.filter(o => o.factory_name === factory && o.rep_name === rep) }
 
       // Para peças/ticket/comissão/clientes mostra agrupamento
-      const isGrouped = ['pecas','ticket','comissao','clientes'].includes(cardModal)
+      const isGrouped = ['pecas','ticket','comissao','comissao_direto','comissao_rep','clientes'].includes(cardModal)
+      const isCommModal = cardModal === 'comissao' || cardModal === 'comissao_direto' || cardModal === 'comissao_rep'
 
       return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -819,16 +852,42 @@ export function Dashboard() {
                   </div>
                 ))
               )}
-              {isGrouped && cardModal === 'comissao' && (
-                Object.entries(
-                  rows.reduce((acc, o) => { const k = o.rep_name||'N/A'; if(!acc[k]) acc[k]={comm:0,orders:0}; acc[k].comm += Number(o.office_commission_value||0); acc[k].orders++; return acc }, {} as Record<string,{comm:number;orders:number}>)
-                ).sort((a,b)=>b[1].comm-a[1].comm).map(([rep,d]) => (
-                  <div key={rep} className="flex items-center justify-between py-2 px-3 bg-surface-container-low rounded-xl">
-                    <div><p className="font-semibold text-[13px]">{rep}</p><p className="text-[11px] text-outline">{d.orders} pedidos</p></div>
-                    <span className="font-bold text-emerald-600 text-[14px]">{formatCurrency(d.comm)}</span>
+              {isGrouped && isCommModal && (() => {
+                const totalModal = rows.reduce((s,o)=>s+Number(o.office_commission_value||0),0)
+                const grouped = Object.entries(
+                  rows.reduce((acc, o) => {
+                    const k = o.rep_name||'N/A'
+                    if(!acc[k]) acc[k]={comm:0,orders:0}
+                    acc[k].comm += Number(o.office_commission_value||0)
+                    acc[k].orders++
+                    return acc
+                  }, {} as Record<string,{comm:number;orders:number}>)
+                ).sort((a,b)=>b[1].comm-a[1].comm)
+                return (<>
+                  <div className="flex justify-between items-center py-2 px-3 bg-indigo-50 border border-indigo-200 rounded-xl mb-1">
+                    <span className="font-bold text-[12px] text-indigo-700">TOTAL</span>
+                    <span className="font-black text-[15px] text-indigo-700">{formatCurrency(totalModal)}</span>
                   </div>
-                ))
-              )}
+                  {cardModal === 'comissao' && (
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div className="py-1.5 px-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                        <p className="text-[10px] font-medium text-emerald-700">Vendas Escritório</p>
+                        <p className="text-[13px] font-bold text-emerald-700">{formatCurrency(commEscritorioDireto)}</p>
+                      </div>
+                      <div className="py-1.5 px-3 bg-teal-50 border border-teal-200 rounded-xl">
+                        <p className="text-[10px] font-medium text-teal-700">s/ Representantes</p>
+                        <p className="text-[13px] font-bold text-teal-700">{formatCurrency(commEscritorioSobreRep)}</p>
+                      </div>
+                    </div>
+                  )}
+                  {grouped.map(([rep,d]) => (
+                    <div key={rep} className="flex items-center justify-between py-2 px-3 bg-surface-container-low rounded-xl">
+                      <div><p className="font-semibold text-[13px]">{rep}</p><p className="text-[11px] text-outline">{d.orders} pedido{d.orders!==1?'s':''}</p></div>
+                      <span className="font-bold text-emerald-600 text-[14px]">{formatCurrency(d.comm)}</span>
+                    </div>
+                  ))}
+                </>)
+              })()}
               {isGrouped && cardModal === 'ticket' && (
                 Object.entries(
                   rows.reduce((acc, o) => { const k=o.rep_name||'N/A'; if(!acc[k]) acc[k]={total:0,count:0}; acc[k].total+=Number(o.total_value); acc[k].count++; return acc }, {} as Record<string,{total:number;count:number}>)
