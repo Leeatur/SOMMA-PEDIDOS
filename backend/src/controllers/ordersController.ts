@@ -131,7 +131,7 @@ export async function listOrders(req: AuthRequest, res: Response) {
     JOIN clients c ON c.id = o.client_id
     JOIN users u ON u.id = o.rep_id
     JOIN factories f ON f.id = o.factory_id
-    JOIN price_tables pt ON pt.id = o.price_table_id
+    LEFT JOIN price_tables pt ON pt.id = o.price_table_id
     LEFT JOIN order_statuses s ON s.id = o.status_id
     WHERE o.deleted_at IS NULL
   `

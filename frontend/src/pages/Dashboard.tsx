@@ -13,6 +13,8 @@ interface Order {
   status_color: string; status_id: string; created_at: string; rep_name: string
   rep_commission_value: number
   office_commission_value: number
+  rep_commission_pct: number
+  office_commission_pct: number
 }
 
 interface DaySaleRow {
@@ -133,17 +135,20 @@ export function Dashboard() {
 
   // Métricas compartilhadas (baseadas no período filtrado)
   const totalPieces      = filteredOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
-  const totalRepComm     = filteredOrders.reduce((s, o) => s + Number(o.rep_commission_value || 0), 0)
-  const totalOfficeComm  = filteredOrders.reduce((s, o) => s + Number(o.office_commission_value || 0), 0)
+  // Fallback calculado: quando commission_value=0 usa pct×valor (igual ao Relatório de Comissões)
+  const effRepComm  = (o: Order) => Number(o.rep_commission_value)  || (Number(o.total_value) * Number(o.rep_commission_pct)    / 100)
+  const effOffComm  = (o: Order) => Number(o.office_commission_value) || (Number(o.total_value) * Number(o.office_commission_pct) / 100)
+  const totalRepComm     = filteredOrders.reduce((s, o) => s + effRepComm(o), 0)
+  const totalOfficeComm  = filteredOrders.reduce((s, o) => s + effOffComm(o), 0)
   const ticketMedio      = filteredOrders.length > 0 ? totalValue / filteredOrders.length : 0
 
   // Comissão dividida: escritório direto (PE/admin, rep_commission=0) vs sobre representantes
   const commEscritorioDireto   = filteredOrders
-    .filter(o => Number(o.rep_commission_value) === 0)
-    .reduce((s, o) => s + Number(o.office_commission_value || 0), 0)
+    .filter(o => effRepComm(o) === 0)
+    .reduce((s, o) => s + effOffComm(o), 0)
   const commEscritorioSobreRep = filteredOrders
-    .filter(o => Number(o.rep_commission_value) > 0)
-    .reduce((s, o) => s + Number(o.office_commission_value || 0), 0)
+    .filter(o => effRepComm(o) > 0)
+    .reduce((s, o) => s + effOffComm(o), 0)
   const uniqueClients    = new Set(filteredOrders.map(o => o.client_name)).size
   const recentOrders     = [...allOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)
 
@@ -166,7 +171,7 @@ export function Dashboard() {
     }, {} as Record<string, { count: number; color: string }>)
   ).sort((a, b) => b[1].count - a[1].count) : []
 
-  const totalCommission  = isAdmin ? totalOfficeComm : totalRepComm
+  const totalCommission = isAdmin ? totalOfficeComm : totalRepComm
 
   const greeting = () => {
     const h = new Date().getHours()
@@ -853,12 +858,12 @@ export function Dashboard() {
                 ))
               )}
               {isGrouped && isCommModal && (() => {
-                const totalModal = rows.reduce((s,o)=>s+Number(o.office_commission_value||0),0)
+                const totalModal = rows.reduce((s,o)=>s+effOffComm(o),0)
                 const grouped = Object.entries(
                   rows.reduce((acc, o) => {
                     const k = o.rep_name||'N/A'
                     if(!acc[k]) acc[k]={comm:0,orders:0}
-                    acc[k].comm += Number(o.office_commission_value||0)
+                    acc[k].comm += effOffComm(o)
                     acc[k].orders++
                     return acc
                   }, {} as Record<string,{comm:number;orders:number}>)

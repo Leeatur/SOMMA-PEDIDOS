@@ -87,6 +87,8 @@ async function runStartupMigrations() {
     await query('ALTER TABLE price_tables ADD COLUMN IF NOT EXISTS max_cash_discount_pct NUMERIC(5,2) DEFAULT NULL')
     await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS needs_review_discount BOOLEAN DEFAULT FALSE')
     await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_discount_pct NUMERIC(5,2) DEFAULT NULL')
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_manual_override BOOLEAN DEFAULT FALSE')
+    await query('UPDATE orders SET commission_manual_override = FALSE WHERE commission_manual_override IS NULL')
     console.log('✅ Migrations de startup concluídas')
   } catch (err) {
     console.warn('⚠️  Migration startup falhou (não crítico):', err)

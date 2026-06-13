@@ -21,6 +21,11 @@ function todayStr() { return spFmt.format(new Date()) }
 function daysAgoStr(n: number) {
   return spFmt.format(new Date(Date.now() - n * 86400000))
 }
+function monthStartStr() {
+  const d = new Date()
+  d.setDate(1)
+  return spFmt.format(d)
+}
 // Handles both "YYYY-MM-DD" strings and ISO timestamps returned by pg
 function fmtDatePtBR(d: string | Date): string {
   const iso = typeof d === 'string' ? d : (d as Date).toISOString()
@@ -545,7 +550,7 @@ export function Reports() {
 
   const [tab, setTab] = useState<Tab>('orders')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [dateFrom, setDateFrom] = useState(daysAgoStr(29))
+  const [dateFrom, setDateFrom] = useState(monthStartStr())
   const [dateTo, setDateTo] = useState(todayStr())
   const [factoryId, setFactoryId] = useState('')
   const [repId, setRepId] = useState('')
@@ -825,7 +830,11 @@ export function Reports() {
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary" />
           <div className="flex gap-1">
-            {[{ label: 'Hoje', d: 1 }, { label: '7 dias', d: 7 }, { label: '30 dias', d: 30 }, { label: '90 dias', d: 90 }].map(r => (
+            <button onClick={() => { setDateFrom(monthStartStr()); setDateTo(todayStr()) }}
+              className="px-2.5 py-1 text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-primary/20">
+              Este mês
+            </button>
+            {[{ label: 'Hoje', d: 1 }, { label: '7d', d: 7 }, { label: '30d', d: 30 }, { label: '90d', d: 90 }].map(r => (
               <button key={r.label} onClick={() => setRange(r.d)}
                 className="px-2.5 py-1 text-[11px] font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg transition-colors">
                 {r.label}
@@ -1079,9 +1088,9 @@ export function Reports() {
                     <p className="text-[11px] text-outline/50 px-3 py-1 bg-surface-container-low/50 border-b border-outline-variant/20">
                       Arraste a borda direita para redimensionar · Arraste o cabeçalho para reordenar
                     </p>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 265px)' }}>
                       <table className="text-[12px]" style={{ tableLayout: 'fixed', width: '100%' }}>
-                        <thead className="bg-surface-container-low">
+                        <thead className="bg-surface-container-low sticky top-0 z-10 shadow-sm">
                           <tr>
                             {commCols.filter(c => c.visible && (c.id !== 'com_escr' || isAdmin)).map((col, colIdx, visArr) => {
                               const colId = col.id
