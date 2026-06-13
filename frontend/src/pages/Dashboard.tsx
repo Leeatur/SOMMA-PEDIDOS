@@ -320,8 +320,8 @@ export function Dashboard() {
             <StatCard
               icon={<Award className="h-4.5 w-4.5 text-teal-600" />}
               iconBg="bg-teal-100"
-              label="Comissão Representantes"
-              value={formatCurrency(totalRepComm)}
+              label="Comissão s/ Repres."
+              value={formatCurrency(commEscritorioSobreRep)}
               accentColor="#0D9488"
               onClick={() => setCardModal('comissao_rep')}
             />
@@ -823,7 +823,7 @@ export function Dashboard() {
       else if (cardModal === 'vendas') { title = `Vendas do Período`; rows = filteredOrders }
       else if (cardModal === 'comissao') { title = `Comissão Total Escritório`; rows = filteredOrders }
       else if (cardModal === 'comissao_direto') { title = `Comissão Vendas Escritório (Direto/PE)`; rows = filteredOrders.filter(o => effRepComm(o) === 0) }
-      else if (cardModal === 'comissao_rep') { title = `Comissão dos Representantes`; rows = filteredOrders.filter(o => effRepComm(o) > 0) }
+      else if (cardModal === 'comissao_rep') { title = `Comissão Escritório s/ Vendas de Representantes`; rows = filteredOrders.filter(o => effRepComm(o) > 0) }
       else if (cardModal === 'pecas') { title = `Total de Peças por Fábrica`; rows = filteredOrders }
       else if (cardModal === 'ticket') { title = `Ticket Médio por Representante`; rows = filteredOrders }
       else if (cardModal === 'clientes') { title = `Clientes Atendidos`; rows = filteredOrders }
@@ -859,15 +859,12 @@ export function Dashboard() {
                 ))
               )}
               {isGrouped && isCommModal && (() => {
-                // comissao_rep: mostra o que os representantes ganham (effRepComm)
-                // demais modais de comissão: mostra o que o escritório ganha (effOffComm)
-                const commFn = cardModal === 'comissao_rep' ? effRepComm : effOffComm
-                const totalModal = rows.reduce((s,o)=>s+commFn(o),0)
+                const totalModal = rows.reduce((s,o)=>s+effOffComm(o),0)
                 const grouped = Object.entries(
                   rows.reduce((acc, o) => {
                     const k = o.rep_name||'N/A'
                     if(!acc[k]) acc[k]={comm:0,orders:0}
-                    acc[k].comm += commFn(o)
+                    acc[k].comm += effOffComm(o)
                     acc[k].orders++
                     return acc
                   }, {} as Record<string,{comm:number;orders:number}>)
