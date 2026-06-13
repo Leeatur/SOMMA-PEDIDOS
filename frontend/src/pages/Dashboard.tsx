@@ -307,21 +307,21 @@ export function Dashboard() {
       {isAdmin && (
         <div className="px-4 lg:px-8 mt-2 space-y-2.5">
 
-          {/* Row 1: 3 cards de comissão escritório */}
+          {/* Row 1: 3 cards de comissão */}
           <div className="grid grid-cols-3 gap-2.5">
             <StatCard
               icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
               iconBg="bg-emerald-100"
-              label="Comissão Vendas Escritório"
-              value={formatCurrency(commEscritorioDireto)}
+              label="Com. Escritório s/ Repres."
+              value={formatCurrency(commEscritorioSobreRep)}
               accentColor="#10B981"
               onClick={() => setCardModal('comissao_direto')}
             />
             <StatCard
               icon={<Award className="h-4.5 w-4.5 text-teal-600" />}
               iconBg="bg-teal-100"
-              label="Comissão s/ Repres."
-              value={formatCurrency(commEscritorioSobreRep)}
+              label="Comissão Representantes"
+              value={formatCurrency(totalRepComm)}
               accentColor="#0D9488"
               onClick={() => setCardModal('comissao_rep')}
             />
@@ -822,8 +822,8 @@ export function Dashboard() {
       else if (cardModal === 'hoje') { title = `Pedidos de Hoje (${todayOrders.length})`; rows = todayOrders }
       else if (cardModal === 'vendas') { title = `Vendas do Período`; rows = filteredOrders }
       else if (cardModal === 'comissao') { title = `Comissão Total Escritório`; rows = filteredOrders }
-      else if (cardModal === 'comissao_direto') { title = `Comissão Vendas Escritório (Direto/PE)`; rows = filteredOrders.filter(o => effRepComm(o) === 0) }
-      else if (cardModal === 'comissao_rep') { title = `Comissão Escritório s/ Vendas de Representantes`; rows = filteredOrders.filter(o => effRepComm(o) > 0) }
+      else if (cardModal === 'comissao_direto') { title = `Com. Escritório s/ Vendas de Representantes`; rows = filteredOrders.filter(o => effRepComm(o) > 0) }
+      else if (cardModal === 'comissao_rep') { title = `Comissão dos Representantes`; rows = filteredOrders.filter(o => effRepComm(o) > 0) }
       else if (cardModal === 'pecas') { title = `Total de Peças por Fábrica`; rows = filteredOrders }
       else if (cardModal === 'ticket') { title = `Ticket Médio por Representante`; rows = filteredOrders }
       else if (cardModal === 'clientes') { title = `Clientes Atendidos`; rows = filteredOrders }
@@ -859,12 +859,16 @@ export function Dashboard() {
                 ))
               )}
               {isGrouped && isCommModal && (() => {
-                const totalModal = rows.reduce((s,o)=>s+effOffComm(o),0)
+                // Card 1 (comissao_direto): fatia do escritório s/ vendas de representantes → effOffComm
+                // Card 2 (comissao_rep): o que os representantes ganham para si → effRepComm
+                // Card 3 (comissao): total escritório → effOffComm
+                const commFn = cardModal === 'comissao_rep' ? effRepComm : effOffComm
+                const totalModal = rows.reduce((s,o)=>s+commFn(o),0)
                 const grouped = Object.entries(
                   rows.reduce((acc, o) => {
                     const k = o.rep_name||'N/A'
                     if(!acc[k]) acc[k]={comm:0,orders:0}
-                    acc[k].comm += effOffComm(o)
+                    acc[k].comm += commFn(o)
                     acc[k].orders++
                     return acc
                   }, {} as Record<string,{comm:number;orders:number}>)
@@ -877,12 +881,12 @@ export function Dashboard() {
                   {cardModal === 'comissao' && (
                     <div className="grid grid-cols-2 gap-2 mb-2">
                       <div className="py-1.5 px-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-                        <p className="text-[10px] font-medium text-emerald-700">Vendas Escritório</p>
-                        <p className="text-[13px] font-bold text-emerald-700">{formatCurrency(commEscritorioDireto)}</p>
+                        <p className="text-[10px] font-medium text-emerald-700">Escr. s/ Representantes</p>
+                        <p className="text-[13px] font-bold text-emerald-700">{formatCurrency(commEscritorioSobreRep)}</p>
                       </div>
                       <div className="py-1.5 px-3 bg-teal-50 border border-teal-200 rounded-xl">
-                        <p className="text-[10px] font-medium text-teal-700">s/ Representantes</p>
-                        <p className="text-[13px] font-bold text-teal-700">{formatCurrency(commEscritorioSobreRep)}</p>
+                        <p className="text-[10px] font-medium text-teal-700">Vendas Diretas</p>
+                        <p className="text-[13px] font-bold text-teal-700">{formatCurrency(commEscritorioDireto)}</p>
                       </div>
                     </div>
                   )}
