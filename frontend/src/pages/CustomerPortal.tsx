@@ -691,7 +691,7 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
               <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Grade do Pack (fechada por caixa)</p>
               <div className="overflow-x-auto rounded-xl border border-purple-100 bg-purple-50/30">
                 <table className="min-w-full text-[12px]">
-                  <thead>
+                  <thead className="bg-surface-container-lowest sticky top-0 z-10">
                     <tr className="bg-purple-100/60">
                       <th className="px-3 py-2 text-left text-purple-800 font-bold">Cor</th>
                       {Object.keys(grades[0]?.sizes || {})

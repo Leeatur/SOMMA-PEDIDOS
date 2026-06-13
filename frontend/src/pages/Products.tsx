@@ -463,7 +463,7 @@ function ProductDetailModal({
                     </div>
                     <div className="overflow-x-auto scrollbar-hide">
                       <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
-                        <thead className="bg-white">
+                        <thead className="bg-white sticky top-0 z-10">
                           <tr>
                             {gradeSizes.map(s => (
                               <th key={s} className="px-2 py-1 text-on-surface-variant font-medium text-center min-w-[40px]">{s}</th>
@@ -669,7 +669,7 @@ function ProductDetailModal({
                       {gc.color && <p className="text-[12px] font-medium text-on-surface-variant mb-1">{gc.color}</p>}
                       <div className="overflow-x-auto scrollbar-hide">
                         <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
-                          <thead className="bg-white">
+                          <thead className="bg-white sticky top-0 z-10">
                             <tr>
                               {sizes.map(s => (
                                 <th key={s} className="px-2 py-1 text-on-surface-variant font-medium text-center min-w-[28px]">{s}</th>
@@ -1117,7 +1117,7 @@ function CreateProductModal({ source, onClose, onSaved }: {
               </div>
               <div className="overflow-x-auto">
                 <table className="text-[11px] w-full">
-                  <thead>
+                  <thead className="bg-surface-container-lowest sticky top-0 z-10">
                     <tr>
                       {form.type === 'pack' && <th className="text-left px-1 pb-1 text-outline">Cor</th>}
                       {gradeSizes.map(s => <th key={s} className="px-1 pb-1 text-center text-outline">{s}</th>)}

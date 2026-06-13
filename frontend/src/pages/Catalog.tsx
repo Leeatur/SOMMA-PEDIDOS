@@ -109,7 +109,7 @@ function GradeTable({ configs, type }: { configs: GradeConfig[]; type: 'regular'
             {gc.color && <p className="text-xs font-medium text-on-surface-variant mb-1">{gc.color}</p>}
             <div className="overflow-x-auto">
               <table className="min-w-max text-xs border border-outline-variant rounded-lg overflow-hidden">
-                <thead className="bg-surface-container-low">
+                <thead className="bg-surface-container-low sticky top-0 z-10">
                   <tr>
                     {sizes.map((s) => (
                       <th key={s} className="px-2 py-1 text-on-surface-variant font-medium text-center min-w-[32px]">{s}</th>
@@ -194,7 +194,7 @@ function GradeEditor({
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-max text-xs">
-                <thead>
+                <thead className="bg-surface-container-lowest sticky top-0 z-10">
                   <tr>
                     {sizes.map((s) => (
                       <th key={s} className="px-2 py-1 text-outline font-medium text-center">{s}</th>

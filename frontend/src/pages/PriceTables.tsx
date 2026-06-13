@@ -555,7 +555,7 @@ export function PriceTables() {
               <p className="text-[12px] font-medium text-on-surface-variant mb-2">Regras de comissão configuradas:</p>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-[12px] border border-outline-variant rounded-lg overflow-hidden">
-                  <thead className="bg-surface-container-low">
+                  <thead className="bg-surface-container-low sticky top-0 z-10">
                     <tr>
                       <th className="px-3 py-1 text-left text-on-surface-variant">Desconto</th>
                       <th className="px-3 py-1 text-left text-on-surface-variant">Com. Total</th>

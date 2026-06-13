@@ -172,7 +172,7 @@ function GradeDisplay({ configs, boxCount }: { configs: GradeConfig[]; boxCount:
             {gc.color && <p className="text-[12px] font-medium text-on-surface-variant mb-1">{gc.color}</p>}
             <div className="overflow-x-auto scrollbar-hide">
               <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
-                <thead className="bg-surface-container-low">
+                <thead className="bg-surface-container-low sticky top-0 z-10">
                   <tr>
                     {sizes.map((s) => (
                       <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
@@ -791,7 +791,7 @@ export function OrderDetail() {
                           <p className="text-[12px] font-medium text-on-surface-variant mb-1.5">Quantidades por tamanho:</p>
                           <div className="overflow-x-auto scrollbar-hide">
                               <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
-                                <thead className="bg-surface-container-low">
+                                <thead className="bg-surface-container-low sticky top-0 z-10">
                                   <tr>{sortSizesDetail(Object.keys(item.sizes)).map(s => (
                                     <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
                                   ))}<th className="px-2 py-1 text-center text-outline border-l border-outline-variant">Total</th></tr>
@@ -930,7 +930,7 @@ export function OrderDetail() {
                     {isRegular && (
                       <div className="overflow-x-auto">
                         <table className="text-[12px]">
-                          <thead>
+                          <thead className="bg-surface-container-lowest sticky top-0 z-10">
                             <tr>{sortSizesDetail(Object.keys(c.sizes)).map(s => (
                               <th key={s} className="px-1 pb-0.5 text-center text-outline font-medium min-w-[34px]">{s}</th>
                             ))}<th className="px-1 pb-0.5 text-center text-primary font-bold pl-1">Tot</th></tr>

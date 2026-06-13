@@ -861,7 +861,7 @@ export default function OrderEdit() {
                 </label>
                 <div className="overflow-x-auto border border-outline-variant/40 rounded-xl">
                   <table className="text-[12px] w-full min-w-[480px]">
-                    <thead className="bg-surface-container-low border-b border-outline-variant/40">
+                    <thead className="bg-surface-container-low border-b border-outline-variant/40 sticky top-0 z-10">
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-outline">Desconto de Prazo</th>
                         <th className="px-3 py-2 text-center font-semibold text-outline">Comissão Total</th>
@@ -1081,7 +1081,7 @@ export default function OrderEdit() {
           {/* Tabela de itens — scrollável horizontalmente no desktop */}
           <div className="overflow-x-auto">
             <table className="w-full min-w-max text-[12px]">
-              <thead>
+              <thead className="bg-surface-container-lowest sticky top-0 z-10">
                 <tr className="bg-surface-container-low text-on-surface-variant text-[12px]">
                   <th className="px-4 py-1 text-left font-medium w-8">#</th>
                   <th className="px-2 py-1 text-left font-medium">Produto</th>
@@ -1265,7 +1265,7 @@ function OrderEditQuickModal({
                 <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Grade do Pack</p>
                 <div className="border border-outline-variant rounded-xl overflow-x-auto mb-3">
                   <table className="min-w-full text-[12px]">
-                    <thead className="bg-surface-container-low">
+                    <thead className="bg-surface-container-low sticky top-0 z-10">
                       <tr>
                         <th className="px-2 py-2 text-left font-bold text-outline border-r border-outline-variant/30">COR</th>
                         {packSizes.map(s=><th key={s} className="px-2 py-2 text-center font-bold text-outline border-r border-outline-variant/20 last:border-r-0">{s}</th>)}
@@ -1314,7 +1314,7 @@ function OrderEditQuickModal({
               <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Quantidades por tamanho</p>
               <div className="border border-outline-variant rounded-xl overflow-hidden">
                 <table className="w-full" style={{tableLayout:'fixed'}}>
-                  <thead className="bg-surface-container-low">
+                  <thead className="bg-surface-container-low sticky top-0 z-10">
                     <tr>{allSizes.map(s=><th key={s} className="px-1 py-2 text-center text-[11px] font-bold text-outline border-r border-outline-variant/30 last:border-r-0">{s}</th>)}</tr>
                   </thead>
                   <tbody>
@@ -1504,7 +1504,7 @@ function ItemRow({
         {type === 'regular' && sizes.length > 0 && (
           <div className="overflow-x-auto">
             <table className="text-[12px] border-collapse">
-              <thead>
+              <thead className="bg-surface-container-lowest sticky top-0 z-10">
                 <tr>
                   {sizes.map(s => (
                     <th key={s} className="w-10 text-center pb-1 text-on-surface-variant font-medium px-0.5">{s}</th>
@@ -1539,7 +1539,7 @@ function ItemRow({
         {type === 'pack' && draftGrade.length > 0 && (
           <div className="overflow-x-auto">
             <table className="text-[12px] border-collapse w-full">
-              <thead>
+              <thead className="bg-surface-container-lowest sticky top-0 z-10">
                 <tr>
                   <th className="text-left pr-3 pb-1 text-on-surface-variant font-medium whitespace-nowrap">Cor</th>
                   {gradeSizes.map(s => (

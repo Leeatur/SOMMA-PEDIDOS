@@ -168,7 +168,7 @@ function GradePreview({ configs, boxCount }: { configs: GradeConfig[]; boxCount:
             {gc.color && <p className="text-[12px] font-medium text-on-surface-variant">{gc.color}</p>}
             <div className="overflow-x-auto scrollbar-hide">
               <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
-                <thead className="bg-surface-container-low">
+                <thead className="bg-surface-container-low sticky top-0 z-10">
                   <tr>
                     {sizes.map((s) => (
                       <th key={s} className="px-2 py-1 text-on-surface-variant text-center font-medium min-w-[28px]">{s}</th>
@@ -227,7 +227,7 @@ function SizeGrid({
       )}
       <div className="overflow-x-auto">
         <table className="text-[12px] size-grid-table">
-          <thead>
+          <thead className="bg-surface-container-lowest sticky top-0 z-10">
             <tr>
               {sizeKeys.map(s => (
                 <th key={s} className={`px-1 pb-0.5 text-center font-medium min-w-[36px] ${blocked.has(s.toUpperCase()) ? 'text-red-300 line-through' : 'text-outline'}`}>{s}</th>
@@ -288,7 +288,7 @@ function SizeDisplay({ sizes }: { sizes: Record<string, number> }) {
   return (
     <div className="overflow-x-auto scrollbar-hide">
       <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
-        <thead className="bg-surface-container-low">
+        <thead className="bg-surface-container-low sticky top-0 z-10">
           <tr>
             {sizeKeys.map(s => (
               <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
@@ -1748,7 +1748,7 @@ function QuickAddModal({
                 <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Grade do Pack</p>
                 <div className="border border-outline-variant rounded-xl overflow-x-auto">
                   <table className="min-w-full text-[12px]">
-                    <thead className="bg-surface-container-low">
+                    <thead className="bg-surface-container-low sticky top-0 z-10">
                       <tr>
                         <th className="px-3 py-2 text-left font-bold text-outline border-r border-outline-variant/40">COR</th>
                         {packSizes.map(s => (
@@ -1849,7 +1849,7 @@ function QuickAddModal({
               )}
               <div className="border border-outline-variant rounded-xl overflow-hidden">
                 <table className="w-full" style={{ tableLayout: 'fixed' }}>
-                  <thead className="bg-surface-container-low">
+                  <thead className="bg-surface-container-low sticky top-0 z-10">
                     <tr>{allSizes.map(s => {
                       const isBlocked = (product.blocked_sizes || []).map(b => b.toUpperCase()).includes(s.toUpperCase())
                       return (

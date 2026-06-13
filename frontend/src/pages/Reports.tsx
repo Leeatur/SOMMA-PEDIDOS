@@ -418,7 +418,7 @@ function CollectionsTab({ data }: { data: CollectionRow[] }) {
               <div className="border-t border-outline-variant/50">
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
-                    <thead className="bg-surface-container-low">
+                    <thead className="bg-surface-container-low sticky top-0 z-10">
                       <tr>
                         <Th>Referência</Th>
                         <Th>Produto</Th>
@@ -984,7 +984,7 @@ export function Reports() {
                   <p className="px-4 py-2 text-[12px] font-semibold text-on-surface border-b border-outline-variant/50">Por dia</p>
                   <div className="overflow-x-auto">
                     <table className="min-w-full">
-                      <thead className="bg-surface-container-low">
+                      <thead className="bg-surface-container-low sticky top-0 z-10">
                         <tr>
                           <Th>Data</Th>
                           <Th right>Pedidos</Th>
@@ -1281,7 +1281,7 @@ export function Reports() {
               <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
-                    <thead className="bg-surface-container-low">
+                    <thead className="bg-surface-container-low sticky top-0 z-10">
                       <tr>
                         <Th>#</Th>
                         <Th>Cliente</Th>
@@ -1335,7 +1335,7 @@ export function Reports() {
               <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
-                    <thead className="bg-surface-container-low">
+                    <thead className="bg-surface-container-low sticky top-0 z-10">
                       <tr>
                         <Th>#</Th>
                         <Th>Referência</Th>
@@ -1431,7 +1431,7 @@ export function Reports() {
                 <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="text-[12px] w-full">
-                      <thead className="bg-surface-container-low">
+                      <thead className="bg-surface-container-low sticky top-0 z-10">
                         <tr>
                           {['Mês','Pedidos','Peças','Valor Total','Ticket Médio','Com. Rep','Com. Escr.','Clientes'].map(h => (
                             <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
@@ -1496,7 +1496,7 @@ export function Reports() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="text-[12px] w-full">
-                    <thead className="bg-surface-container-low">
+                    <thead className="bg-surface-container-low sticky top-0 z-10">
                       <tr>
                         {['Razão Social','Fantasia','Cidade','UF','Rep.','Último Pedido','Dias Inativo','Total Comprado','Pedidos','Contato'].map(h => (
                           <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
@@ -1560,7 +1560,7 @@ export function Reports() {
               <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="text-[12px] w-full">
-                    <thead className="bg-surface-container-low">
+                    <thead className="bg-surface-container-low sticky top-0 z-10">
                       <tr>
                         {['#','Representante','Pedidos','Peças','Total Vendido','Ticket Médio','Média Pç/Pedido','Com. Rep','Com. Escr.','Clientes'].map(h => (
                           <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
@@ -1618,7 +1618,7 @@ export function Reports() {
                 <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="text-[12px] w-full">
-                      <thead className="bg-surface-container-low">
+                      <thead className="bg-surface-container-low sticky top-0 z-10">
                         <tr>{['Classe','Razão Social','Cidade','UF','Rep.','Pedidos','Peças','Total','% Receita','% Acum.','Último Pedido'].map(h=>(
                           <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
                         ))}</tr>
@@ -1707,7 +1707,7 @@ export function Reports() {
               <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="text-[12px] w-full">
-                    <thead className="bg-surface-container-low">
+                    <thead className="bg-surface-container-low sticky top-0 z-10">
                       <tr>{['UF','Pedidos','Clientes','Peças','Total Vendido','% do Total','Ticket Médio','Com. Rep'].map(h=>(
                         <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
                       ))}</tr>
@@ -1779,7 +1779,7 @@ export function Reports() {
                 <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="text-[12px] w-full">
-                      <thead className="bg-surface-container-low">
+                      <thead className="bg-surface-container-low sticky top-0 z-10">
                         <tr>{['Situação','Representante','Status','Pedidos','Peças','Valor Pedidos','Com. Rep','Com. Escr.'].map(h=>(
                           <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
                         ))}</tr>
