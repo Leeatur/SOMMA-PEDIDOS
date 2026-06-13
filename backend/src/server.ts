@@ -4,7 +4,7 @@ import path from 'path'
 import dotenv from 'dotenv'
 import multer from 'multer'
 import routes from './routes'
-import { fixCommissions } from './scripts/fixCommissions'
+import { fixAllCommissionPcts, fixCommissions } from './scripts/fixCommissions'
 
 dotenv.config()
 
@@ -97,6 +97,13 @@ async function runStartupMigrations() {
 
 app.listen(PORT, async () => {
   await runStartupMigrations()
+  // 1. Recalcula percentuais a partir das regras de comissão (corrige PCT zerado)
+  try {
+    await fixAllCommissionPcts()
+  } catch (err) {
+    console.warn('⚠️  fixAllCommissionPcts falhou (não crítico):', err)
+  }
+  // 2. Garante que os valores estejam sincronizados com os percentuais
   try {
     await fixCommissions()
   } catch (err) {
