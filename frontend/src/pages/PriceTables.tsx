@@ -32,6 +32,7 @@ interface PriceTable {
   product_count: number
   imported_at: string
   created_at: string
+  max_cash_discount_pct: number | null
 }
 interface DiscountRule {
   discount_pct: number
@@ -55,6 +56,7 @@ export function PriceTables() {
   const [editRulesTable, setEditRulesTable] = useState<PriceTable | null>(null)
   const [editRules, setEditRules] = useState<DiscountRule[]>([])
   const [editName, setEditName] = useState('')
+  const [editMaxCash, setEditMaxCash] = useState<string>('')  // limite Desc. À Vista
 
   // Import Excel state
   const [importStep, setImportStep] = useState<1 | 2 | 3>(1)
@@ -152,8 +154,12 @@ export function PriceTables() {
   })
 
   const updateRulesMut = useMutation({
-    mutationFn: ({ id, name, rules }: { id: string; name: string; rules: DiscountRule[] }) =>
-      priceTablesApi.update(id, { name, discount_rules: rules }),
+    mutationFn: ({ id, name, rules, maxCash }: { id: string; name: string; rules: DiscountRule[]; maxCash: string }) =>
+      priceTablesApi.update(id, {
+        name,
+        discount_rules: rules,
+        max_cash_discount_pct: maxCash === '' ? null : parseFloat(maxCash),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['price-tables'] })
       setEditRulesTable(null)
@@ -163,9 +169,14 @@ export function PriceTables() {
   function openEditRules(t: PriceTable) {
     setEditRulesTable(t)
     setEditName(t.name)
+    setEditMaxCash(t.max_cash_discount_pct !== null && t.max_cash_discount_pct !== undefined
+      ? String(t.max_cash_discount_pct) : '')
     // Busca as regras existentes
     priceTablesApi.get(t.id).then(r => {
-      setEditRules((r.data as { discount_rules?: DiscountRule[] }).discount_rules || [])
+      const data = r.data as { discount_rules?: DiscountRule[]; max_cash_discount_pct?: number | null }
+      setEditRules(data.discount_rules || [])
+      setEditMaxCash(data.max_cash_discount_pct !== null && data.max_cash_discount_pct !== undefined
+        ? String(data.max_cash_discount_pct) : '')
     })
   }
 
@@ -619,7 +630,7 @@ export function PriceTables() {
             <Button variant="outline" onClick={() => setEditRulesTable(null)}>Cancelar</Button>
             <Button
               loading={updateRulesMut.isPending}
-              onClick={() => editRulesTable && updateRulesMut.mutate({ id: editRulesTable.id, name: editName, rules: editRules })}
+              onClick={() => editRulesTable && updateRulesMut.mutate({ id: editRulesTable.id, name: editName, rules: editRules, maxCash: editMaxCash })}
               icon={<CheckCircle className="h-4 w-4" />}
             >
               Salvar
@@ -636,6 +647,33 @@ export function PriceTables() {
               value={editName}
               onChange={e => setEditName(e.target.value)}
             />
+          </div>
+
+          {/* Limite de Desconto À Vista */}
+          <div>
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-1">
+              Limite Desc. À Vista (%)
+              <span className="ml-1 text-outline font-normal">— deixe vazio para sem limite</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                placeholder="Sem limite"
+                value={editMaxCash}
+                onChange={e => setEditMaxCash(e.target.value)}
+                className="w-36 border border-outline-variant rounded-lg px-3 py-2 text-[12px] text-center font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
+              />
+              {editMaxCash !== '' && (
+                <button type="button" onClick={() => setEditMaxCash('')}
+                  className="text-[11px] text-outline hover:text-red-500">✕ remover limite</button>
+              )}
+            </div>
+            <p className="text-[11px] text-outline mt-1">
+              💡 Se o vendedor tentar dar um Desc. À Vista acima deste %, o pedido será bloqueado com mensagem de erro.
+            </p>
           </div>
 
           {/* Regras de desconto/comissão */}

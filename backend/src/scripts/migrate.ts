@@ -313,6 +313,15 @@ ALTER TABLE payment_conditions ADD COLUMN IF NOT EXISTS admin_only BOOLEAN DEFAU
 -- Remove restrição UNIQUE(price_table_id, reference) para permitir que a mesma referência
 -- exista em múltiplas tabelas de preço e quantas vezes for necessário dentro da mesma tabela
 ALTER TABLE products DROP CONSTRAINT IF EXISTS products_price_table_id_reference_key;
+
+-- Limite de desconto à vista por tabela de preços.
+-- Quando preenchido, o sistema bloqueia o campo "Desc. À Vista" no pedido acima desse %.
+-- NULL = sem limite.
+ALTER TABLE price_tables ADD COLUMN IF NOT EXISTS max_cash_discount_pct NUMERIC(5,2) DEFAULT NULL;
+
+-- Flag para pedidos com desconto especial (fora das regras pré-cadastradas).
+-- Quando TRUE, o pedido exibe o badge "⚠ Revisar desc/comissão" para o admin.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS needs_review_discount BOOLEAN DEFAULT FALSE;
 `
 
 async function migrate() {

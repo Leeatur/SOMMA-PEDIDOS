@@ -543,9 +543,17 @@ export async function updatePriceTableRules(req: AuthRequest, res: Response) {
 
     // Atualiza metadados se fornecidos
     if (name !== undefined) {
+      const { max_cash_discount_pct } = req.body
+      const maxCash = max_cash_discount_pct !== undefined
+        ? (max_cash_discount_pct === '' || max_cash_discount_pct === null ? null : parseFloat(max_cash_discount_pct))
+        : undefined
       await dbClient.query(
-        `UPDATE price_tables SET name=$1, collection=$2, season=$3, year=$4 WHERE id=$5`,
-        [name, collection||null, season||null, year||null, id]
+        `UPDATE price_tables SET name=$1, collection=$2, season=$3, year=$4
+         ${maxCash !== undefined ? ', max_cash_discount_pct=$6' : ''}
+         WHERE id=$5`,
+        maxCash !== undefined
+          ? [name, collection||null, season||null, year||null, id, maxCash]
+          : [name, collection||null, season||null, year||null, id]
       )
     }
 

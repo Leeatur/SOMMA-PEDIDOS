@@ -242,10 +242,30 @@ export async function getOrder(req: AuthRequest, res: Response) {
 export async function createOrder(req: AuthRequest, res: Response) {
   const {
     client_id, factory_id, price_table_id, items, discount_pct, commission_discount_pct,
+    cash_discount_pct, custom_discount,
     notes, offline_id, payment_terms, freight_type, delivery_date, industry_order_number, buyer_name,
   } = req.body
   if (!client_id || !factory_id || !price_table_id || !items?.length) {
     res.status(400).json({ error: 'Dados incompletos' }); return
+  }
+
+  // Valida limite de Desc. À Vista cadastrado na tabela de preços
+  if (cash_discount_pct !== undefined) {
+    const cashPct = parseFloat(cash_discount_pct) || 0
+    if (cashPct > 0) {
+      const { rows: [pt] } = await query(
+        'SELECT max_cash_discount_pct FROM price_tables WHERE id=$1', [price_table_id]
+      )
+      const maxCash = pt?.max_cash_discount_pct !== null && pt?.max_cash_discount_pct !== undefined
+        ? parseFloat(pt.max_cash_discount_pct) : null
+      if (maxCash !== null && cashPct > maxCash) {
+        res.status(422).json({
+          error: `Desconto À Vista máximo permitido para esta tabela é ${maxCash.toFixed(2).replace('.', ',')}%`,
+          max_cash_discount_pct: maxCash,
+        })
+        return
+      }
+    }
   }
 
   // Status inicial
@@ -261,6 +281,8 @@ export async function createOrder(req: AuthRequest, res: Response) {
     // Bug fix: desconto de prazo (comercial) para lookup de comissão é separado do
     // desconto à vista. Se não informado, usa o desconto total (compatibilidade).
     const commDisc = commission_discount_pct !== undefined ? parseFloat(commission_discount_pct) || 0 : disc
+    // Flag: pedido com DESC. ESPECIAL (fora das regras pré-cadastradas) deve ser revisado
+    const needsReview = !!custom_discount
     const totals = await computeOrderTotals(items, disc, price_table_id, dbClient as any, commDisc)
 
     // Admin cria pedido: comissão 100% para o escritório, 0% para rep
@@ -279,15 +301,16 @@ export async function createOrder(req: AuthRequest, res: Response) {
         discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct,
         total_pieces, total_value, rep_commission_value, office_commission_value,
         notes, payment_terms, freight_type, delivery_date, industry_order_number, buyer_name,
-        synced_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,NOW())
+        needs_review_discount, synced_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,NOW())
        RETURNING *`,
       [offline_id||null, client_id, req.user!.id, factory_id, price_table_id,
        initStatus?.id||null, disc,
        totals.totalCommissionPct, repCommPct, offCommPct,
        totals.totalPieces, totals.totalValue, repCommVal, offCommVal,
        notes||null, payment_terms||null, freight_type||'CIF',
-       delivery_date||null, industry_order_number||null, buyer_name||null]
+       delivery_date||null, industry_order_number||null, buyer_name||null,
+       needsReview]
     )
 
     for (const item of totals.enrichedItems) {

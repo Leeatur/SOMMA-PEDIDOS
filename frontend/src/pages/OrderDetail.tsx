@@ -671,7 +671,7 @@ export function OrderDetail() {
           </div>
           <div className="space-y-1.5 text-[12px]">
             <div className="flex justify-between items-center text-on-surface-variant">
-              <span>Desconto Comercial aplicado:</span>
+              <span>Desc. À Vista aplicado:</span>
               <div className="flex items-center gap-2">
                 <span className="font-medium">{formatPct(order.discount_pct)}</span>
               </div>
@@ -691,7 +691,7 @@ export function OrderDetail() {
         <Modal
           open={editDiscountModal}
           onClose={() => setEditDiscountModal(false)}
-          title="Alterar Desconto Comercial"
+          title="Alterar Desc. À Vista"
           size="sm"
           footer={
             <div className="flex gap-2 justify-end">
@@ -712,7 +712,7 @@ export function OrderDetail() {
               A tabela de preços permanece a mesma (<span className="font-medium text-on-surface">{order.price_table_name}</span>).
             </p>
             <Input
-              label="Desconto Comercial (%)"
+              label="Desc. À Vista (%)"
               type="text"
               inputMode="decimal"
               value={editDiscountValue}
@@ -1148,7 +1148,7 @@ export function OrderDetail() {
             {/* ── Desconto (admin only) ── */}
             {isAdmin && (
               <div>
-                <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Desconto Comercial (%)</label>
+                <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Desc. À Vista (%)</label>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -1342,7 +1342,7 @@ export function OrderDetail() {
           {/* Desconto */}
           <div>
             <label className="block text-[12px] font-medium text-on-surface-variant mb-1.5">
-              Desconto Comercial (%)
+              Desc. À Vista (%)
             </label>
             <input
               type="number"

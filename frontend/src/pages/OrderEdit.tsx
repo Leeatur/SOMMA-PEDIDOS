@@ -843,7 +843,7 @@ export default function OrderEdit() {
             {/* Desconto */}
             {isAdmin && (
               <div>
-                <label className={labelCls}>Desconto Comercial %</label>
+                <label className={labelCls}>Desc. À Vista %</label>
                 <input className={inputCls} value={form.discount_pct} inputMode="decimal"
                   onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))}
                   placeholder="0,00" />

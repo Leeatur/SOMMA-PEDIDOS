@@ -108,6 +108,7 @@ interface PriceTable {
   year: number | null
   discount_rules?: DiscountRule[]
   is_pe?: boolean
+  max_cash_discount_pct?: number | null
 }
 
 interface DiscountRule {
@@ -609,6 +610,12 @@ export function NewOrder() {
 
   const createMut = useMutation({
     mutationFn: async () => {
+      // Valida limite de Desc. À Vista antes de enviar
+      const maxCash = tableDetail?.max_cash_discount_pct
+      if (maxCash !== null && maxCash !== undefined && cashDiscountNum > maxCash) {
+        throw new Error(`Desc. À Vista máximo permitido para esta tabela é ${maxCash.toFixed(2).replace('.', ',')}%`)
+      }
+
       const payload = {
         client_id: selectedClient!.id,
         factory_id: selectedTable!.factory_id,
@@ -623,8 +630,11 @@ export function NewOrder() {
         discount_pct: effectiveDiscountNum,
         // Separar desconto de prazo (comercial) do à vista:
         // o lookup de comissão deve usar só o desconto comercial,
-        // mas o preço ao cliente usa o total (commercal + à vista).
+        // mas o preço ao cliente usa o total (commercial + à vista).
         commission_discount_pct: discountNum,
+        cash_discount_pct: cashDiscountNum,
+        // DESC. ESPECIAL → admin precisa revisar desconto e comissão
+        custom_discount: customDiscount || (discountNum > 0 && !discountRules.some(r => r.discount_pct === discountNum)),
         notes: notes || undefined,
         payment_terms: paymentTerms || undefined,
         freight_type: freightType || 'CIF',
@@ -654,6 +664,10 @@ export function NewOrder() {
       qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' })
       qc.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' })
       navigate('/orders')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error || err?.message || 'Erro ao criar pedido'
+      alert(msg)
     },
   })
 
@@ -1428,42 +1442,60 @@ export function NewOrder() {
                 )}
               </div>
 
-              {/* Desconto Comercial */}
-              <div className="p-3 border-b border-outline-variant/50">
-                <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">
-                  Desc. À Vista
-                </h3>
-                <div className="flex items-center gap-3">
-                  {/* Input numérico simples com % inline */}
-                  <div className="flex items-center border border-outline-variant rounded-xl overflow-hidden bg-surface-container-lowest focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-all" style={{ width: 110 }}>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      value={cashDiscountNum === 0 ? '' : cashDiscountNum}
-                      onChange={e => {
-                        const v = parseFloat(e.target.value)
-                        setCashDiscountPct(isNaN(v) ? '0' : String(v))
-                      }}
-                      onFocus={e => e.target.select()}
-                      placeholder="0"
-                      className="flex-1 text-right text-[14px] font-bold text-on-surface bg-transparent focus:outline-none px-3 py-2 w-0 min-w-0"
-                    />
-                    <span className="pr-3 text-[14px] font-semibold text-outline select-none">%</span>
+              {/* Desc. À Vista */}
+              {(() => {
+                const maxCash = tableDetail?.max_cash_discount_pct
+                const overLimit = maxCash !== null && maxCash !== undefined && cashDiscountNum > maxCash
+                return (
+                  <div className="p-3 border-b border-outline-variant/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-[12px] font-semibold text-on-surface-variant">
+                        Desc. À Vista
+                        {maxCash !== null && maxCash !== undefined && (
+                          <span className="ml-1.5 text-[10px] font-normal text-outline">
+                            (máx. {maxCash.toFixed(2).replace('.', ',')}%)
+                          </span>
+                        )}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex items-center rounded-xl overflow-hidden transition-all ${overLimit ? 'border-2 border-red-500 ring-2 ring-red-200' : 'border border-outline-variant focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary'} bg-surface-container-lowest`} style={{ width: 110 }}>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={cashDiscountNum === 0 ? '' : cashDiscountNum}
+                          onChange={e => {
+                            const v = parseFloat(e.target.value)
+                            setCashDiscountPct(isNaN(v) ? '0' : String(v))
+                          }}
+                          onFocus={e => e.target.select()}
+                          placeholder="0"
+                          className="flex-1 text-right text-[14px] font-bold text-on-surface bg-transparent focus:outline-none px-3 py-2 w-0 min-w-0"
+                        />
+                        <span className="pr-3 text-[14px] font-semibold text-outline select-none">%</span>
+                      </div>
+                      {cashDiscountNum > 0 && !overLimit && (
+                        <div className="text-[12px] text-emerald-700 font-medium">
+                          −{formatCurrency(totals.grossValue * cashDiscountNum / 100)}
+                        </div>
+                      )}
+                      {effectiveDiscountNum > 0 && cashDiscountNum > 0 && !overLimit && (
+                        <div className="text-[12px] text-primary font-semibold">
+                          Total: {formatPct(effectiveDiscountNum)}
+                        </div>
+                      )}
+                    </div>
+                    {overLimit && (
+                      <div className="mt-2 flex items-center gap-1.5 text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
+                        🚫 Desconto À Vista máximo permitido é {maxCash!.toFixed(2).replace('.', ',')}%.
+                        Use o DESC. ESPECIAL para descontos maiores.
+                      </div>
+                    )}
                   </div>
-                  {cashDiscountNum > 0 && (
-                    <div className="text-[12px] text-emerald-700 font-medium">
-                      −{formatCurrency(totals.grossValue * cashDiscountNum / 100)}
-                    </div>
-                  )}
-                  {effectiveDiscountNum > 0 && cashDiscountNum > 0 && (
-                    <div className="text-[12px] text-primary font-semibold">
-                      Total: {formatPct(effectiveDiscountNum)}
-                    </div>
-                  )}
-                </div>
-              </div>
+                )
+              })()}
 
               {/* Resumo financeiro */}
               <div className="p-3 space-y-1 text-[12px] bg-surface-container-low">
