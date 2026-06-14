@@ -4,7 +4,7 @@ import { Eye, EyeOff, ShoppingCart, Users, BarChart3, Package, TrendingUp, Shiel
 import { authApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 
-const isDev = window.location.hostname.startsWith('dev.') || import.meta.env.DEV
+const isDev = window.location.hostname.startsWith('dev.') || window.location.hostname === 'localhost'
 
 const FEATURES = [
   {
