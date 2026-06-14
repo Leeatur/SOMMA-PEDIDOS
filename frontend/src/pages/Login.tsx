@@ -46,7 +46,7 @@ export function Login() {
 
         {/* Brand */}
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo-somma-branco.svg" alt="Somma Gestão Comercial" className="h-20 w-auto" />
+          <img src="/logo-forca-vendas-branco.png" alt="Somma Força de Vendas" className="h-20 w-auto" />
         </div>
 
         {/* Card */}
@@ -147,10 +147,9 @@ export function Login() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-6 text-center">
-          <p className="text-sm text-outline-variant/60">
-            © {new Date().getFullYear()} Somma Gestão Comercial
-          </p>
+        <footer className="mt-6 text-center space-y-0.5">
+          <p className="text-xs text-outline-variant/70 font-medium">SOMMA Technology</p>
+          <p className="text-xs text-outline-variant/50">Erechim | RS · (54) 9.9162-5024</p>
         </footer>
       </div>
     </div>

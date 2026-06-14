@@ -143,7 +143,7 @@ export function AppLayout() {
       >
         {/* Logo */}
         <NavLink to="/dashboard" className="flex-shrink-0 mr-3">
-          <img src="/logo-somma-branco.svg" alt="Somma" className="h-8 w-auto" />
+          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-10 w-auto" />
         </NavLink>
 
         {/* Nav principal */}
@@ -266,7 +266,7 @@ export function AppLayout() {
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex-1 flex justify-center">
-          <img src="/logo-somma-branco.svg" alt="Somma" className="h-8 w-auto" />
+          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-10 w-auto" />
         </div>
         <div className="flex items-center gap-2">
           {online ? <Wifi className="h-4 w-4 text-emerald-400" /> : <WifiOff className="h-4 w-4 text-amber-400" />}
@@ -282,7 +282,7 @@ export function AppLayout() {
           <div className="relative w-72 flex flex-col"
             style={{ background: 'linear-gradient(180deg, #1e3a8a, #1e40af)' }}>
             <div className="flex items-center justify-between px-5 py-4">
-              <img src="/logo-somma-branco.svg" alt="Somma" className="h-10 w-auto" />
+              <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-10 w-auto" />
               <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
@@ -322,6 +322,7 @@ export function AppLayout() {
                 className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-white/10 rounded-lg transition-colors">
                 <LogOut className="h-4 w-4" /> Sair
               </button>
+              <p className="text-center text-[9px] text-white/25 mt-3">SOMMA Technology · Erechim | RS</p>
             </div>
           </div>
         </div>

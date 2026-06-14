@@ -319,6 +319,7 @@ export function CustomerPortal() {
         <p className="text-[11px] text-gray-400 mt-4">
           Guarde o número do pedido para referência
         </p>
+        <p className="text-[10px] text-gray-300 mt-6">SOMMA Technology · Erechim | RS · (54) 9.9162-5024</p>
       </div>
     </div>
   )
@@ -372,6 +373,7 @@ export function CustomerPortal() {
                 {cnpjLoading ? 'Verificando...' : 'Acessar Catálogo'}
               </button>
             </div>
+            <p className="text-center text-[10px] text-gray-300 mt-8">SOMMA Technology · Erechim | RS · (54) 9.9162-5024</p>
           </div>
         )}
 

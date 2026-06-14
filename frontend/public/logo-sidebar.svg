@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 64" width="320" height="64">
-  <!-- Icone: barras crescentes laranja -->
-  <rect x="2" y="48" width="42" height="2" rx="1" fill="#E07B27" opacity="0.3"/>
-  <rect x="4" y="36" width="9" height="14" rx="2.5" fill="#E07B27"/>
-  <rect x="17" y="27" width="9" height="23" rx="2.5" fill="#E07B27"/>
-  <rect x="30" y="16" width="9" height="34" rx="2.5" fill="#E07B27"/>
-  <polyline points="30,20 38.5,10 47,20" fill="none" stroke="#E07B27" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Linha base -->
+  <rect x="2" y="52" width="46" height="2" rx="1" fill="#E07B27" opacity="0.3"/>
+  <!-- Barras -->
+  <rect x="4" y="38" width="9" height="16" rx="2.5" fill="#E07B27"/>
+  <rect x="17" y="28" width="9" height="26" rx="2.5" fill="#E07B27"/>
+  <rect x="30" y="16" width="9" height="38" rx="2.5" fill="#E07B27"/>
+  <!-- Seta -->
+  <polyline points="30,20 39,9 48,20" fill="none" stroke="#E07B27" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- SOMMA -->
-  <text x="56" y="40" font-family="'Arial Black', Arial, sans-serif" font-size="24" font-weight="900" fill="#FFFFFF" letter-spacing="0.5">SOMMA</text>
-  <!-- Gestao Comercial -->
-  <text x="58" y="54" font-family="Arial, sans-serif" font-size="10" font-weight="400" fill="#8A96AA" letter-spacing="2">GESTÃO COMERCIAL</text>
+  <!-- Força de Vendas em branco (sidebar escura) -->
+  <text x="60" y="40" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">Força de Vendas</text>
 </svg>

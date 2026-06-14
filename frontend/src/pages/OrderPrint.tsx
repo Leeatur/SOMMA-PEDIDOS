@@ -534,6 +534,11 @@ export function OrderPrint() {
             {company.order_footer}
           </div>
         )}
+
+        {/* ── ASSINATURA SOMMA ── */}
+        <div style={{ marginTop: 16, paddingTop: 8, borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: 10, color: '#9ca3af' }}>
+          SOMMA Technology · Erechim | RS · (54) 9.9162-5024
+        </div>
       </div>
     </>
   )
