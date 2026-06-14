@@ -13,7 +13,8 @@
     "fix-commissions": "tsx src/scripts/fixCommissions.ts",
     "fix-commissions:prod": "node dist/scripts/fixCommissions.js",
     "seed": "tsx src/scripts/seed.ts",
-    "seed:prod": "node dist/scripts/seed.js"
+    "seed:prod": "node dist/scripts/seed.js",
+    "seed:dev": "tsx src/scripts/seedDev.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1054.0",
