@@ -15,7 +15,8 @@
     "seed": "tsx src/scripts/seed.ts",
     "seed:prod": "node dist/scripts/seed.js",
     "seed:dev": "tsx src/scripts/seedDev.ts",
-    "fix:grade-zz70756": "tsx src/scripts/fixGradeZZ70756.ts"
+    "fix:grade-zz70756": "tsx src/scripts/fixGradeZZ70756.ts",
+    "fix:grade-zz70763": "tsx src/scripts/fixGradeZZ70763.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1054.0",
