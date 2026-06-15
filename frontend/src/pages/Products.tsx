@@ -255,8 +255,15 @@ function ProductDetailModal({
         ...(editForm.price_table_id ? { price_table_id: editForm.price_table_id } : {}),
       })
       const gradePayload = editGrade
+        .map((row, i) => ({
+          color: row.color || null,
+          // Apenas os tamanhos que estão no size_range atual — descarta os antigos
+          sizes: Object.fromEntries(
+            Object.entries(row.sizes).filter(([s]) => gradeSizes.includes(s))
+          ),
+          sort_order: i,
+        }))
         .filter(row => Object.values(row.sizes).some(v => v > 0))
-        .map((row, i) => ({ color: row.color || null, sizes: row.sizes, sort_order: i }))
       const gradeRes = await productsApi.updateGrade(p.id, gradePayload)
       const gradeConfigs = (gradeRes.data?.rows ?? gradeRes.data) || []
       onUpdated({
