@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, ShoppingCart, Users, BarChart3, Package, TrendingUp, Shield } from 'lucide-react'
+import { Eye, EyeOff, ShoppingCart, Users, BarChart3, Package, TrendingUp, Shield, LogIn } from 'lucide-react'
 import { authApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 
@@ -89,9 +89,8 @@ export function Login() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-            <span className="text-[11px] font-bold tracking-[2px] text-orange-300/80 uppercase">
+          <div className="mt-4">
+            <span className="inline-flex items-center px-3 py-0.5 rounded-full border border-white/20 text-[10px] font-bold tracking-[2px] text-orange-300/80 uppercase">
               Gestão Comercial Inteligente
             </span>
           </div>
@@ -148,18 +147,10 @@ export function Login() {
         <div className="flex-1 flex flex-col justify-center px-8 py-10 max-w-md w-full mx-auto">
 
           {/* Cabeçalho formulário */}
-          <div className="mb-8">
+          <div className="mb-6">
             <h2 className="text-2xl font-black text-gray-900">Bem-vindo de volta</h2>
-            <p className="text-sm text-gray-400 mt-1">Acesse sua conta para continuar</p>
+            <p className="text-sm text-gray-400 mt-1">Acesse sua conta para continuar.</p>
           </div>
-
-          {/* Banner DEV */}
-          {isDev && (
-            <div className="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
-              <span className="text-amber-500 text-[11px] font-black tracking-widest">DEV</span>
-              <span className="text-amber-700 text-[12px]">Você está no ambiente de desenvolvimento</span>
-            </div>
-          )}
 
           {/* Erro */}
           {error && (
@@ -171,7 +162,7 @@ export function Login() {
           {/* Formulário */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5" htmlFor="email">
+              <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1.5" htmlFor="email">
                 E-mail
               </label>
               <input
@@ -184,7 +175,7 @@ export function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5" htmlFor="password">
+              <label className="block text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1.5" htmlFor="password">
                 Senha
               </label>
               <div className="relative">
@@ -213,16 +204,50 @@ export function Login() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
               ) : (
-                <> Entrar <span className="ml-1">→</span> </>
+                <><LogIn className="h-5 w-5" /> Entrar</>
               )}
             </button>
+
+            {/* Links secundários */}
+            <div className="flex items-center justify-between pt-1">
+              <a
+                href="https://sommatechnology.com.br"
+                target="_blank" rel="noopener noreferrer"
+                className="text-[12px] text-gray-400 hover:text-orange-500 transition-colors"
+              >
+                Criar conta
+              </a>
+              <button
+                type="button"
+                onClick={() => setError('Entre em contato com o administrador do sistema para redefinir sua senha.')}
+                className="text-[12px] text-gray-400 hover:text-orange-500 transition-colors"
+              >
+                Esqueci minha senha
+              </button>
+            </div>
           </form>
+
+          {/* Suporte */}
+          <p className="mt-6 text-center text-[11px] text-gray-300">
+            Precisa de ajuda?{' '}
+            <a
+              href="https://wa.me/5554991625024"
+              target="_blank" rel="noopener noreferrer"
+              className="text-orange-400 hover:underline font-medium"
+            >
+              Fale com o suporte
+            </a>
+          </p>
         </div>
 
         {/* Rodapé direito */}
-        <footer className="text-center py-5 border-t border-gray-100">
-          <p className="text-[11px] text-gray-300 font-medium">SOMMA Technology</p>
-          <p className="text-[10px] text-gray-200 mt-0.5">Erechim | RS · (54) 9.9162-5024</p>
+        <footer className="text-center py-3 border-t border-gray-100">
+          <p className="text-[11px] text-gray-400 font-medium flex items-center justify-center gap-2">
+            <BarChart3 className="h-3.5 w-3.5 text-orange-400" />
+            <span className="font-semibold text-gray-500">Força de Vendas</span>
+            <span className="text-gray-300">|</span>
+            <span>SOMMA Technology — Erechim | RS — (54) 9.9162-5024</span>
+          </p>
         </footer>
       </div>
     </div>
