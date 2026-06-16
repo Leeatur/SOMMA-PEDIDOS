@@ -66,7 +66,7 @@ export function Login() {
 
       {/* ══ PAINEL ESQUERDO — marketing ══ */}
       <div
-        className="hidden lg:flex lg:w-[58%] flex-col justify-between p-10 relative overflow-hidden"
+        className="hidden lg:flex lg:w-[58%] flex-col p-8 relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}
       >
         {/* Padrão de pontos decorativos */}
@@ -147,9 +147,9 @@ export function Login() {
         <div className="flex-1 flex flex-col justify-center px-8 py-10 max-w-md w-full mx-auto">
 
           {/* Cabeçalho formulário */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-black text-gray-900">Bem-vindo de volta</h2>
-            <p className="text-sm text-gray-400 mt-1">Acesse sua conta para continuar.</p>
+          <div className="mb-8">
+            <h2 className="text-4xl font-black text-gray-900">Bem-vindo de volta</h2>
+            <p className="text-base text-gray-400 mt-2">Acesse sua conta para continuar.</p>
           </div>
 
           {/* Erro */}
@@ -170,7 +170,7 @@ export function Login() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="seu@email.com"
                 autoComplete="email" autoFocus
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 placeholder:text-gray-300 focus:border-orange-400 focus:outline-none transition-colors"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 placeholder:text-gray-300 focus:border-orange-400 focus:outline-none transition-colors"
               />
             </div>
 
