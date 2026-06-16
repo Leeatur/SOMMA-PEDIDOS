@@ -107,33 +107,33 @@ function normalizeLetterSizes(text: string): string {
 function normalizeNumberPhrases(text: string): string {
   return text
     // 50s
-    .replace(/cinquenta\s+e\s+oito/gi,   '58')
-    .replace(/cinquenta\s+e\s+seis/gi,   '56')
-    .replace(/cinquenta\s+e\s+quatro/gi, '54')
-    .replace(/cinquenta\s+e\s+duas?/gi,  '52')
-    .replace(/cinquenta\s+e\s+um[ao]?/gi,'51')
-    .replace(/\bcinquenta\b/gi,          '50')
+    .replace(/cinquenta\s+e\s+oito/gi,          '58')
+    .replace(/cinquenta\s+e\s+seis/gi,          '56')
+    .replace(/cinquenta\s+e\s+quatro/gi,        '54')
+    .replace(/cinquenta\s+e\s+(?:dois|duas?)/gi,'52')  // FIX: dois|duas?
+    .replace(/cinquenta\s+e\s+um[ao]?/gi,       '51')
+    .replace(/\bcinquenta\b/gi,                 '50')
     // 40s
-    .replace(/quarenta\s+e\s+oito/gi,   '48')
-    .replace(/quarenta\s+e\s+seis/gi,   '46')
-    .replace(/quarenta\s+e\s+quatro/gi, '44')
-    .replace(/quarenta\s+e\s+tr[êe]s/gi,'43')
-    .replace(/quarenta\s+e\s+duas?/gi,  '42')
-    .replace(/quarenta\s+e\s+um[ao]?/gi,'41')
-    .replace(/\bquarenta\b/gi,          '40')
+    .replace(/quarenta\s+e\s+oito/gi,          '48')
+    .replace(/quarenta\s+e\s+seis/gi,          '46')
+    .replace(/quarenta\s+e\s+quatro/gi,        '44')
+    .replace(/quarenta\s+e\s+tr[êe]s/gi,       '43')
+    .replace(/quarenta\s+e\s+(?:dois|duas?)/gi,'42')  // FIX: "quarenta e dois" → 42
+    .replace(/quarenta\s+e\s+um[ao]?/gi,       '41')
+    .replace(/\bquarenta\b/gi,                 '40')
     // 30s
-    .replace(/trinta\s+e\s+oito/gi,   '38')
-    .replace(/trinta\s+e\s+seis/gi,   '36')
-    .replace(/trinta\s+e\s+quatro/gi, '34')
-    .replace(/trinta\s+e\s+duas?/gi,  '32')
-    .replace(/trinta\s+e\s+um[ao]?/gi,'31')
-    .replace(/\btrinta\b/gi,          '30')
+    .replace(/trinta\s+e\s+oito/gi,          '38')
+    .replace(/trinta\s+e\s+seis/gi,          '36')
+    .replace(/trinta\s+e\s+quatro/gi,        '34')
+    .replace(/trinta\s+e\s+(?:dois|duas?)/gi,'32')  // FIX: dois|duas?
+    .replace(/trinta\s+e\s+um[ao]?/gi,       '31')
+    .replace(/\btrinta\b/gi,                 '30')
     // 20s (tamanho infantil)
-    .replace(/vinte\s+e\s+oito/gi,   '28')
-    .replace(/vinte\s+e\s+seis/gi,   '26')
-    .replace(/vinte\s+e\s+quatro/gi, '24')
-    .replace(/vinte\s+e\s+duas?/gi,  '22')
-    .replace(/\bvinte\b/gi,          '20')
+    .replace(/vinte\s+e\s+oito/gi,          '28')
+    .replace(/vinte\s+e\s+seis/gi,          '26')
+    .replace(/vinte\s+e\s+quatro/gi,        '24')
+    .replace(/vinte\s+e\s+(?:dois|duas?)/gi,'22')  // FIX: dois|duas?
+    .replace(/\bvinte\b/gi,                 '20')
     // 60s
     .replace(/\bsessenta\b/gi, '60')
 }
@@ -168,7 +168,11 @@ export function parseGradeFromSpeech(
     // Verifica se o token corresponde a um tamanho disponível
     const matchedIdx = sizesUpper.findIndex(s => s === tok)
     if (matchedIdx >= 0 && i + 1 < tokens.length) {
-      const nextTok = tokens[i + 1]
+      // Pula conjunção "e" entre tamanho e quantidade: "40 e dois" → qty=2
+      let nextIdx = i + 1
+      if (tokens[nextIdx]?.toLowerCase() === 'e') nextIdx++
+      if (nextIdx >= tokens.length) continue
+      const nextTok = tokens[nextIdx]
       // Se o próximo token é ele mesmo um tamanho, não usa como quantidade
       const nextIsSize = sizesUpper.some(s => s === nextTok.toUpperCase())
 
@@ -185,14 +189,14 @@ export function parseGradeFromSpeech(
         if (!isNaN(tokNum) && !isNaN(nextNum)) {
           const combinedSize = String(tokNum + nextNum)
           const combIdx = sizesUpper.findIndex(s => s === combinedSize)
-          if (combIdx >= 0 && i + 2 < tokens.length) {
-            const qtyTok = tokens[i + 2]
+          if (combIdx >= 0 && nextIdx + 1 < tokens.length) {
+            const qtyTok = tokens[nextIdx + 1]
             const qty = parseInt(qtyTok)
             const qtyIsSize = sizesUpper.some(s => s === qtyTok.toUpperCase())
             if (!qtyIsSize && !isNaN(qty) && qty > 0 && qty <= 99) {
               // Ex: "40 4 1" → tamanho 44, quantidade 1
               result[availableSizes[combIdx]] = qty
-              i += 2 // pula os dois tokens do tamanho composto + o da quantidade
+              i = nextIdx + 1 // pula até o token da quantidade
               continue
             }
           }
@@ -201,7 +205,7 @@ export function parseGradeFromSpeech(
         const qty = parseInt(nextTok)
         if (!isNaN(qty) && qty > 0 && qty <= 99) {
           result[availableSizes[matchedIdx]] = qty
-          i++ // pula o token de quantidade
+          i = nextIdx // pula até o token de quantidade
         }
       }
     }
