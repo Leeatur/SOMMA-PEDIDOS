@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -10,6 +10,7 @@ import {
   ChevronUp,
   PlusCircle,
   BarChart3,
+  Download,
 } from 'lucide-react'
 import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -260,6 +261,54 @@ function SummaryCard({ title, rows, loading }: { title: string; rows: SummaryCar
   )
 }
 
+// ─── Exportação / Totais ──────────────────────────────────────────────────────
+
+interface OrderTotals { pieces: number; value: number; comRep: number; comEscr: number }
+
+// número no padrão pt-BR (vírgula decimal) p/ abrir certinho no Excel
+function numBR(x: number): string { return (Number(x) || 0).toFixed(2).replace('.', ',') }
+
+function deliveryBR(d: string | null): string {
+  if (!d) return ''
+  const [y, m, dd] = String(d).substring(0, 10).split('-')
+  return `${dd}/${m}/${y}`
+}
+
+// valor "cru" de cada coluna para o CSV (sem R$, datas DD/MM/AAAA, números pt-BR)
+function csvCell(id: string, o: Order): string | number {
+  switch (id) {
+    case 'date':         return formatDate(o.created_at)
+    case 'number':       return formatOrderNumber(o.order_number)
+    case 'factory':      return o.factory_name || ''
+    case 'rep':          return o.rep_name || ''
+    case 'nr_rep':       return o.industry_order_number || ''
+    case 'razao_social': return o.client_name || ''
+    case 'client':       return o.client_trade_name || ''
+    case 'city':         return o.client_city || ''
+    case 'items':        return o.total_pieces || 0
+    case 'value':        return numBR(o.total_value)
+    case 'delivery':     return deliveryBR(o.delivery_date)
+    case 'payment':      return o.payment_terms || ''
+    case 'politica':     return `${o.discount_pct || 0}%`
+    case 'commission':   return numBR(Number(o.total_value) * Number(o.rep_commission_pct) / 100)
+    case 'com_escr':     return numBR(Number(o.total_value) * Number(o.office_commission_pct) / 100)
+    case 'discount':     return o.discount_pct > 0 ? `-${o.discount_pct}%` : ''
+    case 'table':        return o.price_table_name || ''
+    case 'status':       return o.status_name || ''
+    default:             return ''
+  }
+}
+
+function csvTotalCell(id: string, t: OrderTotals): string | number {
+  switch (id) {
+    case 'items':      return t.pieces || ''
+    case 'value':      return numBR(t.value)
+    case 'commission': return numBR(t.comRep)
+    case 'com_escr':   return numBR(t.comEscr)
+    default:           return ''
+  }
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function Orders() {
@@ -271,6 +320,7 @@ export function Orders() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status_id') || '')
   const [factoryFilter, setFactoryFilter] = useState('')
+  const [repFilter, setRepFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [showFilters, setShowFilters] = useState(false)
@@ -359,7 +409,51 @@ export function Orders() {
       })
     : (orders || [])
 
-  const total = orders?.length || 0
+  // Lista de vendedores que aparecem nos pedidos (para o filtro)
+  const repOptions = useMemo(() => {
+    const s = new Set<string>()
+    ;(orders || []).forEach(o => { if (o.rep_name) s.add(o.rep_name) })
+    return Array.from(s).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [orders])
+
+  // Filtro por vendedor (cliente-side, sobre a lista já ordenada)
+  const displayedOrders = repFilter ? sortedOrders.filter(o => o.rep_name === repFilter) : sortedOrders
+  const total = displayedOrders.length
+
+  // Somatório das colunas numéricas (reflete os filtros aplicados)
+  const totals = useMemo<OrderTotals>(() => {
+    const t: OrderTotals = { pieces: 0, value: 0, comRep: 0, comEscr: 0 }
+    displayedOrders.forEach(o => {
+      t.pieces  += Number(o.total_pieces) || 0
+      t.value   += Number(o.total_value) || 0
+      t.comRep  += Number(o.total_value) * Number(o.rep_commission_pct) / 100
+      t.comEscr += Number(o.total_value) * Number(o.office_commission_pct) / 100
+    })
+    return t
+  }, [displayedOrders])
+
+  // Coluna onde fica o rótulo "TOTAL" (na Razão Social, que é larga; senão a 1ª)
+  const labelColIdx = Math.max(0, visibleCols.findIndex(c => c.id === 'razao_social'))
+
+  function exportarCSV() {
+    const cols = visibleCols
+    const linhas: (string | number)[][] = [
+      cols.map(c => c.label),
+      ...displayedOrders.map(o => cols.map(c => csvCell(c.id, o))),
+      cols.map((c, i) => i === labelColIdx ? `TOTAL (${displayedOrders.length} pedidos)` : csvTotalCell(c.id, totals)),
+    ]
+    const csv = '﻿' + linhas.map(r => r.map(cell => {
+      const sv = String(cell ?? '')
+      return /[";\n]/.test(sv) ? `"${sv.replace(/"/g, '""')}"` : sv
+    }).join(';')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pedidos-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -439,7 +533,7 @@ export function Orders() {
             </div>
           ) : (
             <div className="px-4 pt-2.5 pb-28 space-y-2">
-              {(orders || []).map(o => (
+              {displayedOrders.map(o => (
                 <MobileOrderCard
                   key={o.id}
                   o={o}
@@ -465,6 +559,15 @@ export function Orders() {
             </div>
             <div className="flex items-center gap-2">
               <ColumnConfigButton defs={colDefs} config={config} onSave={save} onReset={reset} />
+              <button
+                onClick={exportarCSV}
+                disabled={total === 0}
+                className="flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors text-outline border-outline-variant bg-white hover:text-on-surface-variant disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Exportar a lista atual (com filtros) para Excel/CSV"
+              >
+                <Download className="h-4 w-4" />
+                Exportar
+              </button>
               <button
                 onClick={() => setShowSummary(!showSummary)}
                 className={`flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors ${
@@ -524,6 +627,16 @@ export function Orders() {
                 <option value="">Todas as fábricas</option>
                 {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
+              {isAdmin && (
+                <select
+                  value={repFilter}
+                  onChange={(e) => setRepFilter(e.target.value)}
+                  className="border border-outline-variant rounded-lg px-3 py-1 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                >
+                  <option value="">Todos os vendedores</option>
+                  {repOptions.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              )}
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
                 className="border border-outline-variant rounded-lg px-3 py-1 text-xs text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
@@ -581,7 +694,7 @@ export function Orders() {
             </div>
             <p className="text-outline font-medium">Nenhum pedido encontrado</p>
             <p className="text-xs text-outline/70 mt-1">
-              {search || statusFilter || factoryFilter ? 'Tente ajustar os filtros.' : 'Crie o primeiro pedido.'}
+              {search || statusFilter || factoryFilter || repFilter ? 'Tente ajustar os filtros.' : 'Crie o primeiro pedido.'}
             </p>
             <button
               onClick={() => navigate('/orders/new')}
@@ -656,7 +769,7 @@ export function Orders() {
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {sortedOrders.map(o => (
+                {displayedOrders.map(o => (
                   <tr
                     key={o.id}
                     className="border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors"
@@ -670,6 +783,27 @@ export function Orders() {
                   </tr>
                 ))}
               </tbody>
+              {/* Linha de totais — soma das colunas (reflete os filtros) */}
+              <tfoot className="sticky bottom-0 z-10">
+                <tr className="bg-surface-container border-t-2 border-primary/40">
+                  {visibleCols.map((col, i) => {
+                    const meta = COL_META[col.id] || {}
+                    let content: string | number = ''
+                    let extra = 'text-on-surface'
+                    if (i === labelColIdx) content = `TOTAL · ${displayedOrders.length} ped.`
+                    else if (col.id === 'items') content = totals.pieces > 0 ? totals.pieces : ''
+                    else if (col.id === 'value') content = formatCurrency(totals.value)
+                    else if (col.id === 'commission') { content = formatCurrency(totals.comRep); extra = 'text-emerald-600' }
+                    else if (col.id === 'com_escr') { content = formatCurrency(totals.comEscr); extra = 'text-blue-600' }
+                    return (
+                      <td key={col.id} style={{ width: widths[col.id] ?? DEFAULT_WIDTHS[col.id], overflow: 'hidden' }}
+                        className={`px-2 py-2 text-[12px] font-bold whitespace-nowrap ${meta.align ?? ''} ${extra}`}>
+                        {content}
+                      </td>
+                    )
+                  })}
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
