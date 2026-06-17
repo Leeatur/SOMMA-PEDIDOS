@@ -4,8 +4,11 @@ import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, BellRing, CreditCard,
+  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, BellRing, CreditCard, MapPin,
 } from 'lucide-react'
+
+// SOMMA Maps — produto integrado (abre em nova aba)
+const MAPS_URL = 'https://sommamaps.com.br'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
 import { db } from '../../db/db'
@@ -191,6 +194,12 @@ export function AppLayout() {
           </div>
         )}
 
+        {/* Mapas — produto integrado SOMMA Maps (todos os usuários) */}
+        <a href={MAPS_URL} target="_blank" rel="noreferrer"
+          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white">
+          <MapPin className="h-4 w-4" /> Mapas
+        </a>
+
         {/* Spacer */}
         <div className="flex-1" />
 
@@ -307,6 +316,11 @@ export function AppLayout() {
                   )}
                 </NavLink>
               ))}
+              {/* Mapas — produto integrado */}
+              <a href={MAPS_URL} target="_blank" rel="noreferrer" onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[14px] font-semibold text-white/60 hover:bg-white/10 hover:text-white transition-all">
+                <MapPin className="h-4 w-4" /> Mapas
+              </a>
             </nav>
             <div className="px-4 py-4 border-t border-white/10">
               <div className="flex items-center gap-3 mb-3">
