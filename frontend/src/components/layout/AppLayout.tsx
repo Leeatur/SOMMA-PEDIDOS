@@ -110,7 +110,7 @@ export function AppLayout() {
   const initials = user?.name?.slice(0, 2).toUpperCase() || 'US'
 
   const navLinkCls = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap ${
+    `flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all whitespace-nowrap ${
       isActive
         ? 'bg-white/20 text-white'
         : 'text-white/70 hover:bg-white/10 hover:text-white'
@@ -138,12 +138,12 @@ export function AppLayout() {
           TOP NAV BAR (desktop)
       ════════════════════════════ */}
       <header
-        className="hidden lg:flex sticky top-0 z-40 items-center gap-1 px-4 shadow-lg flex-shrink-0"
+        className="hidden lg:flex sticky top-0 z-40 items-center gap-0.5 px-3 shadow-lg flex-shrink-0"
         style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', height: 52 }}
       >
         {/* Logo */}
-        <NavLink to="/dashboard" className="flex-shrink-0 mr-3">
-          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-10 w-auto" />
+        <NavLink to="/dashboard" className="flex-shrink-0 mr-2">
+          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-7 w-auto" />
         </NavLink>
 
         {/* Nav principal */}
@@ -171,7 +171,7 @@ export function AppLayout() {
           <div ref={moreRef} className="relative">
             <button
               onClick={() => setMoreOpen(v => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
             >
               Mais <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
             </button>
