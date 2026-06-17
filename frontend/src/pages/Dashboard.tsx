@@ -195,7 +195,7 @@ export function Dashboard() {
 
       {/* ─── Hero header ─────────────────────────────────── */}
       <div className="relative px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10"
-        style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 40%, #475569 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}>
         {/* Linha decorativa sutil na base */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
 
