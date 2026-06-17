@@ -301,7 +301,7 @@ export function OrderPrint() {
   const totalNet = rows.reduce((s, r) => s + r.total, 0)
   const totalDiscount = totalGross - totalNet
 
-  const companyName    = company.name || 'SOMMA GESTÃO COMERCIAL'
+  const companyName    = company.name || 'SOMMA FORÇA DE VENDAS'
   const companyAddress = [company.address, company.city, company.state].filter(Boolean).join(' — ')
   const companyZip     = company.zip || ''
   const companyPhone   = company.phone || ''

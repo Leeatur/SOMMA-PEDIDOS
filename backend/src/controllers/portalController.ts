@@ -182,7 +182,7 @@ export async function portalLookupCnpj(req: Request, res: Response) {
   try {
     // Busca dados na Receita Federal
     const rfRes = await fetch(`https://minhareceita.org/${cnpj}`, {
-      headers: { 'User-Agent': 'SommaGestaoComercial/1.0' },
+      headers: { 'User-Agent': 'SommaFV/1.0' },
       signal: AbortSignal.timeout(12000),
     })
     if (!rfRes.ok) { res.status(404).json({ error: 'CNPJ não encontrado na Receita Federal' }); return }

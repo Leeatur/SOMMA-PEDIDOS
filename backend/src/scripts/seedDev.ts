@@ -58,7 +58,7 @@ async function seedDev() {
       INSERT INTO users (name, email, password_hash, role, active)
       VALUES
         ('Uliano (Dev)',  'uliano@sommatechnology.com.br', $1, 'admin', true),
-        ('Admin DEV',    'admin@dev.sommagestao.com.br',  $1, 'admin', true)
+        ('Admin DEV',    'admin@dev.sommafv.com.br',  $1, 'admin', true)
       ON CONFLICT (email) DO UPDATE
         SET password_hash = EXCLUDED.password_hash,
             name          = EXCLUDED.name,
@@ -68,14 +68,14 @@ async function seedDev() {
     `, [hash])
     console.log('   ✅ Admins criados/atualizados')
     console.log('   📧 uliano@sommatechnology.com.br / somma@dev2026')
-    console.log('   📧 admin@dev.sommagestao.com.br  / somma@dev2026\n')
+    console.log('   📧 admin@dev.sommafv.com.br  / somma@dev2026\n')
 
     // ── 3. Representante de teste ─────────────────────────────────────────
     console.log('👤 Criando representante de teste...')
     const hashRep = await bcrypt.hash('rep@dev2026', 10)
     await client.query(`
       INSERT INTO users (name, email, password_hash, role, active)
-      VALUES ('Rep Teste', 'rep@dev.sommagestao.com.br', $1, 'rep', true)
+      VALUES ('Rep Teste', 'rep@dev.sommafv.com.br', $1, 'rep', true)
       ON CONFLICT (email) DO UPDATE
         SET password_hash = EXCLUDED.password_hash,
             name          = EXCLUDED.name,
@@ -83,7 +83,7 @@ async function seedDev() {
             active        = true,
             updated_at    = NOW()
     `, [hashRep])
-    console.log('   ✅ Rep: rep@dev.sommagestao.com.br / rep@dev2026\n')
+    console.log('   ✅ Rep: rep@dev.sommafv.com.br / rep@dev2026\n')
 
     // ── 4. Status de pedidos ──────────────────────────────────────────────
     const { rows: [{ count: statusCount }] } = await client.query('SELECT COUNT(*) FROM order_statuses')
@@ -146,10 +146,10 @@ async function seedDev() {
     console.log('═══════════════════════════════════════')
     console.log('✅ Seed DEV concluído com sucesso!')
     console.log('')
-    console.log('  🌐 URL dev: https://dev.sommagestao.com.br')
+    console.log('  🌐 URL dev: https://dev.sommafv.com.br')
     console.log('  📧 Admin:  uliano@sommatechnology.com.br')
     console.log('  🔑 Senha:  somma@dev2026')
-    console.log('  📧 Rep:    rep@dev.sommagestao.com.br')
+    console.log('  📧 Rep:    rep@dev.sommafv.com.br')
     console.log('  🔑 Senha:  rep@dev2026')
     console.log('═══════════════════════════════════════')
 

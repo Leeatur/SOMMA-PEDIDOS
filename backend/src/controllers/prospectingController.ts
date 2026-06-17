@@ -146,7 +146,7 @@ export async function searchNearby(req: AuthRequest, res: Response) {
       const overpassQuery = buildOverpassQuery(lat, lng, radius, segment)
       const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
       const response = await fetch(overpassUrl, {
-        headers: { 'User-Agent': 'SommaGestaoComercial/1.0', 'Accept': 'application/json' },
+        headers: { 'User-Agent': 'SommaFV/1.0', 'Accept': 'application/json' },
         signal: AbortSignal.timeout(35000),
       })
       if (!response.ok) throw new Error(`Overpass error: ${response.status}`)
@@ -276,7 +276,7 @@ export async function findCnpj(req: AuthRequest, res: Response) {
   try {
     // Já enriquece com dados da Receita Federal
     const rfRes = await fetch(`https://minhareceita.org/${best.cnpj}`, {
-      headers: { 'User-Agent': 'SommaGestaoComercial/1.0' },
+      headers: { 'User-Agent': 'SommaFV/1.0' },
       signal: AbortSignal.timeout(12000),
     })
     if (rfRes.ok) {
@@ -330,7 +330,7 @@ export async function lookupCnpj(req: AuthRequest, res: Response) {
   try {
     // minhareceita.org — espelho gratuito da Receita Federal com todos os campos
     const apiRes = await fetch(`https://minhareceita.org/${cnpj}`, {
-      headers: { 'User-Agent': 'SommaGestaoComercial/1.0' },
+      headers: { 'User-Agent': 'SommaFV/1.0' },
       signal: AbortSignal.timeout(12000),
     })
 

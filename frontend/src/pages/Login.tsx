@@ -91,7 +91,7 @@ export function Login() {
           </div>
           <div className="mt-4">
             <span className="inline-flex items-center px-3 py-0.5 rounded-full border border-white/20 text-[10px] font-bold tracking-[2px] text-orange-300/80 uppercase">
-              Gestão Comercial Inteligente
+              Força de Vendas Inteligente
             </span>
           </div>
 

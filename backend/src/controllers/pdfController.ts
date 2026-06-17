@@ -70,7 +70,7 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
     )
 
     // Gera HTML do pedido para converter em PDF no browser
-    const companyName = o.company_name || 'Somma Gestão Comercial'
+    const companyName = o.company_name || 'SOMMA Força de Vendas'
     const num = padNum(o.order_number)
 
     let itemsHtml = ''
@@ -174,7 +174,7 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
   <div class="header">
     <div>
       <div class="company-name">${companyName}</div>
-      <div class="company-sub">GESTÃO COMERCIAL</div>
+      <div class="company-sub">FORÇA DE VENDAS</div>
     </div>
     <div>
       <div class="order-num">PEDIDO #${num}</div>

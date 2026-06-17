@@ -18,7 +18,8 @@ interface Portal {
   active: boolean; created_at: string; expires_at: string | null
 }
 
-const BASE = 'https://somma-pedidos-production.up.railway.app'
+// usa o domínio em que o sistema está sendo acessado (ex.: www.sommafv.com.br)
+const BASE = window.location.origin
 
 export function Portals() {
   const qc = useQueryClient()
@@ -72,7 +73,7 @@ export function Portals() {
 
   function shareEmail(portal: Portal) {
     const url = `${BASE}/portal/${portal.token}`
-    const subject = `Catálogo Online - Somma Gestão Comercial`
+    const subject = `Catálogo Online - SOMMA Força de Vendas`
     const body = `Olá,\n\nAcesse nosso catálogo online e faça seu pedido diretamente pelo link abaixo:\n\n${url}\n\nBasta digitar o CNPJ da sua empresa para entrar e visualizar todos os produtos disponíveis.\n\nAtenciosamente,\n${user?.name}`
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`)
   }

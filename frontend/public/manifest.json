@@ -1,7 +1,7 @@
 {
-  "name": "Somma Gestão Comercial",
-  "short_name": "Somma",
-  "description": "Sistema de pedidos e gestão comercial",
+  "name": "SOMMA Força de Vendas",
+  "short_name": "SOMMA FV",
+  "description": "Sistema de força de vendas e pedidos",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

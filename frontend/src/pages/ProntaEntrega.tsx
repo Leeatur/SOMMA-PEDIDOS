@@ -24,7 +24,8 @@ interface ImportResult {
   imported: number; refs_in_file: number; not_found: string[]; no_photo: string[]
 }
 
-const BASE = 'https://somma-pedidos-production.up.railway.app'
+// usa o domínio em que o sistema está sendo acessado (ex.: www.sommafv.com.br)
+const BASE = window.location.origin
 const fmtDate = (s: string | null): string => {
   if (!s) return '—'
   const str = String(s).trim()
