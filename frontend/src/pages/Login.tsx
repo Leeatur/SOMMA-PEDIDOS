@@ -82,7 +82,7 @@ export function Login() {
         {/* Header */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-12 w-auto" />
+            <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-16 w-auto" />
             {isDev && (
               <span className="px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-black rounded-full tracking-widest">
                 DEV
@@ -95,27 +95,27 @@ export function Login() {
             </span>
           </div>
 
-          <h1 className="mt-5 text-4xl font-black text-white leading-tight">
+          <h1 className="mt-6 text-5xl lg:text-6xl font-black text-white leading-[1.05]">
             Sua equipe de vendas<br />
             <span style={{ color: '#E07B27' }}>em um só lugar.</span>
           </h1>
-          <p className="mt-3 text-white/50 text-base max-w-md">
+          <p className="mt-4 text-white/55 text-lg max-w-lg leading-relaxed">
             Pedidos, clientes, comissões e catálogo de pronta entrega — tudo integrado para o representante vender mais.
           </p>
         </div>
 
         {/* Cards de funcionalidades */}
-        <div className="relative z-10 grid grid-cols-2 gap-3 my-8">
+        <div className="relative z-10 grid grid-cols-2 gap-4 my-9">
           {FEATURES.map(f => (
             <div key={f.tag}
-              className="rounded-2xl p-4 border border-white/10 backdrop-blur-sm"
+              className="rounded-2xl p-5 border border-white/10 backdrop-blur-sm"
               style={{ background: 'rgba(255,255,255,0.05)' }}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-orange-400">{f.icon}</span>
-                <span className="text-[10px] font-bold tracking-widest text-white/40 uppercase">{f.tag}</span>
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="text-orange-400 [&_svg]:h-5 [&_svg]:w-5">{f.icon}</span>
+                <span className="text-[11px] font-bold tracking-widest text-white/45 uppercase">{f.tag}</span>
               </div>
-              <p className="text-[13px] font-bold text-white mb-1">{f.title}</p>
-              <p className="text-[11px] text-white/40 leading-relaxed">{f.desc}</p>
+              <p className="text-lg font-bold text-white mb-1.5">{f.title}</p>
+              <p className="text-sm text-white/45 leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
