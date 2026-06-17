@@ -66,7 +66,7 @@ export function Login() {
 
       {/* ══ PAINEL ESQUERDO — marketing ══ */}
       <div
-        className="hidden lg:flex lg:w-[58%] flex-col p-8 relative overflow-hidden"
+        className="hidden lg:flex lg:w-[58%] flex-col justify-between p-8 relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}
       >
         {/* Padrão de pontos decorativos */}
@@ -95,27 +95,27 @@ export function Login() {
             </span>
           </div>
 
-          <h1 className="mt-6 text-5xl lg:text-6xl font-black text-white leading-[1.05]">
+          <h1 className="mt-5 text-3xl lg:text-[2.75rem] font-black text-white leading-[1.08]">
             Sua equipe de vendas<br />
             <span style={{ color: '#E07B27' }}>em um só lugar.</span>
           </h1>
-          <p className="mt-4 text-white/55 text-lg max-w-lg leading-relaxed">
+          <p className="mt-3 text-white/55 text-base max-w-lg leading-relaxed">
             Pedidos, clientes, comissões e catálogo de pronta entrega — tudo integrado para o representante vender mais.
           </p>
         </div>
 
         {/* Cards de funcionalidades */}
-        <div className="relative z-10 grid grid-cols-2 gap-4 my-9">
+        <div className="relative z-10 grid grid-cols-2 gap-3.5 my-6">
           {FEATURES.map(f => (
             <div key={f.tag}
-              className="rounded-2xl p-5 border border-white/10 backdrop-blur-sm"
+              className="rounded-2xl p-4 border border-white/10 backdrop-blur-sm"
               style={{ background: 'rgba(255,255,255,0.05)' }}>
-              <div className="flex items-center gap-2 mb-2.5">
-                <span className="text-orange-400 [&_svg]:h-5 [&_svg]:w-5">{f.icon}</span>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-orange-400 [&_svg]:h-[18px] [&_svg]:w-[18px]">{f.icon}</span>
                 <span className="text-[11px] font-bold tracking-widest text-white/45 uppercase">{f.tag}</span>
               </div>
-              <p className="text-lg font-bold text-white mb-1.5">{f.title}</p>
-              <p className="text-sm text-white/45 leading-relaxed">{f.desc}</p>
+              <p className="text-base font-bold text-white mb-1">{f.title}</p>
+              <p className="text-[13px] text-white/45 leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
