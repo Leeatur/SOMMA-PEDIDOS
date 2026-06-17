@@ -18,6 +18,7 @@ import * as goals from '../controllers/goalsController'
 import * as pdf from '../controllers/pdfController'
 import * as pe from '../controllers/peController'
 import * as paymentConds from '../controllers/paymentConditionsController'
+import * as integration from '../controllers/integrationController'
 
 const router = Router()
 
@@ -124,6 +125,12 @@ router.get('/reports/catalog', authenticate, reports.catalogReport)
 // Empresa (Somma)
 router.get('/company', authenticate, company.getSettings)
 router.put('/company', authenticate, requireAdmin, company.updateSettings)
+
+// ── Integração com o SOMMA Maps ──
+router.get   ('/integration/info',  authenticate, requireAdmin, integration.getInfo)
+router.post  ('/integration/token', authenticate, requireAdmin, integration.gerarToken)
+router.delete('/integration/token', authenticate, requireAdmin, integration.revogarToken)
+router.get   ('/integration/sales', integration.getSales)  // autenticado por X-Integration-Token
 router.post('/company/logo', authenticate, requireAdmin, upload.single('logo'), company.uploadLogo)
 router.delete('/company/logo', authenticate, requireAdmin, company.deleteLogo)
 
