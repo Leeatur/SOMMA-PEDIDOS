@@ -31,6 +31,14 @@ CREATE TABLE IF NOT EXISTS factories (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Acesso de usuários a fábricas (representante vê só as fábricas liberadas)
+CREATE TABLE IF NOT EXISTS user_factory_access (
+  user_id    UUID NOT NULL REFERENCES users(id)     ON DELETE CASCADE,
+  factory_id UUID NOT NULL REFERENCES factories(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, factory_id)
+);
+
 -- Tabelas de Preço
 CREATE TABLE IF NOT EXISTS price_tables (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
