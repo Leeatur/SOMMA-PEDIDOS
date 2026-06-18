@@ -10,6 +10,7 @@ import {
   ChevronRight,
   AlertCircle,
   Package,
+  Pencil,
 } from 'lucide-react'
 import { priceTablesApi, factoriesApi } from '../api/client'
 import { Button } from '../components/ui/Button'
@@ -69,6 +70,8 @@ export function PriceTables() {
   const [editRulesTable, setEditRulesTable] = useState<PriceTable | null>(null)
   const [editRules, setEditRules] = useState<DiscountRule[]>([])
   const [editName, setEditName] = useState('')
+  const [renameTable, setRenameTable] = useState<PriceTable | null>(null)
+  const [renameValue, setRenameValue] = useState('')
   const [editMaxCash, setEditMaxCash] = useState<string>('')  // limite Desc. À Vista
 
   // Import Excel state
@@ -176,6 +179,15 @@ export function PriceTables() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['price-tables'] })
       setEditRulesTable(null)
+    },
+  })
+
+  // Renomear tabela — envia só o nome (backend preserva os demais metadados)
+  const renameMut = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => priceTablesApi.update(id, { name }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['price-tables'] })
+      setRenameTable(null)
     },
   })
 
@@ -307,7 +319,16 @@ export function PriceTables() {
                       <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-on-surface">{t.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-on-surface">{t.name}</p>
+                        <button
+                          onClick={() => { setRenameTable(t); setRenameValue(t.name) }}
+                          title="Renomear tabela"
+                          className="text-outline/60 hover:text-violet-600 transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                       <p className="text-[12px] text-outline">{t.factory_name}</p>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {t.collection && <Badge variant="info">{t.collection}</Badge>}
@@ -630,6 +651,33 @@ export function PriceTables() {
             Os produtos e fotos desta tabela serão removidos. Os pedidos já realizados são mantidos no histórico com todos os valores intactos.
           </p>
         </div>
+      </Modal>
+
+      {/* ── Modal: Renomear Tabela ── */}
+      <Modal
+        open={!!renameTable}
+        onClose={() => setRenameTable(null)}
+        title="Renomear tabela"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setRenameTable(null)}>Cancelar</Button>
+            <Button
+              loading={renameMut.isPending}
+              disabled={!renameValue.trim()}
+              onClick={() => renameTable && renameValue.trim() && renameMut.mutate({ id: renameTable.id, name: renameValue.trim() })}
+              icon={<CheckCircle className="h-4 w-4" />}
+            >
+              Salvar
+            </Button>
+          </div>
+        }
+      >
+        <Input
+          label="Nome da tabela"
+          value={renameValue}
+          onChange={e => setRenameValue(e.target.value)}
+          autoFocus
+        />
       </Modal>
 
       {/* ── Modal: Editar Descontos & Comissões ── */}

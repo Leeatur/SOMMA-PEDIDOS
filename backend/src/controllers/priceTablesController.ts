@@ -541,20 +541,22 @@ export async function updatePriceTableRules(req: AuthRequest, res: Response) {
   try {
     await dbClient.query('BEGIN')
 
-    // Atualiza metadados se fornecidos
-    if (name !== undefined) {
-      const { max_cash_discount_pct } = req.body
-      const maxCash = max_cash_discount_pct !== undefined
-        ? (max_cash_discount_pct === '' || max_cash_discount_pct === null ? null : parseFloat(max_cash_discount_pct))
-        : undefined
-      await dbClient.query(
-        `UPDATE price_tables SET name=$1, collection=$2, season=$3, year=$4
-         ${maxCash !== undefined ? ', max_cash_discount_pct=$6' : ''}
-         WHERE id=$5`,
-        maxCash !== undefined
-          ? [name, collection||null, season||null, year||null, id, maxCash]
-          : [name, collection||null, season||null, year||null, id]
-      )
+    // Atualiza só os metadados realmente enviados (campos omitidos não são zerados)
+    const { max_cash_discount_pct } = req.body
+    const sets: string[] = []
+    const params: unknown[] = []
+    let idx = 1
+    if (name !== undefined)       { sets.push(`name=$${idx++}`);       params.push(name) }
+    if (collection !== undefined) { sets.push(`collection=$${idx++}`); params.push(collection || null) }
+    if (season !== undefined)     { sets.push(`season=$${idx++}`);     params.push(season || null) }
+    if (year !== undefined)       { sets.push(`year=$${idx++}`);       params.push(year || null) }
+    if (max_cash_discount_pct !== undefined) {
+      const maxCash = (max_cash_discount_pct === '' || max_cash_discount_pct === null) ? null : parseFloat(max_cash_discount_pct)
+      sets.push(`max_cash_discount_pct=$${idx++}`); params.push(maxCash)
+    }
+    if (sets.length > 0) {
+      params.push(id)
+      await dbClient.query(`UPDATE price_tables SET ${sets.join(', ')} WHERE id=$${idx}`, params)
     }
 
     // Substitui todas as regras de desconto/comissão
