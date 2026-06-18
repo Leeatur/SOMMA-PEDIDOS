@@ -137,6 +137,8 @@ export function Dashboard() {
   // Métricas compartilhadas (baseadas no período filtrado)
   const totalPieces      = filteredOrders.reduce((s, o) => s + Number(o.total_pieces || 0), 0)
   // PCT é sempre fonte da verdade; valor = pct × total (commission_manual_override só protege PCT de reset automático)
+  // Distribuidora (VITE_SINGLE_COMMISSION): só comissão do representante, sem split de escritório
+  const singleComm = import.meta.env.VITE_SINGLE_COMMISSION === 'true'
   const effRepComm  = (o: Order) => Number(o.total_value) * Number(o.rep_commission_pct)    / 100
   const effOffComm  = (o: Order) => Number(o.total_value) * Number(o.office_commission_pct) / 100
   const totalRepComm     = filteredOrders.reduce((s, o) => s + effRepComm(o), 0)
@@ -307,32 +309,36 @@ export function Dashboard() {
       {isAdmin && (
         <div className="px-4 lg:px-8 mt-2 space-y-2.5">
 
-          {/* Row 1: 3 cards de comissão */}
-          <div className="grid grid-cols-3 gap-2.5">
-            <StatCard
-              icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
-              iconBg="bg-emerald-100"
-              label="Com. Escritório s/ Repres."
-              value={formatCurrency(commEscritorioSobreRep)}
-              accentColor="#10B981"
-              onClick={() => setCardModal('comissao_direto')}
-            />
+          {/* Row 1: cards de comissão (distribuidora = só representante) */}
+          <div className={singleComm ? 'grid grid-cols-1 gap-2.5' : 'grid grid-cols-3 gap-2.5'}>
+            {!singleComm && (
+              <StatCard
+                icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
+                iconBg="bg-emerald-100"
+                label="Com. Escritório s/ Repres."
+                value={formatCurrency(commEscritorioSobreRep)}
+                accentColor="#10B981"
+                onClick={() => setCardModal('comissao_direto')}
+              />
+            )}
             <StatCard
               icon={<Award className="h-4.5 w-4.5 text-teal-600" />}
               iconBg="bg-teal-100"
-              label="Comissão Representantes"
+              label={singleComm ? 'Comissão' : 'Comissão Representantes'}
               value={formatCurrency(totalRepComm)}
               accentColor="#0D9488"
               onClick={() => setCardModal('comissao_rep')}
             />
-            <StatCard
-              icon={<Award className="h-4.5 w-4.5 text-indigo-600" />}
-              iconBg="bg-indigo-100"
-              label="Comissão Total Escritório"
-              value={formatCurrency(totalOfficeComm)}
-              accentColor="#4F46E5"
-              onClick={() => setCardModal('comissao')}
-            />
+            {!singleComm && (
+              <StatCard
+                icon={<Award className="h-4.5 w-4.5 text-indigo-600" />}
+                iconBg="bg-indigo-100"
+                label="Comissão Total Escritório"
+                value={formatCurrency(totalOfficeComm)}
+                accentColor="#4F46E5"
+                onClick={() => setCardModal('comissao')}
+              />
+            )}
           </div>
 
           {/* Row 2: Peças, Ticket, Clientes */}

@@ -43,6 +43,19 @@ interface DiscountRule {
 
 const SEASONS = ['Verão', 'Inverno', 'Primavera/Verão', 'Outono/Inverno', 'Anual']
 
+// Modo comissão única (distribuidora) — só a comissão do representante; sem split de escritório.
+// Ligado por instância via VITE_SINGLE_COMMISSION=true. Default off (mantém o modelo padrão SOMMA).
+const SINGLE_COMM = import.meta.env.VITE_SINGLE_COMMISSION === 'true'
+const COMM_FIELDS: (keyof DiscountRule)[] = SINGLE_COMM
+  ? ['discount_pct', 'rep_commission_pct']
+  : ['discount_pct', 'total_commission_pct', 'rep_commission_pct', 'office_commission_pct']
+const COMM_LABELS: Record<keyof DiscountRule, string> = {
+  discount_pct: 'Desc. %',
+  total_commission_pct: 'Com. Total %',
+  rep_commission_pct: SINGLE_COMM ? 'Comissão %' : 'Com. Rep %',
+  office_commission_pct: 'Com. Esc %',
+}
+
 export function PriceTables() {
   const qc = useQueryClient()
   const [selectedFactory, setSelectedFactory] = useState('')
@@ -221,6 +234,11 @@ export function PriceTables() {
   function updateRule(i: number, field: keyof DiscountRule, value: string) {
     const updated = [...discountRules]
     updated[i] = { ...updated[i], [field]: parseFloat(value) || 0 }
+    if (SINGLE_COMM && field === 'rep_commission_pct') {
+      // distribuidora: total = rep, escritório = 0
+      updated[i].total_commission_pct = updated[i].rep_commission_pct
+      updated[i].office_commission_pct = 0
+    }
     setDiscountRules(updated)
   }
 
@@ -502,16 +520,13 @@ export function PriceTables() {
                 </button>
               </div>
               <div className="space-y-1">
-                <div className="grid grid-cols-5 gap-1 text-[12px] font-medium text-outline px-1">
-                  <span>Desc. %</span>
-                  <span>Com. Total %</span>
-                  <span>Com. Rep %</span>
-                  <span>Com. Esc %</span>
+                <div className="grid gap-1 text-[12px] font-medium text-outline px-1" style={{ gridTemplateColumns: `repeat(${COMM_FIELDS.length}, 1fr) auto` }}>
+                  {COMM_FIELDS.map(field => <span key={field}>{COMM_LABELS[field]}</span>)}
                   <span></span>
                 </div>
                 {discountRules.map((rule, i) => (
-                  <div key={i} className="grid grid-cols-5 gap-1">
-                    {(['discount_pct', 'total_commission_pct', 'rep_commission_pct', 'office_commission_pct'] as const).map((field) => (
+                  <div key={i} className="grid gap-1" style={{ gridTemplateColumns: `repeat(${COMM_FIELDS.length}, 1fr) auto` }}>
+                    {COMM_FIELDS.map((field) => (
                       <input
                         key={field}
                         type="number"
@@ -557,19 +572,17 @@ export function PriceTables() {
                 <table className="min-w-full text-[12px] border border-outline-variant rounded-lg overflow-hidden">
                   <thead className="bg-surface-container-low sticky top-0 z-10">
                     <tr>
-                      <th className="px-3 py-1 text-left text-on-surface-variant">Desconto</th>
-                      <th className="px-3 py-1 text-left text-on-surface-variant">Com. Total</th>
-                      <th className="px-3 py-1 text-left text-on-surface-variant">Com. Rep</th>
-                      <th className="px-3 py-1 text-left text-on-surface-variant">Com. Esc</th>
+                      {COMM_FIELDS.map(field => (
+                        <th key={field} className="px-3 py-1 text-left text-on-surface-variant">{COMM_LABELS[field].replace(' %', '')}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/50">
                     {discountRules.map((r, i) => (
                       <tr key={i} className="bg-white">
-                        <td className="px-3 py-1">{r.discount_pct}%</td>
-                        <td className="px-3 py-1">{r.total_commission_pct}%</td>
-                        <td className="px-3 py-1">{r.rep_commission_pct}%</td>
-                        <td className="px-3 py-1">{r.office_commission_pct}%</td>
+                        {COMM_FIELDS.map(field => (
+                          <td key={field} className="px-3 py-1">{r[field]}%</td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
@@ -698,17 +711,14 @@ export function PriceTables() {
             <div className="space-y-2">
               {/* Cabeçalho */}
               {editRules.length > 0 && (
-                <div className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 text-[11px] font-semibold text-outline uppercase tracking-wide px-1">
-                  <span>Desconto %</span>
-                  <span>Total Com. %</span>
-                  <span>Rep %</span>
-                  <span>Escritório %</span>
+                <div className="grid gap-2 text-[11px] font-semibold text-outline uppercase tracking-wide px-1" style={{ gridTemplateColumns: `repeat(${COMM_FIELDS.length}, 1fr) auto` }}>
+                  {COMM_FIELDS.map(field => <span key={field}>{COMM_LABELS[field].replace('Com. ', '').replace(' %', '')} %</span>)}
                   <span></span>
                 </div>
               )}
               {editRules.map((r, i) => (
-                <div key={i} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center bg-surface-container-low rounded-xl p-2">
-                  {(['discount_pct', 'total_commission_pct', 'rep_commission_pct', 'office_commission_pct'] as const).map(field => (
+                <div key={i} className="grid gap-2 items-center bg-surface-container-low rounded-xl p-2" style={{ gridTemplateColumns: `repeat(${COMM_FIELDS.length}, 1fr) auto` }}>
+                  {COMM_FIELDS.map(field => (
                     <input
                       key={field}
                       type="number" min="0" max="100" step="0.1"
@@ -716,6 +726,10 @@ export function PriceTables() {
                       onChange={e => {
                         const updated = [...editRules]
                         updated[i] = { ...updated[i], [field]: parseFloat(e.target.value) || 0 }
+                        if (SINGLE_COMM && field === 'rep_commission_pct') {
+                          updated[i].total_commission_pct = updated[i].rep_commission_pct
+                          updated[i].office_commission_pct = 0
+                        }
                         setEditRules(updated)
                       }}
                       className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-[12px] text-center font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
@@ -734,7 +748,9 @@ export function PriceTables() {
 
             {editRules.length > 0 && (
               <p className="text-[11px] text-outline mt-2 italic">
-                💡 Dica: a comissão Total = Rep + Escritório. Os cards de desconto no pedido são gerados a partir dessas regras.
+                {SINGLE_COMM
+                  ? '💡 Dica: a comissão é integral do representante. Os cards de desconto no pedido são gerados a partir dessas regras.'
+                  : '💡 Dica: a comissão Total = Rep + Escritório. Os cards de desconto no pedido são gerados a partir dessas regras.'}
               </p>
             )}
           </div>
