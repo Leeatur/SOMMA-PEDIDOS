@@ -1,6 +1,11 @@
 import * as XLSX from 'xlsx'
 import path from 'path'
 
+// Importação flexível (distribuidora): aceita qualquer código de referência e
+// mapeia colunas pelo nome do cabeçalho. Ligado por instância via FLEXIBLE_IMPORT=true.
+// Default off — mantém o parser legado (confecção LEEATUR: refs TE/PKTE, colunas fixas).
+const FLEXIBLE_IMPORT = process.env.FLEXIBLE_IMPORT === 'true'
+
 export interface ImportedProduct {
   reference: string
   type: 'regular' | 'pack'
@@ -33,7 +38,10 @@ export interface DiscountColumn {
 
 function isReference(val: unknown): boolean {
   if (typeof val !== 'string') return false
-  return /^(TE|PKTE)\d+/i.test(val.trim())
+  const s = val.trim()
+  if (!s) return false
+  if (FLEXIBLE_IMPORT) return true // distribuidora: qualquer código não-vazio é referência
+  return /^(TE|PKTE)\d+/i.test(s)
 }
 
 function toNumber(val: unknown): number {
@@ -49,7 +57,7 @@ function parseRegularSheet(ws: XLSX.WorkSheet): { products: ImportedProduct[]; d
 
   // Detecta a linha de cabeçalho (onde está REFERÊNCIA / VALOR)
   let headerRow = -1
-  let colRef = 0, colName = 1, colModel = 2, colGrade = 3, colPrice = 4
+  let colRef = 0, colName = 1, colModel = 2, colGrade = 3, colPrice = 4, colObs = -1
 
   for (let r = 0; r < Math.min(10, data.length); r++) {
     const row = data[r] as unknown[]
@@ -59,14 +67,28 @@ function parseRegularSheet(ws: XLSX.WorkSheet): { products: ImportedProduct[]; d
     if (refIdx >= 0) {
       headerRow = r
       colRef = refIdx
-      colName = refIdx + 1
-      colModel = refIdx + 2
-      colGrade = refIdx + 3
-      colPrice = refIdx + 4
-      // Colunas de desconto = colPrice+1 até colPrice+3 (ou mais)
-      for (let dc = colPrice + 1; dc < colPrice + 5 && dc < row.length; dc++) {
-        const hdr = String(row[dc] || '')
-        if (hdr && !hdr.toUpperCase().includes('OBS')) discountCols.push(dc)
+      if (FLEXIBLE_IMPORT) {
+        // Mapeia colunas pelo NOME do cabeçalho (ordem livre)
+        const find = (...keys: string[]) => rowStr.findIndex(c => keys.some(k => c.includes(k)))
+        colName  = find('PRODUTO', 'NOME', 'DESCRI')
+        colGrade = find('TAMANHO', 'GRADE')
+        colModel = find('COR', 'MODELO')
+        colPrice = find('VALOR', 'PREÇO', 'PRECO')
+        colObs   = find('OBSERV', 'OBS')
+        if (colName < 0)  colName = refIdx + 1
+        if (colModel < 0) colModel = refIdx + 2
+        if (colGrade < 0) colGrade = refIdx + 3
+        if (colPrice < 0) colPrice = refIdx + 4
+      } else {
+        colName = refIdx + 1
+        colModel = refIdx + 2
+        colGrade = refIdx + 3
+        colPrice = refIdx + 4
+        // Colunas de desconto = colPrice+1 até colPrice+3 (ou mais)
+        for (let dc = colPrice + 1; dc < colPrice + 5 && dc < row.length; dc++) {
+          const hdr = String(row[dc] || '')
+          if (hdr && !hdr.toUpperCase().includes('OBS')) discountCols.push(dc)
+        }
       }
       break
     }
@@ -89,7 +111,7 @@ function parseRegularSheet(ws: XLSX.WorkSheet): { products: ImportedProduct[]; d
       size_range: String(row[colGrade] || '').trim(),
       base_price: basePrice,
       category: '',
-      observation: String(row[colPrice + discountCols.length + 1] || '').trim(),
+      observation: String(row[(FLEXIBLE_IMPORT && colObs >= 0) ? colObs : (colPrice + discountCols.length + 1)] || '').trim(),
     })
   }
 
@@ -224,9 +246,10 @@ export function importExcel(filePath: string): ImportResult {
     }
   }
 
-  // Detecta nome da tabela na célula B2 (padrão TEEZZ)
+  // Detecta nome da tabela na célula B2 (padrão TEEZZ). No modo flexível não há
+  // linha de título — mantém o nome do arquivo como default (usuário ajusta na importação).
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-  if (firstSheet) {
+  if (!FLEXIBLE_IMPORT && firstSheet) {
     const data = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, { header: 1, defval: null })
     for (let r = 0; r < 5; r++) {
       const row = data[r] as unknown[]
