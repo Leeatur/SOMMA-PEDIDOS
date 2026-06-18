@@ -10,6 +10,10 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Flag por instância (Vite "assa" no build) — Railway passa a var de serviço como build arg
+ARG VITE_HIDE_PRONTA_ENTREGA
+ENV VITE_HIDE_PRONTA_ENTREGA=$VITE_HIDE_PRONTA_ENTREGA
+
 # Build cache bust: 2026-06-11-1145
 COPY . .
 

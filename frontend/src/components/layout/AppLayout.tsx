@@ -22,6 +22,9 @@ interface NavItem {
   badge?: number
 }
 
+// Flag por instância — esconde a aba Pronta Entrega quando VITE_HIDE_PRONTA_ENTREGA=true
+const HIDE_PRONTA_ENTREGA = import.meta.env.VITE_HIDE_PRONTA_ENTREGA === 'true'
+
 // Itens principais no topo — todos visíveis
 const navPrimary: NavItem[] = [
   { to: '/dashboard',     label: 'Dashboard',     icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -31,7 +34,7 @@ const navPrimary: NavItem[] = [
   { to: '/reports',       label: 'Relatórios',    icon: <BarChart2 className="h-4 w-4" /> },
   { to: '/portals',       label: 'Catálogos',     icon: <Link2 className="h-4 w-4" /> },
   { to: '/pronta-entrega',label: 'Pronta Entrega',icon: <PackageCheck className="h-4 w-4" /> },
-]
+].filter(item => !(HIDE_PRONTA_ENTREGA && item.to === '/pronta-entrega'))
 
 // Itens admin — ficam no dropdown do usuário
 const navAdmin: NavItem[] = [
