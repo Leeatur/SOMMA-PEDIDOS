@@ -140,6 +140,13 @@ export function AppLayout() {
         </div>
       )}
 
+      {/* ── Trial banner (por instância — VITE_TRIAL_LABEL) ── */}
+      {import.meta.env.VITE_TRIAL_LABEL && (
+        <div className="sticky top-0 z-50 bg-amber-400 text-amber-900 text-center py-1 px-4 text-[12px] font-black tracking-wide flex items-center justify-center gap-2">
+          ⚠️ ESTA PÁGINA ESTÁ EM TESTE — {import.meta.env.VITE_TRIAL_LABEL} ⚠️
+        </div>
+      )}
+
       {/* ════════════════════════════
           TOP NAV BAR (desktop)
       ════════════════════════════ */}
