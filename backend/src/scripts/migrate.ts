@@ -278,6 +278,39 @@ CREATE TABLE IF NOT EXISTS customer_portals (
 CREATE INDEX IF NOT EXISTS idx_customer_portals_token ON customer_portals(token);
 CREATE INDEX IF NOT EXISTS idx_customer_portals_rep ON customer_portals(rep_id);
 
+-- Catálogos de Pronta Entrega (PE) — vincula tabela de preços + portal do cliente
+CREATE TABLE IF NOT EXISTS pe_catalogs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  factory_id UUID REFERENCES factories(id) ON DELETE CASCADE,
+  price_table_id UUID REFERENCES price_tables(id) ON DELETE CASCADE,
+  portal_id UUID REFERENCES customer_portals(id) ON DELETE CASCADE,
+  rep_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  item_count INTEGER DEFAULT 0,
+  last_import_at TIMESTAMPTZ,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_pe_catalogs_portal ON pe_catalogs(portal_id);
+CREATE INDEX IF NOT EXISTS idx_pe_catalogs_price_table ON pe_catalogs(price_table_id);
+
+-- Metas (por fábrica/marca ou por representante)
+CREATE TABLE IF NOT EXISTS goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type VARCHAR(20) NOT NULL,
+  factory_id UUID REFERENCES factories(id) ON DELETE CASCADE,
+  rep_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  label VARCHAR(255) NOT NULL,
+  target_pieces INTEGER NOT NULL DEFAULT 0,
+  period_label VARCHAR(100),
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_goals_factory ON goals(factory_id);
+CREATE INDEX IF NOT EXISTS idx_goals_rep ON goals(rep_id);
+
 -- Dispensa de alertas de "aniversário" de pedidos (a cada 15 dias) — v7
 -- Cada linha registra que o alerta de um pedido para um determinado marco
 -- (15, 30, 45... dias) foi dispensado. Como o marco faz parte da chave,
