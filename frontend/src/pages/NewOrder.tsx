@@ -1205,9 +1205,9 @@ export function NewOrder() {
 
             {/* Floating cart summary */}
             {cart.length > 0 && (
-              <div className="fixed bottom-16 lg:bottom-6 left-0 right-0 lg:left-auto lg:right-8 lg:max-w-sm px-3 lg:px-0 z-40 space-y-1.5">
+              <div className="fixed bottom-16 lg:bottom-6 left-0 right-0 lg:left-auto lg:right-8 lg:w-80 px-3 lg:px-0 z-40 space-y-1.5">
                 {/* Info bar */}
-                <div className="bg-black/70 backdrop-blur-sm text-white rounded-xl px-4 py-2 flex items-center justify-between text-sm">
+                <div className="bg-black/70 backdrop-blur-sm text-white rounded-xl px-4 py-2 flex items-center justify-between gap-4 text-sm whitespace-nowrap">
                   <span className="text-white/70">{cart.length} item{cart.length > 1 ? 'ns' : ''} · {totals.totalPieces} pç</span>
                   <span className="font-bold text-base">{formatCurrency(totals.totalValue)}</span>
                 </div>
