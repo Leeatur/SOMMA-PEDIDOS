@@ -1302,7 +1302,7 @@ export function OrderDetail() {
           <p className="text-on-surface-variant font-medium">
             Confirmar o cancelamento do pedido <span className="font-bold">{order && formatOrderNumber(order.order_number)}</span>?
           </p>
-          <p className="text-[12px] text-outline/70 mt-1">O pedido fica marcado como <span className="font-semibold">Cancelado</span> e sai dos totais de venda, mas continua no histórico (não é excluído).</p>
+          <p className="text-[12px] text-outline/70 mt-1">O pedido fica marcado como <span className="font-semibold">Cancelado</span> e continua no histórico (não é excluído).</p>
         </div>
       </Modal>
 
