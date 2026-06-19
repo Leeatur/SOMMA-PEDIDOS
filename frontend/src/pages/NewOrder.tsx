@@ -55,8 +55,12 @@ function sortSizes(sizes: string[]) {
 }
 
 // Distribuidora: o desconto vem da Condição de Pagamento (ex.: "PIX - 5% desconto")
-// e as seções manuais de desconto são removidas. Ligado por instância via flag.
-const PAYMENT_DRIVEN_DISCOUNT = import.meta.env.VITE_PAYMENT_DRIVEN_DISCOUNT === 'true'
+// e as seções manuais de desconto são removidas. Ativa explicitamente
+// (VITE_PAYMENT_DRIVEN_DISCOUNT=true) OU herda o modo distribuidora
+// (VITE_SINGLE_COMMISSION=true), salvo se desligado de propósito (=false).
+const PAYMENT_DRIVEN_DISCOUNT =
+  import.meta.env.VITE_PAYMENT_DRIVEN_DISCOUNT === 'true' ||
+  (import.meta.env.VITE_PAYMENT_DRIVEN_DISCOUNT !== 'false' && import.meta.env.VITE_SINGLE_COMMISSION === 'true')
 function parsePaymentDiscount(name: string): number {
   const m = (name || '').match(/(\d+(?:[.,]\d+)?)\s*%/)
   return m ? parseFloat(m[1].replace(',', '.')) : 0
