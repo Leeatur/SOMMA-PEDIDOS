@@ -14,6 +14,7 @@ import {
   Trash2,
   Image as ImageIcon,
   Check,
+  Pencil,
   WifiOff,
   AlertCircle,
   Info,
@@ -142,10 +143,17 @@ interface Product {
   observation: string | null
 }
 
+interface CustomGradeEntry {
+  color: string
+  sizes: Record<string, number>
+  total_pieces: number
+}
+
 interface CartItem {
   product: Product
   boxes_count: number          // usado para packs
-  sizes: Record<string, number> // usado para produtos regulares
+  sizes: Record<string, number> // usado para produtos regulares (achatado por tamanho)
+  custom_grade?: CustomGradeEntry[] // regulares com variantes cor × tamanho (detalhe por cor)
   unit_price: number
   observation?: string         // observação por item
 }
@@ -626,6 +634,7 @@ export function NewOrder() {
           boxes_count: c.boxes_count,
           unit_price: c.unit_price,
           sizes: c.product.type === 'regular' ? c.sizes : undefined,
+          custom_grade: c.custom_grade && c.custom_grade.length > 0 ? c.custom_grade : undefined,
         })),
         discount_pct: effectiveDiscountNum,
         // Separar desconto de prazo (comercial) do à vista:
@@ -1112,7 +1121,31 @@ export function NewOrder() {
                       {/* Área expandida:
                           - Regular em carrinho: SizeGrid (sempre visível)
                           - Pack: grade preview (toggle) */}
-                      {cartItem && isRegular && (
+                      {cartItem && isRegular && cartItem.custom_grade && cartItem.custom_grade.length > 0 && (
+                        <div className="px-3 pb-3 border-t border-outline-variant/50 pt-2 bg-primary/5">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[12px] font-medium text-on-surface-variant">Por cor × tamanho:</span>
+                            <div className="flex items-center gap-3">
+                              <button onClick={() => setQuickAddProduct(p)} className="text-primary hover:text-primary/80 flex items-center gap-1 text-[12px] font-semibold">
+                                <Pencil className="h-3 w-3" /> Editar
+                              </button>
+                              <button onClick={() => removeFromCart(p.id)} className="text-red-400 hover:text-red-600 flex items-center gap-1 text-[12px]">
+                                <Trash2 className="h-3 w-3" /> Remover
+                              </button>
+                            </div>
+                          </div>
+                          <div className="space-y-0.5">
+                            {cartItem.custom_grade.map(e => (
+                              <p key={e.color} className="text-[12px] text-on-surface">
+                                <span className="font-semibold">{e.color}:</span>{' '}
+                                {sortSizes(Object.keys(e.sizes).filter(s => (e.sizes[s] || 0) > 0)).map(s => `${s}×${e.sizes[s]}`).join('  ') || '—'}
+                                <span className="text-primary font-bold ml-1">({e.total_pieces})</span>
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {cartItem && isRegular && !(cartItem.custom_grade && cartItem.custom_grade.length > 0) && (
                         <div className="px-3 pb-3 border-t border-outline-variant/50 pt-2 bg-primary/5">
                           <SizeGrid
                             sizes={cartItem.sizes}
@@ -1578,12 +1611,12 @@ export function NewOrder() {
           cartItem={cart.find(c => c.product.id === quickAddProduct.id) || null}
           selectedTable={selectedTable}
           onClose={() => setQuickAddProduct(null)}
-          onAdd={(p, sizes, boxes, observation, price) => {
+          onAdd={(p, sizes, boxes, observation, price, customGrade) => {
             const exists = cart.find(c => c.product.id === p.id)
             if (exists) {
-              setCart(cart.map(c => c.product.id === p.id ? { ...c, sizes, boxes_count: boxes, observation, unit_price: price } : c))
+              setCart(cart.map(c => c.product.id === p.id ? { ...c, sizes, custom_grade: customGrade, boxes_count: boxes, observation, unit_price: price } : c))
             } else {
-              setCart([...cart, { product: p, boxes_count: boxes, sizes, unit_price: price, observation }])
+              setCart([...cart, { product: p, boxes_count: boxes, sizes, custom_grade: customGrade, unit_price: price, observation }])
             }
             setQuickAddProduct(null)
             // Ao confirmar o lançamento da referência, devolve o foco ao campo de busca
@@ -1606,12 +1639,40 @@ function QuickAddModal({
   cartItem: CartItem | null
   selectedTable: PriceTable | null
   onClose: () => void
-  onAdd: (p: Product, sizes: Record<string, number>, boxes: number, observation: string, price: number) => void
+  onAdd: (p: Product, sizes: Record<string, number>, boxes: number, observation: string, price: number, customGrade?: CustomGradeEntry[]) => void
 }) {
   const isPack = product.type === 'pack'
 
   // Para packs: grade selecionada (cor)
   const grades = product.grade_configs || []
+
+  // Regular com variantes cor × tamanho (distribuidora): grade editável por cor
+  const multiVariant = !isPack && grades.length > 0 && grades.some(g => (g.color || '').trim() !== '')
+  const variantSizes = multiVariant
+    ? sortSizes([...new Set(grades.flatMap(g => Object.keys(g.sizes).map(s => s.trim())))])
+    : []
+  const variantColors = multiVariant ? grades.map(g => (g.color || '—')) : []
+  const [colorQtys, setColorQtys] = useState<Record<string, Record<string, number>>>(() => {
+    const m: Record<string, Record<string, number>> = {}
+    if (cartItem?.custom_grade?.length) {
+      cartItem.custom_grade.forEach(e => { m[e.color] = { ...e.sizes } })
+    }
+    grades.forEach(g => {
+      const c = g.color || '—'
+      if (!m[c]) m[c] = {}
+      Object.keys(g.sizes).forEach(s => { if (m[c][s.trim()] === undefined) m[c][s.trim()] = 0 })
+    })
+    return m
+  })
+  const setColorQty = (color: string, size: string, value: number) =>
+    setColorQtys(prev => ({ ...prev, [color]: { ...prev[color], [size]: Math.max(0, value) } }))
+  // Achatado por tamanho (mantém a lógica de totais/comissão igual) + detalhe por cor
+  const flatSizes: Record<string, number> = {}
+  variantSizes.forEach(s => { flatSizes[s] = variantColors.reduce((sum, c) => sum + (colorQtys[c]?.[s] || 0), 0) })
+  const customGrade: CustomGradeEntry[] = variantColors
+    .map(c => ({ color: c, sizes: colorQtys[c] || {}, total_pieces: Object.values(colorQtys[c] || {}).reduce((a, b) => a + (b || 0), 0) }))
+    .filter(e => e.total_pieces > 0)
+  const mvTotal = customGrade.reduce((s, e) => s + e.total_pieces, 0)
 
   // Para regulares: tamanhos
   const allSizes = (() => {
@@ -1648,6 +1709,8 @@ function QuickAddModal({
   const totalPiecesPerBox = grades.reduce((s, g) => s + g.total_pieces, 0) || 0
   const totalPieces = isPack
     ? totalPiecesPerBox * boxes
+    : multiVariant
+    ? mvTotal
     : Object.values(sizes).reduce((s, v) => s + v, 0)
   const totalValue = customPrice * totalPieces
 
@@ -1693,7 +1756,8 @@ function QuickAddModal({
         // É o último campo ou Enter fora da grade — adiciona o item
         e.preventDefault()
         if (totalPieces > 0) {
-          onAdd(product, safeSizes, boxes, observation, customPrice)
+          if (multiVariant) onAdd(product, flatSizes, boxes, observation, customPrice, customGrade)
+          else onAdd(product, safeSizes, boxes, observation, customPrice)
         }
       }
     }
@@ -1804,8 +1868,72 @@ function QuickAddModal({
             )
           })()}
 
+          {/* ── REGULAR COM VARIANTES: grade editável cor × tamanho ── */}
+          {multiVariant && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] text-outline font-semibold uppercase tracking-wide">Quantidades por cor × tamanho</p>
+                <div>
+                  <span className="text-[11px] text-outline font-medium mr-1">Total:</span>
+                  <span className="text-[13px] font-bold text-primary">{mvTotal} pç</span>
+                </div>
+              </div>
+              <div className="border border-outline-variant rounded-xl overflow-x-auto">
+                <table className="min-w-full text-[12px]">
+                  <thead className="bg-surface-container-low sticky top-0 z-10">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-bold text-outline border-r border-outline-variant/40">COR / MODELO</th>
+                      {variantSizes.map(s => (
+                        <th key={s} className="px-1 py-2 text-center font-bold text-outline border-r border-outline-variant/30 last:border-r-0 min-w-[44px]">{s}</th>
+                      ))}
+                      <th className="px-2 py-2 text-center font-bold text-primary">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/20">
+                    {variantColors.map((color, ci) => {
+                      const rowTotal = variantSizes.reduce((sum, s) => sum + (colorQtys[color]?.[s] || 0), 0)
+                      return (
+                        <tr key={color} className={ci % 2 === 0 ? 'bg-white' : 'bg-surface-container-low/30'}>
+                          <td className="px-3 py-1.5 font-semibold text-on-surface border-r border-outline-variant/30 whitespace-nowrap">{color}</td>
+                          {variantSizes.map((s) => {
+                            const hasSize = colorQtys[color]?.[s] !== undefined
+                            return (
+                              <td key={s} className="border-r border-outline-variant/20 last:border-r-0 p-0.5 text-center">
+                                {hasSize ? (
+                                  <input
+                                    type="number" min="0" inputMode="numeric"
+                                    value={colorQtys[color]?.[s] ? colorQtys[color][s] : ''}
+                                    placeholder="0"
+                                    onChange={e => setColorQty(color, s, parseInt(e.target.value) || 0)}
+                                    onFocus={e => e.target.select()}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        const table = e.currentTarget.closest('table')
+                                        const inputs = table ? Array.from(table.querySelectorAll<HTMLInputElement>('input[type="number"]')) : []
+                                        const idx = inputs.indexOf(e.currentTarget)
+                                        const next = inputs[idx + 1]
+                                        if (next) next.focus()
+                                      }
+                                    }}
+                                    className="w-10 h-7 text-center border border-outline-variant rounded text-[12px] font-bold focus:outline-none focus:ring-1 focus:ring-primary bg-white"
+                                  />
+                                ) : <span className="text-outline/40">—</span>}
+                              </td>
+                            )
+                          })}
+                          <td className="px-2 py-1.5 text-center font-bold text-primary">{rowTotal || ''}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* ── REGULAR: grade de tamanhos por input ── */}
-          {!isPack && allSizes.length > 0 && (
+          {!isPack && !multiVariant && allSizes.length > 0 && (
             <div>
               <div className="flex items-center gap-4 mb-2">
                 <div>
@@ -1946,7 +2074,9 @@ function QuickAddModal({
           </button>
           <Button
             disabled={totalPieces === 0}
-            onClick={() => onAdd(product, safeSizes, boxes, observation, customPrice)}
+            onClick={() => multiVariant
+              ? onAdd(product, flatSizes, boxes, observation, customPrice, customGrade)
+              : onAdd(product, safeSizes, boxes, observation, customPrice)}
             icon={<Check className="h-4 w-4" />}
           >
             {cartItem ? 'Atualizar' : 'Adicionar'}
