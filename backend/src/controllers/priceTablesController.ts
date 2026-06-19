@@ -57,9 +57,9 @@ export async function getPriceTable(req: AuthRequest, res: Response) {
 export async function previewExcelImport(req: AuthRequest, res: Response) {
   if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
   try {
-    const result = importExcel(req.file.path)
+    const result = importExcel(req.file.buffer)
     res.json({
-      tableName: result.tableName,
+      tableName: result.tableName || path.basename(req.file.originalname || '', path.extname(req.file.originalname || '')),
       totalProducts: result.products.length,
       regularCount: result.products.filter(p => p.type === 'regular').length,
       packCount: result.products.filter(p => p.type === 'pack').length,
@@ -112,7 +112,7 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
     }
 
     // Importa produtos
-    const result = importExcel(req.file!.path)
+    const result = importExcel(req.file!.buffer)
     let inserted = 0
 
     for (const prod of result.products) {

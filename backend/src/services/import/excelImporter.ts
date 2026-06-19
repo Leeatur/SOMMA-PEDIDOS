@@ -205,10 +205,13 @@ export function estimateDiscount(basePrice: number, discountPrice: number): numb
   return Math.round(((basePrice - discountPrice) / basePrice) * 10000) / 100
 }
 
-export function importExcel(filePath: string): ImportResult {
-  const workbook = XLSX.readFile(filePath)
+export function importExcel(input: string | Buffer): ImportResult {
+  // Aceita caminho de arquivo (disco) ou buffer (multer memoryStorage)
+  const workbook = typeof input === 'string'
+    ? XLSX.readFile(input)
+    : XLSX.read(input, { type: 'buffer' })
   const allProducts: ImportedProduct[] = []
-  let tableName = path.basename(filePath, path.extname(filePath))
+  let tableName = typeof input === 'string' ? path.basename(input, path.extname(input)) : ''
   let discountColumns: DiscountColumn[] = []
 
   // Percorre abas exceto Packs
