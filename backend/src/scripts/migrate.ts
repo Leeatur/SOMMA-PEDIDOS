@@ -333,6 +333,8 @@ CREATE INDEX IF NOT EXISTS idx_prospecting_rep ON prospecting_contacts(rep_id);
 CREATE INDEX IF NOT EXISTS idx_prospecting_status ON prospecting_contacts(status);
 CREATE INDEX IF NOT EXISTS idx_products_price_table ON products(price_table_id);
 CREATE INDEX IF NOT EXISTS idx_products_reference ON products(reference);
+-- Índice ÚNICO exigido pelo ON CONFLICT (price_table_id, reference) na importação
+CREATE UNIQUE INDEX IF NOT EXISTS uq_products_table_ref ON products(price_table_id, reference);
 CREATE INDEX IF NOT EXISTS idx_grade_configs_product ON grade_configs(product_id);
 CREATE INDEX IF NOT EXISTS idx_orders_client ON orders(client_id);
 CREATE INDEX IF NOT EXISTS idx_orders_rep ON orders(rep_id);
