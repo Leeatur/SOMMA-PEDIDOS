@@ -6,7 +6,9 @@ const SIZE_ORDER = ['RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG'
   '34','36','38','40','42','44','46','48','50','52','54','56','58','60','1','2','4','6','8','10','12','14','16','18','U']
 
 function sortSizes(sizes: string[]) {
+  const isNum = (s: string) => /^\d+$/.test(s.trim())
   return [...sizes].sort((a, b) => {
+    if (isNum(a) && isNum(b)) return parseInt(a, 10) - parseInt(b, 10)
     const ai = SIZE_ORDER.indexOf(a.trim().toUpperCase())
     const bi = SIZE_ORDER.indexOf(b.trim().toUpperCase())
     if (ai === -1 && bi === -1) return a.localeCompare(b)
@@ -96,6 +98,18 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
         let gradeHtml = `<tr class="grade-row"><td colspan="5"><div class="grade-table"><table><thead><tr><th>Cor</th>${allSizes.map(s => `<th>${s}</th>`).join('')}<th>Tot/cx</th></tr></thead><tbody>`
         for (const g of grades) {
           gradeHtml += `<tr><td class="color">${g.color || '—'}</td>${allSizes.map((s: string) => `<td>${Number(g.sizes[s] || 0) > 0 ? g.sizes[s] : '—'}</td>`).join('')}<td class="total">${g.total_pieces}</td></tr>`
+        }
+        gradeHtml += `</tbody></table></div></td></tr>`
+        itemsHtml += gradeHtml
+      } else if (!isPack && Array.isArray(item.custom_grade) && item.custom_grade.length > 0) {
+        // Regular com variantes: tabela cor/modelo × tamanho
+        const cg = item.custom_grade as Array<{ color: string; sizes: Record<string, number> }>
+        const allSizes = sortSizes([...new Set(cg.flatMap(g => Object.keys(g.sizes || {})))] as string[])
+        let gradeHtml = `<tr class="grade-row"><td colspan="5"><div class="grade-table"><table><thead><tr><th>Cor / Modelo</th>${allSizes.map(s => `<th>${s}</th>`).join('')}<th>Total</th></tr></thead><tbody>`
+        for (const g of cg) {
+          const tot = Object.values(g.sizes || {}).reduce((s: number, v) => s + Number(v || 0), 0)
+          if (tot <= 0) continue
+          gradeHtml += `<tr><td class="color">${g.color || '—'}</td>${allSizes.map(s => `<td>${Number(g.sizes[s] || 0) > 0 ? g.sizes[s] : '—'}</td>`).join('')}<td class="total">${tot}</td></tr>`
         }
         gradeHtml += `</tbody></table></div></td></tr>`
         itemsHtml += gradeHtml

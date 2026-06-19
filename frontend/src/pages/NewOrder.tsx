@@ -41,7 +41,10 @@ const SIZE_ORDER = [
 ]
 
 function sortSizes(sizes: string[]) {
+  const isNum = (s: string) => /^\d+$/.test(s.trim())
   return [...sizes].sort((a, b) => {
+    // Tamanhos numéricos (08, 10, 70, 100…) sempre em ordem crescente numérica
+    if (isNum(a) && isNum(b)) return parseInt(a, 10) - parseInt(b, 10)
     const ai = SIZE_ORDER.indexOf(a.toUpperCase())
     const bi = SIZE_ORDER.indexOf(b.toUpperCase())
     if (ai === -1 && bi === -1) return a.localeCompare(b)

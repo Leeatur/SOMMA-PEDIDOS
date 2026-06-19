@@ -11,7 +11,9 @@ const SIZE_ORDER = [
 ]
 
 function sortSizes(sizes: string[]) {
+  const isNum = (s: string) => /^\d+$/.test(s.trim())
   return [...sizes].sort((a, b) => {
+    if (isNum(a) && isNum(b)) return parseInt(a, 10) - parseInt(b, 10)
     const ai = SIZE_ORDER.indexOf(a.trim().toUpperCase())
     const bi = SIZE_ORDER.indexOf(b.trim().toUpperCase())
     if (ai === -1 && bi === -1) return a.localeCompare(b)
@@ -175,8 +177,8 @@ export function OrderPrint() {
     const hasCustomGrade = !!item.custom_grade && item.custom_grade.length > 0
       && item.custom_grade.some(gc => Object.values(gc.sizes || {}).some(v => (v || 0) > 0))
 
-    if (hasCustomSizes && item.sizes) {
-      // Produto regular: uma linha com as quantidades reais por tamanho
+    if (hasCustomSizes && item.sizes && !hasCustomGrade) {
+      // Produto regular SEM variantes: uma linha com as quantidades reais por tamanho
       seq++
       const qtde = Object.values(item.sizes).reduce((s, v) => s + (v || 0), 0)
       const sizeCols: Record<string, number> = {}
