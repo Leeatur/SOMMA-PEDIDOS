@@ -1231,7 +1231,8 @@ function OrderEditQuickModal({
   }
 
   const blockedNew = new Set((product.blocked_sizes || []).map(s => s.trim().toUpperCase()))
-  const allSizes = (isPack ? [] : (() => { if(grades.length){const s=new Set<string>(); grades.forEach(g=>Object.keys(g.sizes).forEach(k=>s.add(k.trim()))); return sort([...s])} return sort(parseRange(product.size_range||'')) })()).filter(s => !blockedNew.has(s.trim().toUpperCase()))
+  const expandKey = (k: string): string[] => { const m=k.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/); if(m){const s=SIZE_ORD.indexOf(m[1].toUpperCase()),e=SIZE_ORD.indexOf(m[2].toUpperCase()); if(s>=0&&e>=s)return SIZE_ORD.slice(s,e+1)} return [k] }
+  const allSizes = (isPack ? [] : (() => { if(grades.length){const s=new Set<string>(); grades.forEach(g=>Object.keys(g.sizes).forEach(k=>expandKey(k.trim()).forEach(sz=>s.add(sz)))); return sort([...s])} return sort(parseRange(product.size_range||'')) })()).filter(s => !blockedNew.has(s.trim().toUpperCase()))
 
   const [sizes, setSizes] = useState<Record<string,number>>(() => Object.fromEntries(allSizes.map(s=>[s,0])))
   const [boxes, setBoxes] = useState(1)
