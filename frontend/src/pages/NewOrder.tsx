@@ -54,6 +54,14 @@ function sortSizes(sizes: string[]) {
   })
 }
 
+// Distribuidora: o desconto vem da Condição de Pagamento (ex.: "PIX - 5% desconto")
+// e as seções manuais de desconto são removidas. Ligado por instância via flag.
+const PAYMENT_DRIVEN_DISCOUNT = import.meta.env.VITE_PAYMENT_DRIVEN_DISCOUNT === 'true'
+function parsePaymentDiscount(name: string): number {
+  const m = (name || '').match(/(\d+(?:[.,]\d+)?)\s*%/)
+  return m ? parseFloat(m[1].replace(',', '.')) : 0
+}
+
 function parseSizeRange(sr: string | null | undefined): string[] {
   if (!sr) return []
   const m1 = sr.match(/^(\d+)\s+ao\s+(\d+)$/i)
@@ -1342,7 +1350,11 @@ export function NewOrder() {
                   type="text"
                   list="payment-conditions-list"
                   value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
+                  onChange={(e) => {
+                    setPaymentTerms(e.target.value)
+                    // Distribuidora: aplica o % de desconto embutido no nome da condição
+                    if (PAYMENT_DRIVEN_DISCOUNT) setCashDiscountPct(String(parsePaymentDiscount(e.target.value)))
+                  }}
                   placeholder="Selecione ou digite..."
                   className={paymentTerms.trim()
                     ? 'w-full border border-outline-variant rounded-lg px-3 py-1.5 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary'
@@ -1408,6 +1420,7 @@ export function NewOrder() {
             <div className="bg-white border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
 
               {/* Desconto */}
+              {!PAYMENT_DRIVEN_DISCOUNT && (
               <div className="p-3 border-b border-outline-variant/50">
                 <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">Desconto Comercial</h3>
                 {discountRules.length > 0 && !customDiscount ? (
@@ -1496,9 +1509,10 @@ export function NewOrder() {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Desc. À Vista */}
-              {(() => {
+              {!PAYMENT_DRIVEN_DISCOUNT && (() => {
                 const maxCash = tableDetail?.max_cash_discount_pct
                 const overLimit = maxCash !== null && maxCash !== undefined && cashDiscountNum > maxCash
                 return (
