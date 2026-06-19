@@ -580,9 +580,11 @@ export function NewOrder() {
       totalPieces += itemPieces
       grossValue += item.unit_price * itemPieces
     }
-    // Desconto à vista NÃO mexe na comissão — comissão é sobre o desconto da tabela
+    // Desconto à vista NÃO mexe na comissão — comissão é sobre o desconto da tabela.
+    // Exceção (distribuidora): comissão sobre o valor LÍQUIDO (total do pedido, já com o desconto da condição de pagamento).
     const tableDiscountedValue = grossValue * (1 - discountNum / 100)
     const totalValue = tableDiscountedValue * (1 - cashDiscountNum / 100)
+    const commBase = PAYMENT_DRIVEN_DISCOUNT ? totalValue : tableDiscountedValue
     const matchedRule = findMatchingRule(discountNum)
     // Tabelas de Pronta Entrega: comissão padrão 6% repres. + 4% escritório quando não há regras
     const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4 }
@@ -594,9 +596,9 @@ export function NewOrder() {
       totalPieces,
       grossValue,
       totalValue,
-      repCommission: tableDiscountedValue * repCommPct / 100,
-      officeCommission: tableDiscountedValue * offCommPct / 100,
-      totalCommission: rule ? tableDiscountedValue * rule.total_commission_pct / 100 : 0,
+      repCommission: commBase * repCommPct / 100,
+      officeCommission: commBase * offCommPct / 100,
+      totalCommission: rule ? commBase * rule.total_commission_pct / 100 : 0,
       rule,
       isAdminOrder: isAdmin,
     }
