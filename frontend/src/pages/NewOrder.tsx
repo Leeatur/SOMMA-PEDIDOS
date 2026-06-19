@@ -686,6 +686,15 @@ export function NewOrder() {
     label: f.name,
   }))
 
+  // Cancelar/descartar o pedido em andamento (pedido de teste ou cliente desistiu)
+  function cancelarPedido() {
+    const temConteudo = cart.length > 0 || !!selectedClient
+    if (temConteudo && !window.confirm('Cancelar este pedido?\n\nTudo que foi preenchido (cliente e itens) será descartado.')) return
+    clearOrderDraft(user?.id)
+    setCart([])
+    navigate('/orders')
+  }
+
   return (
     <div className="pb-24 lg:pb-0 min-h-screen bg-surface-container-low">
       {/* Header */}
@@ -710,12 +719,22 @@ export function NewOrder() {
               <ChevronLeft className="h-5 w-5" />
             </button>
             <h1 className="text-[12px] font-bold text-on-surface">Novo Pedido</h1>
-            {/* Hint de atalhos */}
-            <div className="ml-auto flex items-center gap-2 text-[10px] text-outline/60">
-              <kbd className="px-1.5 py-0.5 bg-surface-container rounded border border-outline-variant font-mono">ESC</kbd>
-              <span>Voltar</span>
-              <kbd className="px-1.5 py-0.5 bg-surface-container rounded border border-outline-variant font-mono">↵</kbd>
-              <span>Confirmar</span>
+            <div className="ml-auto flex items-center gap-3">
+              <button
+                type="button"
+                onClick={cancelarPedido}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-red-500 hover:bg-red-50 transition-colors"
+                title="Cancelar e descartar este pedido"
+              >
+                <X className="h-3.5 w-3.5" /> Cancelar pedido
+              </button>
+              {/* Hint de atalhos */}
+              <div className="hidden lg:flex items-center gap-2 text-[10px] text-outline/60">
+                <kbd className="px-1.5 py-0.5 bg-surface-container rounded border border-outline-variant font-mono">ESC</kbd>
+                <span>Voltar</span>
+                <kbd className="px-1.5 py-0.5 bg-surface-container rounded border border-outline-variant font-mono">↵</kbd>
+                <span>Confirmar</span>
+              </div>
             </div>
           </div>
 
