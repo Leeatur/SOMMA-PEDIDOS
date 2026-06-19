@@ -16,6 +16,7 @@ import {
   Plus,
   Minus,
   Trash2,
+  Ban,
   Search,
   Info,
   Pencil,
@@ -214,6 +215,7 @@ export function OrderDetail() {
   const [addCart, setAddCart] = useState<AddCartItem[]>([])
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
   const [deleteModal, setDeleteModal] = useState(false)
+  const [cancelModal, setCancelModal] = useState(false)
   const [shareModal, setShareModal] = useState(false)
 
   const [editInfoModal, setEditInfoModal] = useState(false)
@@ -302,6 +304,18 @@ export function OrderDetail() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] })
       navigate('/orders', { replace: true })
+    },
+  })
+
+  // Cancelar pedido = marcar status "Cancelado" (mantém o registro, sai dos totais)
+  const canceladoStatus = statuses?.find(s => s.name.trim().toLowerCase() === 'cancelado')
+  const isCancelado = (order?.status_name || '').trim().toLowerCase() === 'cancelado'
+  const cancelMut = useMutation({
+    mutationFn: () => ordersApi.updateStatus(id!, canceladoStatus!.id, 'Pedido cancelado'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order', id] })
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      setCancelModal(false)
     },
   })
 
@@ -499,6 +513,9 @@ export function OrderDetail() {
           <Button size="sm" variant="primary" onClick={() => navigate(`/orders/${id}/edit`)} icon={<Pencil className="h-3.5 w-3.5" />}>Editar</Button>
           {isAdmin && (
             <Button size="sm" variant="outline" onClick={() => { setStatusModal(true); setNewStatusId(order.status_id || '') }} icon={<ChevronDown className="h-3.5 w-3.5" />}>Status</Button>
+          )}
+          {canceladoStatus && !isCancelado && (
+            <Button size="sm" variant="outline" onClick={() => setCancelModal(true)} icon={<Ban className="h-3.5 w-3.5" />}>Cancelar Pedido</Button>
           )}
           <button onClick={() => setDeleteModal(true)} className="p-1.5 rounded-lg text-red-300 hover:bg-red-50 hover:text-red-500 transition-colors" title="Excluir pedido">
             <Trash2 className="h-4 w-4" />
@@ -1258,6 +1275,37 @@ export function OrderDetail() {
       </Modal>
 
       {/* ── Modal Excluir Pedido ── */}
+      <Modal
+        open={cancelModal}
+        onClose={() => setCancelModal(false)}
+        title="Cancelar pedido"
+        size="sm"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setCancelModal(false)}>
+              Voltar
+            </Button>
+            <button
+              onClick={() => cancelMut.mutate()}
+              disabled={cancelMut.isPending || !canceladoStatus}
+              className="px-4 py-1 text-[12px] font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-colors"
+            >
+              {cancelMut.isPending ? 'Cancelando…' : 'Confirmar cancelamento'}
+            </button>
+          </div>
+        }
+      >
+        <div className="text-center py-1">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Ban className="h-6 w-6 text-red-500" />
+          </div>
+          <p className="text-on-surface-variant font-medium">
+            Confirmar o cancelamento do pedido <span className="font-bold">{order && formatOrderNumber(order.order_number)}</span>?
+          </p>
+          <p className="text-[12px] text-outline/70 mt-1">O pedido fica marcado como <span className="font-semibold">Cancelado</span> e sai dos totais de venda, mas continua no histórico (não é excluído).</p>
+        </div>
+      </Modal>
+
       <Modal
         open={deleteModal}
         onClose={() => setDeleteModal(false)}
