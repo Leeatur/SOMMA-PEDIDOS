@@ -150,8 +150,8 @@ export function OrderPrint() {
     }
   }
   const sizes = sortSizes(Array.from(allSizes))
-  // Tabela larga (muitas colunas de tamanho) → imprime em paisagem
-  const wide = sizes.length > 12
+  // Paisagem: sempre no modo distribuidora (Cusco) ou quando a tabela é larga
+  const wide = import.meta.env.VITE_SINGLE_COMMISSION === 'true' || sizes.length > 12
 
   // Monta linhas da tabela
   interface PrintRow {
