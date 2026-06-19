@@ -150,6 +150,8 @@ export function OrderPrint() {
     }
   }
   const sizes = sortSizes(Array.from(allSizes))
+  // Tabela larga (muitas colunas de tamanho) → imprime em paisagem
+  const wide = sizes.length > 12
 
   // Monta linhas da tabela
   interface PrintRow {
@@ -329,7 +331,7 @@ export function OrderPrint() {
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #000; background: #fff; }
-        .page { width: 210mm; min-height: 297mm; padding: 8mm 8mm; margin: 0 auto; background: #fff; }
+        .page { width: ${wide ? '297mm' : '210mm'}; min-height: ${wide ? '210mm' : '297mm'}; padding: 8mm 8mm; margin: 0 auto; background: #fff; }
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid #ccc; padding: 2px 4px; }
         th { background: #f0f0f0; font-weight: bold; text-align: center; }
@@ -367,7 +369,7 @@ export function OrderPrint() {
           body { margin: 0; }
           .page { padding: 8mm 10mm; width: 100%; }
           .print-btn { display: none; }
-          @page { size: A4; margin: 0; }
+          @page { size: A4 ${wide ? 'landscape' : 'portrait'}; margin: 0; }
         }
       `}</style>
 
