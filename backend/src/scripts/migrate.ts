@@ -275,6 +275,8 @@ CREATE TABLE IF NOT EXISTS customer_portals (
   expires_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- Coluna adicionada depois (estava só em produção via ALTER manual)
+ALTER TABLE customer_portals ADD COLUMN IF NOT EXISTS price_table_ids UUID[] NOT NULL DEFAULT '{}';
 CREATE INDEX IF NOT EXISTS idx_customer_portals_token ON customer_portals(token);
 CREATE INDEX IF NOT EXISTS idx_customer_portals_rep ON customer_portals(rep_id);
 
