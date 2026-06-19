@@ -50,6 +50,20 @@ function toNumber(val: unknown): number {
   return 0
 }
 
+// Quebra "MODELO: 01, 02, 03" / "BÚFALO, PRETA, AMARELO" / "80, 85, 90" em lista
+// de variantes (remove prefixo MODELO:, ponto final tipo "UN.", duplicatas; mantém ordem).
+function splitVariants(raw: string): string[] {
+  if (!raw) return []
+  const cleaned = raw.replace(/^\s*MODELO\s*:?/i, '')
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const part of cleaned.split(/[,;/]/)) {
+    const v = part.trim().replace(/\.+$/, '')
+    if (v && !seen.has(v.toUpperCase())) { seen.add(v.toUpperCase()); out.push(v) }
+  }
+  return out
+}
+
 function parseRegularSheet(ws: XLSX.WorkSheet): { products: ImportedProduct[]; discountCols: number[] } {
   const data = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null })
   const products: ImportedProduct[] = []
@@ -103,6 +117,23 @@ function parseRegularSheet(ws: XLSX.WorkSheet): { products: ImportedProduct[]; d
     const basePrice = toNumber(row[colPrice])
     if (basePrice <= 0) continue
 
+    // Modo flexível: gera grade cor/modelo × tamanho a partir das colunas de texto
+    let grade: PackGradeEntry[] | undefined
+    if (FLEXIBLE_IMPORT) {
+      const colors = splitVariants(String(row[colModel] || ''))  // COR / MODELO
+      const sizes  = splitVariants(String(row[colGrade] || ''))  // TAMANHO
+      // só gera grade quando há o que escolher (várias cores/modelos ou vários tamanhos)
+      if (colors.length > 0 || sizes.length > 1) {
+        const rowsV = colors.length > 0 ? colors : ['']
+        const colsV = sizes.length > 0 ? sizes : ['UN']
+        grade = rowsV.map(c => ({
+          color: c,
+          sizes: Object.fromEntries(colsV.map(s => [s, 0])),
+          total_pieces: 0,
+        }))
+      }
+    }
+
     products.push({
       reference: ref,
       type: 'regular',
@@ -112,6 +143,7 @@ function parseRegularSheet(ws: XLSX.WorkSheet): { products: ImportedProduct[]; d
       base_price: basePrice,
       category: '',
       observation: String(row[(FLEXIBLE_IMPORT && colObs >= 0) ? colObs : (colPrice + discountCols.length + 1)] || '').trim(),
+      grade,
     })
   }
 

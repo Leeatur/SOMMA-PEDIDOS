@@ -127,8 +127,10 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
          prod.size_range, prod.base_price, prod.category, prod.observation]
       )
 
-      if (prod.type === 'pack' && prod.grade) {
-        // Grade vem do Excel
+      if (prod.grade && prod.grade.length > 0) {
+        // Grade vem do Excel (packs OU regulares com variantes cor/modelo × tamanho)
+        // Limpa grades antigas do produto p/ re-import ser idempotente (não duplicar)
+        await client.query('DELETE FROM grade_configs WHERE product_id=$1', [p.id])
         for (let i = 0; i < prod.grade.length; i++) {
           const g = prod.grade[i]
           const total = Object.values(g.sizes).reduce((a, b) => a + b, 0)
