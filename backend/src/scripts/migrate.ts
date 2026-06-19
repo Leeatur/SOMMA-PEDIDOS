@@ -82,6 +82,8 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- Coluna adicionada depois (só existia em produção via ALTER manual)
+ALTER TABLE products ADD COLUMN IF NOT EXISTS blocked_sizes TEXT[] DEFAULT '{}';
 
 -- Composição da Grade Fechada por Produto
 -- Regular (TE...): uma linha sem cor, sizes = {"34":1,"36":1,...}
@@ -115,6 +117,10 @@ CREATE TABLE IF NOT EXISTS clients (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- Colunas adicionadas depois (só existiam em produção via ALTER manual)
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS state_registration VARCHAR(30);
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30);
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS buyer_name VARCHAR(255);
 
 -- Status de Pedido (configuráveis)
 CREATE TABLE IF NOT EXISTS order_statuses (
@@ -165,6 +171,10 @@ CREATE TABLE IF NOT EXISTS order_items (
   subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- Colunas adicionadas depois (só existiam em produção via ALTER manual)
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS original_unit_price DECIMAL(10,2);
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS custom_grade JSONB;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_manual_override BOOLEAN DEFAULT false;
 
 -- Histórico de Status
 CREATE TABLE IF NOT EXISTS order_status_history (
