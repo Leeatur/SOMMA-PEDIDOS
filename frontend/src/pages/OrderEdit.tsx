@@ -1219,7 +1219,16 @@ function OrderEditQuickModal({
   const grades = product.grade_configs || []
   const SIZE_ORD = ['RN','PP','XP','P','M','G','GG','XG','EXG','2XG','3XG','4XG','34','36','38','40','42','44','46','48','50','52','54','56','58','60','U']
   const sort = (s: string[]) => [...s].sort((a,b)=>{const ai=SIZE_ORD.indexOf(a.trim().toUpperCase()),bi=SIZE_ORD.indexOf(b.trim().toUpperCase()); if(ai===-1&&bi===-1)return a.localeCompare(b); if(ai===-1)return 1; if(bi===-1)return -1; return ai-bi})
-  const parseRange = (r: string) => { const m=r.match(/^(\d+)-(\d+)$/); if(m){const s=parseInt(m[1]),e=parseInt(m[2]),arr=[]; for(let i=s;i<=e;i+=2)arr.push(String(i)); return arr} return r.includes(',')?r.split(',').map(x=>x.trim()):[r] }
+  const parseRange = (r: string) => {
+    // "36 ao 46"
+    const m0=r.match(/^(\d+)\s+ao\s+(\d+)$/i); if(m0){const lo=parseInt(m0[1]),hi=parseInt(m0[2]); return SIZE_ORD.filter(s=>{const n=parseInt(s);return !isNaN(n)&&n>=lo&&n<=hi})}
+    // "36-48" (numeric only)
+    const m1=r.match(/^(\d+)-(\d+)$/); if(m1){const s=parseInt(m1[1]),e=parseInt(m1[2]),arr=[]; for(let i=s;i<=e;i+=2)arr.push(String(i)); return arr}
+    // "P-GG", "P-EXG" etc — range via SIZE_ORD
+    const m2=r.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/); if(m2){const s=SIZE_ORD.indexOf(m2[1].toUpperCase()),e=SIZE_ORD.indexOf(m2[2].toUpperCase()); if(s>=0&&e>=s)return SIZE_ORD.slice(s,e+1)}
+    // "P,M,G,GG" ou único
+    return r.includes(',')?r.split(',').map(x=>x.trim()):[r]
+  }
 
   const blockedNew = new Set((product.blocked_sizes || []).map(s => s.trim().toUpperCase()))
   const allSizes = (isPack ? [] : (() => { if(grades.length){const s=new Set<string>(); grades.forEach(g=>Object.keys(g.sizes).forEach(k=>s.add(k.trim()))); return sort([...s])} return sort(parseRange(product.size_range||'')) })()).filter(s => !blockedNew.has(s.trim().toUpperCase()))
