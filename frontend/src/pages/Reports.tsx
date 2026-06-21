@@ -37,9 +37,13 @@ function fmtDatePtBR(d: string | Date): string {
 
 type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance' | 'abc' | 'comparison' | 'region' | 'projection'
 
+// Modo fábrica (NXO): comissão de 3 vias — Loja (rep) + Representante (office) + Guia (guide). Default off.
+const FACTORY_COMM = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
+
 interface OrderSummary {
   order_count: number; total_pieces: number
   total_value: number; rep_commission_value: number; office_commission_value: number
+  guide_commission_value?: number
 }
 interface OrderDay {
   date: string; order_count: number; total_pieces: number; total_value: number
@@ -64,6 +68,8 @@ interface CommissionRow {
   rep_commission_pct: number
   office_commission_value: number
   office_commission_pct: number
+  guide_commission_value?: number
+  guide_commission_pct?: number
   commission_manual_override: boolean
   valor_faturado: number
   falta_faturar: number
@@ -135,6 +141,7 @@ const COMM_COL_DEFS: ColumnDef[] = [
   { id: 'politica',       label: 'Desc. Coml.' },
   { id: 'com_rep',        label: 'Com. Rep' },
   { id: 'com_escr',       label: 'Com. Escr.' },
+  { id: 'com_guia',       label: 'Com. Guia' },
   { id: 'faturado',       label: 'Faturado' },
   { id: 'a_faturar',      label: 'A Faturar' },
 ]
@@ -559,7 +566,7 @@ export function Reports() {
   const qc = useQueryClient()
   const [editingComm, setEditingComm] = useState<{
     orderId: string
-    field: 'rep' | 'office'
+    field: 'rep' | 'office' | 'guide'
     pctText: string          // texto digitado no campo %
     totalValue: number       // total do pedido para preview
     currentRepPct: number    // % atual do outro campo (para manter ao salvar)
@@ -580,6 +587,8 @@ export function Reports() {
     if (isNaN(pct) || pct < 0) { setEditingComm(null); return }
     if (editingComm.field === 'rep') {
       await ordersApi.updateCommission(editingComm.orderId, { rep_commission_pct: pct })
+    } else if (editingComm.field === 'guide') {
+      await ordersApi.updateCommission(editingComm.orderId, { guide_commission_pct: pct })
     } else {
       await ordersApi.updateCommission(editingComm.orderId, { office_commission_pct: pct })
     }
@@ -588,7 +597,14 @@ export function Reports() {
   }
 
   // Configuração de colunas — Comissões
-  const commColDefs = COMM_COL_DEFS.filter(c => c.id !== 'com_escr' || isAdmin)
+  const commColDefs = COMM_COL_DEFS
+    .filter(c => (c.id !== 'com_escr' || isAdmin) && (c.id !== 'com_guia' || (isAdmin && FACTORY_COMM)))
+    .map(c => {
+      if (!FACTORY_COMM) return c
+      if (c.id === 'com_rep')  return { ...c, label: 'Com. Loja' }
+      if (c.id === 'com_escr') return { ...c, label: 'Com. Repres.' }
+      return c
+    })
   const { orderedDefs: commCols, config: commConfig, save: saveCommCols, reset: resetCommCols } = useColumnConfig('report-commissions', commColDefs)
 
   // Busca no relatório de comissões
@@ -598,7 +614,7 @@ export function Reports() {
   const COMM_DEFAULT_WIDTHS: Record<string, number> = {
     data: 80, vendedor: 110, industria: 90, nr_fabrica: 90,
     razao_social: 160, nome_fantasia: 130, cidade: 100, uf: 45,
-    valor: 110, politica: 80, com_rep: 130, com_escr: 120, faturado: 100, a_faturar: 100,
+    valor: 110, politica: 80, com_rep: 130, com_escr: 120, com_guia: 120, faturado: 100, a_faturar: 100,
   }
   const { widths: commWidths, save: saveCommWidths } = useColumnResize('report-commissions-widths', COMM_DEFAULT_WIDTHS)
 
@@ -761,7 +777,11 @@ export function Reports() {
         ? commissionsQ.data.filter(r => [r.vendedor,r.industria,r.razao_social,r.cliente,r.nr_ped_fabrica,r.status_name].some(v=>String(v||'').toLowerCase().includes(commSearch.toLowerCase())))
         : commissionsQ.data
       exportXlsx(`comissoes-${period}`,
-        ['Data','Vendedor','Fornecedor','Nº Fábrica','Razão Social','Cidade','UF','Valor','Desc. Com. %','Com. Rep','% Rep','Com. Escr.','% Escr.','Status'],
+        ['Data','Vendedor','Fornecedor','Nº Fábrica','Razão Social','Cidade','UF','Valor','Desc. Com. %',
+         FACTORY_COMM ? 'Com. Loja' : 'Com. Rep', FACTORY_COMM ? '% Loja' : '% Rep',
+         FACTORY_COMM ? 'Com. Repres.' : 'Com. Escr.', FACTORY_COMM ? '% Repres.' : '% Escr.',
+         ...(FACTORY_COMM ? ['Com. Guia','% Guia'] : []),
+         'Status'],
         commRows.map(r => [
           fmtDatePtBR(r.data_venda), r.vendedor, r.industria, r.nr_ped_fabrica||'', r.razao_social, r.cidade||'', r.uf||'',
           Number(r.total_value),
@@ -770,6 +790,7 @@ export function Reports() {
           Number(r.rep_commission_pct||0),
           Number(r.office_commission_value),
           Number(r.office_commission_pct||0),
+          ...(FACTORY_COMM ? [Number(r.guide_commission_value||0), Number(r.guide_commission_pct||0)] : []),
           r.status_name||'',
         ]))
     } else if (tab === 'clients' && clientsQ.data) {
@@ -962,14 +983,15 @@ export function Reports() {
                 { label: 'Pedidos',     value: fmtN(ordersQ.data.summary.order_count),       color: 'bg-primary/10',    text: 'text-primary' },
                 { label: 'Peças',       value: fmtN(ordersQ.data.summary.total_pieces),       color: 'bg-purple-50',  text: 'text-purple-700' },
                 { label: 'Valor Total', value: fmtR(ordersQ.data.summary.total_value),         color: 'bg-surface-container-low',    text: 'text-on-surface' },
-                { label: 'Com. Rep',    value: fmtR(ordersQ.data.summary.rep_commission_value), color: 'bg-emerald-50', text: 'text-emerald-700' },
+                { label: FACTORY_COMM ? 'Com. Loja' : 'Com. Rep',    value: fmtR(ordersQ.data.summary.rep_commission_value), color: 'bg-emerald-50', text: 'text-emerald-700' },
               ].map(c => (
                 <div key={c.label} className={`${c.color} rounded-xl border border-outline-variant/50 p-4`}>
                   <p className="text-[12px] text-outline mb-1">{c.label}</p>
                   <p className={`text-[12px] font-bold ${c.text}`}>{c.value}</p>
-                  {c.label === 'Com. Rep' && isAdmin && (
+                  {(c.label === 'Com. Rep' || c.label === 'Com. Loja') && isAdmin && (
                     <p className="text-[12px] text-outline/70 mt-0.5">
-                      Esc: {fmtR(ordersQ.data.summary.office_commission_value)}
+                      {FACTORY_COMM ? 'Repres.' : 'Esc'}: {fmtR(ordersQ.data.summary.office_commission_value)}
+                      {FACTORY_COMM && <> · Guia: {fmtR(ordersQ.data.summary.guide_commission_value || 0)}</>}
                     </p>
                   )}
                 </div>
@@ -1049,11 +1071,14 @@ export function Reports() {
                 // PCT é sempre fonte da verdade; valor = pct × total (commission_manual_override só protege PCT de reset automático)
                 const effRep = (r: CommissionRow) => Number(r.total_value) * Number(r.rep_commission_pct)    / 100
                 const effOff = (r: CommissionRow) => Number(r.total_value) * Number(r.office_commission_pct) / 100
+                const effGuide = (r: CommissionRow) => Number(r.total_value) * Number(r.guide_commission_pct || 0) / 100
                 const totalRepComm = rows.reduce((s, r) => s + effRep(r), 0)
                 const totalOffComm = rows.reduce((s, r) => s + effOff(r), 0)
+                const totalGuideComm = rows.reduce((s, r) => s + effGuide(r), 0)
                 // Média dos percentuais de comissão dos pedidos filtrados
                 const avgRepPct = rows.length > 0 ? rows.reduce((s, r) => s + Number(r.rep_commission_pct), 0) / rows.length : 0
                 const avgOffPct = rows.length > 0 ? rows.reduce((s, r) => s + Number(r.office_commission_pct), 0) / rows.length : 0
+                const avgGuidePct = rows.length > 0 ? rows.reduce((s, r) => s + Number(r.guide_commission_pct || 0), 0) / rows.length : 0
                 return (
                   <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
                     {/* Barra de busca + config colunas */}
@@ -1236,6 +1261,42 @@ export function Reports() {
                                     </td>
                                   )
                                 }
+                                if (id === 'com_guia') {
+                                  const isEditing = isAdmin && editingComm?.orderId === r.id && editingComm.field === 'guide'
+                                  const preview = isEditing ? previewValue(editingComm!.pctText, editingComm!.totalValue) : null
+                                  return (
+                                    <td key={id} className="px-2 py-1 text-right whitespace-nowrap"
+                                      onClick={e => {
+                                        if (!isAdmin) return
+                                        e.stopPropagation()
+                                        setEditingComm({ orderId: r.id, field: 'guide', pctText: String(Number(r.guide_commission_pct || 0).toFixed(1)), totalValue: Number(r.total_value), currentRepPct: Number(r.rep_commission_pct), currentOffPct: Number(r.office_commission_pct) })
+                                        setTimeout(() => commInputRef.current?.select(), 30)
+                                      }}>
+                                      {isEditing ? (
+                                        <div className="flex flex-col items-end gap-0.5">
+                                          <div className="flex items-center gap-0.5">
+                                            <input ref={commInputRef}
+                                              className="w-14 text-right border border-amber-400 rounded px-1 py-0.5 text-[12px] font-bold text-amber-700 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                              value={editingComm!.pctText}
+                                              onChange={e => setEditingComm(c => c ? { ...c, pctText: e.target.value } : c)}
+                                              onBlur={saveInlineCommission}
+                                              onKeyDown={e => { if (e.key === 'Enter') saveInlineCommission(); else if (e.key === 'Escape') setEditingComm(null) }} />
+                                            <span className="text-amber-600 text-[11px] font-bold">%</span>
+                                          </div>
+                                          {preview !== null && <span className="text-[10px] text-amber-600/80">≈ {fmtR(preview)}</span>}
+                                        </div>
+                                      ) : (
+                                        <div className="flex justify-end items-center gap-1">
+                                          <span className={`font-bold ${r.commission_manual_override ? 'text-orange-600' : 'text-amber-700'} ${isAdmin ? 'cursor-pointer hover:underline' : ''}`}
+                                            title={isAdmin ? 'Clique para editar' : undefined}>
+                                            {fmtR(Number(r.total_value) * Number(r.guide_commission_pct || 0) / 100)}
+                                          </span>
+                                          <span className="text-amber-600/70 text-[12px]">({fmtPct(r.guide_commission_pct || 0)})</span>
+                                        </div>
+                                      )}
+                                    </td>
+                                  )
+                                }
                                 if (id === 'faturado') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
                                 if (id === 'a_faturar') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap">{Number(r.falta_faturar) > 0 ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span> : <span className="text-on-surface-variant/50">—</span>}</td>
                                 return null
@@ -1255,6 +1316,7 @@ export function Reports() {
                                 if (id === 'politica') return <td key={id} className="px-2 py-1.5 text-right text-on-surface-variant/50">—</td>
                                 if (id === 'com_rep')  return <td key={id} className="px-2 py-1.5 text-right text-emerald-700">{fmtR(totalRepComm)}<span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(avgRepPct)})</span></td>
                                 if (id === 'com_escr') return <td key={id} className="px-2 py-1.5 text-right text-blue-700">{fmtR(totalOffComm)}<span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(avgOffPct)})</span></td>
+                                if (id === 'com_guia') return <td key={id} className="px-2 py-1.5 text-right text-amber-700">{fmtR(totalGuideComm)}<span className="text-amber-600/70 text-[11px] font-normal ml-1">({fmtPct(avgGuidePct)})</span></td>
                                 if (id === 'faturado') return <td key={id} className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
                                 if (id === 'a_faturar') return <td key={id} className="px-2 py-1.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
                                 return null
