@@ -200,6 +200,9 @@ function calcSubtotal(item: EditableItem | NewItem): number {
 // recupera ao recarregar a página. Chaveado por usuário + id do pedido.
 const ORDER_EDIT_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
+// Modo fábrica (NXO): comissão de 3 vias — Loja (rep) + Escritório (office) + Guia (guide). Default off.
+const FACTORY_COMM = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
+
 function orderEditDraftKey(userId?: string, orderId?: string) {
   return `somma_orderedit_draft_${userId || 'anon'}_${orderId || ''}`
 }
@@ -262,7 +265,7 @@ export default function OrderEdit() {
   })
 
   // Tabela de política (desconto × comissão) da tabela de preço do pedido
-  const { data: priceTableDetail } = useQuery<{ discount_rules: Array<{ discount_pct: number; total_commission_pct: number; rep_commission_pct: number; office_commission_pct: number }> }>({
+  const { data: priceTableDetail } = useQuery<{ discount_rules: Array<{ discount_pct: number; total_commission_pct: number; rep_commission_pct: number; office_commission_pct: number; guide_commission_pct?: number }> }>({
     queryKey: ['price-table-detail', order?.price_table_id],
     queryFn: () => priceTablesApi.get(order!.price_table_id).then(r => r.data),
     enabled: !!order?.price_table_id,
@@ -294,6 +297,7 @@ export default function OrderEdit() {
   const [manualCommission, setManualCommission] = useState<{
     rep: string; repPct: string
     office: string; officePct: string
+    guide: string; guidePct: string
   } | null>(null)
 
   // ── itens editáveis ──────────────────────────────────────────────────────────
@@ -388,6 +392,8 @@ export default function OrderEdit() {
       repPct:    String(Number(order.rep_commission_pct      || 0).toFixed(2)).replace('.', ','),
       office:    String(Number(order.office_commission_value || 0).toFixed(2)).replace('.', ','),
       officePct: String(Number(order.office_commission_pct   || 0).toFixed(2)).replace('.', ','),
+      guide:     String(Number(order.guide_commission_value  || 0).toFixed(2)).replace('.', ','),
+      guidePct:  String(Number(order.guide_commission_pct    || 0).toFixed(2)).replace('.', ','),
     }
     const baseItems = (order.items || []).map((it: OrderItemRaw) => ({
       ...it,
@@ -566,19 +572,23 @@ export default function OrderEdit() {
         const offV    = parseFloat(manualCommission.office.replace(',', '.')) || 0
         const repPct  = parseFloat(manualCommission.repPct.replace(',', '.'))
         const offPct  = parseFloat(manualCommission.officePct.replace(',', '.'))
+        const guidePct = parseFloat(manualCommission.guidePct.replace(',', '.'))
         const origRep = Number(order.rep_commission_value    || 0)
         const origOff = Number(order.office_commission_value || 0)
         const origRepPct = Number(order.rep_commission_pct   || 0)
         const origOffPct = Number(order.office_commission_pct || 0)
+        const origGuidePct = Number(order.guide_commission_pct || 0)
         const changed = Math.abs(repV - origRep) > 0.01 || Math.abs(offV - origOff) > 0.01
                      || (!isNaN(repPct) && Math.abs(repPct - origRepPct) > 0.001)
                      || (!isNaN(offPct) && Math.abs(offPct - origOffPct) > 0.001)
+                     || (!isNaN(guidePct) && Math.abs(guidePct - origGuidePct) > 0.001)
         if (changed) {
           await ordersApi.updateCommission(id!, {
             rep_commission_value:    repV,
             office_commission_value: offV,
             rep_commission_pct:    !isNaN(repPct) ? repPct : undefined,
             office_commission_pct: !isNaN(offPct) ? offPct : undefined,
+            guide_commission_pct: !isNaN(guidePct) ? guidePct : undefined,
           })
         }
       }
@@ -865,8 +875,9 @@ export default function OrderEdit() {
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-outline">Desconto de Prazo</th>
                         <th className="px-3 py-2 text-center font-semibold text-outline">Comissão Total</th>
-                        <th className="px-3 py-2 text-center font-semibold text-emerald-700">Com. Representante</th>
+                        <th className="px-3 py-2 text-center font-semibold text-emerald-700">{FACTORY_COMM ? 'Com. Loja' : 'Com. Representante'}</th>
                         <th className="px-3 py-2 text-center font-semibold text-blue-700">Com. Escritório</th>
+                        {FACTORY_COMM && <th className="px-3 py-2 text-center font-semibold text-amber-700">Com. Guia</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/20">
@@ -889,6 +900,7 @@ export default function OrderEdit() {
                             <td className="px-3 py-2.5 text-center">{Number(r.total_commission_pct).toFixed(1)}%</td>
                             <td className="px-3 py-2.5 text-center text-emerald-700 font-semibold">{Number(r.rep_commission_pct).toFixed(1)}%</td>
                             <td className="px-3 py-2.5 text-center text-blue-700 font-semibold">{Number(r.office_commission_pct).toFixed(1)}%</td>
+                            {FACTORY_COMM && <td className="px-3 py-2.5 text-center text-amber-700 font-semibold">{Number(r.guide_commission_pct || 0).toFixed(1)}%</td>}
                           </tr>
                         )
                       })}
@@ -915,13 +927,14 @@ export default function OrderEdit() {
                       — sobrescreve o cálculo automático
                     </span>
                   </label>
-                  {/* Grid 2 colunas: Rep | Escrit */}
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Grid: Rep|Escrit (padrão) ou Loja|Escrit|Guia (fábrica) */}
+                  <div className={FACTORY_COMM ? 'grid grid-cols-3 gap-4' : 'grid grid-cols-2 gap-4'}>
                     {/* ── Com. Representante ── */}
                     {([
-                      { label: 'Com. Representante', color: 'emerald', pctKey: 'repPct', valKey: 'rep' },
+                      { label: FACTORY_COMM ? 'Com. Loja' : 'Com. Representante', color: 'emerald', pctKey: 'repPct', valKey: 'rep' },
                       { label: 'Com. Escritório',    color: 'blue',    pctKey: 'officePct', valKey: 'office' },
-                    ] as const).map(({ label, color, pctKey, valKey }) => {
+                      ...(FACTORY_COMM ? [{ label: 'Com. Guia', color: 'amber', pctKey: 'guidePct', valKey: 'guide' }] : []),
+                    ] as { label: string; color: string; pctKey: 'repPct' | 'officePct' | 'guidePct'; valKey: 'rep' | 'office' | 'guide' }[]).map(({ label, color, pctKey, valKey }) => {
                       const totalVal = Number(order?.total_value || 0)
                       const inputCls = (c: string) =>
                         `w-full border border-amber-300 bg-white rounded-lg px-2 py-1.5 text-[12px] font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400 text-${c}-700`
@@ -1004,8 +1017,9 @@ export default function OrderEdit() {
                   </div>
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <p className="text-[10px] text-amber-600">
-                      Atual: Rep R$ {Number(order?.rep_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} ·
+                      Atual: {FACTORY_COMM ? 'Loja' : 'Rep'} R$ {Number(order?.rep_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} ·
                       Escr. R$ {Number(order?.office_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                      {FACTORY_COMM && <> · Guia R$ {Number(order?.guide_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</>}
                       {order?.commission_manual_override && <span className="ml-1 font-bold text-orange-600">(ajuste manual)</span>}
                     </p>
                     {order?.commission_manual_override && (

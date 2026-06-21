@@ -116,7 +116,7 @@ export const priceTablesApi = {
     collection?: string
     season?: string
     year?: number | null
-    discount_rules?: Array<{ discount_pct: number; total_commission_pct: number; rep_commission_pct: number; office_commission_pct: number }>
+    discount_rules?: Array<{ discount_pct: number; total_commission_pct: number; rep_commission_pct: number; office_commission_pct: number; guide_commission_pct?: number }>
   }) => apiClient.post('/price-tables', data),
   preview: (file: File) => {
     const fd = new FormData()
@@ -297,6 +297,7 @@ export const ordersApi = {
   updateCommission: (id: string, data: {
     rep_commission_value?: number; office_commission_value?: number;
     rep_commission_pct?: number;   office_commission_pct?: number;
+    guide_commission_pct?: number;
   }) => apiClient.patch(`/orders/${id}/commission`, data),
   resetCommission: (id: string) =>
     apiClient.delete(`/orders/${id}/commission`),

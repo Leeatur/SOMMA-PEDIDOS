@@ -91,7 +91,7 @@ async function computeOrderTotals(
   )
   // Comissão padrão para Pronta Entrega: 6% repres. + 4% escritório
   // Usada quando a tabela não possui regras de desconto/comissão cadastradas
-  const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4 }
+  const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4, guide_commission_pct: 0 }
   let rule = rules[0] || null
   if (!rule) {
     const { rows: peRows } = await (client as any).query(
@@ -99,10 +99,11 @@ async function computeOrderTotals(
     )
     rule = peRows.length > 0
       ? PE_DEFAULT
-      : { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }
+      : { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0, guide_commission_pct: 0 }
   }
 
   const netValue = Math.round(totalValue * 100) / 100  // preço líquido = base de comissão
+  const guidePct = Number(rule.guide_commission_pct) || 0  // 3ª via (modo fábrica); 0 nas instâncias 2-vias
   return {
     enrichedItems,
     totalPieces,
@@ -110,9 +111,11 @@ async function computeOrderTotals(
     totalCommissionPct: rule.total_commission_pct,
     repCommissionPct: rule.rep_commission_pct,
     officeCommissionPct: rule.office_commission_pct,
+    guideCommissionPct: guidePct,
     // Comissão sempre baseada no valor LÍQUIDO (após desconto)
     repCommissionValue: Math.round(netValue * rule.rep_commission_pct / 100 * 100) / 100,
     officeCommissionValue: Math.round(netValue * rule.office_commission_pct / 100 * 100) / 100,
+    guideCommissionValue: Math.round(netValue * guidePct / 100 * 100) / 100,
   }
 }
 
@@ -225,10 +228,11 @@ export async function getOrder(req: AuthRequest, res: Response) {
         [realPcs, fixedVal, order.id])
     } else {
       await query(
-        `UPDATE orders SET total_pieces=$1, total_value=$2, rep_commission_value=$3, office_commission_value=$4, updated_at=NOW() WHERE id=$5`,
+        `UPDATE orders SET total_pieces=$1, total_value=$2, rep_commission_value=$3, office_commission_value=$4, guide_commission_value=$5, updated_at=NOW() WHERE id=$6`,
         [realPcs, fixedVal,
          Math.round(fixedVal * order.rep_commission_pct / 100 * 100) / 100,
          Math.round(fixedVal * order.office_commission_pct / 100 * 100) / 100,
+         Math.round(fixedVal * (Number(order.guide_commission_pct) || 0) / 100 * 100) / 100,
          order.id]
       )
     }
@@ -294,20 +298,24 @@ export async function createOrder(req: AuthRequest, res: Response) {
     const offCommVal   = isAdminOrder
       ? Math.round(totals.totalValue * totals.totalCommissionPct / 100 * 100) / 100
       : totals.officeCommissionValue
+    // 3ª via (modo fábrica): admin concentra tudo no escritório → guia 0; senão segue a regra
+    const guideCommPct = isAdminOrder ? 0 : totals.guideCommissionPct
+    const guideCommVal = isAdminOrder ? 0 : totals.guideCommissionValue
 
     const { rows: [order] } = await dbClient.query(
       `INSERT INTO orders
        (offline_id, client_id, rep_id, factory_id, price_table_id, status_id,
         discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct,
-        total_pieces, total_value, rep_commission_value, office_commission_value,
+        guide_commission_pct, total_pieces, total_value, rep_commission_value,
+        office_commission_value, guide_commission_value,
         notes, payment_terms, freight_type, delivery_date, industry_order_number, buyer_name,
         needs_review_discount, synced_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,NOW())
        RETURNING *`,
       [offline_id||null, client_id, req.user!.id, factory_id, price_table_id,
        initStatus?.id||null, disc,
-       totals.totalCommissionPct, repCommPct, offCommPct,
-       totals.totalPieces, totals.totalValue, repCommVal, offCommVal,
+       totals.totalCommissionPct, repCommPct, offCommPct, guideCommPct,
+       totals.totalPieces, totals.totalValue, repCommVal, offCommVal, guideCommVal,
        notes||null, payment_terms||null, freight_type||'CIF',
        delivery_date||null, industry_order_number||null, buyer_name||null,
        needsReview]
@@ -425,13 +433,14 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
       // comissão indevidamente ao adicionar novos itens.
       const newRepVal = Math.round(allTotals.totalValue * Number(order.rep_commission_pct)    / 100 * 100) / 100
       const newOffVal = Math.round(allTotals.totalValue * Number(order.office_commission_pct) / 100 * 100) / 100
+      const newGuideVal = Math.round(allTotals.totalValue * Number(order.guide_commission_pct || 0) / 100 * 100) / 100
       await dbClient.query(
         `UPDATE orders SET
            total_pieces=$1, total_value=$2,
-           rep_commission_value=$3, office_commission_value=$4,
+           rep_commission_value=$3, office_commission_value=$4, guide_commission_value=$5,
            updated_at=NOW()
-         WHERE id=$5`,
-        [allTotals.totalPieces, allTotals.totalValue, newRepVal, newOffVal, orderId]
+         WHERE id=$6`,
+        [allTotals.totalPieces, allTotals.totalValue, newRepVal, newOffVal, newGuideVal, orderId]
       )
     }
 
@@ -454,10 +463,11 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
   const {
     rep_commission_value, office_commission_value,
     rep_commission_pct, office_commission_pct,
+    guide_commission_pct,
   } = req.body
 
   const { rows: [order] } = await query(
-    'SELECT id, total_value, rep_commission_pct, office_commission_pct FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
+    'SELECT id, total_value, rep_commission_pct, office_commission_pct, guide_commission_pct FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
   )
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
@@ -468,12 +478,16 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
   // Isso garante que editar rep_pct não zera o office_value (e vice-versa)
   const repPctIn = rep_commission_pct  !== undefined ? parseFloat(String(rep_commission_pct).replace(',','.'))  : null
   const offPctIn = office_commission_pct !== undefined ? parseFloat(String(office_commission_pct).replace(',','.')) : null
+  const guidePctIn = guide_commission_pct !== undefined ? parseFloat(String(guide_commission_pct).replace(',','.')) : null
   const effectiveRepPct = (repPctIn !== null && !isNaN(repPctIn)) ? repPctIn : Number(order.rep_commission_pct  || 0)
   const effectiveOffPct = (offPctIn !== null && !isNaN(offPctIn)) ? offPctIn : Number(order.office_commission_pct || 0)
+  const effectiveGuidePct = (guidePctIn !== null && !isNaN(guidePctIn)) ? guidePctIn : Number(order.guide_commission_pct || 0)
   const repVal = Math.round(totalVal * effectiveRepPct / 100 * 100) / 100
   const offVal = Math.round(totalVal * effectiveOffPct / 100 * 100) / 100
+  const guideVal = Math.round(totalVal * effectiveGuidePct / 100 * 100) / 100
   const repPct = effectiveRepPct
   const offPct = effectiveOffPct
+  const guidePct = effectiveGuidePct
 
   // Constrói UPDATE dinâmico — id vai SEMPRE por último como $N final
   const sets: string[] = []
@@ -485,6 +499,8 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
   params.push(offVal);  sets.push(`office_commission_value = $${p()}`)
   params.push(repPct);  sets.push(`rep_commission_pct = $${p()}`)
   params.push(offPct);  sets.push(`office_commission_pct = $${p()}`)
+  params.push(guideVal); sets.push(`guide_commission_value = $${p()}`)
+  params.push(guidePct); sets.push(`guide_commission_pct = $${p()}`)
 
   sets.push('commission_manual_override = TRUE')
   sets.push('updated_at = NOW()')
@@ -494,8 +510,8 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
 
   const { rows: [updated] } = await query(
     `UPDATE orders SET ${sets.join(', ')} WHERE id = $${idIdx}
-     RETURNING rep_commission_value, office_commission_value,
-               rep_commission_pct, office_commission_pct, commission_manual_override`,
+     RETURNING rep_commission_value, office_commission_value, guide_commission_value,
+               rep_commission_pct, office_commission_pct, guide_commission_pct, commission_manual_override`,
     params
   )
   res.json(updated)
@@ -505,7 +521,7 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
 export async function resetOrderCommission(req: AuthRequest, res: Response) {
   if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode resetar comissão' }); return }
   const { rows: [order] } = await query(
-    `SELECT id, price_table_id, discount_pct, rep_commission_pct, office_commission_pct
+    `SELECT id, price_table_id, discount_pct, rep_commission_pct, office_commission_pct, guide_commission_pct
      FROM orders WHERE id=$1 AND deleted_at IS NULL`, [req.params.id]
   )
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
@@ -518,16 +534,18 @@ export async function resetOrderCommission(req: AuthRequest, res: Response) {
   const valNet = Math.round(Number(totals.val_net) * 100) / 100
   const newRep = Math.round(valNet * order.rep_commission_pct / 100 * 100) / 100
   const newOff = Math.round(valNet * order.office_commission_pct / 100 * 100) / 100
+  const newGuide = Math.round(valNet * (Number(order.guide_commission_pct) || 0) / 100 * 100) / 100
 
   const { rows: [updated] } = await query(
     `UPDATE orders SET
        rep_commission_value = $1,
        office_commission_value = $2,
+       guide_commission_value = $3,
        commission_manual_override = FALSE,
        updated_at = NOW()
-     WHERE id = $3
-     RETURNING rep_commission_value, office_commission_value, commission_manual_override`,
-    [newRep, newOff, order.id]
+     WHERE id = $4
+     RETURNING rep_commission_value, office_commission_value, guide_commission_value, commission_manual_override`,
+    [newRep, newOff, newGuide, order.id]
   )
   res.json(updated)
 }

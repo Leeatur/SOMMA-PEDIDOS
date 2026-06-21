@@ -337,20 +337,21 @@ export async function submitPortalOrder(req: Request, res: Response) {
      ORDER BY ABS(discount_pct - $2) ASC LIMIT 1`,
     [price_table_id, discPct]
   )
-  const commRule = commRules[0] || { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }
+  const commRule = commRules[0] || { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0, guide_commission_pct: 0 }
 
   const { rows: [repUser] } = await query('SELECT role FROM users WHERE id=$1', [portal.rep_id])
   const isAdminRep = repUser?.role === 'admin'
 
   const { rows: [order] } = await query(
     `INSERT INTO orders (client_id, rep_id, factory_id, price_table_id, status_id, discount_pct, notes, freight_type,
-       payment_terms, total_commission_pct, rep_commission_pct, office_commission_pct)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'CIF',$8,$9,$10,$11) RETURNING *`,
+       payment_terms, total_commission_pct, rep_commission_pct, office_commission_pct, guide_commission_pct)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,'CIF',$8,$9,$10,$11,$12) RETURNING *`,
     [clientId, portal.rep_id, factory_id, price_table_id, initialStatus?.id || null, discPct, notes||null,
      payment_terms || null,
      commRule.total_commission_pct,
      isAdminRep ? 0 : commRule.rep_commission_pct,
-     isAdminRep ? commRule.total_commission_pct : commRule.office_commission_pct]
+     isAdminRep ? commRule.total_commission_pct : commRule.office_commission_pct,
+     isAdminRep ? 0 : (Number(commRule.guide_commission_pct) || 0)]
   )
 
   // Insere itens — comissão calculada sobre o preço CHEIO (sem desconto à vista)
@@ -385,10 +386,11 @@ export async function submitPortalOrder(req: Request, res: Response) {
   const offCommVal   = isAdminRep
     ? Math.round(totalValueFull * commRule.total_commission_pct / 100 * 100) / 100
     : Math.round(totalValueFull * commRule.office_commission_pct / 100 * 100) / 100
+  const guideCommVal = isAdminRep ? 0 : Math.round(totalValueFull * (Number(commRule.guide_commission_pct) || 0) / 100 * 100) / 100
 
   await query(
-    `UPDATE orders SET total_pieces=$1, total_value=$2, rep_commission_value=$3, office_commission_value=$4 WHERE id=$5`,
-    [totalPieces, Math.round(totalValue * 100) / 100, repCommVal, offCommVal, order.id]
+    `UPDATE orders SET total_pieces=$1, total_value=$2, rep_commission_value=$3, office_commission_value=$4, guide_commission_value=$5 WHERE id=$6`,
+    [totalPieces, Math.round(totalValue * 100) / 100, repCommVal, offCommVal, guideCommVal, order.id]
   )
   res.status(201).json({ order_id: order.id, order_number: order.order_number, total_value: totalValue })
 }

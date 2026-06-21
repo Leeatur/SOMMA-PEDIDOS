@@ -133,7 +133,11 @@ interface DiscountRule {
   total_commission_pct: number
   rep_commission_pct: number
   office_commission_pct: number
+  guide_commission_pct?: number
 }
+
+// Modo fábrica (NXO): comissão de 3 vias — Loja (rep) + Escritório (office) + Guia (guide). Default off.
+const FACTORY_COMM = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
 
 interface GradeConfig {
   id: string
@@ -587,17 +591,19 @@ export function NewOrder() {
     const commBase = PAYMENT_DRIVEN_DISCOUNT ? totalValue : tableDiscountedValue
     const matchedRule = findMatchingRule(discountNum)
     // Tabelas de Pronta Entrega: comissão padrão 6% repres. + 4% escritório quando não há regras
-    const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4 }
+    const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4, guide_commission_pct: 0 }
     const rule = matchedRule ?? (tableDetail?.is_pe ? PE_DEFAULT : null)
     // Admin: 100% comissão vai para escritório, 0% para rep
     const repCommPct = (isAdmin && rule) ? 0 : (rule?.rep_commission_pct || 0)
     const offCommPct = (isAdmin && rule) ? rule.total_commission_pct : (rule?.office_commission_pct || 0)
+    const guideCommPct = (isAdmin && rule) ? 0 : (rule?.guide_commission_pct || 0)
     return {
       totalPieces,
       grossValue,
       totalValue,
       repCommission: commBase * repCommPct / 100,
       officeCommission: commBase * offCommPct / 100,
+      guideCommission: commBase * guideCommPct / 100,
       totalCommission: rule ? commBase * rule.total_commission_pct / 100 : 0,
       rule,
       isAdminOrder: isAdmin,
@@ -1610,13 +1616,19 @@ export function NewOrder() {
                       // Rep cria: split normal
                       <>
                         <div className="flex justify-between text-emerald-600">
-                          <span>Com. Rep ({formatPct(totals.rule.rep_commission_pct)}):</span>
+                          <span>{FACTORY_COMM ? 'Com. Loja' : 'Com. Rep'} ({formatPct(totals.rule.rep_commission_pct)}):</span>
                           <span className="font-semibold">{formatCurrency(totals.repCommission)}</span>
                         </div>
                         <div className="flex justify-between text-blue-600">
                           <span>Com. Escritório ({formatPct(totals.rule.office_commission_pct)}):</span>
                           <span className="font-semibold">{formatCurrency(totals.officeCommission)}</span>
                         </div>
+                        {FACTORY_COMM && (
+                          <div className="flex justify-between text-amber-600">
+                            <span>Com. Guia ({formatPct(totals.rule.guide_commission_pct || 0)}):</span>
+                            <span className="font-semibold">{formatCurrency(totals.guideCommission)}</span>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>

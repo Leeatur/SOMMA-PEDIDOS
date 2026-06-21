@@ -42,7 +42,8 @@ export async function ordersReport(req: AuthRequest, res: Response) {
         COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
         COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
         COALESCE(SUM(o.total_value * COALESCE(o.rep_commission_pct,0)/100), 0)::numeric AS rep_commission_value,
-        COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100), 0)::numeric AS office_commission_value
+        COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100), 0)::numeric AS office_commission_value,
+        COALESCE(SUM(o.total_value * COALESCE(o.guide_commission_pct,0)/100), 0)::numeric AS guide_commission_value
       FROM orders o
       WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     `, [...params]),
@@ -95,6 +96,8 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
       o.rep_commission_pct::numeric,
       (o.total_value * COALESCE(o.office_commission_pct,0)/100)::numeric AS office_commission_value,
       o.office_commission_pct::numeric,
+      (o.total_value * COALESCE(o.guide_commission_pct,0)/100)::numeric AS guide_commission_value,
+      o.guide_commission_pct::numeric,
       o.commission_manual_override,
       CASE WHEN COALESCE(s.is_final, false) = true
            THEN o.total_value ELSE 0 END::numeric                   AS valor_faturado,
@@ -374,6 +377,7 @@ export async function salesEvolutionReport(req: AuthRequest, res: Response) {
       COALESCE(SUM(o.total_pieces), 0)::int                   AS total_pieces,
       COALESCE(SUM(o.total_value * COALESCE(o.rep_commission_pct,0)/100), 0)::numeric AS rep_commission,
       COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100), 0)::numeric AS office_commission,
+      COALESCE(SUM(o.total_value * COALESCE(o.guide_commission_pct,0)/100), 0)::numeric AS guide_commission,
       COUNT(DISTINCT o.client_id)::int                        AS clientes_atendidos,
       COALESCE(AVG(o.total_value), 0)::numeric                AS ticket_medio
     FROM orders o
@@ -446,6 +450,7 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
       COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
       COALESCE(SUM(o.total_value * COALESCE(o.rep_commission_pct,0)/100), 0)::numeric AS comissao_rep,
       COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100), 0)::numeric AS comissao_escritorio,
+      COALESCE(SUM(o.total_value * COALESCE(o.guide_commission_pct,0)/100), 0)::numeric AS comissao_guia,
       COUNT(DISTINCT o.client_id)::int                       AS clientes_atendidos,
       COALESCE(AVG(o.total_value), 0)::numeric               AS ticket_medio,
       COALESCE(AVG(o.total_pieces), 0)::numeric              AS media_pecas_pedido
@@ -532,6 +537,7 @@ export async function periodComparisonReport(req: AuthRequest, res: Response) {
         COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
         COALESCE(SUM(o.total_value * COALESCE(o.rep_commission_pct,0)/100), 0)::numeric AS rep_commission,
         COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100), 0)::numeric AS office_commission,
+      COALESCE(SUM(o.total_value * COALESCE(o.guide_commission_pct,0)/100), 0)::numeric AS guide_commission,
         COUNT(DISTINCT o.client_id)::int                       AS clientes_atendidos,
         COALESCE(AVG(o.total_value), 0)::numeric               AS ticket_medio
       FROM orders o
@@ -601,6 +607,7 @@ export async function commissionProjectionReport(req: AuthRequest, res: Response
       COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
       COALESCE(SUM(o.total_value * COALESCE(o.rep_commission_pct,0)/100), 0)::numeric AS comissao_rep,
       COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100), 0)::numeric AS comissao_escritorio,
+      COALESCE(SUM(o.total_value * COALESCE(o.guide_commission_pct,0)/100), 0)::numeric AS comissao_guia,
       CASE WHEN s.is_final THEN 'faturado' ELSE 'a_faturar' END AS situacao
     FROM orders o
     JOIN users u ON u.id = o.rep_id

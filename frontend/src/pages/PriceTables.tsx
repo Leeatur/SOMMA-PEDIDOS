@@ -40,6 +40,7 @@ interface DiscountRule {
   total_commission_pct: number
   rep_commission_pct: number
   office_commission_pct: number
+  guide_commission_pct: number
 }
 
 const SEASONS = ['Verão', 'Inverno', 'Primavera/Verão', 'Outono/Inverno', 'Anual']
@@ -47,14 +48,20 @@ const SEASONS = ['Verão', 'Inverno', 'Primavera/Verão', 'Outono/Inverno', 'Anu
 // Modo comissão única (distribuidora) — só a comissão do representante; sem split de escritório.
 // Ligado por instância via VITE_SINGLE_COMMISSION=true. Default off (mantém o modelo padrão SOMMA).
 const SINGLE_COMM = import.meta.env.VITE_SINGLE_COMMISSION === 'true'
-const COMM_FIELDS: (keyof DiscountRule)[] = SINGLE_COMM
+// Modo fábrica (NXO) — comissão de 3 vias: Loja (rep) + Escritório (office) + Guia (guide), somando o Total.
+// Ligado por instância via VITE_FACTORY_COMMISSION=true. Default off. Tem precedência sobre SINGLE_COMM.
+const FACTORY_COMM = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
+const COMM_FIELDS: (keyof DiscountRule)[] = FACTORY_COMM
+  ? ['discount_pct', 'total_commission_pct', 'rep_commission_pct', 'office_commission_pct', 'guide_commission_pct']
+  : SINGLE_COMM
   ? ['discount_pct', 'rep_commission_pct']
   : ['discount_pct', 'total_commission_pct', 'rep_commission_pct', 'office_commission_pct']
 const COMM_LABELS: Record<keyof DiscountRule, string> = {
   discount_pct: 'Desc. %',
   total_commission_pct: 'Com. Total %',
-  rep_commission_pct: SINGLE_COMM ? 'Comissão %' : 'Com. Rep %',
+  rep_commission_pct: FACTORY_COMM ? 'Com. Loja %' : SINGLE_COMM ? 'Comissão %' : 'Com. Rep %',
   office_commission_pct: 'Com. Esc %',
+  guide_commission_pct: 'Com. Guia %',
 }
 
 export function PriceTables() {
@@ -93,7 +100,7 @@ export function PriceTables() {
     year: new Date().getFullYear().toString(),
   })
   const [discountRules, setDiscountRules] = useState<DiscountRule[]>([
-    { discount_pct: 0, total_commission_pct: 10, rep_commission_pct: 7, office_commission_pct: 3 },
+    { discount_pct: 0, total_commission_pct: 10, rep_commission_pct: 7, office_commission_pct: 3, guide_commission_pct: 0 },
   ])
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
@@ -215,7 +222,7 @@ export function PriceTables() {
     setImportFile(null)
     setPreview(null)
     setImportForm({ factory_id: '', name: '', collection: '', season: '', year: new Date().getFullYear().toString() })
-    setDiscountRules([{ discount_pct: 0, total_commission_pct: 10, rep_commission_pct: 7, office_commission_pct: 3 }])
+    setDiscountRules([{ discount_pct: 0, total_commission_pct: 10, rep_commission_pct: 7, office_commission_pct: 3, guide_commission_pct: 0 }])
     setPreviewError('')
   }
 
@@ -236,7 +243,7 @@ export function PriceTables() {
   }
 
   function addDiscountRule() {
-    setDiscountRules([...discountRules, { discount_pct: 0, total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }])
+    setDiscountRules([...discountRules, { discount_pct: 0, total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0, guide_commission_pct: 0 }])
   }
 
   function removeDiscountRule(i: number) {
@@ -246,7 +253,11 @@ export function PriceTables() {
   function updateRule(i: number, field: keyof DiscountRule, value: string) {
     const updated = [...discountRules]
     updated[i] = { ...updated[i], [field]: parseFloat(value) || 0 }
-    if (SINGLE_COMM && field === 'rep_commission_pct') {
+    if (FACTORY_COMM && (field === 'rep_commission_pct' || field === 'office_commission_pct' || field === 'guide_commission_pct')) {
+      // fábrica: total = Loja + Escritório + Guia
+      updated[i].total_commission_pct =
+        (updated[i].rep_commission_pct || 0) + (updated[i].office_commission_pct || 0) + (updated[i].guide_commission_pct || 0)
+    } else if (SINGLE_COMM && field === 'rep_commission_pct') {
       // distribuidora: total = rep, escritório = 0
       updated[i].total_commission_pct = updated[i].rep_commission_pct
       updated[i].office_commission_pct = 0
@@ -745,7 +756,7 @@ export function PriceTables() {
               </p>
               <button
                 type="button"
-                onClick={() => setEditRules([...editRules, { discount_pct: 0, total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0 }])}
+                onClick={() => setEditRules([...editRules, { discount_pct: 0, total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0, guide_commission_pct: 0 }])}
                 className="flex items-center gap-1 text-[12px] text-primary font-semibold hover:text-primary/80"
               >
                 <Plus className="h-3.5 w-3.5" /> Nova regra
@@ -774,7 +785,10 @@ export function PriceTables() {
                       onChange={e => {
                         const updated = [...editRules]
                         updated[i] = { ...updated[i], [field]: parseFloat(e.target.value) || 0 }
-                        if (SINGLE_COMM && field === 'rep_commission_pct') {
+                        if (FACTORY_COMM && (field === 'rep_commission_pct' || field === 'office_commission_pct' || field === 'guide_commission_pct')) {
+                          updated[i].total_commission_pct =
+                            (updated[i].rep_commission_pct || 0) + (updated[i].office_commission_pct || 0) + (updated[i].guide_commission_pct || 0)
+                        } else if (SINGLE_COMM && field === 'rep_commission_pct') {
                           updated[i].total_commission_pct = updated[i].rep_commission_pct
                           updated[i].office_commission_pct = 0
                         }
@@ -796,7 +810,9 @@ export function PriceTables() {
 
             {editRules.length > 0 && (
               <p className="text-[11px] text-outline mt-2 italic">
-                {SINGLE_COMM
+                {FACTORY_COMM
+                  ? '💡 Dica: a comissão Total = Loja + Escritório + Guia. Os cards de desconto no pedido são gerados a partir dessas regras.'
+                  : SINGLE_COMM
                   ? '💡 Dica: a comissão é integral do representante. Os cards de desconto no pedido são gerados a partir dessas regras.'
                   : '💡 Dica: a comissão Total = Rep + Escritório. Os cards de desconto no pedido são gerados a partir dessas regras.'}
               </p>

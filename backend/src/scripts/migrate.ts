@@ -61,9 +61,12 @@ CREATE TABLE IF NOT EXISTS discount_commission_rules (
   total_commission_pct DECIMAL(5,2) NOT NULL,
   rep_commission_pct DECIMAL(5,2) NOT NULL,
   office_commission_pct DECIMAL(5,2) NOT NULL,
+  guide_commission_pct DECIMAL(5,2) NOT NULL DEFAULT 0,
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- 3ª via de comissão (modo fábrica NXO: Loja=rep, Escritório=office, Guia=guide). Default 0 → instâncias 2-vias intactas.
+ALTER TABLE discount_commission_rules ADD COLUMN IF NOT EXISTS guide_commission_pct DECIMAL(5,2) NOT NULL DEFAULT 0;
 
 -- Produtos / Referências
 CREATE TABLE IF NOT EXISTS products (
@@ -153,6 +156,8 @@ CREATE TABLE IF NOT EXISTS orders (
   total_value DECIMAL(12,2) DEFAULT 0,
   rep_commission_value DECIMAL(12,2) DEFAULT 0,
   office_commission_value DECIMAL(12,2) DEFAULT 0,
+  guide_commission_pct DECIMAL(5,2) DEFAULT 0,
+  guide_commission_value DECIMAL(12,2) DEFAULT 0,
   notes TEXT,
   synced_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -175,6 +180,8 @@ CREATE TABLE IF NOT EXISTS order_items (
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS original_unit_price DECIMAL(10,2);
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS custom_grade JSONB;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_manual_override BOOLEAN DEFAULT false;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS guide_commission_pct DECIMAL(5,2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS guide_commission_value DECIMAL(12,2) DEFAULT 0;
 
 -- Histórico de Status
 CREATE TABLE IF NOT EXISTS order_status_history (

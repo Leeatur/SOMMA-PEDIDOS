@@ -83,6 +83,7 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
   let parsedRules: Array<{
     discount_pct: number; total_commission_pct: number
     rep_commission_pct: number; office_commission_pct: number
+    guide_commission_pct?: number
   }> = []
   try {
     parsedRules = typeof discount_rules === 'string' ? JSON.parse(discount_rules) : discount_rules || []
@@ -105,9 +106,9 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
       const r = parsedRules[i]
       await client.query(
         `INSERT INTO discount_commission_rules
-         (price_table_id, discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct, sort_order)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [pt.id, r.discount_pct, r.total_commission_pct, r.rep_commission_pct, r.office_commission_pct, i]
+         (price_table_id, discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct, guide_commission_pct, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [pt.id, r.discount_pct, r.total_commission_pct, r.rep_commission_pct, r.office_commission_pct, r.guide_commission_pct || 0, i]
       )
     }
 
@@ -518,9 +519,9 @@ export async function createPriceTable(req: AuthRequest, res: Response) {
       for (let i = 0; i < discount_rules.length; i++) {
         const r = discount_rules[i]
         await dbClient.query(
-          `INSERT INTO discount_commission_rules (price_table_id, discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct, sort_order)
-           VALUES ($1,$2,$3,$4,$5,$6)`,
-          [table.id, r.discount_pct||0, r.total_commission_pct||0, r.rep_commission_pct||0, r.office_commission_pct||0, i]
+          `INSERT INTO discount_commission_rules (price_table_id, discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct, guide_commission_pct, sort_order)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [table.id, r.discount_pct||0, r.total_commission_pct||0, r.rep_commission_pct||0, r.office_commission_pct||0, r.guide_commission_pct||0, i]
         )
       }
     }
@@ -569,9 +570,9 @@ export async function updatePriceTableRules(req: AuthRequest, res: Response) {
         const r = rules[i]
         await dbClient.query(
           `INSERT INTO discount_commission_rules
-           (price_table_id, discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct, sort_order)
-           VALUES ($1,$2,$3,$4,$5,$6)`,
-          [id, r.discount_pct, r.total_commission_pct, r.rep_commission_pct, r.office_commission_pct, i]
+           (price_table_id, discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct, guide_commission_pct, sort_order)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [id, r.discount_pct, r.total_commission_pct, r.rep_commission_pct, r.office_commission_pct, r.guide_commission_pct||0, i]
         )
       }
     }

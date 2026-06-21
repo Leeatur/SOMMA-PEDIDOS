@@ -15,6 +15,8 @@ interface Order {
   office_commission_value: number
   rep_commission_pct: number
   office_commission_pct: number
+  guide_commission_value?: number
+  guide_commission_pct?: number
   commission_manual_override?: boolean
 }
 
@@ -32,6 +34,7 @@ interface DaySaleRow {
   total_value: number
   rep_commission_value: number
   office_commission_value: number
+  guide_commission_value?: number
 }
 
 interface Goal {
@@ -139,10 +142,14 @@ export function Dashboard() {
   // PCT é sempre fonte da verdade; valor = pct × total (commission_manual_override só protege PCT de reset automático)
   // Distribuidora (VITE_SINGLE_COMMISSION): só comissão do representante, sem split de escritório
   const singleComm = import.meta.env.VITE_SINGLE_COMMISSION === 'true'
+  // Modo fábrica (NXO): 3 vias — Loja (rep) + Escritório (office) + Guia (guide)
+  const factoryComm = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
   const effRepComm  = (o: Order) => Number(o.total_value) * Number(o.rep_commission_pct)    / 100
   const effOffComm  = (o: Order) => Number(o.total_value) * Number(o.office_commission_pct) / 100
+  const effGuideComm = (o: Order) => Number(o.total_value) * Number(o.guide_commission_pct || 0) / 100
   const totalRepComm     = filteredOrders.reduce((s, o) => s + effRepComm(o), 0)
   const totalOfficeComm  = filteredOrders.reduce((s, o) => s + effOffComm(o), 0)
+  const totalGuideComm   = filteredOrders.reduce((s, o) => s + effGuideComm(o), 0)
   const ticketMedio      = filteredOrders.length > 0 ? totalValue / filteredOrders.length : 0
 
   // Comissão dividida: escritório direto (PE/admin, rep_commission=0) vs sobre representantes
@@ -191,6 +198,7 @@ export function Dashboard() {
   const salesTotalVal   = sales.reduce((s, r) => s + Number(r.total_value), 0)
   const salesTotalRepCom = sales.reduce((s, r) => s + Number(r.rep_commission_value), 0)
   const salesTotalEscCom = sales.reduce((s, r) => s + Number(r.office_commission_value), 0)
+  const salesTotalGuiaCom = sales.reduce((s, r) => s + Number(r.guide_commission_value || 0), 0)
 
   return (<>
     <div className="pb-24 lg:pb-8 min-h-full">
@@ -309,7 +317,35 @@ export function Dashboard() {
       {isAdmin && (
         <div className="px-4 lg:px-8 mt-2 space-y-2.5">
 
-          {/* Row 1: cards de comissão (distribuidora = só representante) */}
+          {/* Row 1: cards de comissão — fábrica (Loja/Escritório/Guia), distribuidora (só rep) ou padrão SOMMA */}
+          {factoryComm ? (
+            <div className="grid grid-cols-3 gap-2.5">
+              <StatCard
+                icon={<Award className="h-4.5 w-4.5 text-teal-600" />}
+                iconBg="bg-teal-100"
+                label="Comissão Loja"
+                value={formatCurrency(totalRepComm)}
+                accentColor="#0D9488"
+                onClick={() => setCardModal('comissao_rep')}
+              />
+              <StatCard
+                icon={<Award className="h-4.5 w-4.5 text-indigo-600" />}
+                iconBg="bg-indigo-100"
+                label="Comissão Escritório"
+                value={formatCurrency(totalOfficeComm)}
+                accentColor="#4F46E5"
+                onClick={() => setCardModal('comissao')}
+              />
+              <StatCard
+                icon={<Award className="h-4.5 w-4.5 text-amber-600" />}
+                iconBg="bg-amber-100"
+                label="Comissão Guia"
+                value={formatCurrency(totalGuideComm)}
+                accentColor="#D97706"
+                onClick={() => setCardModal('comissao_guia')}
+              />
+            </div>
+          ) : (
           <div className={singleComm ? 'grid grid-cols-1 gap-2.5' : 'grid grid-cols-3 gap-2.5'}>
             {!singleComm && (
               <StatCard
@@ -340,6 +376,7 @@ export function Dashboard() {
               />
             )}
           </div>
+          )}
 
           {/* Row 2: Peças, Ticket, Clientes */}
           <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
@@ -735,7 +772,9 @@ export function Dashboard() {
                         {[
                           'Data','Representante','Marca','Razão Social','Cliente',
                           'Cidade','UF','Qt. Peças','Valor Pedido',
-                          'Com. Rep (R$)','Com. Escr (R$)',
+                          factoryComm ? 'Com. Loja (R$)' : 'Com. Rep (R$)',
+                          'Com. Escr (R$)',
+                          ...(factoryComm ? ['Com. Guia (R$)'] : []),
                         ].map(h => (
                           <th key={h} className="px-3 py-1.5 text-left font-semibold text-outline whitespace-nowrap">
                             {h}
@@ -787,6 +826,11 @@ export function Dashboard() {
                           <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-blue-700">
                             {fmtR(r.office_commission_value)}
                           </td>
+                          {factoryComm && (
+                            <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-amber-700">
+                              {fmtR(r.guide_commission_value || 0)}
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -807,6 +851,11 @@ export function Dashboard() {
                         <td className="px-3 py-1.5 text-right text-blue-700">
                           {fmtR(salesTotalEscCom)}
                         </td>
+                        {factoryComm && (
+                          <td className="px-3 py-1.5 text-right text-amber-700">
+                            {fmtR(salesTotalGuiaCom)}
+                          </td>
+                        )}
                       </tr>
                     </tfoot>
                   </table>
@@ -827,9 +876,10 @@ export function Dashboard() {
       if (cardModal === 'pedidos') { title = `Pedidos do Período (${filteredOrders.length})`; rows = filteredOrders }
       else if (cardModal === 'hoje') { title = `Pedidos de Hoje (${todayOrders.length})`; rows = todayOrders }
       else if (cardModal === 'vendas') { title = `Vendas do Período`; rows = filteredOrders }
-      else if (cardModal === 'comissao') { title = `Comissão Total Escritório`; rows = filteredOrders }
+      else if (cardModal === 'comissao') { title = factoryComm ? `Comissão Escritório` : `Comissão Total Escritório`; rows = filteredOrders }
       else if (cardModal === 'comissao_direto') { title = `Com. Escritório s/ Vendas de Representantes`; rows = filteredOrders.filter(o => effRepComm(o) > 0) }
-      else if (cardModal === 'comissao_rep') { title = `Comissão dos Representantes`; rows = filteredOrders.filter(o => effRepComm(o) > 0) }
+      else if (cardModal === 'comissao_rep') { title = factoryComm ? `Comissão Loja` : `Comissão dos Representantes`; rows = factoryComm ? filteredOrders : filteredOrders.filter(o => effRepComm(o) > 0) }
+      else if (cardModal === 'comissao_guia') { title = `Comissão Guia`; rows = filteredOrders }
       else if (cardModal === 'pecas') { title = `Total de Peças por Fábrica`; rows = filteredOrders }
       else if (cardModal === 'ticket') { title = `Ticket Médio por Representante`; rows = filteredOrders }
       else if (cardModal === 'clientes') { title = `Clientes Atendidos`; rows = filteredOrders }
@@ -837,8 +887,8 @@ export function Dashboard() {
       else if (cardModal.startsWith('rep_')) { const parts = cardModal.split('_'); const factory = parts[1]; const rep = parts.slice(2).join('_'); title = `${rep} — ${factory}`; rows = filteredOrders.filter(o => o.factory_name === factory && o.rep_name === rep) }
 
       // Para peças/ticket/comissão/clientes mostra agrupamento
-      const isGrouped = ['pecas','ticket','comissao','comissao_direto','comissao_rep','clientes'].includes(cardModal)
-      const isCommModal = cardModal === 'comissao' || cardModal === 'comissao_direto' || cardModal === 'comissao_rep'
+      const isGrouped = ['pecas','ticket','comissao','comissao_direto','comissao_rep','comissao_guia','clientes'].includes(cardModal)
+      const isCommModal = cardModal === 'comissao' || cardModal === 'comissao_direto' || cardModal === 'comissao_rep' || cardModal === 'comissao_guia'
 
       return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -868,7 +918,7 @@ export function Dashboard() {
                 // Card 1 (comissao_direto): fatia do escritório s/ vendas de representantes → effOffComm
                 // Card 2 (comissao_rep): o que os representantes ganham para si → effRepComm
                 // Card 3 (comissao): total escritório → effOffComm
-                const commFn = cardModal === 'comissao_rep' ? effRepComm : effOffComm
+                const commFn = cardModal === 'comissao_rep' ? effRepComm : cardModal === 'comissao_guia' ? effGuideComm : effOffComm
                 const totalModal = rows.reduce((s,o)=>s+commFn(o),0)
                 const grouped = Object.entries(
                   rows.reduce((acc, o) => {
@@ -884,7 +934,7 @@ export function Dashboard() {
                     <span className="font-bold text-[12px] text-indigo-700">TOTAL</span>
                     <span className="font-black text-[15px] text-indigo-700">{formatCurrency(totalModal)}</span>
                   </div>
-                  {cardModal === 'comissao' && (
+                  {cardModal === 'comissao' && !factoryComm && (
                     <div className="grid grid-cols-2 gap-2 mb-2">
                       <div className="py-1.5 px-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                         <p className="text-[10px] font-medium text-emerald-700">Escr. s/ Representantes</p>
