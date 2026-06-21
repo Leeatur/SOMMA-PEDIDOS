@@ -331,7 +331,7 @@ export function Dashboard() {
               <StatCard
                 icon={<Award className="h-4.5 w-4.5 text-indigo-600" />}
                 iconBg="bg-indigo-100"
-                label="Comissão Escritório"
+                label="Comissão Representante"
                 value={formatCurrency(totalOfficeComm)}
                 accentColor="#4F46E5"
                 onClick={() => setCardModal('comissao')}
@@ -773,7 +773,7 @@ export function Dashboard() {
                           'Data','Representante','Marca','Razão Social','Cliente',
                           'Cidade','UF','Qt. Peças','Valor Pedido',
                           factoryComm ? 'Com. Loja (R$)' : 'Com. Rep (R$)',
-                          'Com. Escr (R$)',
+                          factoryComm ? 'Com. Repres. (R$)' : 'Com. Escr (R$)',
                           ...(factoryComm ? ['Com. Guia (R$)'] : []),
                         ].map(h => (
                           <th key={h} className="px-3 py-1.5 text-left font-semibold text-outline whitespace-nowrap">
@@ -876,7 +876,7 @@ export function Dashboard() {
       if (cardModal === 'pedidos') { title = `Pedidos do Período (${filteredOrders.length})`; rows = filteredOrders }
       else if (cardModal === 'hoje') { title = `Pedidos de Hoje (${todayOrders.length})`; rows = todayOrders }
       else if (cardModal === 'vendas') { title = `Vendas do Período`; rows = filteredOrders }
-      else if (cardModal === 'comissao') { title = factoryComm ? `Comissão Escritório` : `Comissão Total Escritório`; rows = filteredOrders }
+      else if (cardModal === 'comissao') { title = factoryComm ? `Comissão Representante` : `Comissão Total Escritório`; rows = filteredOrders }
       else if (cardModal === 'comissao_direto') { title = `Com. Escritório s/ Vendas de Representantes`; rows = filteredOrders.filter(o => effRepComm(o) > 0) }
       else if (cardModal === 'comissao_rep') { title = factoryComm ? `Comissão Loja` : `Comissão dos Representantes`; rows = factoryComm ? filteredOrders : filteredOrders.filter(o => effRepComm(o) > 0) }
       else if (cardModal === 'comissao_guia') { title = `Comissão Guia`; rows = filteredOrders }

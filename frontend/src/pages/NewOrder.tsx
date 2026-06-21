@@ -1620,7 +1620,7 @@ export function NewOrder() {
                           <span className="font-semibold">{formatCurrency(totals.repCommission)}</span>
                         </div>
                         <div className="flex justify-between text-blue-600">
-                          <span>Com. Escritório ({formatPct(totals.rule.office_commission_pct)}):</span>
+                          <span>{FACTORY_COMM ? 'Com. Representante' : 'Com. Escritório'} ({formatPct(totals.rule.office_commission_pct)}):</span>
                           <span className="font-semibold">{formatCurrency(totals.officeCommission)}</span>
                         </div>
                         {FACTORY_COMM && (

@@ -876,7 +876,7 @@ export default function OrderEdit() {
                         <th className="px-3 py-2 text-left font-semibold text-outline">Desconto de Prazo</th>
                         <th className="px-3 py-2 text-center font-semibold text-outline">Comissão Total</th>
                         <th className="px-3 py-2 text-center font-semibold text-emerald-700">{FACTORY_COMM ? 'Com. Loja' : 'Com. Representante'}</th>
-                        <th className="px-3 py-2 text-center font-semibold text-blue-700">Com. Escritório</th>
+                        <th className="px-3 py-2 text-center font-semibold text-blue-700">{FACTORY_COMM ? 'Com. Repres.' : 'Com. Escritório'}</th>
                         {FACTORY_COMM && <th className="px-3 py-2 text-center font-semibold text-amber-700">Com. Guia</th>}
                       </tr>
                     </thead>
@@ -932,7 +932,7 @@ export default function OrderEdit() {
                     {/* ── Com. Representante ── */}
                     {([
                       { label: FACTORY_COMM ? 'Com. Loja' : 'Com. Representante', color: 'emerald', pctKey: 'repPct', valKey: 'rep' },
-                      { label: 'Com. Escritório',    color: 'blue',    pctKey: 'officePct', valKey: 'office' },
+                      { label: FACTORY_COMM ? 'Com. Representante' : 'Com. Escritório', color: 'blue', pctKey: 'officePct', valKey: 'office' },
                       ...(FACTORY_COMM ? [{ label: 'Com. Guia', color: 'amber', pctKey: 'guidePct', valKey: 'guide' }] : []),
                     ] as { label: string; color: string; pctKey: 'repPct' | 'officePct' | 'guidePct'; valKey: 'rep' | 'office' | 'guide' }[]).map(({ label, color, pctKey, valKey }) => {
                       const totalVal = Number(order?.total_value || 0)
@@ -1018,7 +1018,7 @@ export default function OrderEdit() {
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <p className="text-[10px] text-amber-600">
                       Atual: {FACTORY_COMM ? 'Loja' : 'Rep'} R$ {Number(order?.rep_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} ·
-                      Escr. R$ {Number(order?.office_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                      {FACTORY_COMM ? 'Repres.' : 'Escr.'} R$ {Number(order?.office_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
                       {FACTORY_COMM && <> · Guia R$ {Number(order?.guide_commission_value||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</>}
                       {order?.commission_manual_override && <span className="ml-1 font-bold text-orange-600">(ajuste manual)</span>}
                     </p>

@@ -60,7 +60,7 @@ const COMM_LABELS: Record<keyof DiscountRule, string> = {
   discount_pct: 'Desc. %',
   total_commission_pct: 'Com. Total %',
   rep_commission_pct: FACTORY_COMM ? 'Com. Loja %' : SINGLE_COMM ? 'Comissão %' : 'Com. Rep %',
-  office_commission_pct: 'Com. Esc %',
+  office_commission_pct: FACTORY_COMM ? 'Com. Repres. %' : 'Com. Esc %',
   guide_commission_pct: 'Com. Guia %',
 }
 
@@ -811,7 +811,7 @@ export function PriceTables() {
             {editRules.length > 0 && (
               <p className="text-[11px] text-outline mt-2 italic">
                 {FACTORY_COMM
-                  ? '💡 Dica: a comissão Total = Loja + Escritório + Guia. Os cards de desconto no pedido são gerados a partir dessas regras.'
+                  ? '💡 Dica: a comissão Total = Loja + Representante + Guia. Os cards de desconto no pedido são gerados a partir dessas regras.'
                   : SINGLE_COMM
                   ? '💡 Dica: a comissão é integral do representante. Os cards de desconto no pedido são gerados a partir dessas regras.'
                   : '💡 Dica: a comissão Total = Rep + Escritório. Os cards de desconto no pedido são gerados a partir dessas regras.'}
