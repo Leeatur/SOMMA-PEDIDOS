@@ -555,10 +555,11 @@ export function CustomerPortal() {
         {/* ── STEP: CART ── */}
         {step === 'cart' && (
           <div className="p-4 space-y-3 pb-32">
-            <div className="flex items-center gap-3">
+            {/* Botão sempre visível (sticky) pra voltar e continuar comprando */}
+            <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-gray-50/95 backdrop-blur border-b border-amber-200">
               <button
                 onClick={() => setStep('catalog')}
-                className="flex items-center gap-1.5 text-sm text-amber-600 font-semibold hover:text-amber-800 transition-colors"
+                className="w-full flex items-center justify-center gap-2 text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-full px-4 py-2.5 shadow-md transition-colors active:scale-[0.98]"
               >
                 <ArrowLeft className="h-4 w-4" /> Voltar ao catálogo
               </button>
