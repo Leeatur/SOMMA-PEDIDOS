@@ -287,15 +287,16 @@ export async function submitPortalOrder(req: Request, res: Response) {
     res.status(400).json({ error: 'E-mail e WhatsApp são obrigatórios' }); return
   }
 
-  // Pedido mínimo de R$ 2.500,00 — exigido apenas para catálogos de Pronta Entrega
-  // (validação espelhada no backend para não depender só da checagem do front-end)
+  // Pedido mínimo (validação espelhada no backend): PE usa R$ 2.500 fixo;
+  // catálogo normal usa MIN_ORDER_VALUE (env, por instância — NXO = 2500). Default 0 = sem mínimo.
   const PE_MIN_ORDER_VALUE = 2500
   const { rows: [peCatalog] } = await query('SELECT id FROM pe_catalogs WHERE portal_id=$1', [portal.id])
-  if (peCatalog) {
+  const minOrderValue = peCatalog ? PE_MIN_ORDER_VALUE : (Number(process.env.MIN_ORDER_VALUE) || 0)
+  if (minOrderValue > 0) {
     const cartSubtotal = items.reduce((s: number, it: { unit_price?: number; total_pieces?: number }) =>
       s + (Number(it.unit_price) || 0) * (Number(it.total_pieces) || 0), 0)
-    if (cartSubtotal < PE_MIN_ORDER_VALUE) {
-      res.status(400).json({ error: `Pedido mínimo de R$ ${PE_MIN_ORDER_VALUE.toFixed(2).replace('.', ',')} para Pronta Entrega. Seu pedido está em R$ ${cartSubtotal.toFixed(2).replace('.', ',')}.` })
+    if (cartSubtotal < minOrderValue) {
+      res.status(400).json({ error: `Pedido mínimo de R$ ${minOrderValue.toFixed(2).replace('.', ',')}. Seu pedido está em R$ ${cartSubtotal.toFixed(2).replace('.', ',')}.` })
       return
     }
   }

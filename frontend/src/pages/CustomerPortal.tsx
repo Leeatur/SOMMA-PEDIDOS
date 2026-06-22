@@ -41,6 +41,9 @@ const MIN_PIECES_PER_REF = 1
 // Pack multi-grade (NXO): cliente escolhe multiplicador por grade e pode misturar. Default off.
 const MULTI_GRADE = import.meta.env.VITE_MULTI_GRADE === 'true'
 
+// Pedido mínimo (R$) para catálogos normais — configurável por instância (NXO = 2500). Default 0 (sem mínimo).
+const MIN_ORDER_VALUE = Number(import.meta.env.VITE_MIN_ORDER_VALUE) || 0
+
 const PAYMENT_OPTIONS = [
   { label: 'À Vista (3% desconto)',         value: 'À Vista',                  discount: 3 },
   { label: '30/60/90 Dias',                  value: '30/60/90 Dias',            discount: 0 },
@@ -255,8 +258,8 @@ export function CustomerPortal() {
   const cartDiscount = selectedPayment.discount  // % desconto à vista
   const cartTotal = cartSubtotal * (1 - cartDiscount / 100)
   const cartPieces = cart.reduce((s, i) => s + i.total_pieces, 0)
-  // Pedido mínimo só se aplica a catálogos de Pronta Entrega
-  const minOrderValue = portalInfo?.is_pe ? PE_MIN_ORDER_VALUE : 0
+  // Pedido mínimo: PE usa o mínimo fixo; catálogo normal usa o configurável (VITE_MIN_ORDER_VALUE)
+  const minOrderValue = portalInfo?.is_pe ? PE_MIN_ORDER_VALUE : MIN_ORDER_VALUE
 
   async function handleSubmit() {
     if (!cart.length || !clientData) return
@@ -953,7 +956,7 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
             onClick={handleConfirm}
             disabled={totalPieces === 0}
             className="w-full py-4 rounded-2xl font-black text-base transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: totalPieces > 0 ? 'linear-gradient(135deg,#16a34a,#15803d)' : '#9ca3af', color: '#fff', boxShadow: totalPieces > 0 ? '0 4px 20px rgba(22,163,74,0.4)' : 'none' }}
+            style={{ background: totalPieces > 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)' : '#9ca3af', color: '#fff', boxShadow: totalPieces > 0 ? '0 4px 20px rgba(217,119,6,0.4)' : 'none' }}
           >
             ✅ CONFIRMAR E VOLTAR AO CATÁLOGO
           </button>
