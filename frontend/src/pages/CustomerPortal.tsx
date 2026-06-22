@@ -543,7 +543,7 @@ export function CustomerPortal() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setStep('catalog')}
-                className="flex items-center gap-1.5 text-sm text-purple-700 font-semibold hover:text-purple-900 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-amber-600 font-semibold hover:text-amber-800 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" /> Voltar ao catálogo
               </button>
@@ -659,7 +659,7 @@ export function CustomerPortal() {
           </button>
           <button
             onClick={() => setStep('catalog')}
-            className="w-full py-2.5 rounded-2xl font-semibold text-sm text-purple-700 border border-purple-200 hover:bg-purple-50 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 rounded-2xl font-semibold text-sm text-amber-600 border border-amber-200 hover:bg-amber-50 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
           >
             <ArrowLeft className="h-4 w-4" /> Voltar ao Catálogo
           </button>
