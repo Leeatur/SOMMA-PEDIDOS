@@ -2,6 +2,13 @@ import { Response } from 'express'
 import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 
+// Trava de comissão por status (NXO): comissão só conta quando o pedido está
+// em status FINAL (Faturado/Enviado). Pedido parado → comissão R$0 até finalizar.
+// Ligado por instância via COMMISSION_ON_FINAL_ONLY=true. Default off (LEEATUR intacto).
+const COMMISSION_ON_FINAL_ONLY = process.env.COMMISSION_ON_FINAL_ONLY === 'true'
+// Multiplica a comissão por 1 (final) ou 0 (não-final). Exige a tabela order_statuses como "s" no FROM.
+const FINAL_GATE = COMMISSION_ON_FINAL_ONLY ? ' * (CASE WHEN COALESCE(s.is_final,false) THEN 1 ELSE 0 END)' : ''
+
 function dateRange(req: AuthRequest): [string, string] {
   // Usa horário de Brasília para comparação de datas
   const toSP = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
@@ -41,10 +48,11 @@ export async function ordersReport(req: AuthRequest, res: Response) {
         COUNT(o.id)::int                                        AS order_count,
         COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
         COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
-        COALESCE(SUM(o.total_value * COALESCE(o.rep_commission_pct,0)/100), 0)::numeric AS rep_commission_value,
-        COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100), 0)::numeric AS office_commission_value,
-        COALESCE(SUM(o.total_value * COALESCE(o.guide_commission_pct,0)/100), 0)::numeric AS guide_commission_value
+        COALESCE(SUM(o.total_value * COALESCE(o.rep_commission_pct,0)/100${FINAL_GATE}), 0)::numeric AS rep_commission_value,
+        COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100${FINAL_GATE}), 0)::numeric AS office_commission_value,
+        COALESCE(SUM(o.total_value * COALESCE(o.guide_commission_pct,0)/100${FINAL_GATE}), 0)::numeric AS guide_commission_value
       FROM orders o
+      LEFT JOIN order_statuses s ON s.id = o.status_id
       WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     `, [...params]),
     query(`
@@ -92,11 +100,11 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
       o.total_pieces,
       o.total_value::numeric,
       o.discount_pct::numeric,
-      (o.total_value * COALESCE(o.rep_commission_pct,0)/100)::numeric    AS rep_commission_value,
+      (o.total_value * COALESCE(o.rep_commission_pct,0)/100${FINAL_GATE})::numeric    AS rep_commission_value,
       o.rep_commission_pct::numeric,
-      (o.total_value * COALESCE(o.office_commission_pct,0)/100)::numeric AS office_commission_value,
+      (o.total_value * COALESCE(o.office_commission_pct,0)/100${FINAL_GATE})::numeric AS office_commission_value,
       o.office_commission_pct::numeric,
-      (o.total_value * COALESCE(o.guide_commission_pct,0)/100)::numeric AS guide_commission_value,
+      (o.total_value * COALESCE(o.guide_commission_pct,0)/100${FINAL_GATE})::numeric AS guide_commission_value,
       o.guide_commission_pct::numeric,
       o.commission_manual_override,
       CASE WHEN COALESCE(s.is_final, false) = true
@@ -448,9 +456,9 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
       COUNT(DISTINCT o.id)::int                              AS total_pedidos,
       COALESCE(SUM(o.total_value), 0)::numeric               AS total_value,
       COALESCE(SUM(o.total_pieces), 0)::int                  AS total_pieces,
-      COALESCE(SUM(o.total_value * COALESCE(o.rep_commission_pct,0)/100), 0)::numeric AS comissao_rep,
-      COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100), 0)::numeric AS comissao_escritorio,
-      COALESCE(SUM(o.total_value * COALESCE(o.guide_commission_pct,0)/100), 0)::numeric AS comissao_guia,
+      COALESCE(SUM(o.total_value * COALESCE(o.rep_commission_pct,0)/100${FINAL_GATE}), 0)::numeric AS comissao_rep,
+      COALESCE(SUM(o.total_value * COALESCE(o.office_commission_pct,0)/100${FINAL_GATE}), 0)::numeric AS comissao_escritorio,
+      COALESCE(SUM(o.total_value * COALESCE(o.guide_commission_pct,0)/100${FINAL_GATE}), 0)::numeric AS comissao_guia,
       COUNT(DISTINCT o.client_id)::int                       AS clientes_atendidos,
       COALESCE(AVG(o.total_value), 0)::numeric               AS ticket_medio,
       COALESCE(AVG(o.total_pieces), 0)::numeric              AS media_pecas_pedido
@@ -459,6 +467,7 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
       AND o.deleted_at IS NULL
       AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date
       ${cond}
+    LEFT JOIN order_statuses s ON s.id = o.status_id
     WHERE u.role = 'representante' AND u.active = true
     GROUP BY u.id, u.name
     HAVING COUNT(DISTINCT o.id) > 0
