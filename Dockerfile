@@ -1,11 +1,14 @@
 FROM node:20-slim
 
 # Instala dependências do sistema necessárias para pacotes nativos (sharp, etc)
+# + PyMuPDF (fitz): usado pelo importador de Catálogo PDF p/ extrair texto e fotos.
 RUN apt-get update && apt-get install -y \
     python3 \
+    python3-pip \
     make \
     g++ \
     --no-install-recommends \
+    && pip3 install --no-cache-dir --break-system-packages pymupdf \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
