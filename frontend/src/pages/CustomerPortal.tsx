@@ -573,7 +573,10 @@ export function CustomerPortal() {
                   <div>
                     <p className="font-bold text-sm text-gray-900">{item.product.reference}</p>
                     {item.grade?.color && <p className="text-xs text-gray-500">{item.grade.color}</p>}
-                    <p className="text-xs text-gray-400 mt-0.5">{item.total_pieces} peças{item.product.type === 'pack' ? ` · ${item.boxes} cx` : ''}</p>
+                    {item.customGrade && item.customGrade.length > 0 && (
+                      <p className="text-xs text-gray-500">{item.customGrade.map(g => g.color).join(' · ')}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-0.5">{item.total_pieces} peças{item.product.type === 'pack' && !item.customGrade ? ` · ${item.boxes} cx` : ''}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-purple-700 text-sm">{fmtR(item.subtotal)}</p>
@@ -697,11 +700,12 @@ export function CustomerPortal() {
 
 function ProductModal({ product, onAdd, cartItems, onClose }: {
   product: Product
-  onAdd: (p: Product, opts: { grade: GradeConfig; boxes: number } | { sizes: Record<string, number> }) => void
+  onAdd: (p: Product, opts: { grade: GradeConfig; boxes: number } | { sizes: Record<string, number> } | { customGrade: GradeConfig[]; total_pieces: number }) => void
   cartItems: CartItem[]
   onClose: () => void
 }) {
   const isPack = product.type === 'pack' && product.grade_configs && product.grade_configs.length > 0
+  const multiGradePack = !!isPack && MULTI_GRADE
   const fmtCur = (v: number) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
   const grades: GradeConfig[] = product.grade_configs || []
   const blockedSet = new Set((product.blocked_sizes || []).map(s => s.toUpperCase()))
@@ -713,16 +717,28 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
   const [sizes, setSizes] = useState<Record<string, number>>(() =>
     Object.fromEntries(availableSizes.map(s => [s, 0]))
   )
+  // Pack multi-grade: multiplicador por grade
+  const [gradeMult, setGradeMult] = useState<number[]>(() => grades.map(() => 0))
+  const mgCustomGrade: GradeConfig[] = grades
+    .map((g, i) => ({
+      color: g.color || `Grade ${i + 1}`,
+      sizes: Object.fromEntries(Object.entries(g.sizes).map(([s, q]) => [s, q * (gradeMult[i] || 0)])),
+      total_pieces: g.total_pieces * (gradeMult[i] || 0),
+    }))
+    .filter(e => e.total_pieces > 0)
+  const mgTotal = mgCustomGrade.reduce((s, e) => s + e.total_pieces, 0)
 
   const totalPiecesPerPack = grades.reduce((s: number, g: GradeConfig) => s + g.total_pieces, 0)
   const packPieces = isPack ? totalPiecesPerPack * boxes : 0
   const regularPieces = Object.values(sizes).reduce((s, v) => s + v, 0)
-  const totalPieces = isPack ? packPieces : regularPieces
+  const totalPieces = multiGradePack ? mgTotal : isPack ? packPieces : regularPieces
   const totalPrice = product.base_price * totalPieces
   const inCart = cartItems.reduce((s, i) => s + i.total_pieces, 0)
 
   function handleConfirm() {
-    if (isPack && grades.length > 0) {
+    if (multiGradePack && grades.length > 0) {
+      onAdd(product, { customGrade: mgCustomGrade, total_pieces: mgTotal })
+    } else if (isPack && grades.length > 0) {
       onAdd(product, { grade: grades[0], boxes })
     } else {
       onAdd(product, { sizes })
@@ -779,8 +795,54 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
         {/* Conteúdo com scroll */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
+          {/* PACK MULTI-GRADE — escolhe quantas de cada grade (pode misturar) */}
+          {multiGradePack && grades.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Grades — escolha a quantidade de cada (pode misturar)</p>
+              {grades.map((g, i) => {
+                const gSizes = Object.keys(g.sizes).filter(s => !blockedSet.has(s.toUpperCase()))
+                const mult = gradeMult[i] || 0
+                const setMult = (v: number) => setGradeMult(prev => prev.map((m, idx) => idx === i ? Math.max(0, v) : m))
+                return (
+                  <div key={i} className={`rounded-2xl border p-3 ${mult > 0 ? 'border-purple-300 bg-purple-50/50' : 'border-gray-200'}`}>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <span className="font-bold text-gray-800">{g.color || `Grade ${i + 1}`} <span className="text-[11px] font-normal text-gray-400">({g.total_pieces} pç/grade)</span></span>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => setMult(mult - 1)}
+                          className="w-10 h-10 rounded-full bg-white border-2 border-purple-300 flex items-center justify-center shadow active:scale-95 text-purple-700 font-black text-lg">−</button>
+                        <span className="font-black text-2xl text-purple-700 min-w-[32px] text-center">{mult}</span>
+                        <button onClick={() => setMult(mult + 1)}
+                          className="w-10 h-10 rounded-full bg-white border-2 border-purple-300 flex items-center justify-center shadow active:scale-95 text-purple-700 font-black text-lg">+</button>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-max text-[12px] border border-purple-100 rounded-lg overflow-hidden">
+                        <thead className="bg-purple-100/50">
+                          <tr>
+                            {gSizes.map(s => <th key={s} className="px-2 py-1 text-center text-purple-800 font-bold min-w-[30px]">{s}</th>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="bg-white">
+                            {gSizes.map(s => <td key={s} className="px-2 py-1 text-center text-gray-700">{(g.sizes[s] || 0) * Math.max(1, mult)}</td>)}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )
+              })}
+              {mgTotal > 0 && (
+                <div className="flex items-center justify-between bg-purple-50 rounded-xl px-4 py-3 border border-purple-100">
+                  <span className="font-bold text-purple-700">{mgTotal} peças no total</span>
+                  <span className="font-black text-purple-800 text-lg">{fmtCur(product.base_price * mgTotal)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* PACK */}
-          {isPack && grades.length > 0 && (
+          {isPack && !multiGradePack && grades.length > 0 && (
             <div className="space-y-3">
               <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Grade do Pack (fechada por caixa)</p>
               <div className="overflow-x-auto rounded-xl border border-purple-100 bg-purple-50/30">
