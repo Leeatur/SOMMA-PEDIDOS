@@ -61,17 +61,24 @@ export async function updateUser(req: AuthRequest, res: Response) {
   const { id } = req.params
   const { name, email, role, active, password, factory_ids } = req.body
   try {
+    // Update PARCIAL: só altera os campos enviados. Antes setava todos de uma vez,
+    // então um toggle de ativo (que manda só { active }) zerava name/email/role
+    // (NOT NULL) → o UPDATE falhava e o toggle "não aceitava".
+    const sets: string[] = []
+    const params: unknown[] = []
+    const p = () => params.length
+    if (name !== undefined)   { params.push(name);   sets.push(`name=$${p()}`) }
+    if (email !== undefined)  { params.push(email);  sets.push(`email=$${p()}`) }
+    if (role !== undefined)   { params.push(role);   sets.push(`role=$${p()}`) }
+    if (active !== undefined) { params.push(active); sets.push(`active=$${p()}`) }
     if (password) {
       const hash = await bcrypt.hash(password, 10)
-      await query(
-        'UPDATE users SET name=$1, email=$2, role=$3, active=$4, password_hash=$5, updated_at=NOW() WHERE id=$6',
-        [name, email, role, active, hash, id]
-      )
-    } else {
-      await query(
-        'UPDATE users SET name=$1, email=$2, role=$3, active=$4, updated_at=NOW() WHERE id=$5',
-        [name, email, role, active, id]
-      )
+      params.push(hash); sets.push(`password_hash=$${p()}`)
+    }
+    if (sets.length > 0) {
+      sets.push('updated_at=NOW()')
+      params.push(id)
+      await query(`UPDATE users SET ${sets.join(', ')} WHERE id=$${p()}`, params)
     }
     // Atualiza acesso a fábricas se fornecido
     if (Array.isArray(factory_ids)) {
