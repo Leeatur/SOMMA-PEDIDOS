@@ -89,8 +89,8 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
     if (errors[field]) setErrors(e => ({ ...e, [field]: '' }))
   }
 
-  async function lookupCnpj() {
-    const digits = cnpjInput.replace(/\D/g, '')
+  async function lookupCnpj(rawValue?: string) {
+    const digits = (rawValue ?? cnpjInput).replace(/\D/g, '')
     if (digits.length !== 14) {
       setCnpjError('CNPJ deve ter 14 dígitos')
       return
@@ -160,6 +160,10 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
   function validate(): boolean {
     const e: Partial<FormData> = {}
     if (!form.name.trim()) e.name = 'Nome é obrigatório'
+    // E-mail e WhatsApp são obrigatórios (a Receita não traz confiável)
+    if (!form.email.trim()) e.email = 'E-mail é obrigatório'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = 'E-mail inválido'
+    if (!form.whatsapp.trim()) e.whatsapp = 'WhatsApp é obrigatório'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -192,7 +196,12 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
             <input
               type="text"
               value={cnpjInput}
-              onChange={e => setCnpjInput(maskCnpj(e.target.value))}
+              onChange={e => {
+                const masked = maskCnpj(e.target.value)
+                setCnpjInput(masked)
+                // Auto-busca assim que completar os 14 dígitos
+                if (masked.replace(/\D/g, '').length === 14) lookupCnpj(masked)
+              }}
               onKeyDown={e => e.key === 'Enter' && lookupCnpj()}
               placeholder="00.000.000/0001-00"
               maxLength={18}
@@ -200,7 +209,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
             />
             <button
               type="button"
-              onClick={lookupCnpj}
+              onClick={() => lookupCnpj()}
               disabled={loadingCnpj}
               className="flex items-center gap-1.5 px-4 py-1 bg-primary text-white text-[12px] font-semibold rounded-lg hover:bg-primary disabled:opacity-60 transition-colors"
             >
@@ -296,22 +305,23 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
           <div>
             <label className="block text-[12px] font-medium text-on-surface-variant mb-1 flex items-center">
               <MessageCircle className="h-3.5 w-3.5 mr-1 text-emerald-500" />
-              WhatsApp
+              WhatsApp <span className="text-red-500 ml-0.5">*</span>
               {needsConfirm.has('whatsapp') && <ConfirmTag />}
             </label>
             <input
               value={form.whatsapp}
               onChange={e => set('whatsapp', maskPhone(e.target.value))}
               placeholder="(00) 00000-0000"
-              className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('whatsapp') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
+              className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.whatsapp ? 'border-red-400' : needsConfirm.has('whatsapp') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
             />
+            {errors.whatsapp && <p className="text-[12px] text-red-500 mt-0.5">{errors.whatsapp}</p>}
           </div>
 
           {/* E-mail */}
           <div>
             <label className="block text-[12px] font-medium text-on-surface-variant mb-1 flex items-center">
               <Mail className="h-3.5 w-3.5 mr-1 text-blue-400" />
-              E-mail
+              E-mail <span className="text-red-500 ml-0.5">*</span>
               {needsConfirm.has('email') && <ConfirmTag />}
             </label>
             <input
@@ -319,8 +329,9 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               onChange={e => set('email', e.target.value)}
               type="email"
               placeholder="contato@empresa.com.br"
-              className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${needsConfirm.has('email') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
+              className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.email ? 'border-red-400' : needsConfirm.has('email') ? 'border-amber-300 bg-amber-50' : 'border-outline-variant'}`}
             />
+            {errors.email && <p className="text-[12px] text-red-500 mt-0.5">{errors.email}</p>}
           </div>
         </div>
 

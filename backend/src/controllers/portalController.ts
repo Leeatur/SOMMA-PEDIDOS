@@ -274,11 +274,15 @@ export async function submitPortalOrder(req: Request, res: Response) {
   const portal = await getPortal(req.params.token)
   if (!portal) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
 
-  const { cnpj, client_name, trade_name, address, city, state, zip, phone, email,
+  const { cnpj, client_name, trade_name, address, city, state, zip, phone, whatsapp, email,
           price_table_id, factory_id, discount_pct, notes, items, payment_terms } = req.body
 
   if (!cnpj || !client_name || !price_table_id || !factory_id || !items?.length) {
     res.status(400).json({ error: 'Dados obrigatórios faltando' }); return
+  }
+  // E-mail e WhatsApp obrigatórios no portal (cliente novo precisa deixar contato)
+  if (!email || !whatsapp) {
+    res.status(400).json({ error: 'E-mail e WhatsApp são obrigatórios' }); return
   }
 
   // Pedido mínimo de R$ 2.500,00 — exigido apenas para catálogos de Pronta Entrega
@@ -311,16 +315,16 @@ export async function submitPortalOrder(req: Request, res: Response) {
     // Cliente já existe — atualiza dados e usa o ID existente
     await query(
       `UPDATE clients SET name=$1, trade_name=$2, address=$3, city=$4, state=$5, zip=$6,
-       phone=COALESCE($7, phone), email=COALESCE($8, email), updated_at=NOW() WHERE id=$9`,
-      [client_name, trade_name||null, address||null, city||null, state||null, zip||null, phone||null, email||null, existingClient.id]
+       phone=COALESCE($7, phone), whatsapp=COALESCE($8, whatsapp), email=COALESCE($9, email), updated_at=NOW() WHERE id=$10`,
+      [client_name, trade_name||null, address||null, city||null, state||null, zip||null, phone||null, whatsapp||null, email||null, existingClient.id]
     )
     clientId = existingClient.id
   } else {
     // Cliente novo — insere
     const { rows: [newClient] } = await query(
-      `INSERT INTO clients (name, trade_name, cnpj, address, city, state, zip, phone, email, rep_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-      [client_name, trade_name||null, cnpjClean, address||null, city||null, state||null, zip||null, phone||null, email||null, portal.rep_id]
+      `INSERT INTO clients (name, trade_name, cnpj, address, city, state, zip, phone, whatsapp, email, rep_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+      [client_name, trade_name||null, cnpjClean, address||null, city||null, state||null, zip||null, phone||null, whatsapp||null, email||null, portal.rep_id]
     )
     if (!newClient) { res.status(500).json({ error: 'Erro ao criar cliente' }); return }
     clientId = newClient.id

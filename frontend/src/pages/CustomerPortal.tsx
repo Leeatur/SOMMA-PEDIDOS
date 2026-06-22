@@ -70,8 +70,8 @@ function parseSizeRange(range: string): string[] {
 interface ClientData {
   cnpj: string; razao_social: string; nome_fantasia: string | null
   address: string; city: string; state: string; zip: string
-  phone: string | null; email: string | null; situacao: string
-  existing_client: { id: string; name: string } | null
+  phone: string | null; whatsapp?: string | null; email: string | null; situacao: string
+  existing_client: { id: string; name: string; email?: string | null; whatsapp?: string | null } | null
 }
 
 const fmtR = (v: number) =>
@@ -92,6 +92,10 @@ export function CustomerPortal() {
   const [cnpjLoading, setCnpjLoading] = useState(false)
   const [cnpjError, setCnpjError] = useState('')
   const [clientData, setClientData] = useState<ClientData | null>(null)
+  // Contato obrigatório (cliente novo): e-mail + WhatsApp
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactWhatsapp, setContactWhatsapp] = useState('')
+  const [contactError, setContactError] = useState('')
 
   const [catalog, setCatalog] = useState<PriceTable[]>([])
   const [catalogLoading] = useState(false)
@@ -160,12 +164,13 @@ export function CustomerPortal() {
       .catch(() => { setErrorMsg('Link inválido ou expirado.'); setStep('error') })
   }, [token])
 
-  async function handleCnpj() {
-    const clean = cnpjInput.replace(/\D/g, '')
+  async function handleCnpj(rawValue?: string) {
+    const src = rawValue ?? cnpjInput
+    const clean = src.replace(/\D/g, '')
     if (clean.length !== 14) { setCnpjError('Digite um CNPJ com 14 dígitos'); return }
     setCnpjLoading(true); setCnpjError('')
     try {
-      const r = await publicPortalApi.lookupCnpj(token!, cnpjInput)
+      const r = await publicPortalApi.lookupCnpj(token!, src)
       const d = r.data as ClientData
       if (d.situacao && !d.situacao.toLowerCase().includes('ativa')) {
         setCnpjError(`CNPJ com situação: ${d.situacao}. Entre em contato com nosso representante.`)
@@ -176,7 +181,18 @@ export function CustomerPortal() {
       if (factories.length === 1) {
         setSelectedFactory(factories[0])
       }
-      setStep('catalog')
+      // Pré-preenche contato (cliente existente > Receita) e decide se pede confirmação
+      const preEmail = d.existing_client?.email || d.email || ''
+      const preWhats = d.existing_client?.whatsapp || ''
+      setContactEmail(preEmail)
+      setContactWhatsapp(preWhats)
+      // Só entra direto no catálogo se já temos e-mail E WhatsApp; senão pede contato
+      if (preEmail && preWhats) {
+        setClientData({ ...d, email: preEmail, whatsapp: preWhats })
+        setStep('catalog')
+      } else {
+        setStep('contact')
+      }
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
       setCnpjError(msg || 'CNPJ não encontrado na Receita Federal')
@@ -264,7 +280,8 @@ export function CustomerPortal() {
         state: clientData.state,
         zip: clientData.zip,
         phone: clientData.phone,
-        email: clientData.email,
+        whatsapp: clientData.whatsapp ?? contactWhatsapp,
+        email: clientData.email ?? contactEmail,
         price_table_id: table.id,
         factory_id: factoryId,
         discount_pct: selectedPayment.discount,
@@ -362,18 +379,73 @@ export function CustomerPortal() {
                 type="tel" inputMode="numeric"
                 placeholder="00.000.000/0001-00"
                 value={cnpjInput}
-                onChange={e => setCnpjInput(e.target.value.replace(/\D/g,'').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5').slice(0,18))}
+                onChange={e => {
+                  const masked = e.target.value.replace(/\D/g,'').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5').slice(0,18)
+                  setCnpjInput(masked)
+                  if (masked.replace(/\D/g,'').length === 14) handleCnpj(masked)
+                }}
                 onKeyDown={e => e.key==='Enter' && handleCnpj()}
                 className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:border-purple-500 focus:outline-none"
               />
               {cnpjError && <p className="text-red-500 text-sm">{cnpjError}</p>}
-              <button onClick={handleCnpj} disabled={cnpjLoading}
+              <button onClick={() => handleCnpj()} disabled={cnpjLoading}
                 className="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold text-base hover:bg-purple-700 disabled:opacity-50 flex items-center justify-center gap-2">
                 {cnpjLoading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
                 {cnpjLoading ? 'Verificando...' : 'Acessar Catálogo'}
               </button>
             </div>
             <p className="text-center text-[10px] text-gray-300 mt-8">SOMMA Technology · Erechim | RS · (54) 9.9162-5024</p>
+          </div>
+        )}
+
+        {/* ── STEP: CONTATO (cliente novo — e-mail + WhatsApp obrigatórios) ── */}
+        {step === 'contact' && clientData && (
+          <div className="p-6 max-w-md mx-auto mt-4">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Confirme seu contato</h2>
+            <p className="text-gray-500 text-sm mb-1">{clientData.nome_fantasia || clientData.razao_social}</p>
+            <p className="text-gray-400 text-xs mb-5">{clientData.cnpj}</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail <span className="text-red-500">*</span></label>
+                <input
+                  type="email" inputMode="email"
+                  value={contactEmail}
+                  onChange={e => { setContactEmail(e.target.value); setContactError('') }}
+                  placeholder="contato@empresa.com.br"
+                  className="w-full border-2 border-amber-300 bg-amber-50 rounded-xl px-4 py-3 text-base focus:border-purple-500 focus:bg-white focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp <span className="text-red-500">*</span></label>
+                <input
+                  type="tel" inputMode="numeric"
+                  value={contactWhatsapp}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g,'').slice(0,11)
+                      .replace(/^(\d{2})(\d{5})(\d{0,4}).*/, '($1) $2-$3')
+                      .replace(/^(\d{2})(\d{0,5})$/, '($1) $2')
+                    setContactWhatsapp(v); setContactError('')
+                  }}
+                  placeholder="(00) 00000-0000"
+                  className="w-full border-2 border-amber-300 bg-amber-50 rounded-xl px-4 py-3 text-base focus:border-purple-500 focus:bg-white focus:outline-none"
+                />
+              </div>
+              {contactError && <p className="text-red-500 text-sm">{contactError}</p>}
+              <button
+                onClick={() => {
+                  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())
+                  const whatsDigits = contactWhatsapp.replace(/\D/g, '')
+                  if (!emailOk) { setContactError('Informe um e-mail válido'); return }
+                  if (whatsDigits.length < 10) { setContactError('Informe um WhatsApp válido com DDD'); return }
+                  setClientData({ ...clientData, email: contactEmail.trim(), whatsapp: contactWhatsapp })
+                  setStep('catalog')
+                }}
+                className="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold text-base hover:bg-purple-700 transition-colors"
+              >
+                Continuar para o catálogo
+              </button>
+              <p className="text-xs text-gray-400 text-center">Usamos seu contato só para confirmar o pedido.</p>
+            </div>
           </div>
         )}
 
