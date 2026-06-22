@@ -68,10 +68,19 @@ doc.close()
   }
 }
 
-// Extrai referências de um texto de página
-function extractReferences(text: string): string[] {
-  const matches = text.match(/(?:TE|PKTE)\d+/gi)
-  return matches ? [...new Set(matches.map(r => r.toUpperCase()))] : []
+// Extrai referências de um texto de página procurando os CÓDIGOS REAIS da tabela
+// de preço (NJ####, ARO, TE####, PKTE####...) — não depende de um formato fixo.
+// Usa fronteira (sem alfanumérico antes/depois) p/ evitar match parcial
+// (ex.: "ARO" dentro de "AROMATIZANTE", ou "NJ116" dentro de "NJ1160").
+function extractReferences(text: string, tableRefs: string[]): string[] {
+  const upper = text.toUpperCase()
+  const found: string[] = []
+  for (const ref of tableRefs) {
+    const esc = ref.toUpperCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`(?<![A-Z0-9])${esc}(?![A-Z0-9])`)
+    if (re.test(upper)) found.push(ref.toUpperCase())
+  }
+  return [...new Set(found)]
 }
 
 // Extrai nome do produto (primeira linha não-referência)
@@ -105,7 +114,7 @@ export async function importCatalogPdf(
     if (page.text && page.text.trim().length > 3) pagesWithText++
     if (!page.text && page.imageCount === 0) continue
 
-    const references = extractReferences(page.text)
+    const references = extractReferences(page.text, priceTableRefs)
     if (references.length === 0) continue
 
     const productName = extractProductName(page.text)
