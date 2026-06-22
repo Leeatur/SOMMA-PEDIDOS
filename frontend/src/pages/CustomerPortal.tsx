@@ -84,7 +84,7 @@ export function CustomerPortal() {
 
   // Steps: 'loading' | 'cnpj' | 'catalog' | 'cart' | 'success' | 'error'
   const [step, setStep] = useState<string>('loading')
-  const [portalInfo, setPortalInfo] = useState<{ name: string; rep_name: string; is_pe?: boolean } | null>(null)
+  const [portalInfo, setPortalInfo] = useState<{ name: string; rep_name: string; is_pe?: boolean; terms?: string | null } | null>(null)
   const [factories, setFactories] = useState<Factory[]>([])
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -524,6 +524,14 @@ export function CustomerPortal() {
                     })}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Condições / Política de troca (texto institucional, fim do catálogo) */}
+            {portalInfo?.terms && (
+              <div className="mx-3 mt-4 mb-2 bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-[13px] font-bold text-gray-800 mb-2">Condições e Política de Troca</p>
+                <p className="text-[12px] text-gray-600 whitespace-pre-line leading-relaxed">{portalInfo.terms}</p>
               </div>
             )}
           </div>

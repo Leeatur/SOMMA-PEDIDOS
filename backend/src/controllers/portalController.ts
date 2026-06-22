@@ -119,7 +119,9 @@ export async function getPortalInfo(req: Request, res: Response) {
 
   // Catálogos de Pronta Entrega têm pedido mínimo de R$ 2.500,00 — links normais não têm mínimo
   const { rows: [pe] } = await query('SELECT id FROM pe_catalogs WHERE portal_id=$1', [portal.id])
-  const portalMeta = { id: portal.id, name: portal.name, rep_name: portal.rep_name, is_pe: !!pe }
+  // Texto institucional (condições + política de troca) — reusa o "Rodapé do pedido" (company_settings.order_footer)
+  const { rows: [footerRow] } = await query(`SELECT value FROM company_settings WHERE key='order_footer'`)
+  const portalMeta = { id: portal.id, name: portal.name, rep_name: portal.rep_name, is_pe: !!pe, terms: footerRow?.value || null }
 
   // Fluxo principal: tabelas específicas → retorna catálogo completo de uma vez
   if (portal.price_table_ids?.length > 0) {
