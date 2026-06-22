@@ -139,6 +139,10 @@ interface DiscountRule {
 // Modo fábrica (NXO): comissão de 3 vias — Loja (rep) + Escritório (office) + Guia (guide). Default off.
 const FACTORY_COMM = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
 
+// Pack multi-grade (NXO): cada linha de grade_configs vira uma grade selecionável com
+// multiplicador próprio; o cliente pode misturar grades. Default off (pack soma tudo × caixas).
+const MULTI_GRADE = import.meta.env.VITE_MULTI_GRADE === 'true'
+
 interface GradeConfig {
   id: string
   color: string | null
@@ -1700,6 +1704,26 @@ function QuickAddModal({
   // Para packs: grade selecionada (cor)
   const grades = product.grade_configs || []
 
+  // Pack multi-grade: cada grade tem seu multiplicador; cliente mistura.
+  const multiGradePack = isPack && MULTI_GRADE && grades.length > 0
+  const [gradeMult, setGradeMult] = useState<number[]>(() =>
+    grades.map(g => {
+      if (!cartItem?.custom_grade?.length || g.total_pieces === 0) return 0
+      const entry = cartItem.custom_grade.find(e => (e.color || '') === (g.color || ''))
+      return entry ? Math.round((entry.total_pieces || 0) / g.total_pieces) : 0
+    })
+  )
+  const mgCustomGrade: CustomGradeEntry[] = grades
+    .map((g, i) => ({
+      color: g.color || `Grade ${i + 1}`,
+      sizes: Object.fromEntries(Object.entries(g.sizes).map(([s, q]) => [s.trim(), q * (gradeMult[i] || 0)])),
+      total_pieces: g.total_pieces * (gradeMult[i] || 0),
+    }))
+    .filter(e => e.total_pieces > 0)
+  const mgFlat: Record<string, number> = {}
+  mgCustomGrade.forEach(e => Object.entries(e.sizes).forEach(([s, q]) => { mgFlat[s] = (mgFlat[s] || 0) + q }))
+  const mgTotal = mgCustomGrade.reduce((s, e) => s + e.total_pieces, 0)
+
   // Regular com variantes cor × tamanho (distribuidora): grade editável por cor
   const multiVariant = !isPack && grades.length > 0 && grades.some(g => (g.color || '').trim() !== '')
   const variantSizes = multiVariant
@@ -1761,7 +1785,9 @@ function QuickAddModal({
 
   // Pack: total = TODAS as cores × caixas (ex: 6 cores × 6 pç/cor = 36 pç/cx)
   const totalPiecesPerBox = grades.reduce((s, g) => s + g.total_pieces, 0) || 0
-  const totalPieces = isPack
+  const totalPieces = multiGradePack
+    ? mgTotal
+    : isPack
     ? totalPiecesPerBox * boxes
     : multiVariant
     ? mvTotal
@@ -1810,7 +1836,8 @@ function QuickAddModal({
         // É o último campo ou Enter fora da grade — adiciona o item
         e.preventDefault()
         if (totalPieces > 0) {
-          if (multiVariant) onAdd(product, flatSizes, boxes, observation, customPrice, customGrade)
+          if (multiGradePack) onAdd(product, mgFlat, 1, observation, customPrice, mgCustomGrade)
+          else if (multiVariant) onAdd(product, flatSizes, boxes, observation, customPrice, customGrade)
           else onAdd(product, safeSizes, boxes, observation, customPrice)
         }
       }
@@ -1857,8 +1884,62 @@ function QuickAddModal({
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
+          {/* ── PACK MULTI-GRADE: cada grade com multiplicador (cliente mistura) ── */}
+          {multiGradePack && (
+            <div>
+              <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">
+                Grades — escolha a quantidade de cada (pode misturar)
+              </p>
+              <div className="space-y-3">
+                {grades.map((g, i) => {
+                  const gSizes = sortSizes(Object.keys(g.sizes))
+                  const mult = gradeMult[i] || 0
+                  const setMult = (v: number) => setGradeMult(prev => prev.map((m, idx) => idx === i ? Math.max(0, v) : m))
+                  return (
+                    <div key={i} className={`border rounded-xl p-3 ${mult > 0 ? 'border-primary/40 bg-primary/5' : 'border-outline-variant'}`}>
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <span className="text-[13px] font-bold text-on-surface">{g.color || `Grade ${i + 1}`}</span>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => setMult(mult - 1)}
+                            className="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-container active:scale-95">
+                            <Minus className="h-4 w-4 text-on-surface-variant" />
+                          </button>
+                          <input type="number" min="0" value={mult}
+                            onChange={e => setMult(parseInt(e.target.value) || 0)}
+                            onFocus={e => e.target.select()}
+                            className="w-14 text-center border-2 border-outline-variant rounded-lg py-1 text-[14px] font-bold focus:outline-none focus:border-primary" />
+                          <button type="button" onClick={() => setMult(mult + 1)}
+                            className="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-container active:scale-95">
+                            <Plus className="h-4 w-4 text-on-surface-variant" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="overflow-x-auto scrollbar-hide">
+                        <table className="min-w-max text-[12px] border border-outline-variant/60 rounded-lg overflow-hidden">
+                          <thead className="bg-surface-container-low">
+                            <tr>
+                              {gSizes.map(s => <th key={s} className="px-2 py-1 text-center font-medium text-on-surface-variant min-w-[30px]">{s}</th>)}
+                              <th className="px-2 py-1 text-center border-l border-outline-variant text-outline">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="bg-white">
+                              {gSizes.map(s => <td key={s} className="px-2 py-1 text-center">{(g.sizes[s] || 0) * (mult || 1) > 0 ? (g.sizes[s] || 0) * Math.max(1, mult) : (g.sizes[s] || 0)}</td>)}
+                              <td className="px-2 py-1 text-center font-bold border-l border-outline-variant">{g.total_pieces * Math.max(1, mult)}{mult === 0 ? ' /grade' : ''}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="text-[13px] font-bold text-primary mt-3">{mgTotal} peças total</p>
+            </div>
+          )}
+
           {/* ── PACK: tabela completa de cores × tamanhos ── */}
-          {isPack && grades.length > 0 && (() => {
+          {isPack && !multiGradePack && grades.length > 0 && (() => {
             const packSizes = sortSizes([...new Set(grades.flatMap(g => Object.keys(g.sizes).map(s => s.trim())))])
             const grandTotal = grades.reduce((s, g) => s + g.total_pieces, 0)
             return (
@@ -2128,7 +2209,9 @@ function QuickAddModal({
           </button>
           <Button
             disabled={totalPieces === 0}
-            onClick={() => multiVariant
+            onClick={() => multiGradePack
+              ? onAdd(product, mgFlat, 1, observation, customPrice, mgCustomGrade)
+              : multiVariant
               ? onAdd(product, flatSizes, boxes, observation, customPrice, customGrade)
               : onAdd(product, safeSizes, boxes, observation, customPrice)}
             icon={<Check className="h-4 w-4" />}

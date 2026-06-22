@@ -25,6 +25,8 @@ interface CartItem {
   // Pack: grade com cor + boxes
   grade: GradeConfig | null
   boxes: number
+  // Pack multi-grade: grades escolhidas (sizes já multiplicados pelo multiplicador)
+  customGrade?: GradeConfig[]
   // Regular: tamanhos escolhidos individualmente
   sizes: Record<string, number>
   unit_price: number
@@ -35,6 +37,9 @@ interface CartItem {
 // Pedido mínimo de R$ 2.500,00 — exigido apenas em catálogos de Pronta Entrega (portal.is_pe)
 const PE_MIN_ORDER_VALUE = 2500
 const MIN_PIECES_PER_REF = 1
+
+// Pack multi-grade (NXO): cliente escolhe multiplicador por grade e pode misturar. Default off.
+const MULTI_GRADE = import.meta.env.VITE_MULTI_GRADE === 'true'
 
 const PAYMENT_OPTIONS = [
   { label: 'À Vista (3% desconto)',         value: 'À Vista',                  discount: 3 },
@@ -201,11 +206,17 @@ export function CustomerPortal() {
 
   function addToCart(
     product: Product,
-    opts: { grade: GradeConfig; boxes: number } | { sizes: Record<string, number> }
+    opts: { grade: GradeConfig; boxes: number } | { sizes: Record<string, number> } | { customGrade: GradeConfig[]; total_pieces: number }
   ) {
     let total_pieces: number; let sizes: Record<string, number>; let grade: GradeConfig | null; let boxes: number
+    let customGrade: GradeConfig[] | undefined
 
-    if ('grade' in opts) {
+    if ('customGrade' in opts) {
+      // PACK MULTI-GRADE — grades escolhidas com multiplicador (sizes já multiplicados)
+      grade = null; boxes = 1; sizes = {}
+      customGrade = opts.customGrade
+      total_pieces = opts.total_pieces
+    } else if ('grade' in opts) {
       // PACK — soma TODAS as cores para total correto
       grade = opts.grade; boxes = opts.boxes
       const allGrades: GradeConfig[] = (product.grade_configs as GradeConfig[] | null) || [grade]
@@ -227,7 +238,7 @@ export function CustomerPortal() {
     const subtotal = product.base_price * total_pieces
     const key = `${product.id}_${grade?.color || 'regular'}`
     const existing = cart.findIndex(i => `${i.product.id}_${i.grade?.color || 'regular'}` === key)
-    const item: CartItem = { product, grade, boxes, sizes, unit_price: product.base_price, total_pieces, subtotal }
+    const item: CartItem = { product, grade, boxes, customGrade, sizes, unit_price: product.base_price, total_pieces, subtotal }
 
     if (existing >= 0) {
       const updated = [...cart]; updated[existing] = item; setCart(updated)
@@ -269,7 +280,8 @@ export function CustomerPortal() {
         boxes_count: i.boxes,
         total_pieces: i.total_pieces,
         sizes: i.product.type === 'regular' ? i.sizes : undefined,
-        grade: i.grade ? [i.grade] : undefined,
+        // multi-grade: envia as grades escolhidas; pack normal: a grade única; regular: nada
+        grade: i.customGrade ? i.customGrade : (i.grade ? [i.grade] : undefined),
       }))
       const r = await publicPortalApi.submitOrder(token!, {
         cnpj: clientData.cnpj,
