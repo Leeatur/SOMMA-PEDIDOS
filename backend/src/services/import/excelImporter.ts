@@ -77,7 +77,8 @@ function parseRegularSheet(ws: XLSX.WorkSheet): { products: ImportedProduct[]; d
     const row = data[r] as unknown[]
     if (!row) continue
     const rowStr = row.map(c => String(c || '').toUpperCase())
-    const refIdx = rowStr.findIndex(c => c.includes('REFERÊNCIA') || c.includes('REFERENCIA'))
+    // Aceita "REFERÊNCIA", "REFERENCIA" e abreviações como "REFER." / "REF."
+    const refIdx = rowStr.findIndex(c => c.includes('REFER') || /\bREF\b\.?/.test(c))
     if (refIdx >= 0) {
       headerRow = r
       colRef = refIdx
@@ -90,7 +91,8 @@ function parseRegularSheet(ws: XLSX.WorkSheet): { products: ImportedProduct[]; d
         colPrice = find('VALOR', 'PREÇO', 'PRECO')
         colObs   = find('OBSERV', 'OBS')
         if (colName < 0)  colName = refIdx + 1
-        if (colModel < 0) colModel = refIdx + 2
+        // colModel (COR/MODELO) é opcional: se não existir, fica -1 (sem variante de cor).
+        // NÃO fazer fallback p/ refIdx+2 — colidiria com a coluna de TAMANHO/GRADE.
         if (colGrade < 0) colGrade = refIdx + 3
         if (colPrice < 0) colPrice = refIdx + 4
       } else {
