@@ -82,6 +82,7 @@ interface Order {
   factory_contact: string | null
   price_table_name: string
   discount_pct: number
+  cash_discount_pct: number
   total_pieces: number
   total_value: number
   notes: string | null
@@ -304,6 +305,9 @@ export function OrderPrint() {
   const totalGross = rows.reduce((s, r) => s + r.unitPriceBase * r.qtde, 0)
   const totalNet = rows.reduce((s, r) => s + r.total, 0)
   const totalDiscount = totalGross - totalNet
+  const cashDiscPct = Number(order.cash_discount_pct || 0)
+  const totalAfterCash = cashDiscPct > 0 ? Math.round(totalNet * (1 - cashDiscPct / 100) * 100) / 100 : 0
+  const totalCashDiscount = cashDiscPct > 0 ? totalNet - totalAfterCash : 0
 
   const companyName    = company.name || 'SOMMA FORÇA DE VENDAS'
   const companyAddress = [company.address, company.city, company.state].filter(Boolean).join(' — ')
@@ -503,13 +507,25 @@ export function OrderPrint() {
             <div className="value">{fmt(totalGross)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Total c/ Desconto Comercial (R$)</div>
+            <div className="label">Total c/ Desc. Comercial (R$)</div>
             <div className="value">{fmt(totalNet)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Desconto Comercial R$ Total</div>
+            <div className="label">Desc. Comercial R$ Total</div>
             <div className="value">{fmt(totalDiscount)}</div>
           </div>
+          {cashDiscPct > 0 && (
+            <div className="grand-total-cell">
+              <div className="label">Desc. À Vista {cashDiscPct.toFixed(1)}% (R$)</div>
+              <div className="value">{fmt(totalCashDiscount)}</div>
+            </div>
+          )}
+          {cashDiscPct > 0 && (
+            <div className="grand-total-cell" style={{ fontWeight: 'bold' }}>
+              <div className="label">Total À Vista (R$)</div>
+              <div className="value">{fmt(totalAfterCash)}</div>
+            </div>
+          )}
           <div className="grand-total-cell">
             <div className="label">Total Qtde Itens</div>
             <div className="value">{totalQtde}</div>

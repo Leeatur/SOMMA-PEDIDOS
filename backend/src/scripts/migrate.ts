@@ -402,6 +402,10 @@ ALTER TABLE price_tables ADD COLUMN IF NOT EXISTS max_cash_discount_pct NUMERIC(
 -- Flag para pedidos com desconto especial (fora das regras pré-cadastradas).
 -- Quando TRUE, o pedido exibe o badge "⚠ Revisar desc/comissão" para o admin.
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS needs_review_discount BOOLEAN DEFAULT FALSE;
+
+-- Desconto À Vista separado do desconto comercial (prazo).
+-- discount_pct = prazo + cash; cash_discount_pct = só à vista (não afeta comissão).
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS cash_discount_pct DECIMAL(5,2) DEFAULT 0;
 `
 
 async function migrate() {

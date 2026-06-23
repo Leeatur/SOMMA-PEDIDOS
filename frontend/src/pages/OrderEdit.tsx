@@ -550,7 +550,7 @@ export default function OrderEdit() {
       // (evita resetar preços manuais desnecessariamente)
       if (isAdmin && Math.abs(totalDiscount - oldTotalDiscount) > 0.001) {
         // Passa commission_discount_pct separado = só o desconto de PRAZO para comissão
-        await ordersApi.changePriceTable(id!, order.price_table_id, totalDiscount, policyDiscountPct)
+        await ordersApi.changePriceTable(id!, order.price_table_id, totalDiscount, policyDiscountPct, cashDiscount)
       }
 
       // 2. Info do cabeçalho

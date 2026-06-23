@@ -311,8 +311,8 @@ export const ordersApi = {
   }) => apiClient.patch(`/orders/${id}/commission`, data),
   resetCommission: (id: string) =>
     apiClient.delete(`/orders/${id}/commission`),
-  changePriceTable: (id: string, price_table_id: string, discount_pct: number, commission_discount_pct?: number) =>
-    apiClient.put(`/orders/${id}/price-table`, { price_table_id, discount_pct, commission_discount_pct }),
+  changePriceTable: (id: string, price_table_id: string, discount_pct: number, commission_discount_pct?: number, cash_discount_pct?: number) =>
+    apiClient.put(`/orders/${id}/price-table`, { price_table_id, discount_pct, commission_discount_pct, cash_discount_pct }),
   recalculate: (id: string) => apiClient.post(`/orders/${id}/recalculate`, {}),
   sync: (orders: unknown[]) => apiClient.post('/orders/sync', { orders }),
   duplicate: (id: string) => apiClient.post(`/orders/${id}/duplicate`, {}),

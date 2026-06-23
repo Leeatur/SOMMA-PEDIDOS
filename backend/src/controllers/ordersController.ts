@@ -302,18 +302,19 @@ export async function createOrder(req: AuthRequest, res: Response) {
     const guideCommPct = isAdminOrder ? 0 : totals.guideCommissionPct
     const guideCommVal = isAdminOrder ? 0 : totals.guideCommissionValue
 
+    const cashDisc = parseFloat(cash_discount_pct) || 0
     const { rows: [order] } = await dbClient.query(
       `INSERT INTO orders
        (offline_id, client_id, rep_id, factory_id, price_table_id, status_id,
-        discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct,
+        discount_pct, cash_discount_pct, total_commission_pct, rep_commission_pct, office_commission_pct,
         guide_commission_pct, total_pieces, total_value, rep_commission_value,
         office_commission_value, guide_commission_value,
         notes, payment_terms, freight_type, delivery_date, industry_order_number, buyer_name,
         needs_review_discount, synced_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,NOW())
        RETURNING *`,
       [offline_id||null, client_id, req.user!.id, factory_id, price_table_id,
-       initStatus?.id||null, disc,
+       initStatus?.id||null, disc, cashDisc,
        totals.totalCommissionPct, repCommPct, offCommPct, guideCommPct,
        totals.totalPieces, totals.totalValue, repCommVal, offCommVal, guideCommVal,
        notes||null, payment_terms||null, freight_type||'CIF',
@@ -667,7 +668,7 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
 
 // Troca a tabela de preços do pedido e recalcula todos os valores
 export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
-  const { price_table_id, discount_pct, commission_discount_pct } = req.body
+  const { price_table_id, discount_pct, commission_discount_pct, cash_discount_pct } = req.body
   const orderId = req.params.id
   if (!price_table_id) { res.status(400).json({ error: 'price_table_id obrigatório' }); return }
 
@@ -778,17 +779,18 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
       ? Math.round(totals.totalValue * totals.totalCommissionPct / 100 * 100) / 100
       : totals.officeCommissionValue
 
+    const cashDisc2 = cash_discount_pct !== undefined ? parseFloat(cash_discount_pct) || 0 : Number(order.cash_discount_pct || 0)
     await dbClient.query(
       `UPDATE orders SET
-         price_table_id=$1, discount_pct=$2,
-         total_commission_pct=$3, rep_commission_pct=$4, office_commission_pct=$5,
-         total_pieces=$6, total_value=$7,
-         rep_commission_value=$8, office_commission_value=$9,
+         price_table_id=$1, discount_pct=$2, cash_discount_pct=$3,
+         total_commission_pct=$4, rep_commission_pct=$5, office_commission_pct=$6,
+         total_pieces=$7, total_value=$8,
+         rep_commission_value=$9, office_commission_value=$10,
          commission_manual_override=FALSE,
          updated_at=NOW()
-       WHERE id=$10`,
+       WHERE id=$11`,
       [
-        price_table_id, disc,
+        price_table_id, disc, cashDisc2,
         totals.totalCommissionPct, repCommPct2, offCommPct2,
         totals.totalPieces, totals.totalValue,
         repCommVal2, offCommVal2,
