@@ -467,7 +467,8 @@ export function OrderPrint() {
               <th style={{ width: '4%' }}>Qtde</th>
               <th style={{ width: '6%' }}>R$ Tab.</th>
               <th style={{ width: '7%' }}>R$ c/Desc.</th>
-              <th style={{ width: '4%' }}>Desc%</th>
+              <th style={{ width: '4%' }}>Desc. Coml.</th>
+              {cashDiscPct > 0 && <th style={{ width: '4%' }}>Desc. À Vista</th>}
               <th style={{ width: '7%' }}>R$ Total</th>
             </tr>
           </thead>
@@ -485,6 +486,7 @@ export function OrderPrint() {
                 <td className="num">{fmt(row.unitPriceBase)}</td>
                 <td className="num">{fmt(row.unitPriceDisc)}</td>
                 <td className="ctr">{fmt(row.discPct)}</td>
+                {cashDiscPct > 0 && <td className="ctr">{cashDiscPct.toFixed(2)}</td>}
                 <td className="num" style={{ fontWeight: 'bold' }}>{fmt(row.total)}</td>
               </tr>
             ))}
@@ -495,7 +497,7 @@ export function OrderPrint() {
                 <td key={s} className="ctr">{sizeTotals[s] > 0 ? sizeTotals[s] : ''}</td>
               ))}
               <td className="ctr" style={{ fontWeight: 'bold' }}>{totalQtde}</td>
-              <td colSpan={4}></td>
+              <td colSpan={cashDiscPct > 0 ? 5 : 4}></td>
             </tr>
           </tbody>
         </table>
