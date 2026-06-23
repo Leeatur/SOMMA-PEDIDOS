@@ -212,14 +212,36 @@ function ProductDetailModal({
     }))
   })
 
-  // Sizes used as grade columns — derived from editForm.size_range live
+  // Tipo de variante: UN. | UN por cores | Grade | Grade por cores
+  const isUnToken = (s: string) => /^un\.?$/i.test((s || '').trim())
+  const [variantMode, setVariantMode] = useState<'un' | 'un_cor' | 'grade' | 'grade_cor'>(() => {
+    const hasColor = (p.grade_configs || []).some(g => (g.color || '').trim() !== '')
+    const realSizes = parseSizeRange(p.size_range).filter(s => !isUnToken(s))
+    const hasSizes = realSizes.length > 0 || (p.grade_configs || []).some(g => Object.keys(g.sizes || {}).some(s => !isUnToken(s)))
+    if (hasColor && hasSizes) return 'grade_cor'
+    if (hasColor) return 'un_cor'
+    if (hasSizes) return 'grade'
+    return 'un'
+  })
+  const allowColors = variantMode === 'un_cor' || variantMode === 'grade_cor'
+  const unSize = variantMode === 'un' || variantMode === 'un_cor'
+  function applyMode(mode: 'un' | 'un_cor' | 'grade' | 'grade_cor') {
+    setVariantMode(mode)
+    const isUn = mode === 'un' || mode === 'un_cor'
+    setEditForm(f => ({ ...f, size_range: isUn ? 'UN' : (isUnToken(f.size_range) ? '' : f.size_range) }))
+    const colors = mode === 'un_cor' || mode === 'grade_cor'
+    if (!colors) setEditGrade(prev => [{ color: '', sizes: prev[0]?.sizes || {} }])
+    else setEditGrade(prev => (prev.length ? prev : [{ color: '', sizes: {} }]))
+  }
+
+  // Sizes used as grade columns — derived from o modo + size_range live
   const gradeSizes = useMemo(() => {
-    const fromRange = parseSizeRange(editForm.size_range)
+    if (variantMode === 'un' || variantMode === 'un_cor') return ['UN']
+    const fromRange = parseSizeRange(editForm.size_range).filter(s => !isUnToken(s))
     if (fromRange.length > 0) return fromRange
-    // Fallback to sizes already in grade rows
-    const allFromGrade = sortSizes(Array.from(new Set(editGrade.flatMap(r => Object.keys(r.sizes)))))
+    const allFromGrade = sortSizes(Array.from(new Set(editGrade.flatMap(r => Object.keys(r.sizes)))).filter(s => !isUnToken(s)))
     return allFromGrade
-  }, [editForm.size_range, editGrade])
+  }, [variantMode, editForm.size_range, editGrade])
 
   function setGradeCell(rowIdx: number, size: string, val: number) {
     setEditGrade(prev => prev.map((row, i) =>
@@ -254,16 +276,18 @@ function ProductDetailModal({
         type: editForm.type,
         ...(editForm.price_table_id ? { price_table_id: editForm.price_table_id } : {}),
       })
-      const gradePayload = editGrade
-        .map((row, i) => ({
-          color: row.color || null,
-          // Apenas os tamanhos que estão no size_range atual — descarta os antigos
-          sizes: Object.fromEntries(
-            Object.entries(row.sizes).filter(([s]) => gradeSizes.includes(s))
-          ),
-          sort_order: i,
-        }))
-        .filter(row => Object.values(row.sizes).some(v => v > 0))
+      // 'un' = produto unidade simples, sem grade. Demais modos guardam a ESTRUTURA
+      // (cores/tamanhos) mesmo com quantidade 0 — é o template de variantes do produto.
+      const gradePayload = variantMode === 'un'
+        ? []
+        : editGrade
+            .map((row, i) => ({
+              color: allowColors ? (row.color || null) : null,
+              // Garante as colunas do modo atual (qtd 0 quando não preenchida)
+              sizes: Object.fromEntries(gradeSizes.map(s => [s, row.sizes[s] ?? 0])),
+              sort_order: i,
+            }))
+            .filter(row => Object.keys(row.sizes).length > 0)
       const gradeRes = await productsApi.updateGrade(p.id, gradePayload)
       const gradeConfigs = (gradeRes.data?.rows ?? gradeRes.data) || []
       onUpdated({
@@ -427,10 +451,21 @@ function ProductDetailModal({
                 onChange={e => setEditForm(f => ({ ...f, base_price: parseFloat(e.target.value) || 0 }))} />
             </div>
             <div>
+              <label className="block text-[12px] font-semibold text-outline mb-1">Tipo de variante</label>
+              <select className={inputCls} value={variantMode} onChange={e => applyMode(e.target.value as 'un' | 'un_cor' | 'grade' | 'grade_cor')}>
+                <option value="un">UN. (unidade)</option>
+                <option value="un_cor">UN. por cores/modelos</option>
+                <option value="grade">Grade (tamanhos)</option>
+                <option value="grade_cor">Grade por cores</option>
+              </select>
+            </div>
+            {!unSize && (
+            <div>
               <label className="block text-[12px] font-semibold text-outline mb-1">Faixa de tamanhos</label>
               <input className={inputCls} placeholder="ex: P-GG ou 36-48" value={editForm.size_range}
                 onChange={e => setEditForm(f => ({ ...f, size_range: e.target.value }))} />
             </div>
+            )}
           </div>
 
           <div>
@@ -439,14 +474,17 @@ function ProductDetailModal({
               onChange={e => setEditForm(f => ({ ...f, observation: e.target.value }))} />
           </div>
 
-          {/* Grade editor */}
+          {/* Grade editor — oculto no modo UN. (unidade simples) */}
+          {variantMode !== 'un' && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[12px] font-semibold text-outline uppercase tracking-wide">Grade</p>
-              <button type="button" onClick={addGradeRow}
-                className="flex items-center gap-1 text-[12px] text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5">
-                <Plus className="h-3 w-3" /> Adicionar linha
-              </button>
+              <p className="text-[12px] font-semibold text-outline uppercase tracking-wide">{allowColors ? (unSize ? 'Cores / modelos' : 'Grade por cor') : 'Grade'}</p>
+              {allowColors && (
+                <button type="button" onClick={addGradeRow}
+                  className="flex items-center gap-1 text-[12px] text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5">
+                  <Plus className="h-3 w-3" /> Adicionar cor
+                </button>
+              )}
             </div>
             {gradeSizes.length === 0 ? (
               <p className="text-[12px] text-outline/70 italic">Preencha a faixa de tamanhos para editar a grade.</p>
@@ -454,9 +492,10 @@ function ProductDetailModal({
               <div className="space-y-1">
                 {editGrade.map((row, rowIdx) => (
                   <div key={rowIdx} className="bg-surface-container-low rounded-xl p-2.5">
+                    {allowColors && (
                     <div className="flex items-center gap-2 mb-2">
                       <input
-                        placeholder="Cor (opcional)"
+                        placeholder="Cor / modelo"
                         className="border border-outline-variant rounded-lg px-2 py-1 text-[12px] text-on-surface focus:outline-none focus:ring-1 focus:ring-primary bg-white flex-1"
                         value={row.color}
                         onChange={e => setGradeColor(rowIdx, e.target.value)}
@@ -468,6 +507,7 @@ function ProductDetailModal({
                         </button>
                       )}
                     </div>
+                    )}
                     <div className="overflow-x-auto scrollbar-hide">
                       <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
                         <thead className="bg-white sticky top-0 z-10">
@@ -502,6 +542,7 @@ function ProductDetailModal({
               </div>
             )}
           </div>
+          )}
 
           <div className="flex gap-2 pt-2 border-t border-outline-variant">
             <button onClick={handleSave} disabled={saving || !editForm.reference}
