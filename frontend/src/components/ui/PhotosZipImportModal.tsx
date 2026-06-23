@@ -26,8 +26,6 @@ interface Props {
   onClose: () => void
   onDone?: () => void
 }
-
-const REF_REGEX = /([A-Z]{2,4}\d+)/i  // aceita TE, PKTE, ZZ, ZO, etc.
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp'])
 
 /**
@@ -125,20 +123,28 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
       setPhase('reading')
       const zip = await JSZip.loadAsync(file)
 
-      // 2. Coleta arquivos de imagem com referência válida
-      const images: Array<{ ref: string; zipFile: JSZip.JSZipObject }> = []
+      // 2. Coleta imagens; referência = trecho antes do 1º "-", espaço ou "(".
+      //    Ex.: "H90-CINZA (7).jpg" → H90 | "FC558 PRETO.jpg" → FC558 | "5315.jpg" → 5315
+      //    Mantém 1 foto por referência: prefere a sem número ou a de menor índice "(n)".
+      const best = new Map<string, { n: number; zipFile: JSZip.JSZipObject }>()
       zip.forEach((relativePath, zipFile) => {
         if (zipFile.dir) return
         const base = relativePath.split('/').pop() || ''
         const ext = base.split('.').pop()?.toLowerCase() || ''
         if (!IMAGE_EXTS.has(ext)) return
-        const m = base.match(REF_REGEX)
-        if (!m) return
-        images.push({ ref: m[1].toUpperCase(), zipFile })
+        const noExt = base.replace(/\.[^.]+$/, '')
+        const head = noExt.split(/[-–(\s]/)[0].trim().toUpperCase()
+        if (!head || !/\d/.test(head) || head.length > 14) return  // precisa ter dígito (é código)
+        const nm = noExt.match(/\((\d+)\)/)
+        const n = nm ? parseInt(nm[1], 10) : 0   // sem número = 0 (prioridade)
+        const cur = best.get(head)
+        if (!cur || n < cur.n) best.set(head, { n, zipFile })
       })
+      const images: Array<{ ref: string; zipFile: JSZip.JSZipObject }> =
+        [...best.entries()].map(([ref, { zipFile }]) => ({ ref, zipFile }))
 
       if (images.length === 0) {
-        setError('Nenhuma imagem com referência válida encontrada no ZIP. Certifique-se que os arquivos têm o código da referência no nome (ex: ZZ80071.jpg ou TE11140.jpg).')
+        setError('Nenhuma imagem com referência válida encontrada no ZIP. Os nomes precisam começar com o código (ex: H90-CINZA.jpg, FC558.jpg, 5315 (1).jpg).')
         setProcessing(false)
         setPhase('idle')
         return
