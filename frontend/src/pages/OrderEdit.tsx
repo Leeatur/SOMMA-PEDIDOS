@@ -932,9 +932,19 @@ export default function OrderEdit() {
             {/* Ajuste Manual de Comissão bloqueado quando há desconto à vista */}
             {isAdmin && manualCommission && (parseFloat(form.discount_pct.replace(',', '.')) || 0) > 0 && (
               <div className="sm:col-span-2 lg:col-span-3">
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
                   <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-2">
-                    🔒 Ajuste manual de comissão bloqueado — pedidos com Desconto À Vista não permitem alteração manual da comissão.
+                    🔒 Ajuste manual bloqueado — pedidos com Desconto À Vista não permitem alteração manual da comissão.
+                  </p>
+                  <p className="text-[11px] text-slate-600">
+                    Comissão deste pedido:&nbsp;
+                    <span className="font-semibold text-emerald-700">
+                      Rep {Number(order.rep_commission_pct || 0).toFixed(1)}% (R$ {Number(order.rep_commission_value || 0).toFixed(2).replace('.', ',')})
+                    </span>
+                    &nbsp;/&nbsp;
+                    <span className="font-semibold text-blue-700">
+                      Escritório {Number(order.office_commission_pct || 0).toFixed(1)}% (R$ {Number(order.office_commission_value || 0).toFixed(2).replace('.', ',')})
+                    </span>
                   </p>
                 </div>
               </div>
