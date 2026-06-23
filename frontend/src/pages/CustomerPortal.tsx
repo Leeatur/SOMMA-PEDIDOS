@@ -194,13 +194,9 @@ export function CustomerPortal() {
       const preWhats = d.existing_client?.whatsapp || ''
       setContactEmail(preEmail)
       setContactWhatsapp(preWhats)
-      // Só entra direto no catálogo se já temos e-mail E WhatsApp; senão pede contato
-      if (preEmail && preWhats) {
-        setClientData({ ...d, email: preEmail, whatsapp: preWhats })
-        setStep('catalog')
-      } else {
-        setStep('contact')
-      }
+      // Vai direto ao catálogo; o contato (e-mail + WhatsApp) é confirmado/corrigido só ao FINALIZAR o pedido
+      setClientData({ ...d, email: preEmail, whatsapp: preWhats })
+      setStep('catalog')
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
       setCnpjError(msg || 'CNPJ não encontrado na Receita Federal')
@@ -267,6 +263,11 @@ export function CustomerPortal() {
       alert(`Pedido mínimo de ${fmtR(minOrderValue)}. Seu pedido está em ${fmtR(cartSubtotal)}.`)
       return
     }
+    // Contato confirmado no fechamento (e-mail + WhatsApp)
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())
+    if (!emailOk) { setContactError('Confirme um e-mail válido para enviar o pedido.'); return }
+    if (contactWhatsapp.replace(/\D/g, '').length < 10) { setContactError('Confirme um WhatsApp válido com DDD.'); return }
+    setContactError('')
     // Pega a tabela de preço do primeiro item do carrinho
     const table = catalog.find(t => cart.some(i => i.product.price_table_id === t.id)) || catalog[0]
     if (!table) { alert('Erro: tabela de preço não encontrada.'); return }
@@ -295,8 +296,8 @@ export function CustomerPortal() {
         state: clientData.state,
         zip: clientData.zip,
         phone: clientData.phone,
-        whatsapp: clientData.whatsapp ?? contactWhatsapp,
-        email: clientData.email ?? contactEmail,
+        whatsapp: contactWhatsapp,
+        email: contactEmail.trim(),
         price_table_id: table.id,
         factory_id: factoryId,
         discount_pct: selectedPayment.discount,
@@ -660,6 +661,33 @@ export function CustomerPortal() {
       {/* Confirmar Pedido */}
       {step === 'cart' && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-3 pb-4 safe-bottom space-y-2">
+          {/* Contato — confirma/corrige e-mail + WhatsApp já cadastrados */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">E-mail <span className="text-red-500">*</span></label>
+              <input
+                type="email" inputMode="email" value={contactEmail}
+                onChange={e => { setContactEmail(e.target.value); setContactError('') }}
+                placeholder="contato@empresa.com.br"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">WhatsApp <span className="text-red-500">*</span></label>
+              <input
+                type="tel" inputMode="numeric" value={contactWhatsapp}
+                onChange={e => {
+                  const v = e.target.value.replace(/\D/g,'').slice(0,11)
+                    .replace(/^(\d{2})(\d{5})(\d{0,4}).*/, '($1) $2-$3')
+                    .replace(/^(\d{2})(\d{0,5})$/, '($1) $2')
+                  setContactWhatsapp(v); setContactError('')
+                }}
+                placeholder="(00) 00000-0000"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              />
+            </div>
+          </div>
+          {contactError && <p className="text-red-500 text-xs">{contactError}</p>}
           <button
             onClick={handleSubmit}
             disabled={submitting || !cart.length || cartSubtotal < minOrderValue}
