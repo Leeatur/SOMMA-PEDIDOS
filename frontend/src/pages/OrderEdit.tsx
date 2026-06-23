@@ -568,8 +568,8 @@ export default function OrderEdit() {
         rep_id: isAdmin && form.rep_id && form.rep_id !== order.rep_id ? form.rep_id : undefined,
       })
 
-      // 3. Comissão manual (se admin ajustou manualmente e não há desconto à vista)
-      if (isAdmin && manualCommission && cashDiscount === 0) {
+      // 3. Comissão manual (se admin ajustou manualmente)
+      if (isAdmin && manualCommission) {
         const repV    = parseFloat(manualCommission.rep.replace(',', '.'))    || 0
         const offV    = parseFloat(manualCommission.office.replace(',', '.')) || 0
         const repPct  = parseFloat(manualCommission.repPct.replace(',', '.'))
@@ -932,29 +932,8 @@ export default function OrderEdit() {
               </div>
             )}
 
-            {/* Ajuste Manual de Comissão bloqueado quando há desconto à vista */}
-            {isAdmin && manualCommission && (parseFloat(form.discount_pct.replace(',', '.')) || 0) > 0 && (
-              <div className="sm:col-span-2 lg:col-span-3">
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                  <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-2">
-                    🔒 Ajuste manual bloqueado — pedidos com Desconto À Vista não permitem alteração manual da comissão.
-                  </p>
-                  <p className="text-[11px] text-slate-600">
-                    Comissão deste pedido:&nbsp;
-                    <span className="font-semibold text-emerald-700">
-                      Rep {Number(order.rep_commission_pct || 0).toFixed(1)}% (R$ {Number(order.rep_commission_value || 0).toFixed(2).replace('.', ',')})
-                    </span>
-                    &nbsp;/&nbsp;
-                    <span className="font-semibold text-blue-700">
-                      Escritório {Number(order.office_commission_pct || 0).toFixed(1)}% (R$ {Number(order.office_commission_value || 0).toFixed(2).replace('.', ',')})
-                    </span>
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* Ajuste Manual de Comissão (admin only) */}
-            {isAdmin && manualCommission && (parseFloat(form.discount_pct.replace(',', '.')) || 0) === 0 && (
+            {isAdmin && manualCommission && (
               <div className="sm:col-span-2 lg:col-span-3">
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
                   <label className="block text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1 flex items-center gap-2 flex-wrap">
