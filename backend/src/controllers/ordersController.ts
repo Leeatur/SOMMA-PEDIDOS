@@ -129,7 +129,7 @@ export async function listOrders(req: AuthRequest, res: Response) {
       u.name as rep_name,
       f.name as factory_name,
       pt.name as price_table_name,
-      s.name as status_name, s.color as status_color
+      s.name as status_name, s.color as status_color, s.icon as status_icon
     FROM orders o
     JOIN clients c ON c.id = o.client_id
     JOIN users u ON u.id = o.rep_id
@@ -174,7 +174,7 @@ export async function getOrder(req: AuthRequest, res: Response) {
       u.name as rep_name, u.email as rep_email,
       f.name as factory_name, f.contact as factory_contact,
       pt.name as price_table_name,
-      s.name as status_name, s.color as status_color
+      s.name as status_name, s.color as status_color, s.icon as status_icon
      FROM orders o
      JOIN clients c ON c.id = o.client_id
      JOIN users u ON u.id = o.rep_id
@@ -957,13 +957,14 @@ export async function recalcOrderTotals(req: AuthRequest, res: Response) {
   } else {
     await query(
       `UPDATE orders SET total_pieces=$1, total_value=$2,
-         rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
-       WHERE id=$5`,
+         rep_commission_value=$3, office_commission_value=$4, guide_commission_value=$5, updated_at=NOW()
+       WHERE id=$6`,
       [
         Number(totals.pcs),
         newValue,
         Math.round(newValue * order.rep_commission_pct / 100 * 100) / 100,
         Math.round(newValue * order.office_commission_pct / 100 * 100) / 100,
+        Math.round(newValue * (Number(order.guide_commission_pct) || 0) / 100 * 100) / 100,
         id,
       ]
     )
@@ -1211,7 +1212,7 @@ export async function listOrderAlerts(req: AuthRequest, res: Response) {
        c.id AS client_id, c.name AS client_name, c.trade_name AS client_trade_name, c.city AS client_city,
        u.id AS rep_id, u.name AS rep_name,
        f.name AS factory_name,
-       s.name AS status_name, s.color AS status_color
+       s.name AS status_name, s.color AS status_color, s.icon AS status_icon
      FROM order_ages oa
      JOIN clients c ON c.id = oa.client_id
      JOIN users u ON u.id = oa.rep_id

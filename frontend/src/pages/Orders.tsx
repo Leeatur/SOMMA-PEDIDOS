@@ -44,6 +44,7 @@ interface Order {
   status_id: string | null
   status_name: string | null
   status_color: string | null
+  status_icon?: string | null
   created_at: string
   industry_order_number: string | null
   delivery_date: string | null
@@ -140,7 +141,9 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
     case 'table':     return <span className={`${cls} text-outline/70`}>{o.price_table_name}</span>
     case 'status':    return o.status_name && o.status_color ? (
       <div className="flex items-center gap-1.5 px-2 py-1 min-w-0">
-        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color }} />
+        {o.status_icon
+          ? <span className="text-[13px] leading-none flex-shrink-0">{o.status_icon}</span>
+          : <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color }} />}
         <span className="text-[12px] font-medium text-on-surface-variant truncate">{o.status_name}</span>
       </div>
     ) : <span className={`${cls} text-outline/50`}>—</span>
@@ -168,7 +171,7 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
           {o.status_name ? (
             <span className="text-[12px] font-bold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: accent + '22', color: accent }}>
-              {o.status_name}
+              {o.status_icon ? `${o.status_icon} ` : ''}{o.status_name}
             </span>
           ) : null}
         </div>

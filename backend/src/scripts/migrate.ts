@@ -184,6 +184,8 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_manual_override BOOLEAN D
 ALTER TABLE order_statuses ADD COLUMN IF NOT EXISTS icon VARCHAR(20);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS guide_commission_pct DECIMAL(5,2) DEFAULT 0;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS guide_commission_value DECIMAL(12,2) DEFAULT 0;
+-- Transportadora do pedido (usada no updateOrderInfo) — faltava no migrate
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS transportadora VARCHAR(200);
 
 -- Histórico de Status
 CREATE TABLE IF NOT EXISTS order_status_history (
