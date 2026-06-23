@@ -217,6 +217,40 @@ export function PriceTables() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['all-products'] }) },
   })
 
+  // Atualizar tabela existente a partir de uma planilha (mantém foto/estoque/grade)
+  const updateFileRef = useRef<HTMLInputElement>(null)
+  const pendingUpdateTable = useRef<PriceTable | null>(null)
+  const [updateResult, setUpdateResult] = useState<{
+    tableName: string; updated: number; inserted: number; reactivated: number; deactivated: number; sheetCount: number
+  } | null>(null)
+  const updateMut = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => priceTablesApi.updateImport(id, file),
+    onSuccess: (res, vars) => {
+      setUpdateResult({ tableName: pendingUpdateTable.current?.name || '', ...res.data })
+      qc.invalidateQueries({ queryKey: ['price-tables'] })
+      qc.invalidateQueries({ queryKey: ['all-products'] })
+      void vars
+    },
+    onError: () => { alert('Erro ao atualizar a tabela. Confira se a planilha está no formato correto.') },
+  })
+
+  function handleUpdatePick(t: PriceTable) {
+    pendingUpdateTable.current = t
+    if (updateFileRef.current) { updateFileRef.current.value = ''; updateFileRef.current.click() }
+  }
+  function onUpdateFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    const t = pendingUpdateTable.current
+    if (!file || !t) return
+    if (!window.confirm(
+      `Atualizar a tabela "${t.name}" com esta planilha?\n\n` +
+      `• Referências que continuam → atualiza preço/descrição (mantém foto, estoque e grade)\n` +
+      `• Referências novas → adiciona\n` +
+      `• Referências que saíram → ficam INATIVAS (reversível)\n\nNada é apagado.`
+    )) return
+    updateMut.mutate({ id: t.id, file })
+  }
+
   function resetImport() {
     setImportStep(1)
     setImportFile(null)
@@ -362,6 +396,15 @@ export function PriceTables() {
                       Descontos
                     </button>
                     <button
+                      onClick={() => handleUpdatePick(t)}
+                      disabled={updateMut.isPending}
+                      title="Atualizar preços/produtos por planilha — mantém foto, estoque e grade"
+                      className="flex items-center gap-1 text-[12px] text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-lg transition-colors font-semibold disabled:opacity-50"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      {updateMut.isPending ? 'Atualizando…' : 'Atualizar'}
+                    </button>
+                    <button
                       onClick={() => openCatalogImport(t)}
                       className="flex items-center gap-1 text-[12px] text-primary hover:text-primary bg-primary/10 hover:bg-primary/10 px-2 py-1.5 rounded-lg transition-colors"
                     >
@@ -394,6 +437,59 @@ export function PriceTables() {
           </div>
         )}
       </div>
+
+      {/* Input escondido p/ atualizar tabela por planilha */}
+      <input
+        ref={updateFileRef}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={onUpdateFileChosen}
+      />
+
+      {/* Resultado da atualização da tabela */}
+      <Modal
+        open={!!updateResult}
+        onClose={() => setUpdateResult(null)}
+        title="Tabela atualizada"
+        size="sm"
+        footer={
+          <div className="flex justify-end">
+            <Button onClick={() => setUpdateResult(null)}>Fechar</Button>
+          </div>
+        }
+      >
+        {updateResult && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-emerald-600">
+              <CheckCircle className="h-5 w-5" />
+              <p className="text-[13px] font-semibold">"{updateResult.tableName}" atualizada com sucesso!</p>
+            </div>
+            <p className="text-[12px] text-on-surface-variant">{updateResult.sheetCount} itens na planilha.</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-blue-50 rounded-lg p-3 text-center">
+                <p className="text-xl font-bold text-blue-600">{updateResult.updated}</p>
+                <p className="text-[11px] text-blue-700">Atualizadas</p>
+              </div>
+              <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                <p className="text-xl font-bold text-emerald-600">{updateResult.inserted}</p>
+                <p className="text-[11px] text-emerald-700">Novas</p>
+              </div>
+              <div className="bg-amber-50 rounded-lg p-3 text-center">
+                <p className="text-xl font-bold text-amber-600">{updateResult.deactivated}</p>
+                <p className="text-[11px] text-amber-700">Inativadas (saíram)</p>
+              </div>
+              <div className="bg-violet-50 rounded-lg p-3 text-center">
+                <p className="text-xl font-bold text-violet-600">{updateResult.reactivated}</p>
+                <p className="text-[11px] text-violet-700">Reativadas</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-on-surface-variant">
+              Fotos, estoque e grades das referências mantidas foram preservados. As inativadas podem ser reativadas reimportando uma planilha que as contenha.
+            </p>
+          </div>
+        )}
+      </Modal>
 
       {/* Import Excel Modal */}
       <Modal

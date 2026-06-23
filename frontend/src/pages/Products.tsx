@@ -1227,7 +1227,7 @@ export function Products() {
   const { widths, save: saveWidths } = useColumnResize('products', PRODUCT_COL_WIDTHS)
   const [typeFilter, setTypeFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<'active' | 'all' | 'inactive'>('active')
-  const [semFoto, setSemFoto] = useState(false)
+  const [fotoFilter, setFotoFilter] = useState<'' | 'com' | 'sem'>('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const [showZipImport, setShowZipImport] = useState(false)
@@ -1245,13 +1245,14 @@ export function Products() {
   }
 
   const { data: rawProducts, isLoading } = useQuery<Product[]>({
-    queryKey: ['all-products', debouncedSearch, typeFilter, activeFilter, semFoto],
+    queryKey: ['all-products', debouncedSearch, typeFilter, activeFilter, fotoFilter],
     queryFn: () =>
       productsApi.list({
         search: debouncedSearch || undefined,
         type: typeFilter || undefined,
         include_inactive: isAdmin && activeFilter !== 'active' ? true : undefined,
-        sem_foto: semFoto ? true : undefined,
+        sem_foto: fotoFilter === 'sem' ? true : undefined,
+        com_foto: fotoFilter === 'com' ? true : undefined,
       }).then(r => r.data),
   })
 
@@ -1477,13 +1478,25 @@ export function Products() {
               </div>
             )}
             <button
-              onClick={() => setSemFoto(v => !v)}
+              onClick={() => setFotoFilter(v => v === 'com' ? '' : 'com')}
               className={`flex items-center gap-1.5 text-[12px] font-semibold rounded-lg px-3 py-1 border transition-colors ${
-                semFoto
+                fotoFilter === 'com'
+                  ? 'bg-emerald-500 text-white border-emerald-500'
+                  : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
+              }`}
+              title="Mostrar só produtos com foto"
+            >
+              <ImageIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Com Foto</span>
+            </button>
+            <button
+              onClick={() => setFotoFilter(v => v === 'sem' ? '' : 'sem')}
+              className={`flex items-center gap-1.5 text-[12px] font-semibold rounded-lg px-3 py-1 border transition-colors ${
+                fotoFilter === 'sem'
                   ? 'bg-amber-500 text-white border-amber-500'
                   : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200'
               }`}
-              title="Filtrar produtos sem foto"
+              title="Mostrar só produtos sem foto"
             >
               <ImageIcon className="h-4 w-4" />
               <span className="hidden sm:inline">Sem Foto</span>

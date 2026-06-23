@@ -167,6 +167,97 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
   }
 }
 
+// Atualiza uma tabela JÁ EXISTENTE a partir de uma planilha (sem criar tabela nova):
+//  - referência que já existe  → atualiza preço/descrição e MANTÉM foto, estoque e grade
+//  - referência nova           → insere o produto (gera grade do Excel, como na importação)
+//  - referência que saiu        → INATIVA (some da venda, mas preserva histórico/foto; reversível)
+export async function updateTableFromExcel(req: AuthRequest, res: Response) {
+  if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
+  const { id } = req.params
+
+  const cut = (v: string | null | undefined, n: number) =>
+    (v == null ? v : (String(v).length > n ? String(v).slice(0, n) : v))
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    const { rows: [pt] } = await client.query('SELECT id FROM price_tables WHERE id=$1', [id])
+    if (!pt) { await client.query('ROLLBACK'); res.status(404).json({ error: 'Tabela não encontrada' }); return }
+
+    const result = importExcel(req.file!.buffer)
+    let updated = 0, inserted = 0, reactivated = 0
+    const sheetRefs: string[] = []
+
+    for (const prod of result.products) {
+      const ref = cut(prod.reference, 50) as string
+      sheetRefs.push(ref)
+
+      const { rows: [existing] } = await client.query(
+        'SELECT id, active FROM products WHERE price_table_id=$1 AND reference=$2',
+        [pt.id, ref]
+      )
+
+      if (existing) {
+        // Mantém estrutura de variantes (type/size_range/grade), foto (image_url) e estoque (stock).
+        // Atualiza apenas preço + descrição e reativa caso estivesse inativo.
+        await client.query(
+          `UPDATE products
+           SET base_price=$1, product_name=$2, model=$3, category=$4, observation=$5,
+               active=true, updated_at=NOW()
+           WHERE id=$6`,
+          [prod.base_price, cut(prod.product_name, 255), cut(prod.model, 255),
+           cut(prod.category, 100), prod.observation, existing.id]
+        )
+        if (!existing.active) reactivated++
+        updated++
+      } else {
+        // Produto novo: insere e gera grade a partir do Excel (igual à importação inicial)
+        const { rows: [p] } = await client.query(
+          `INSERT INTO products
+           (price_table_id, reference, type, product_name, model, size_range, base_price, category, observation)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+           RETURNING id`,
+          [pt.id, ref, prod.type, cut(prod.product_name, 255), cut(prod.model, 255),
+           cut(prod.size_range, 255), prod.base_price, cut(prod.category, 100), prod.observation]
+        )
+        if (prod.grade && prod.grade.length > 0) {
+          for (let i = 0; i < prod.grade.length; i++) {
+            const g = prod.grade[i]
+            const total = Object.values(g.sizes).reduce((a, b) => a + b, 0)
+            await client.query(
+              `INSERT INTO grade_configs (product_id, color, sizes, total_pieces, sort_order)
+               VALUES ($1,$2,$3,$4,$5)`,
+              [p.id, g.color, JSON.stringify(g.sizes), total, i]
+            )
+          }
+        }
+        inserted++
+      }
+    }
+
+    // Inativa as referências que sumiram da planilha (mantém os dados; reversível)
+    let deactivated = 0
+    if (sheetRefs.length > 0) {
+      const { rowCount } = await client.query(
+        `UPDATE products SET active=false, updated_at=NOW()
+         WHERE price_table_id=$1 AND active=true AND reference <> ALL($2::text[])`,
+        [pt.id, sheetRefs]
+      )
+      deactivated = rowCount || 0
+    }
+
+    await client.query('COMMIT')
+    res.json({ updated, inserted, reactivated, deactivated, sheetCount: result.products.length })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao atualizar tabela' })
+  } finally {
+    client.release()
+  }
+}
+
 // Importa catálogo PDF e associa fotos às referências
 // overwrite=true → substitui fotos já existentes; overwrite=false (padrão) → só preenche vazias
 export async function importCatalog(req: AuthRequest, res: Response) {
@@ -294,7 +385,7 @@ export async function uploadProductImage(req: AuthRequest, res: Response) {
 }
 
 export async function listProducts(req: AuthRequest, res: Response) {
-  const { price_table_id, search, type, include_inactive, sem_foto } = req.query
+  const { price_table_id, search, type, include_inactive, sem_foto, com_foto } = req.query
   const isAdmin = req.user?.role === 'admin'
   let sql = `
     SELECT p.*,
@@ -316,6 +407,7 @@ export async function listProducts(req: AuthRequest, res: Response) {
   if (price_table_id) { sql += ` AND p.price_table_id = $${idx++}`; params.push(price_table_id) }
   if (type) { sql += ` AND p.type = $${idx++}`; params.push(type) }
   if (sem_foto === 'true') { sql += ` AND (p.image_url IS NULL OR p.image_url = '')` }
+  if (com_foto === 'true') { sql += ` AND p.image_url IS NOT NULL AND p.image_url <> ''` }
   if (search) {
     sql += ` AND (
       p.reference ILIKE $${idx} OR p.product_name ILIKE $${idx} OR

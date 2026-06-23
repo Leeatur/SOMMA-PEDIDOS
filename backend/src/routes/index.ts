@@ -65,6 +65,7 @@ router.post('/price-tables/import', authenticate, requireAdmin, upload.single('f
 router.post('/price-tables/import-catalog', authenticate, requireAdmin, upload.single('file'), priceTables.importCatalog)
 router.post('/price-tables/import-photos-zip', authenticate, requireAdmin, uploadZip.single('file'), priceTables.importPhotosZip)
 router.post('/price-tables/import-stock', authenticate, requireAdmin, upload.single('file'), priceTables.importStock)
+router.post('/price-tables/:id/update-import', authenticate, requireAdmin, upload.single('file'), priceTables.updateTableFromExcel)
 router.post('/price-tables/:id/photo-by-ref', authenticate, requireAdmin, upload.single('file'), priceTables.uploadPhotoByRef)
 router.delete('/price-tables/:id/images', authenticate, requireAdmin, priceTables.clearProductImages)
 router.put('/price-tables/:id', authenticate, requireAdmin, priceTables.updatePriceTableRules)

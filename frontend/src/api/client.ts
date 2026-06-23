@@ -152,6 +152,11 @@ export const priceTablesApi = {
     fd.append('file', file)
     return apiClient.post('/price-tables/import-stock', fd, { timeout: 300000 })
   },
+  updateImport: (id: string, file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return apiClient.post(`/price-tables/${id}/update-import`, fd, { timeout: 300000 })
+  },
   uploadPhotoByRef: (
     priceTableId: string,
     reference: string,
@@ -172,7 +177,7 @@ export const priceTablesApi = {
 }
 
 export const productsApi = {
-  list: (params: { price_table_id?: string; search?: string; type?: string; include_inactive?: boolean; sem_foto?: boolean }) =>
+  list: (params: { price_table_id?: string; search?: string; type?: string; include_inactive?: boolean; sem_foto?: boolean; com_foto?: boolean }) =>
     apiClient.get('/products', { params }),
   update: (id: string, data: {
     reference: string
