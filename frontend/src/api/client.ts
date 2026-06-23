@@ -353,9 +353,9 @@ export const companyApi = {
 
 export const statusesApi = {
   list: () => apiClient.get('/statuses'),
-  create: (data: { name: string; color: string; sort_order?: number; is_initial?: boolean; is_final?: boolean }) =>
+  create: (data: { name: string; color: string; icon?: string; sort_order?: number; is_initial?: boolean; is_final?: boolean }) =>
     apiClient.post('/statuses', data),
-  update: (id: string, data: { name?: string; color?: string; sort_order?: number; is_initial?: boolean; is_final?: boolean; active?: boolean }) =>
+  update: (id: string, data: { name?: string; color?: string; icon?: string; sort_order?: number; is_initial?: boolean; is_final?: boolean; active?: boolean }) =>
     apiClient.put(`/statuses/${id}`, data),
   delete: (id: string) => apiClient.delete(`/statuses/${id}`),
 }

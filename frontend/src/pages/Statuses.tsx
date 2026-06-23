@@ -14,6 +14,7 @@ interface Status {
   id: string
   name: string
   color: string
+  icon?: string | null
   sort_order: number
   is_initial: boolean
   is_final: boolean
@@ -23,6 +24,7 @@ interface Status {
 interface FormState {
   name: string
   color: string
+  icon: string
   is_initial: boolean
   is_final: boolean
 }
@@ -32,9 +34,12 @@ const PRESET_COLORS = [
   '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#06B6D4',
 ]
 
+const PRESET_ICONS = ['🕒','🔎','🔓','📦','🧾','🚚','✅','⏸️','❌','⭐','💰','📍']
+
 const emptyForm: FormState = {
   name: '',
   color: '#6B7280',
+  icon: '',
   is_initial: false,
   is_final: false,
 }
@@ -56,6 +61,7 @@ export function Statuses() {
     mutationFn: () => statusesApi.create({
       name: form.name,
       color: form.color,
+      icon: form.icon || undefined,
       is_initial: form.is_initial,
       is_final: form.is_final,
       sort_order: (statuses?.length || 0),
@@ -67,6 +73,7 @@ export function Statuses() {
     mutationFn: () => statusesApi.update(editing!.id, {
       name: form.name,
       color: form.color,
+      icon: form.icon || undefined,
       is_initial: form.is_initial,
       is_final: form.is_final,
     }),
@@ -99,7 +106,7 @@ export function Statuses() {
 
   function openEdit(s: Status) {
     setEditing(s)
-    setForm({ name: s.name, color: s.color, is_initial: s.is_initial, is_final: s.is_final })
+    setForm({ name: s.name, color: s.color, icon: s.icon || '', is_initial: s.is_initial, is_final: s.is_final })
     setErrors({})
     setOpen(true)
   }
@@ -161,7 +168,7 @@ export function Statuses() {
                   <div className="text-outline/50 cursor-grab flex-shrink-0">
                     <GripVertical className="h-5 w-5" />
                   </div>
-                  <StatusBadge name={s.name} color={s.color} />
+                  <StatusBadge name={s.name} color={s.color} icon={s.icon} />
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1.5 mt-0.5">
                       {s.is_initial && (
@@ -255,10 +262,46 @@ export function Statuses() {
                 title="Cor personalizada"
               />
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[12px] text-outline">Preview:</span>
-              <StatusBadge name={form.name || 'Status'} color={form.color} />
+            {/* Código hex manual */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[12px] text-outline">Código:</span>
+              <input
+                type="text"
+                value={form.color}
+                onChange={(e) => {
+                  let v = e.target.value.toUpperCase().replace(/[^#0-9A-F]/g, '')
+                  if (v && !v.startsWith('#')) v = '#' + v
+                  setForm({ ...form, color: v.slice(0, 7) })
+                }}
+                placeholder="#F59E0B"
+                maxLength={7}
+                className="w-28 border border-outline-variant rounded-lg px-2 py-1 text-[12px] font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
             </div>
+          </div>
+
+          {/* Ícone (emoji) */}
+          <div>
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-2">Ícone (opcional)</label>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setForm({ ...form, icon: '' })}
+                className={`w-8 h-8 rounded-lg border text-[11px] flex items-center justify-center ${!form.icon ? 'border-primary bg-primary/10 text-primary' : 'border-outline-variant text-outline'}`}
+                title="Sem ícone (bolinha)"
+              >●</button>
+              {PRESET_ICONS.map((em) => (
+                <button
+                  key={em}
+                  onClick={() => setForm({ ...form, icon: em })}
+                  className={`w-8 h-8 rounded-lg border text-[16px] flex items-center justify-center transition-all ${form.icon === em ? 'border-primary bg-primary/10' : 'border-outline-variant hover:bg-surface-container'}`}
+                >{em}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-1">
+            <span className="text-[12px] text-outline">Preview:</span>
+            <StatusBadge name={form.name || 'Status'} color={form.color} icon={form.icon} />
           </div>
 
           {/* Flags */}

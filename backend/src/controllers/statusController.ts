@@ -10,7 +10,7 @@ export async function listStatuses(req: AuthRequest, res: Response) {
 }
 
 export async function createStatus(req: AuthRequest, res: Response) {
-  const { name, color, sort_order, is_initial, is_final } = req.body
+  const { name, color, icon, sort_order, is_initial, is_final } = req.body
   if (!name) { res.status(400).json({ error: 'Nome é obrigatório' }); return }
 
   // Garante que só existe um status inicial
@@ -19,15 +19,15 @@ export async function createStatus(req: AuthRequest, res: Response) {
   }
 
   const { rows } = await query(
-    `INSERT INTO order_statuses (name, color, sort_order, is_initial, is_final)
-     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [name, color||'#6B7280', sort_order||0, is_initial||false, is_final||false]
+    `INSERT INTO order_statuses (name, color, icon, sort_order, is_initial, is_final)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [name, color||'#6B7280', icon||null, sort_order||0, is_initial||false, is_final||false]
   )
   res.status(201).json(rows[0])
 }
 
 export async function updateStatus(req: AuthRequest, res: Response) {
-  const { name, color, sort_order, is_initial, is_final, active } = req.body
+  const { name, color, icon, sort_order, is_initial, is_final, active } = req.body
 
   if (is_initial) {
     await query('UPDATE order_statuses SET is_initial=false WHERE is_initial=true AND id != $1', [req.params.id])
@@ -35,9 +35,9 @@ export async function updateStatus(req: AuthRequest, res: Response) {
 
   const { rows } = await query(
     `UPDATE order_statuses
-     SET name=$1, color=$2, sort_order=$3, is_initial=$4, is_final=$5, active=$6, updated_at=NOW()
-     WHERE id=$7 RETURNING *`,
-    [name, color||'#6B7280', sort_order||0, is_initial||false, is_final||false, active??true, req.params.id]
+     SET name=$1, color=$2, icon=$3, sort_order=$4, is_initial=$5, is_final=$6, active=$7, updated_at=NOW()
+     WHERE id=$8 RETURNING *`,
+    [name, color||'#6B7280', icon||null, sort_order||0, is_initial||false, is_final||false, active??true, req.params.id]
   )
   if (!rows[0]) { res.status(404).json({ error: 'Status não encontrado' }); return }
   res.json(rows[0])

@@ -33,10 +33,11 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
 interface StatusBadgeProps {
   name: string
   color: string
+  icon?: string | null
   className?: string
 }
 
-export function StatusBadge({ name, color, className }: StatusBadgeProps) {
+export function StatusBadge({ name, color, icon, className }: StatusBadgeProps) {
   // Convert hex to rgb for background with opacity
   const r = parseInt(color.slice(1, 3), 16)
   const g = parseInt(color.slice(3, 5), 16)
@@ -54,10 +55,9 @@ export function StatusBadge({ name, color, className }: StatusBadgeProps) {
         border: `1px solid rgba(${r}, ${g}, ${b}, 0.3)`,
       }}
     >
-      <span
-        className="inline-block w-1.5 h-1.5 rounded-full"
-        style={{ backgroundColor: color }}
-      />
+      {icon
+        ? <span className="text-[13px] leading-none">{icon}</span>
+        : <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />}
       {name}
     </span>
   )

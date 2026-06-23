@@ -180,6 +180,8 @@ CREATE TABLE IF NOT EXISTS order_items (
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS original_unit_price DECIMAL(10,2);
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS custom_grade JSONB;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_manual_override BOOLEAN DEFAULT false;
+-- Ícone (emoji) opcional por status de pedido
+ALTER TABLE order_statuses ADD COLUMN IF NOT EXISTS icon VARCHAR(20);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS guide_commission_pct DECIMAL(5,2) DEFAULT 0;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS guide_commission_value DECIMAL(12,2) DEFAULT 0;
 
