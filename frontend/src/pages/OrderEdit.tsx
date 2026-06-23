@@ -826,7 +826,23 @@ export default function OrderEdit() {
               <div>
                 <label className={labelCls}>Vendedor</label>
                 <select className={inputCls} value={form.rep_id}
-                  onChange={e => setForm(f => ({ ...f, rep_id: e.target.value }))}>
+                  onChange={e => {
+                    const selectedRep = usersList.find(u => u.id === e.target.value)
+                    setForm(f => ({ ...f, rep_id: e.target.value }))
+                    if (selectedRep?.role === 'admin' && manualCommission) {
+                      const activeRule = discountRules.find(r => Math.abs(Number(r.discount_pct) - policyDiscountPct) < 0.11)
+                      const totalPct = activeRule ? Number(activeRule.total_commission_pct) : (
+                        parseFloat(manualCommission.repPct.replace(',', '.')) + parseFloat(manualCommission.officePct.replace(',', '.'))
+                      )
+                      const totalVal = Number(order?.total_value || 0)
+                      setManualCommission(c => c ? {
+                        ...c,
+                        repPct: '0,00', rep: '0,00',
+                        officePct: totalPct.toFixed(2).replace('.', ','),
+                        office: (totalVal * totalPct / 100).toFixed(2).replace('.', ','),
+                      } : c)
+                    }
+                  }}>
                   {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
