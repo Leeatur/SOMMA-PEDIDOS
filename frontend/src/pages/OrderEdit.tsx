@@ -1160,6 +1160,8 @@ export default function OrderEdit() {
                     type={it.type}
                     unitPrice={it.unit_price}
                     originalUnitPrice={it.original_unit_price}
+                    orderPolicyDiscPct={policyDiscountPct}
+                    orderCashDiscPct={parseFloat(form.discount_pct.replace(',', '.')) || 0}
                     gradeConfigs={it.grade_configs}
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
@@ -1185,6 +1187,8 @@ export default function OrderEdit() {
                     type={it.type}
                     unitPrice={it.unit_price}
                     originalUnitPrice={null}
+                    orderPolicyDiscPct={policyDiscountPct}
+                    orderCashDiscPct={parseFloat(form.discount_pct.replace(',', '.')) || 0}
                     gradeConfigs={it.grade_configs}
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
@@ -1524,6 +1528,8 @@ interface ItemRowProps {
   type: 'regular' | 'pack'
   unitPrice: number
   originalUnitPrice: number | null   // preço original da tabela
+  orderPolicyDiscPct: number         // desconto comercial/prazo do pedido (%)
+  orderCashDiscPct: number           // desconto à vista do pedido (%)
   gradeConfigs: GradeConfig[] | null
   draftSizes: Record<string, number>
   draftBoxes: number
@@ -1540,22 +1546,26 @@ interface ItemRowProps {
 
 function ItemRow({
   index, reference, productName, imageUrl, type, unitPrice, originalUnitPrice,
+  orderPolicyDiscPct, orderCashDiscPct,
   gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
   onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
   productObservation,
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
 
+  // Preço efetivo = tabela após desconto comercial e à vista (sequencial)
+  const effectiveUnitPrice = unitPrice * (1 - orderPolicyDiscPct / 100) * (1 - orderCashDiscPct / 100)
+
   // Estado local para o campo de preço
-  const [priceText, setPriceText] = useState(Number(unitPrice).toFixed(2).replace('.', ','))
+  const [priceText, setPriceText] = useState(effectiveUnitPrice.toFixed(2).replace('.', ','))
   const isEditingPrice = useRef(false)  // true enquanto o usuário está digitando
 
-  // Sincroniza com unitPrice SOMENTE quando não está editando (vem de fora)
+  // Sincroniza com effectiveUnitPrice SOMENTE quando não está editando (vem de fora)
   useEffect(() => {
     if (!isEditingPrice.current) {
-      setPriceText(Number(unitPrice).toFixed(2).replace('.', ','))
+      setPriceText(effectiveUnitPrice.toFixed(2).replace('.', ','))
     }
-  }, [unitPrice])
+  }, [effectiveUnitPrice])
 
   // Tamanhos únicos de toda a grade pack
   const gradeSizes = sortSizes(
@@ -1566,7 +1576,7 @@ function ItemRow({
     ? Object.values(draftSizes).reduce((s, v) => s + (v || 0), 0)
     : (draftGrade || []).reduce((s, gc) => s + gc.total_pieces, 0)
 
-  const subtotal = unitPrice * pieces
+  const subtotal = effectiveUnitPrice * pieces
 
   const inputNum = 'w-10 text-center border border-outline-variant rounded px-0.5 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
 
@@ -1632,7 +1642,7 @@ function ItemRow({
                   setPriceText(formatted)
                   onPriceChange?.(v)  // garante formato final correto no pai
                 } else {
-                  setPriceText(Number(unitPrice).toFixed(2).replace('.', ','))
+                  setPriceText(effectiveUnitPrice.toFixed(2).replace('.', ','))
                 }
               }}
               onFocus={e => {
