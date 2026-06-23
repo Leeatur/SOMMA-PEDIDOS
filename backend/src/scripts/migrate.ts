@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS products (
 );
 -- Coluna adicionada depois (só existia em produção via ALTER manual)
 ALTER TABLE products ADD COLUMN IF NOT EXISTS blocked_sizes TEXT[] DEFAULT '{}';
+-- size_range pode ser uma lista longa de tamanhos (ex.: cintos 60..125) — amplia p/ 255
+ALTER TABLE products ALTER COLUMN size_range TYPE VARCHAR(255);
 
 -- Composição da Grade Fechada por Produto
 -- Regular (TE...): uma linha sem cor, sizes = {"34":1,"36":1,...}

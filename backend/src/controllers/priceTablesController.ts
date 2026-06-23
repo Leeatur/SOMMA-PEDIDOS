@@ -129,7 +129,7 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
          SET base_price=EXCLUDED.base_price, updated_at=NOW()
          RETURNING id`,
         [pt.id, cut(prod.reference, 50), prod.type, cut(prod.product_name, 255), cut(prod.model, 255),
-         cut(prod.size_range, 50), prod.base_price, cut(prod.category, 100), prod.observation]
+         cut(prod.size_range, 255), prod.base_price, cut(prod.category, 100), prod.observation]
       )
 
       if (prod.grade && prod.grade.length > 0) {
