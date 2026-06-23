@@ -164,6 +164,7 @@ interface Product {
   active: boolean
   blocked_sizes: string[]
   observation: string | null
+  stock?: Record<string, Record<string, number>> | null
 }
 
 interface CustomGradeEntry {
@@ -2007,7 +2008,7 @@ function QuickAddModal({
           {multiVariant && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] text-outline font-semibold uppercase tracking-wide">Quantidades por cor × tamanho</p>
+                <p className="text-[11px] text-outline font-semibold uppercase tracking-wide">Quantidades por cor × tamanho{product.stock && Object.keys(product.stock).length > 0 && <span className="ml-1 normal-case font-normal text-emerald-600">(nº verde = disponível em estoque)</span>}</p>
                 <div>
                   <span className="text-[11px] text-outline font-medium mr-1">Total:</span>
                   <span className="text-[13px] font-bold text-primary">{mvTotal} pç</span>
@@ -2033,27 +2034,39 @@ function QuickAddModal({
                           {variantSizes.map((s) => {
                             const hasSize = colorQtys[color]?.[s] !== undefined
                             return (
-                              <td key={s} className="border-r border-outline-variant/20 last:border-r-0 p-0.5 text-center">
-                                {hasSize ? (
-                                  <input
-                                    type="number" min="0" inputMode="numeric"
-                                    value={colorQtys[color]?.[s] ? colorQtys[color][s] : ''}
-                                    placeholder="0"
-                                    onChange={e => setColorQty(color, s, parseInt(e.target.value) || 0)}
-                                    onFocus={e => e.target.select()}
-                                    onKeyDown={e => {
-                                      if (e.key === 'Enter') {
-                                        e.preventDefault()
-                                        const table = e.currentTarget.closest('table')
-                                        const inputs = table ? Array.from(table.querySelectorAll<HTMLInputElement>('input[type="number"]')) : []
-                                        const idx = inputs.indexOf(e.currentTarget)
-                                        const next = inputs[idx + 1]
-                                        if (next) next.focus()
-                                      }
-                                    }}
-                                    className="w-10 h-7 text-center border border-outline-variant rounded text-[12px] font-bold focus:outline-none focus:ring-1 focus:ring-primary bg-white"
-                                  />
-                                ) : <span className="text-outline/40">—</span>}
+                              <td key={s} className="border-r border-outline-variant/20 last:border-r-0 p-0.5 text-center align-top">
+                                {hasSize ? (() => {
+                                  const avail = product.stock?.[color]?.[s]
+                                  const hasStockInfo = product.stock && Object.keys(product.stock).length > 0
+                                  const over = avail !== undefined && (colorQtys[color]?.[s] || 0) > avail
+                                  return (
+                                    <>
+                                      <input
+                                        type="number" min="0" inputMode="numeric"
+                                        value={colorQtys[color]?.[s] ? colorQtys[color][s] : ''}
+                                        placeholder="0"
+                                        onChange={e => setColorQty(color, s, parseInt(e.target.value) || 0)}
+                                        onFocus={e => e.target.select()}
+                                        onKeyDown={e => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault()
+                                            const table = e.currentTarget.closest('table')
+                                            const inputs = table ? Array.from(table.querySelectorAll<HTMLInputElement>('input[type="number"]')) : []
+                                            const idx = inputs.indexOf(e.currentTarget)
+                                            const next = inputs[idx + 1]
+                                            if (next) next.focus()
+                                          }
+                                        }}
+                                        className={`w-10 h-7 text-center border rounded text-[12px] font-bold focus:outline-none focus:ring-1 focus:ring-primary bg-white ${over ? 'border-red-400 text-red-600' : 'border-outline-variant'}`}
+                                      />
+                                      {hasStockInfo && (
+                                        <div className={`text-[10px] leading-none mt-0.5 ${over ? 'text-red-500 font-bold' : (avail || 0) > 0 ? 'text-emerald-600' : 'text-outline/40'}`}>
+                                          {avail !== undefined ? avail : 0}
+                                        </div>
+                                      )}
+                                    </>
+                                  )
+                                })() : <span className="text-outline/40">—</span>}
                               </td>
                             )
                           })}
