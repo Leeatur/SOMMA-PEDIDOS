@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_MULTI_GRADE?: string
   readonly VITE_MIN_ORDER_VALUE?: string
   readonly VITE_PAYMENT_DRIVEN_DISCOUNT?: string
+  readonly VITE_MAPS_URL?: string
 }
 
 interface ImportMeta {

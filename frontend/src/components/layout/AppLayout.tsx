@@ -8,7 +8,8 @@ import {
 } from 'lucide-react'
 
 // SOMMA Maps — produto integrado (abre em nova aba)
-const MAPS_URL = 'https://sommamaps.com.br'
+// Configurável por instância via VITE_MAPS_URL (combo do cliente); default = login geral
+const MAPS_URL = import.meta.env.VITE_MAPS_URL || 'https://sommamaps.com.br'
 import { useAuthStore } from '../../stores/authStore'
 import { authApi } from '../../api/client'
 import { db } from '../../db/db'
