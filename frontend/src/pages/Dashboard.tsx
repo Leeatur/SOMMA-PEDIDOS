@@ -9,6 +9,7 @@ import { formatCurrency, formatOrderNumber } from '../utils/format'
 
 interface Order {
   id: string; order_number: number; client_name: string; factory_name: string
+  client_city?: string
   total_value: number; total_pieces: number; status_name: string
   status_color: string; status_id: string; created_at: string; rep_name: string
   rep_commission_value: number
@@ -993,6 +994,7 @@ export function Dashboard() {
                       <span>{o.rep_name}</span>
                       <span>·</span>
                       <span>{o.factory_name}</span>
+                      {o.client_city && <><span>·</span><span>{o.client_city}</span></>}
                       <span>·</span>
                       <span>{o.total_pieces} pç</span>
                     </div>

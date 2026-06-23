@@ -174,9 +174,14 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[12px] font-bold text-primary font-mono">{formatOrderNumber(o.order_number)}</span>
           {o.status_name ? (
-            <span className="text-[12px] font-bold px-2 py-0.5 rounded-full"
+            <span className="text-[12px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
               style={{ backgroundColor: accent + '22', color: accent }}>
-              {o.status_icon ? `${o.status_icon} ` : ''}{o.status_name}
+              {o.status_icon && o.status_icon.split(' ').filter(Boolean).map((part, i) =>
+                part.startsWith('_')
+                  ? <img key={i} src={svgIconSrc(part)} alt="" className="w-3.5 h-3.5 flex-shrink-0" />
+                  : <span key={i} className="text-[13px] leading-none">{part}</span>
+              )}
+              {o.status_name}
             </span>
           ) : null}
         </div>
