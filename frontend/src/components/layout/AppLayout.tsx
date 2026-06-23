@@ -123,7 +123,7 @@ export function AppLayout() {
     }`
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
 
       {/* ── Offline banner ── */}
       {!online && (

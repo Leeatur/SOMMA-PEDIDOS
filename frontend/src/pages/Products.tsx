@@ -1575,7 +1575,7 @@ export function Products() {
                         {col.label}
                         {sortable && <span className={`text-[12px] ${active ? 'text-primary' : 'text-outline/30'}`}>{active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>}
                       </span>
-                      {/* Alça de redimensionar */}
+                      {/* Alça de redimensionar (linha divisória sempre visível) */}
                       <div
                         onClick={e => e.stopPropagation()}
                         onMouseDown={e => {
@@ -1588,9 +1588,11 @@ export function Products() {
                           window.addEventListener('mouseup', onUp)
                         }}
                         title="Arraste para redimensionar"
-                        style={{ position: 'absolute', top: 0, right: 0, width: 6, height: '100%', cursor: 'col-resize', zIndex: 20 }}
-                        className="hover:bg-primary/40 active:bg-primary/60"
-                      />
+                        style={{ position: 'absolute', top: 0, right: 0, width: 9, height: '100%', cursor: 'col-resize', zIndex: 20 }}
+                        className="group flex justify-end"
+                      >
+                        <div className="w-px h-full bg-outline-variant group-hover:w-[3px] group-hover:bg-primary transition-all" />
+                      </div>
                     </th>
                   )
                 })}
