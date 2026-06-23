@@ -381,12 +381,12 @@ export default function OrderEdit() {
       rep_id: order.rep_id || '',
       status_id: order.status_id || '',
       industry_order_number: order.industry_order_number || '',
-      // Desconto Comercial = desconto salvo no pedido (assume que era à vista, não de prazo)
-      // Política de Prazo começa em 0 — admin seleciona no grid se quiser aplicar
-      discount_pct: String(order.discount_pct ?? '0'),
+      // Desc. À Vista = apenas o desconto financeiro (cash), separado do comercial (prazo)
+      discount_pct: String(Number(order.cash_discount_pct ?? 0).toFixed(2)),
       notes: order.notes || '',
     }
-    // Política de Prazo começa em 0 (separado do Desconto Comercial)
+    // Restaura desconto comercial (prazo) = total − à vista
+    const restoredPolicyDisc = Math.max(0, Number(order.discount_pct || 0) - Number(order.cash_discount_pct || 0))
     // Comissão manual inicializa com os valores atuais do pedido
     const baseComm = {
       rep:       String(Number(order.rep_commission_value    || 0).toFixed(2)).replace('.', ','),
@@ -404,10 +404,10 @@ export default function OrderEdit() {
       removed: false,
     }))
     setForm(baseForm)
-    setPolicyDiscountPct(0)
+    setPolicyDiscountPct(restoredPolicyDisc)
     setManualCommission(baseComm)
     setItems(baseItems)
-    baselineRef.current = JSON.stringify({ form: baseForm, policyDiscountPct: 0, manualCommission: baseComm, items: baseItems, newItems: [] })
+    baselineRef.current = JSON.stringify({ form: baseForm, policyDiscountPct: restoredPolicyDisc, manualCommission: baseComm, items: baseItems, newItems: [] })
     hydratedRef.current = true
   }, [order, id, user?.id])
 
