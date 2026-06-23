@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
 import { Modal } from '../components/ui/Modal'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
+import { useColumnResize } from '../components/ui/useColumnResize.tsx'
 import { PhotosZipImportModal } from '../components/ui/PhotosZipImportModal'
 
 const SIZE_ORDER = [
@@ -848,6 +849,11 @@ const PRODUCT_COL_DEFS: ColumnDef[] = [
   { id: 'observation', label: 'Observação' },
 ]
 
+const PRODUCT_COL_WIDTHS: Record<string, number> = {
+  image: 56, reference: 110, name: 280, size_range: 200, price: 110,
+  pieces: 70, category: 130, factory: 120, table: 200, observation: 160,
+}
+
 function ProductRow({
   p,
   visibleCols,
@@ -897,15 +903,15 @@ function ProductRow({
         )
       case 'name':
         return (
-          <td key={id} className="px-2 py-1 max-w-[180px]">
-            <p className="text-[12px] font-medium text-on-surface truncate">{p.product_name || '—'}</p>
-            {p.model && <p className="text-[12px] text-outline/70 truncate">{p.model}</p>}
+          <td key={id} className="px-2 py-1 overflow-hidden">
+            <p className="text-[12px] font-medium text-on-surface truncate" title={p.product_name || ''}>{p.product_name || '—'}</p>
+            {p.model && <p className="text-[12px] text-outline/70 truncate" title={p.model}>{p.model}</p>}
           </td>
         )
       case 'size_range':
         return (
-          <td key={id} className="px-2 py-1 whitespace-nowrap">
-            <span className="text-[12px] text-on-surface-variant">{p.size_range || '—'}</span>
+          <td key={id} className="px-2 py-1 overflow-hidden">
+            <p className="text-[12px] text-on-surface-variant truncate" title={p.size_range || ''}>{p.size_range || '—'}</p>
           </td>
         )
       case 'price':
@@ -941,8 +947,8 @@ function ProductRow({
         )
       case 'observation':
         return (
-          <td key={id} className="px-2 pr-3 py-1 max-w-[140px]">
-            <span className="text-[12px] text-orange-500 truncate block">{p.observation || '—'}</span>
+          <td key={id} className="px-2 pr-3 py-1 overflow-hidden">
+            <span className="text-[12px] text-orange-500 truncate block" title={p.observation || ''}>{p.observation || '—'}</span>
           </td>
         )
       default:
@@ -1218,6 +1224,7 @@ export function Products() {
   const isAdmin = user?.role === 'admin'
 
   const [search, setSearch] = useState('')
+  const { widths, save: saveWidths } = useColumnResize('products', PRODUCT_COL_WIDTHS)
   const [typeFilter, setTypeFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<'active' | 'all' | 'inactive'>('active')
   const [semFoto, setSemFoto] = useState(false)
@@ -1546,22 +1553,40 @@ export function Products() {
         </div>
       ) : (
         <div className="flex-1 overflow-auto">
-          <table className="w-full text-left" style={{ minWidth: 800 }}>
+          <table className="w-full text-left" style={{ minWidth: 800, tableLayout: 'fixed' }}>
             <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
               <tr>
                 {visibleCols.map(col => {
                   const sortable = ['reference','name','price','factory','table'].includes(col.id)
                   const active = sortCol === col.id
+                  const colWidth = widths[col.id] ?? PRODUCT_COL_WIDTHS[col.id] ?? 120
                   return (
                     <th
                       key={col.id}
                       onClick={sortable ? () => handleSort(col.id) : undefined}
+                      style={{ width: colWidth, minWidth: 44, position: 'relative' }}
                       className={`px-2 py-1.5 text-[12px] font-semibold text-outline first:pl-3 last:pr-3 ${COL_ALIGN[col.id] ?? ''} ${sortable ? 'cursor-pointer select-none hover:text-on-surface' : ''}`}
                     >
-                      <span className="inline-flex items-center gap-0.5">
+                      <span className="inline-flex items-center gap-0.5 truncate max-w-full align-middle">
                         {col.label}
                         {sortable && <span className={`text-[12px] ${active ? 'text-primary' : 'text-outline/30'}`}>{active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>}
                       </span>
+                      {/* Alça de redimensionar */}
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        onMouseDown={e => {
+                          e.preventDefault(); e.stopPropagation()
+                          const startX = e.clientX
+                          const startW = colWidth
+                          const onMove = (ev: MouseEvent) => saveWidths({ ...widths, [col.id]: Math.max(44, startW + ev.clientX - startX) })
+                          const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                          window.addEventListener('mousemove', onMove)
+                          window.addEventListener('mouseup', onUp)
+                        }}
+                        title="Arraste para redimensionar"
+                        style={{ position: 'absolute', top: 0, right: 0, width: 6, height: '100%', cursor: 'col-resize', zIndex: 20 }}
+                        className="hover:bg-primary/40 active:bg-primary/60"
+                      />
                     </th>
                   )
                 })}
