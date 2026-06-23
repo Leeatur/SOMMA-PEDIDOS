@@ -116,6 +116,10 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
     const result = importExcel(req.file!.buffer)
     let inserted = 0
 
+    // Corta campos longos p/ caber nos limites da coluna (evita abortar a importação
+    // inteira por uma única linha com texto grande, ex.: lista de cores muito longa)
+    const cut = (v: string | null | undefined, n: number) =>
+      (v == null ? v : (String(v).length > n ? String(v).slice(0, n) : v))
     for (const prod of result.products) {
       const { rows: [p] } = await client.query(
         `INSERT INTO products
@@ -124,8 +128,8 @@ export async function confirmExcelImport(req: AuthRequest, res: Response) {
          ON CONFLICT (price_table_id, reference) DO UPDATE
          SET base_price=EXCLUDED.base_price, updated_at=NOW()
          RETURNING id`,
-        [pt.id, prod.reference, prod.type, prod.product_name, prod.model,
-         prod.size_range, prod.base_price, prod.category, prod.observation]
+        [pt.id, cut(prod.reference, 50), prod.type, cut(prod.product_name, 255), cut(prod.model, 255),
+         cut(prod.size_range, 50), prod.base_price, cut(prod.category, 100), prod.observation]
       )
 
       if (prod.grade && prod.grade.length > 0) {
