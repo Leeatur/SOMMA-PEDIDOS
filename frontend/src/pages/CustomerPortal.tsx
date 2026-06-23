@@ -573,19 +573,34 @@ export function CustomerPortal() {
               </div>
             )}
             {cart.map((item, idx) => (
-              <div key={idx} className="bg-white rounded-xl border border-gray-200 p-3">
+              <div key={idx}
+                onClick={() => setModalProduct(item.product)}
+                className="bg-white rounded-xl border border-gray-200 p-3 cursor-pointer hover:border-purple-300 hover:bg-purple-50/30 transition-colors">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-bold text-sm text-gray-900">{item.product.reference}</p>
-                    {item.grade?.color && <p className="text-xs text-gray-500">{item.grade.color}</p>}
-                    {item.customGrade && item.customGrade.length > 0 && (
-                      <p className="text-xs text-gray-500">{item.customGrade.map(g => g.color).join(' · ')}</p>
+                    {item.product.product_name && (
+                      <p className="text-xs text-gray-600">{item.product.product_name}{item.product.model ? ` — ${item.product.model}` : ''}</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-0.5">{item.total_pieces} peças{item.product.type === 'pack' && !item.customGrade ? ` · ${item.boxes} cx` : ''}</p>
+                    {item.grade?.color && <p className="text-xs text-gray-500 mt-0.5">{item.grade.color}</p>}
+                    {item.customGrade && item.customGrade.length > 0 && (
+                      <div className="text-xs text-gray-500 mt-0.5 space-y-0.5">
+                        {item.customGrade.map(g => (
+                          <p key={g.color || 'x'}>
+                            <span className="font-medium">{g.color || '—'}:</span>{' '}
+                            {Object.entries(g.sizes || {}).filter(([, q]) => (q || 0) > 0).map(([s, q]) => `${s}×${q}`).join(' ')}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {!item.customGrade && item.sizes && Object.keys(item.sizes).length > 0 && (
+                      <p className="text-xs text-gray-500 mt-0.5">{Object.entries(item.sizes).filter(([, q]) => (q || 0) > 0).map(([s, q]) => `${s}×${q}`).join(' ')}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-0.5">{item.total_pieces} peças{item.product.type === 'pack' && !item.customGrade ? ` · ${item.boxes} cx` : ''} · toque para editar</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     <p className="font-bold text-purple-700 text-sm">{fmtR(item.subtotal)}</p>
-                    <button onClick={() => removeFromCart(`${item.product.id}_${item.grade?.color || 'regular'}`)}
+                    <button onClick={e => { e.stopPropagation(); removeFromCart(`${item.product.id}_${item.grade?.color || 'regular'}`) }}
                       className="text-xs text-red-400 hover:text-red-600 mt-1">Remover</button>
                   </div>
                 </div>
