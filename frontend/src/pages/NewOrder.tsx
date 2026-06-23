@@ -1743,8 +1743,27 @@ function QuickAddModal({
     })
     return m
   })
+  // Estoque normalizado (case/acentos) p/ casar nome de cor/tamanho entre planilha e catálogo
+  const norm = (s: string) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const stockNorm: Record<string, Record<string, number>> = (() => {
+    const m: Record<string, Record<string, number>> = {}
+    for (const [c, sizes] of Object.entries(product.stock || {})) {
+      const k = norm(c); m[k] = m[k] || {}
+      for (const [sz, q] of Object.entries(sizes || {})) m[k][norm(sz)] = Number(q) || 0
+    }
+    return m
+  })()
+  const hasStock = Object.keys(stockNorm).length > 0
+  const availFor = (color: string, size: string): number | undefined => stockNorm[norm(color)]?.[norm(size)]
   const setColorQty = (color: string, size: string, value: number) =>
-    setColorQtys(prev => ({ ...prev, [color]: { ...prev[color], [size]: Math.max(0, value) } }))
+    setColorQtys(prev => {
+      let v = Math.max(0, value)
+      if (hasStock) {
+        const avail = availFor(color, size) ?? 0  // sem estoque cadastrado p/ a combinação = 0 (bloqueia)
+        if (v > avail) v = avail
+      }
+      return { ...prev, [color]: { ...prev[color], [size]: v } }
+    })
   // Achatado por tamanho (mantém a lógica de totais/comissão igual) + detalhe por cor
   const flatSizes: Record<string, number> = {}
   variantSizes.forEach(s => { flatSizes[s] = variantColors.reduce((sum, c) => sum + (colorQtys[c]?.[s] || 0), 0) })
@@ -2008,7 +2027,7 @@ function QuickAddModal({
           {multiVariant && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] text-outline font-semibold uppercase tracking-wide">Quantidades por cor × tamanho{product.stock && Object.keys(product.stock).length > 0 && <span className="ml-1 normal-case font-normal text-emerald-600">(nº verde = disponível em estoque)</span>}</p>
+                <p className="text-[11px] text-outline font-semibold uppercase tracking-wide">Quantidades por cor × tamanho{hasStock && <span className="ml-1 normal-case font-normal text-emerald-600">(nº verde = estoque; limitado ao disponível)</span>}</p>
                 <div>
                   <span className="text-[11px] text-outline font-medium mr-1">Total:</span>
                   <span className="text-[13px] font-bold text-primary">{mvTotal} pç</span>
@@ -2036,13 +2055,14 @@ function QuickAddModal({
                             return (
                               <td key={s} className="border-r border-outline-variant/20 last:border-r-0 p-0.5 text-center align-top">
                                 {hasSize ? (() => {
-                                  const avail = product.stock?.[color]?.[s]
-                                  const hasStockInfo = product.stock && Object.keys(product.stock).length > 0
-                                  const over = avail !== undefined && (colorQtys[color]?.[s] || 0) > avail
+                                  const avail = hasStock ? (availFor(color, s) ?? 0) : undefined
+                                  const atMax = avail !== undefined && (colorQtys[color]?.[s] || 0) >= avail && avail > 0
+                                  const blocked = avail === 0
                                   return (
                                     <>
                                       <input
                                         type="number" min="0" inputMode="numeric"
+                                        disabled={blocked}
                                         value={colorQtys[color]?.[s] ? colorQtys[color][s] : ''}
                                         placeholder="0"
                                         onChange={e => setColorQty(color, s, parseInt(e.target.value) || 0)}
@@ -2057,11 +2077,12 @@ function QuickAddModal({
                                             if (next) next.focus()
                                           }
                                         }}
-                                        className={`w-10 h-7 text-center border rounded text-[12px] font-bold focus:outline-none focus:ring-1 focus:ring-primary bg-white ${over ? 'border-red-400 text-red-600' : 'border-outline-variant'}`}
+                                        title={avail !== undefined ? `Disponível: ${avail}` : undefined}
+                                        className={`w-10 h-7 text-center border rounded text-[12px] font-bold focus:outline-none focus:ring-1 focus:ring-primary ${blocked ? 'bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed' : atMax ? 'bg-amber-50 border-amber-300' : 'bg-white border-outline-variant'}`}
                                       />
-                                      {hasStockInfo && (
-                                        <div className={`text-[10px] leading-none mt-0.5 ${over ? 'text-red-500 font-bold' : (avail || 0) > 0 ? 'text-emerald-600' : 'text-outline/40'}`}>
-                                          {avail !== undefined ? avail : 0}
+                                      {avail !== undefined && (
+                                        <div className={`text-[10px] leading-none mt-0.5 ${avail > 0 ? 'text-emerald-600' : 'text-outline/40'}`}>
+                                          {avail}
                                         </div>
                                       )}
                                     </>
