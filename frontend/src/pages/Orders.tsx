@@ -13,6 +13,7 @@ import {
   Download,
 } from 'lucide-react'
 import { ordersApi, statusesApi, factoriesApi } from '../api/client'
+import { svgIconSrc } from '../components/ui/Badge'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
@@ -142,7 +143,11 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
     case 'status':    return o.status_name && o.status_color ? (
       <div className="flex items-center gap-1.5 px-2 py-1 min-w-0">
         {o.status_icon
-          ? <span className="text-[13px] leading-none flex-shrink-0">{o.status_icon}</span>
+          ? o.status_icon.split(' ').filter(Boolean).map((part, i) =>
+              part.startsWith('_')
+                ? <img key={i} src={svgIconSrc(part)} alt="" className="w-4 h-4 flex-shrink-0" />
+                : <span key={i} className="text-[13px] leading-none flex-shrink-0">{part}</span>
+            )
           : <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: o.status_color }} />}
         <span className="text-[12px] font-medium text-on-surface-variant truncate">{o.status_name}</span>
       </div>
