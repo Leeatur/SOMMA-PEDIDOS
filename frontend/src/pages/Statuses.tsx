@@ -280,34 +280,58 @@ export function Statuses() {
             </div>
           </div>
 
-          {/* Ícone (emoji) */}
+          {/* Ícone (emoji) — suporta até 2 ícones lado a lado */}
           <div>
-            <label className="block text-[12px] font-medium text-on-surface-variant mb-2">Ícone (opcional)</label>
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-2">Ícone (opcional, até 2)</label>
             <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setForm({ ...form, icon: '' })}
                 className={`w-8 h-8 rounded-lg border text-[11px] flex items-center justify-center ${!form.icon ? 'border-primary bg-primary/10 text-primary' : 'border-outline-variant text-outline'}`}
                 title="Sem ícone (bolinha)"
               >●</button>
-              {PRESET_ICONS.map((em) => (
-                <button
-                  key={em}
-                  onClick={() => setForm({ ...form, icon: em })}
-                  className={`w-8 h-8 rounded-lg border text-[16px] flex items-center justify-center transition-all ${form.icon === em ? 'border-primary bg-primary/10' : 'border-outline-variant hover:bg-surface-container'}`}
-                >{em}</button>
-              ))}
+              {PRESET_ICONS.map((em) => {
+                const parts = form.icon ? form.icon.split(' ').filter(Boolean) : []
+                const selected = parts.includes(em)
+                return (
+                  <button
+                    key={em}
+                    onClick={() => {
+                      if (selected) {
+                        setForm({ ...form, icon: parts.filter(p => p !== em).join(' ') })
+                      } else if (parts.length < 2) {
+                        setForm({ ...form, icon: [...parts, em].join(' ') })
+                      } else {
+                        setForm({ ...form, icon: [parts[0], em].join(' ') })
+                      }
+                    }}
+                    className={`w-8 h-8 rounded-lg border text-[16px] flex items-center justify-center transition-all ${selected ? 'border-primary bg-primary/10' : 'border-outline-variant hover:bg-surface-container'}`}
+                  >{em}</button>
+                )
+              })}
             </div>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {CUSTOM_SVG_ICONS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setForm({ ...form, icon: key })}
-                  className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${form.icon === key ? 'border-primary bg-primary/10' : 'border-outline-variant hover:bg-surface-container'}`}
-                  title={label}
-                >
-                  <img src={svgIconSrc(key)} alt={label} className="w-5 h-5" />
-                </button>
-              ))}
+              {CUSTOM_SVG_ICONS.map(({ key, label }) => {
+                const parts = form.icon ? form.icon.split(' ').filter(Boolean) : []
+                const selected = parts.includes(key)
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      if (selected) {
+                        setForm({ ...form, icon: parts.filter(p => p !== key).join(' ') })
+                      } else if (parts.length < 2) {
+                        setForm({ ...form, icon: [...parts, key].join(' ') })
+                      } else {
+                        setForm({ ...form, icon: [parts[0], key].join(' ') })
+                      }
+                    }}
+                    className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${selected ? 'border-primary bg-primary/10' : 'border-outline-variant hover:bg-surface-container'}`}
+                    title={label}
+                  >
+                    <img src={svgIconSrc(key)} alt={label} className="w-5 h-5" />
+                  </button>
+                )
+              })}
             </div>
           </div>
 

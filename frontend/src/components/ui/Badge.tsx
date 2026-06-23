@@ -74,9 +74,11 @@ export function StatusBadge({ name, color, icon, className }: StatusBadgeProps) 
       }}
     >
       {icon
-        ? SVG_ICONS[icon]
-          ? <img src={svgIconSrc(icon)} alt="" className="w-4 h-4 flex-shrink-0" />
-          : <span className="text-[13px] leading-none">{icon}</span>
+        ? icon.split(' ').filter(Boolean).map((part, i) =>
+            SVG_ICONS[part]
+              ? <img key={i} src={svgIconSrc(part)} alt="" className="w-4 h-4 flex-shrink-0" />
+              : <span key={i} className="text-[13px] leading-none">{part}</span>
+          )
         : <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />}
       {name}
     </span>
