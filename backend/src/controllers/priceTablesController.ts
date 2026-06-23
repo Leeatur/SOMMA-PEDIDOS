@@ -5,6 +5,7 @@ import { query, pool } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 import { importExcel, buildDefaultGrade, ImportedProduct } from '../services/import/excelImporter'
 import { importCatalogPdf } from '../services/import/pdfImporter'
+import { parseStock } from '../services/import/stockImporter'
 import { uploadToR2, isR2Configured } from '../utils/r2'
 
 export async function listPriceTables(req: AuthRequest, res: Response) {
@@ -890,4 +891,31 @@ export async function downloadSemFotos(req: AuthRequest, res: Response) {
   res.setHeader('Content-Disposition', 'attachment; filename="sem-fotos.xlsx"')
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.send(buf)
+}
+
+// Importa estoque (planilha diária) — atualiza products.stock por referência
+export async function importStock(req: AuthRequest, res: Response) {
+  if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
+  try {
+    const { byRef, totalRefs, totalRows } = parseStock(req.file.buffer)
+    let matched = 0
+    const notFound: string[] = []
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      for (const ref of Object.keys(byRef)) {
+        const { rowCount } = await client.query(
+          `UPDATE products SET stock=$1, stock_updated_at=NOW() WHERE reference=$2`,
+          [JSON.stringify(byRef[ref]), ref]
+        )
+        if (rowCount && rowCount > 0) matched++; else notFound.push(ref)
+      }
+      await client.query('COMMIT')
+    } catch (e) { await client.query('ROLLBACK'); throw e }
+    finally { client.release() }
+    res.json({ totalRefs, totalRows, matched, notFoundCount: notFound.length, notFound: notFound.slice(0, 50) })
+  } catch (err) {
+    console.error('importStock', err)
+    res.status(400).json({ error: 'Erro ao ler a planilha de estoque' })
+  }
 }

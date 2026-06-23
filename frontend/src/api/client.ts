@@ -147,6 +147,11 @@ export const priceTablesApi = {
       timeout: 600000, // 10 min — PDFs grandes podem demorar
     })
   },
+  importStock: (file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return apiClient.post('/price-tables/import-stock', fd, { timeout: 300000 })
+  },
   uploadPhotoByRef: (
     priceTableId: string,
     reference: string,

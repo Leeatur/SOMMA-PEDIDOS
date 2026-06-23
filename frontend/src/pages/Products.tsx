@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, FileDown, Check } from 'lucide-react'
+import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, FileDown, Check, Package } from 'lucide-react'
 import { productsApi, priceTablesApi, apiClient } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
@@ -1231,6 +1231,8 @@ export function Products() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const [showZipImport, setShowZipImport] = useState(false)
+  const stockFileRef = useRef<HTMLInputElement>(null)
+  const [stockBusy, setStockBusy] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [duplicateSource, setDuplicateSource] = useState<Product | null>(null)
 
@@ -1493,6 +1495,28 @@ export function Products() {
             >
               <Archive className="h-4 w-4" />
               <span className="hidden sm:inline">Fotos ZIP</span>
+            </button>
+            <input ref={stockFileRef} type="file" accept=".xlsx,.xls" className="hidden"
+              onChange={async e => {
+                const file = e.target.files?.[0]; if (!file) return
+                setStockBusy(true)
+                try {
+                  const r = await priceTablesApi.importStock(file)
+                  const d = r.data
+                  qc.invalidateQueries({ queryKey: ['all-products'] })
+                  alert(`✅ Estoque importado!\n${d.matched} de ${d.totalRefs} referências atualizadas (${d.totalRows} linhas).` + (d.notFoundCount ? `\n⚠️ ${d.notFoundCount} referência(s) da planilha não existem no catálogo.` : ''))
+                } catch {
+                  alert('Erro ao importar estoque. Verifique se é a planilha certa (Referência / Cor / Tamanho / Estoque).')
+                } finally { setStockBusy(false); if (stockFileRef.current) stockFileRef.current.value = '' }
+              }} />
+            <button
+              onClick={() => stockFileRef.current?.click()}
+              disabled={stockBusy}
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg px-3 py-1 transition-colors disabled:opacity-60"
+              title="Importar planilha de estoque (diária)"
+            >
+              <Package className="h-4 w-4" />
+              <span className="hidden sm:inline">{stockBusy ? 'Importando…' : 'Importar Estoque'}</span>
             </button>
             <button
               onClick={async () => {

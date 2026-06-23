@@ -89,6 +89,9 @@ CREATE TABLE IF NOT EXISTS products (
 ALTER TABLE products ADD COLUMN IF NOT EXISTS blocked_sizes TEXT[] DEFAULT '{}';
 -- size_range pode ser uma lista longa de tamanhos (ex.: cintos 60..125) — amplia p/ 255
 ALTER TABLE products ALTER COLUMN size_range TYPE VARCHAR(255);
+-- Estoque por variante: { "<cor>": { "<tamanho>": qtd } }; atualizado pela importação diária
+ALTER TABLE products ADD COLUMN IF NOT EXISTS stock JSONB DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_updated_at TIMESTAMPTZ;
 
 -- Composição da Grade Fechada por Produto
 -- Regular (TE...): uma linha sem cor, sizes = {"34":1,"36":1,...}
