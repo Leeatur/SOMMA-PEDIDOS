@@ -30,6 +30,24 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
   )
 }
 
+const SVG_ICONS: Record<string, string> = {
+  _oz:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><rect width="20" height="20" rx="4" fill="#1414CC"/><text x="10" y="14.5" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="900" font-size="11">OZ</text></svg>`,
+  _ozm: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><rect width="20" height="20" rx="4" fill="#1414CC"/><text x="10" y="8" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="700" font-size="5.5">MIX</text><text x="10" y="16" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="900" font-size="10">OZ</text></svg>`,
+  _tz:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><rect width="20" height="20" rx="4" fill="#AA2222"/><text x="10" y="14.5" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="900" font-size="11">TZ</text></svg>`,
+  _tzm: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><rect width="20" height="20" rx="4" fill="#AA2222"/><text x="10" y="8" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="700" font-size="5.5">MIX</text><text x="10" y="16" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="900" font-size="10">TZ</text></svg>`,
+}
+
+export const CUSTOM_SVG_ICONS = [
+  { key: '_oz',  label: 'OZ' },
+  { key: '_ozm', label: 'MIX OZ' },
+  { key: '_tz',  label: 'TZ' },
+  { key: '_tzm', label: 'MIX TZ' },
+]
+
+export function svgIconSrc(key: string) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SVG_ICONS[key])}`
+}
+
 interface StatusBadgeProps {
   name: string
   color: string
@@ -56,7 +74,9 @@ export function StatusBadge({ name, color, icon, className }: StatusBadgeProps) 
       }}
     >
       {icon
-        ? <span className="text-[13px] leading-none">{icon}</span>
+        ? SVG_ICONS[icon]
+          ? <img src={svgIconSrc(icon)} alt="" className="w-4 h-4 flex-shrink-0" />
+          : <span className="text-[13px] leading-none">{icon}</span>
         : <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />}
       {name}
     </span>

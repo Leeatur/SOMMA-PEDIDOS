@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
 import { Card } from '../components/ui/Card'
-import { StatusBadge } from '../components/ui/Badge'
+import { StatusBadge, CUSTOM_SVG_ICONS, svgIconSrc } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
 import { EmptyState } from '../components/ui/EmptyState'
 
@@ -295,6 +295,18 @@ export function Statuses() {
                   onClick={() => setForm({ ...form, icon: em })}
                   className={`w-8 h-8 rounded-lg border text-[16px] flex items-center justify-center transition-all ${form.icon === em ? 'border-primary bg-primary/10' : 'border-outline-variant hover:bg-surface-container'}`}
                 >{em}</button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {CUSTOM_SVG_ICONS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setForm({ ...form, icon: key })}
+                  className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${form.icon === key ? 'border-primary bg-primary/10' : 'border-outline-variant hover:bg-surface-container'}`}
+                  title={label}
+                >
+                  <img src={svgIconSrc(key)} alt={label} className="w-5 h-5" />
+                </button>
               ))}
             </div>
           </div>
