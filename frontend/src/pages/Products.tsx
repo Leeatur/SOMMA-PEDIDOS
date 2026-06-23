@@ -1271,9 +1271,13 @@ export function Products() {
     const colMap: Record<string, (p: Product) => string | number> = {
       reference:   p => p.reference?.toLowerCase() ?? '',
       name:        p => (p.product_name || p.model || '').toLowerCase(),
+      size_range:  p => (p.size_range || '').toLowerCase(),
       price:       p => p.base_price ?? 0,
+      pieces:      p => p.grade_configs?.reduce((s, g) => s + (g.total_pieces || 0), 0) ?? 0,
+      category:    p => (p.category || '').toLowerCase(),
       factory:     p => (p.factory_name || '').toLowerCase(),
       table:       p => (p.price_table_name || '').toLowerCase(),
+      observation: p => (p.observation || '').toLowerCase(),
     }
     const fn = colMap[sortCol]
     if (!fn) return products
@@ -1557,7 +1561,7 @@ export function Products() {
             <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
               <tr>
                 {visibleCols.map(col => {
-                  const sortable = ['reference','name','price','factory','table'].includes(col.id)
+                  const sortable = col.id !== 'image'
                   const active = sortCol === col.id
                   const colWidth = widths[col.id] ?? PRODUCT_COL_WIDTHS[col.id] ?? 120
                   return (
