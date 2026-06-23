@@ -82,6 +82,7 @@ interface Product {
   size_range: string | null
   blocked_sizes: string[] | null
   grade_configs: GradeConfig[] | null
+  stock?: Record<string, Record<string, number>> | null
 }
 
 interface ClientOption { id: string; name: string; trade_name: string | null; city: string | null; cnpj: string | null }
@@ -500,7 +501,7 @@ export default function OrderEdit() {
     setQuickEditProduct(prod)
   }
 
-  const confirmAddProduct = (prod: Product, sizes: Record<string, number>, boxes: number) => {
+  const confirmAddProduct = (prod: Product, sizes: Record<string, number>, boxes: number, customGrade?: DraftGradeEntry[]) => {
     const newItem: NewItem = {
       tempId: `new-${Date.now()}`,
       product_id: prod.id,
@@ -514,7 +515,8 @@ export default function OrderEdit() {
       grade_configs: prod.grade_configs || null,
       draftSizes: prod.type === 'regular' ? sizes : {},
       draftBoxes: boxes,
-      draftGrade: prod.type === 'pack' ? initDraftGradeFromProduct(prod) : [],
+      // pack → grade do produto; regular multicor → grade por cor escolhida no modal; regular simples → []
+      draftGrade: prod.type === 'pack' ? initDraftGradeFromProduct(prod) : (customGrade || []),
     }
     setNewItems(prev => [...prev, newItem])
     setQuickEditProduct(null)
@@ -637,7 +639,8 @@ export default function OrderEdit() {
           boxes_count: 1,
           unit_price: it.unit_price,
           sizes: it.type === 'regular' ? it.draftSizes : undefined,
-          custom_grade: it.type === 'pack' ? it.draftGrade : undefined,
+          // pack sempre tem grade; regular multicor também envia custom_grade (detalhe por cor)
+          custom_grade: it.draftGrade.length > 0 ? it.draftGrade : undefined,
         }))
         await ordersApi.addItems(id!, toAdd)
       }
@@ -1264,7 +1267,7 @@ function OrderEditQuickModal({
 }: {
   product: Product
   onClose: () => void
-  onAdd: (p: Product, sizes: Record<string,number>, boxes: number) => void
+  onAdd: (p: Product, sizes: Record<string,number>, boxes: number, customGrade?: DraftGradeEntry[]) => void
 }) {
   const isPack = product.type === 'pack'
   const grades = product.grade_configs || []
@@ -1288,8 +1291,48 @@ function OrderEditQuickModal({
   const [sizes, setSizes] = useState<Record<string,number>>(() => Object.fromEntries(allSizes.map(s=>[s,0])))
   const [boxes, setBoxes] = useState(1)
 
+  // Regular com variantes cor × tamanho (distribuidora): grade editável por cor
+  const multiVariant = !isPack && grades.length > 0 && grades.some(g => (g.color || '').trim() !== '')
+  const variantSizes = multiVariant
+    ? sortSizes([...new Set(grades.flatMap(g => Object.keys(g.sizes).map(s => s.trim())))])
+    : []
+  const variantColors = multiVariant ? grades.map(g => (g.color || '—')) : []
+  const [colorQtys, setColorQtys] = useState<Record<string, Record<string, number>>>(() => {
+    const m: Record<string, Record<string, number>> = {}
+    grades.forEach(g => {
+      const c = g.color || '—'
+      if (!m[c]) m[c] = {}
+      Object.keys(g.sizes).forEach(s => { if (m[c][s.trim()] === undefined) m[c][s.trim()] = 0 })
+    })
+    return m
+  })
+  // Estoque normalizado (case/acentos) p/ casar nome de cor/tamanho entre planilha e catálogo
+  const norm = (s: string) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const stockNorm: Record<string, Record<string, number>> = (() => {
+    const m: Record<string, Record<string, number>> = {}
+    for (const [c, sz] of Object.entries(product.stock || {})) {
+      const k = norm(c); m[k] = m[k] || {}
+      for (const [s, q] of Object.entries(sz || {})) m[k][norm(s)] = Number(q) || 0
+    }
+    return m
+  })()
+  const hasStock = Object.keys(stockNorm).length > 0
+  const availFor = (color: string, size: string): number | undefined => stockNorm[norm(color)]?.[norm(size)]
+  const setColorQty = (color: string, size: string, value: number) =>
+    setColorQtys(prev => {
+      let v = Math.max(0, value)
+      if (hasStock) { const avail = availFor(color, size) ?? 0; if (v > avail) v = avail }
+      return { ...prev, [color]: { ...prev[color], [size]: v } }
+    })
+  const flatSizes: Record<string, number> = {}
+  variantSizes.forEach(s => { flatSizes[s] = variantColors.reduce((sum, c) => sum + (colorQtys[c]?.[s] || 0), 0) })
+  const customGrade: DraftGradeEntry[] = variantColors
+    .map((c, i) => ({ color: c, sizes: colorQtys[c] || {}, total_pieces: Object.values(colorQtys[c] || {}).reduce((a, b) => a + (b || 0), 0), sort_order: i }))
+    .filter(e => e.total_pieces > 0)
+  const mvTotal = customGrade.reduce((s, e) => s + e.total_pieces, 0)
+
   const totalPiecesPerBox = grades.reduce((s,g)=>s+g.total_pieces,0)||0
-  const totalPieces = isPack ? totalPiecesPerBox*boxes : Object.values(sizes).reduce((s,v)=>s+v,0)
+  const totalPieces = isPack ? totalPiecesPerBox*boxes : multiVariant ? mvTotal : Object.values(sizes).reduce((s,v)=>s+v,0)
   const totalValue = Number(product.base_price)*totalPieces
   const fmtR=(v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
   const fmtN=(v:number)=>new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2}).format(v)
@@ -1369,8 +1412,65 @@ function OrderEditQuickModal({
             )
           })()}
 
+          {/* REGULAR multicor — grade cor × tamanho */}
+          {multiVariant && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] text-outline font-semibold uppercase tracking-wide">Quantidades por cor × tamanho{hasStock && <span className="ml-1 normal-case font-normal text-emerald-600">(nº verde = estoque)</span>}</p>
+                <div><span className="text-[11px] text-outline font-medium mr-1">Total:</span><span className="text-[13px] font-bold text-primary">{mvTotal} pç</span></div>
+              </div>
+              <div className="border border-outline-variant rounded-xl overflow-x-auto">
+                <table className="min-w-full text-[12px]">
+                  <thead className="bg-surface-container-low sticky top-0 z-10">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-bold text-outline border-r border-outline-variant/40">COR / MODELO</th>
+                      {variantSizes.map(s => <th key={s} className="px-1 py-2 text-center font-bold text-outline border-r border-outline-variant/30 last:border-r-0 min-w-[44px]">{s}</th>)}
+                      <th className="px-2 py-2 text-center font-bold text-primary">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/20">
+                    {variantColors.map((color, ci) => {
+                      const rowTotal = variantSizes.reduce((sum, s) => sum + (colorQtys[color]?.[s] || 0), 0)
+                      return (
+                        <tr key={color} className={ci % 2 === 0 ? 'bg-white' : 'bg-surface-container-low/30'}>
+                          <td className="px-3 py-1.5 font-semibold text-on-surface border-r border-outline-variant/30 whitespace-nowrap">{color}</td>
+                          {variantSizes.map((s) => {
+                            const hasSize = colorQtys[color]?.[s] !== undefined
+                            return (
+                              <td key={s} className="border-r border-outline-variant/20 last:border-r-0 p-0.5 text-center align-top">
+                                {hasSize ? (() => {
+                                  const avail = hasStock ? (availFor(color, s) ?? 0) : undefined
+                                  const atMax = avail !== undefined && (colorQtys[color]?.[s] || 0) >= avail && avail > 0
+                                  const blocked = avail === 0
+                                  return (
+                                    <>
+                                      <input
+                                        type="number" min="0" inputMode="numeric" disabled={blocked}
+                                        value={colorQtys[color]?.[s] ? colorQtys[color][s] : ''} placeholder="0"
+                                        onChange={e => setColorQty(color, s, parseInt(e.target.value) || 0)}
+                                        onFocus={e => e.target.select()}
+                                        title={avail !== undefined ? `Disponível: ${avail}` : undefined}
+                                        className={`w-10 h-7 text-center border rounded text-[12px] font-bold focus:outline-none focus:ring-1 focus:ring-primary ${blocked ? 'bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed' : atMax ? 'bg-amber-50 border-amber-300' : 'bg-white border-outline-variant'}`}
+                                      />
+                                      {avail !== undefined && <div className={`text-[10px] leading-none mt-0.5 ${avail > 0 ? 'text-emerald-600' : 'text-outline/40'}`}>{avail}</div>}
+                                    </>
+                                  )
+                                })() : <span className="text-outline/40">—</span>}
+                              </td>
+                            )
+                          })}
+                          <td className="px-2 py-1.5 text-center font-bold text-primary">{rowTotal || ''}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* REGULAR */}
-          {!isPack && allSizes.length > 0 && (
+          {!isPack && !multiVariant && allSizes.length > 0 && (
             <div>
               <p className="text-[11px] text-outline font-semibold uppercase tracking-wide mb-2">Quantidades por tamanho</p>
               <div className="border border-outline-variant rounded-xl overflow-hidden">
@@ -1404,7 +1504,7 @@ function OrderEditQuickModal({
         <div className="px-4 py-3 border-t border-outline-variant flex items-center justify-end gap-3 bg-surface-container-low flex-shrink-0">
           <button type="button" onClick={onClose} className="text-[12px] text-outline hover:text-on-surface px-4 py-2">Cancelar</button>
           <button type="button" disabled={totalPieces===0}
-            onClick={()=>onAdd(product,sizes,boxes)}
+            onClick={()=>onAdd(product, multiVariant ? flatSizes : sizes, boxes, multiVariant ? customGrade : undefined)}
             className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-xl font-semibold text-[12px] disabled:opacity-50 hover:bg-primary/90 active:scale-95">
             <Check className="h-4 w-4"/> Adicionar
           </button>
