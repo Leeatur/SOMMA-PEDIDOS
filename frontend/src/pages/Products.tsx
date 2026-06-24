@@ -421,7 +421,20 @@ function ProductDetailModal({
   if (editing) {
     const inputCls = "w-full border border-outline-variant rounded-lg px-3 py-1 text-[12px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary bg-white"
     return (
-      <Modal open onClose={() => setEditing(false)} title={`Editar: ${p.reference}`} size="lg">
+      <Modal open onClose={() => setEditing(false)} title={`Editar: ${p.reference}`} size="lg"
+        footer={
+          <div className="flex gap-2">
+            <button onClick={handleSave} disabled={saving || !editForm.reference}
+              className="flex-1 bg-primary text-white rounded-xl py-2 text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
+              {saving ? 'Salvando…' : 'Salvar alterações'}
+            </button>
+            <button onClick={() => setEditing(false)}
+              className="px-4 py-2 border border-outline-variant rounded-xl text-[12px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1.5">
+              <X className="h-4 w-4" /> Cancelar
+            </button>
+          </div>
+        }
+      >
         <div className="space-y-1">
           {saveError && (
             <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-1 text-[12px] text-red-700">{saveError}</div>
@@ -579,17 +592,6 @@ function ProductDetailModal({
             )}
           </div>
           )}
-
-          <div className="flex gap-2 pt-2 border-t border-outline-variant">
-            <button onClick={handleSave} disabled={saving || !editForm.reference}
-              className="flex-1 bg-primary text-white rounded-xl py-1.5 text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
-              {saving ? 'Salvando…' : 'Salvar alterações'}
-            </button>
-            <button onClick={() => setEditing(false)}
-              className="px-4 py-1.5 border border-outline-variant rounded-xl text-[12px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1.5">
-              <X className="h-4 w-4" /> Cancelar
-            </button>
-          </div>
         </div>
       </Modal>
     )
