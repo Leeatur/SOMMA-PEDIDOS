@@ -11,6 +11,7 @@ import {
 import { useAuthStore } from '../stores/authStore'
 import { formatCurrency, formatOrderNumber } from '../utils/format'
 import { PageSpinner } from '../components/ui/Spinner'
+import { ZoomableImage } from '../components/ui/ZoomableImage'
 
 // ── tipos ──────────────────────────────────────────────────────────────────────
 
@@ -1332,7 +1333,7 @@ function OrderEditQuickModal({
         {/* Header */}
         <div className="bg-surface-container-low px-4 py-3 border-b border-outline-variant flex items-start justify-between gap-3 flex-shrink-0">
           <div className="flex gap-3 flex-1 min-w-0">
-            {product.image_url && <img src={product.image_url} alt={product.reference} className="w-16 h-16 object-cover rounded-xl flex-shrink-0"/>}
+            {product.image_url && <ZoomableImage src={product.image_url} alt={product.reference} className="w-16 h-16 rounded-xl flex-shrink-0" imgClassName="w-16 h-16 object-cover rounded-xl"/>}
             <div className="min-w-0">
               <p className="font-bold text-on-surface">{product.reference}</p>
               {product.product_name && <p className="text-[12px] text-outline truncate">{product.product_name}</p>}
