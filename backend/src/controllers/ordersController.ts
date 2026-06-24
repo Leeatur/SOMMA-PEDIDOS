@@ -19,34 +19,26 @@ async function computeOrderTotals(
   discountPct: number,
   priceTableId: string,
   client: PoolClient,
-  commissionDiscountPct?: number,  // desconto de prazo para lookup de comissão (opcional)
-  cashDiscountPct?: number          // desconto à vista — não afeta comissão
+  commissionDiscountPct?: number  // desconto de prazo — determina qual regra de comissão aplicar
 ) {
   let totalPieces = 0
-  let totalValue = 0           // valor que o cliente paga (após desconto total: comercial + à vista)
-  let totalValueCommercial = 0 // base de comissão (após desconto comercial apenas, sem à vista)
+  let totalValue = 0  // valor final que o cliente paga (após todos os descontos)
   const enrichedItems = []
-
-  const cashDisc = cashDiscountPct || 0
-  const commercialDisc = Math.max(0, discountPct - cashDisc)
 
   for (const item of items) {
     let itemPieces: number
     let subtotal: number
-    let subtotalCommercial: number  // preço após desconto comercial (base de comissão)
     let finalBoxesCount: number
     let finalSizes: Record<string, number> | null
 
     const sizesMap = item.sizes && typeof item.sizes === 'object' ? item.sizes : {}
     const sizesTotal = Object.values(sizesMap).reduce((s: number, v: unknown) => s + Number(v || 0), 0)
-    const discountedPrice = item.unit_price * (1 - discountPct / 100)   // preço cliente (total)
-    const commercialPrice = item.unit_price * (1 - commercialDisc / 100) // base comissão (sem à vista)
+    const discountedPrice = item.unit_price * (1 - discountPct / 100)  // preço final do cliente
 
     if (sizesTotal > 0) {
       // Produto regular
       itemPieces = sizesTotal
       subtotal = discountedPrice * itemPieces
-      subtotalCommercial = commercialPrice * itemPieces
       finalBoxesCount = 1
       finalSizes = sizesMap
     } else if (item.custom_grade && Array.isArray(item.custom_grade) && item.custom_grade.length > 0) {
@@ -55,7 +47,6 @@ async function computeOrderTotals(
         s + Object.values(gc.sizes || {}).reduce((ss, v) => ss + Number(v || 0), 0), 0
       )
       subtotal = Math.round(discountedPrice * itemPieces * 100) / 100
-      subtotalCommercial = Math.round(commercialPrice * itemPieces * 100) / 100
       finalBoxesCount = 1
       finalSizes = null
     } else {
@@ -67,14 +58,12 @@ async function computeOrderTotals(
       const boxCount = item.boxes_count || 1
       itemPieces = boxCount * piecesPerBox
       subtotal = Math.round(discountedPrice * itemPieces * 100) / 100
-      subtotalCommercial = Math.round(commercialPrice * itemPieces * 100) / 100
       finalBoxesCount = boxCount
       finalSizes = null
     }
 
     totalPieces += itemPieces
     totalValue += subtotal
-    totalValueCommercial += subtotalCommercial
     enrichedItems.push({
       ...item,
       total_pieces: itemPieces,
@@ -106,23 +95,21 @@ async function computeOrderTotals(
       : { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0, guide_commission_pct: 0 }
   }
 
-  // Base de comissão = após desconto comercial (prazo) apenas, sem desconto à vista
-  const commBase = Math.round(totalValueCommercial * 100) / 100
-  const clientTotal = Math.round(totalValue * 100) / 100
+  // Comissão calculada sobre o valor final líquido (após todos os descontos: comercial + à vista)
+  // O desconto comercial determina QUAL % de comissão aplicar (via lookup acima), não a base de cálculo
+  const netValue = Math.round(totalValue * 100) / 100
   const guidePct = Number(rule.guide_commission_pct) || 0  // 3ª via (modo fábrica); 0 nas instâncias 2-vias
   return {
     enrichedItems,
     totalPieces,
-    totalValue: clientTotal,           // o que o cliente paga (após todos os descontos)
-    totalValueCommercial: commBase,    // base de comissão (após desconto comercial, sem à vista)
+    totalValue: netValue,
     totalCommissionPct: rule.total_commission_pct,
     repCommissionPct: rule.rep_commission_pct,
     officeCommissionPct: rule.office_commission_pct,
     guideCommissionPct: guidePct,
-    // Comissão calculada sobre valor após desconto comercial (desconto à vista não afeta comissão)
-    repCommissionValue: Math.round(commBase * rule.rep_commission_pct / 100 * 100) / 100,
-    officeCommissionValue: Math.round(commBase * rule.office_commission_pct / 100 * 100) / 100,
-    guideCommissionValue: Math.round(commBase * guidePct / 100 * 100) / 100,
+    repCommissionValue: Math.round(netValue * rule.rep_commission_pct / 100 * 100) / 100,
+    officeCommissionValue: Math.round(netValue * rule.office_commission_pct / 100 * 100) / 100,
+    guideCommissionValue: Math.round(netValue * guidePct / 100 * 100) / 100,
   }
 }
 
@@ -295,16 +282,15 @@ export async function createOrder(req: AuthRequest, res: Response) {
     const commDisc = commission_discount_pct !== undefined ? parseFloat(commission_discount_pct) || 0 : disc
     // Flag: pedido com DESC. ESPECIAL (fora das regras pré-cadastradas) deve ser revisado
     const needsReview = !!custom_discount
-    const totals = await computeOrderTotals(items, disc, price_table_id, dbClient as any, commDisc, cashDisc)
+    const totals = await computeOrderTotals(items, disc, price_table_id, dbClient as any, commDisc)
 
     // Admin cria pedido: comissão 100% para o escritório, 0% para rep
     const isAdminOrder = req.user!.role === 'admin'
     const repCommPct   = isAdminOrder ? 0 : totals.repCommissionPct
     const offCommPct   = isAdminOrder ? totals.totalCommissionPct : totals.officeCommissionPct
     const repCommVal   = isAdminOrder ? 0 : totals.repCommissionValue
-    // Admin: 100% da comissão vai para o escritório, calculada sobre base comercial (sem à vista)
     const offCommVal   = isAdminOrder
-      ? Math.round(totals.totalValueCommercial * totals.totalCommissionPct / 100 * 100) / 100
+      ? Math.round(totals.totalValue * totals.totalCommissionPct / 100 * 100) / 100
       : totals.officeCommissionValue
     // 3ª via (modo fábrica): admin concentra tudo no escritório → guia 0; senão segue a regra
     const guideCommPct = isAdminOrder ? 0 : totals.guideCommissionPct
@@ -407,8 +393,7 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
 
     // Insere os novos itens
     const disc = parseFloat(order.discount_pct) || 0
-    const cashDiscAdd = parseFloat(order.cash_discount_pct) || 0
-    const newTotals = await computeOrderTotals(items, disc, order.price_table_id, dbClient as any, undefined, cashDiscAdd)
+    const newTotals = await computeOrderTotals(items, disc, order.price_table_id, dbClient as any)
     for (let i = 0; i < newTotals.enrichedItems.length; i++) {
       const item = newTotals.enrichedItems[i]
       const origItem = items[i]
@@ -427,7 +412,7 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
       'SELECT product_id, reference, boxes_count, unit_price, sizes FROM order_items WHERE order_id=$1',
       [orderId]
     )
-    const allTotals = await computeOrderTotals(allItems, disc, order.price_table_id, dbClient as any, undefined, cashDiscAdd)
+    const allTotals = await computeOrderTotals(allItems, disc, order.price_table_id, dbClient as any)
 
     if (order.commission_manual_override) {
       // Comissão manual ativa → preserva valores de comissão, atualiza apenas peças/valor
@@ -436,10 +421,10 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
         [allTotals.totalPieces, allTotals.totalValue, orderId]
       )
     } else {
-      // Usa os % salvos no PEDIDO e aplica sobre base comercial (sem à vista)
-      const newRepVal   = Math.round(allTotals.totalValueCommercial * Number(order.rep_commission_pct)    / 100 * 100) / 100
-      const newOffVal   = Math.round(allTotals.totalValueCommercial * Number(order.office_commission_pct) / 100 * 100) / 100
-      const newGuideVal = Math.round(allTotals.totalValueCommercial * Number(order.guide_commission_pct || 0) / 100 * 100) / 100
+      // Usa os % salvos no PEDIDO aplicados sobre o valor final líquido
+      const newRepVal   = Math.round(allTotals.totalValue * Number(order.rep_commission_pct)    / 100 * 100) / 100
+      const newOffVal   = Math.round(allTotals.totalValue * Number(order.office_commission_pct) / 100 * 100) / 100
+      const newGuideVal = Math.round(allTotals.totalValue * Number(order.guide_commission_pct || 0) / 100 * 100) / 100
       await dbClient.query(
         `UPDATE orders SET
            total_pieces=$1, total_value=$2,
@@ -770,8 +755,7 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
     )
     // disc = desconto total (prazo + à vista) para preço do cliente
     // commDisc = apenas desconto de prazo para lookup de comissão
-    const cashDisc2 = cash_discount_pct !== undefined ? parseFloat(cash_discount_pct) || 0 : Number(order.cash_discount_pct || 0)
-    const totals = await computeOrderTotals(updatedItems, disc, price_table_id, dbClient as any, commDisc, cashDisc2)
+    const totals = await computeOrderTotals(updatedItems, disc, price_table_id, dbClient as any, commDisc)
 
     // Verifica se o rep do pedido é admin → comissão 100% escritório
     const { rows: [repUser] } = await dbClient.query(
@@ -781,9 +765,8 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
     const repCommPct2   = isAdminRep ? 0 : totals.repCommissionPct
     const offCommPct2   = isAdminRep ? totals.totalCommissionPct : totals.officeCommissionPct
     const repCommVal2   = isAdminRep ? 0 : totals.repCommissionValue
-    // Admin: comissão calculada sobre base comercial (sem à vista)
     const offCommVal2   = isAdminRep
-      ? Math.round(totals.totalValueCommercial * totals.totalCommissionPct / 100 * 100) / 100
+      ? Math.round(totals.totalValue * totals.totalCommissionPct / 100 * 100) / 100
       : totals.officeCommissionValue
 
     await dbClient.query(
@@ -796,7 +779,7 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
          updated_at=NOW()
        WHERE id=$11`,
       [
-        price_table_id, disc, cashDisc2,
+        price_table_id, disc, (cash_discount_pct !== undefined ? parseFloat(cash_discount_pct) || 0 : Number(order.cash_discount_pct || 0)),
         totals.totalCommissionPct, repCommPct2, offCommPct2,
         totals.totalPieces, totals.totalValue,
         repCommVal2, offCommVal2,
