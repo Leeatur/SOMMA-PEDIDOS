@@ -157,6 +157,11 @@ export const priceTablesApi = {
     fd.append('file', file)
     return apiClient.post(`/price-tables/${id}/update-import`, fd, { timeout: 300000 })
   },
+  updateGrades: (id: string, file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return apiClient.post(`/price-tables/${id}/update-grades`, fd, { timeout: 300000 })
+  },
   uploadPhotoByRef: (
     priceTableId: string,
     reference: string,

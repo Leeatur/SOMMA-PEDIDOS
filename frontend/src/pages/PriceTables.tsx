@@ -251,6 +251,34 @@ export function PriceTables() {
     updateMut.mutate({ id: t.id, file })
   }
 
+  // Atualizar GRADES (tamanhos) por planilha de revisão (REFERÊNCIA + TAMANHOS)
+  const gradesFileRef = useRef<HTMLInputElement>(null)
+  const pendingGradesTable = useRef<PriceTable | null>(null)
+  const gradesMut = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => priceTablesApi.updateGrades(id, file),
+    onSuccess: (res) => {
+      const d = res.data as { updated: number; notFoundCount: number }
+      alert(`Grades atualizadas: ${d.updated} produto(s).` + (d.notFoundCount ? `\nReferências não encontradas: ${d.notFoundCount}.` : ''))
+      qc.invalidateQueries({ queryKey: ['all-products'] })
+    },
+    onError: () => alert('Erro ao atualizar grades. Confira se a planilha tem colunas REFERÊNCIA e TAMANHOS.'),
+  })
+  function handleGradesPick(t: PriceTable) {
+    pendingGradesTable.current = t
+    if (gradesFileRef.current) { gradesFileRef.current.value = ''; gradesFileRef.current.click() }
+  }
+  function onGradesFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    const t = pendingGradesTable.current
+    if (!file || !t) return
+    if (!window.confirm(
+      `Atualizar os TAMANHOS (grades) da tabela "${t.name}" com esta planilha?\n\n` +
+      `Para cada referência da planilha, troca os tamanhos da grade (mantém as cores já cadastradas). ` +
+      `Só mexe nas referências que estão na planilha.`
+    )) return
+    gradesMut.mutate({ id: t.id, file })
+  }
+
   function resetImport() {
     setImportStep(1)
     setImportFile(null)
@@ -405,6 +433,15 @@ export function PriceTables() {
                       {updateMut.isPending ? 'Atualizando…' : 'Atualizar'}
                     </button>
                     <button
+                      onClick={() => handleGradesPick(t)}
+                      disabled={gradesMut.isPending}
+                      title="Atualizar tamanhos (grades) por planilha de revisão — mantém as cores"
+                      className="flex items-center gap-1 text-[12px] text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1.5 rounded-lg transition-colors font-semibold disabled:opacity-50"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      {gradesMut.isPending ? 'Atualizando…' : 'Tamanhos'}
+                    </button>
+                    <button
                       onClick={() => openCatalogImport(t)}
                       className="flex items-center gap-1 text-[12px] text-primary hover:text-primary bg-primary/10 hover:bg-primary/10 px-2 py-1.5 rounded-lg transition-colors"
                     >
@@ -445,6 +482,14 @@ export function PriceTables() {
         accept=".xlsx,.xls"
         className="hidden"
         onChange={onUpdateFileChosen}
+      />
+      {/* Input escondido p/ atualizar grades (tamanhos) por planilha */}
+      <input
+        ref={gradesFileRef}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={onGradesFileChosen}
       />
 
       {/* Resultado da atualização da tabela */}

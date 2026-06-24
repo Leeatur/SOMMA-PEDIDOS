@@ -384,6 +384,84 @@ export async function uploadProductImage(req: AuthRequest, res: Response) {
   }
 }
 
+// Atualiza GRADES (tamanhos) a partir de uma planilha de revisão (REFERÊNCIA + TAMANHOS).
+// Mantém as CORES já cadastradas no produto e só troca os tamanhos (ex.: UN → 34,36,...,52).
+// Toca SOMENTE as referências presentes na planilha (não inativa/altera o resto).
+export async function updateGradesFromSheet(req: AuthRequest, res: Response) {
+  if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
+  const { id } = req.params
+  const XLSX = await import('xlsx')
+  const wb = XLSX.read(req.file.buffer, { type: 'buffer' })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  const data = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null })
+
+  // localiza cabeçalho + colunas REFERÊNCIA e TAMANHOS
+  let headerRow = -1, refIdx = -1, tamIdx = -1
+  for (let r = 0; r < Math.min(data.length, 10); r++) {
+    const row = (data[r] || []).map(c => String(c || '').toUpperCase())
+    const ri = row.findIndex(c => c.includes('REFER') || /\bREF\b/.test(c))
+    if (ri >= 0) {
+      refIdx = ri
+      tamIdx = row.findIndex(c => c.includes('TAMANHO'))
+      headerRow = r
+      break
+    }
+  }
+  if (refIdx < 0 || tamIdx < 0) {
+    res.status(400).json({ error: 'Planilha precisa ter colunas REFERÊNCIA e TAMANHOS' }); return
+  }
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    let updated = 0
+    const notFound: string[] = []
+    for (let r = headerRow + 1; r < data.length; r++) {
+      const row = data[r] as unknown[]
+      if (!row) continue
+      const ref = String(row[refIdx] || '').trim()
+      const tamRaw = String(row[tamIdx] || '').trim()
+      if (!ref || !tamRaw) continue
+      const sizes = tamRaw.split(/[,;]/).map(s => s.trim()).filter(Boolean)
+      if (sizes.length === 0) continue
+      const sizesJson = JSON.stringify(Object.fromEntries(sizes.map(s => [s, 0])))
+
+      const { rows: prods } = await client.query(
+        'SELECT id FROM products WHERE price_table_id=$1 AND UPPER(reference)=UPPER($2)', [id, ref]
+      )
+      if (prods.length === 0) { notFound.push(ref); continue }
+
+      for (const prod of prods) {
+        // preserva as cores existentes; se não houver grade, cria 1 linha sem cor
+        const { rows: gcs } = await client.query(
+          'SELECT color FROM grade_configs WHERE product_id=$1 ORDER BY sort_order', [prod.id]
+        )
+        const colors: (string | null)[] = gcs.length ? gcs.map(g => g.color) : [null]
+        await client.query('DELETE FROM grade_configs WHERE product_id=$1', [prod.id])
+        for (let i = 0; i < colors.length; i++) {
+          await client.query(
+            'INSERT INTO grade_configs (product_id, color, sizes, total_pieces, sort_order) VALUES ($1,$2,$3,0,$4)',
+            [prod.id, colors[i], sizesJson, i]
+          )
+        }
+        await client.query(
+          'UPDATE products SET size_range=$1, updated_at=NOW() WHERE id=$2',
+          [sizes.join(', ').slice(0, 255), prod.id]
+        )
+        updated++
+      }
+    }
+    await client.query('COMMIT')
+    res.json({ updated, notFound, notFoundCount: notFound.length })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao atualizar grades' })
+  } finally {
+    client.release()
+  }
+}
+
 // ── Galeria de fotos do produto ───────────────────────────────────────────────
 // Adiciona UMA imagem à galeria (append). Define como capa só se o produto ainda não tiver.
 export async function addProductImage(req: AuthRequest, res: Response) {
