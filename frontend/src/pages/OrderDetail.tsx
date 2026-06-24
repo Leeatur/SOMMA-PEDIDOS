@@ -604,19 +604,17 @@ export function OrderDetail() {
               </p>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-on-surface truncate">{order.price_table_name}</p>
-                {isAdmin && (
-                  <button
-                    onClick={() => {
-                      setNewPriceTableId(order.price_table_id)
-                      setNewDiscountPct(String(order.discount_pct))
-                      setChangePtModal(true)
-                    }}
-                    className="p-1 rounded-lg text-outline hover:text-primary hover:bg-primary/10 transition-colors flex-shrink-0"
-                    title="Trocar tabela de preços"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    setNewPriceTableId(order.price_table_id)
+                    setNewDiscountPct(String(order.discount_pct))
+                    setChangePtModal(true)
+                  }}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-lg transition-colors flex-shrink-0"
+                  title="Trocar tabela de preços e recalcular os valores"
+                >
+                  <RefreshCw className="h-3 w-3" /> Trocar tabela
+                </button>
               </div>
             </div>
             <div>
