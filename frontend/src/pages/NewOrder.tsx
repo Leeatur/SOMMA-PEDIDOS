@@ -1104,6 +1104,10 @@ export function NewOrder() {
                               Tam: {sortSizes(Object.keys(p.grade_configs[0].sizes)).join(' · ')}
                             </p>
                           )}
+                          {/* Observação do produto */}
+                          {p.observation && (
+                            <p className="text-[12px] text-amber-700 italic mt-0.5 line-clamp-2">{p.observation}</p>
+                          )}
                         </div>
 
                         {/* Controles */}
