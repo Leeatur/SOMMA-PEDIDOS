@@ -529,7 +529,11 @@ export default function OrderEdit() {
   const activeItems = items.filter(it => !it.removed)
   const allItems = [...activeItems, ...newItems]
   const totalPieces = allItems.reduce((s, it) => s + calcPieces(it), 0)
-  const totalValue = allItems.reduce((s, it) => s + calcSubtotal(it), 0)
+  const cashDiscForTotal = parseFloat(form.discount_pct.replace(',', '.')) || 0
+  const totalValue = allItems.reduce((s, it) => {
+    const effPrice = it.unit_price * (1 - policyDiscountPct / 100) * (1 - cashDiscForTotal / 100)
+    return s + effPrice * calcPieces(it)
+  }, 0)
 
   // ── salvar ────────────────────────────────────────────────────────────────────
 
@@ -1557,7 +1561,9 @@ function ItemRow({
     ? Object.values(draftSizes).reduce((s, v) => s + (v || 0), 0)
     : (draftGrade || []).reduce((s, gc) => s + gc.total_pieces, 0)
 
-  const subtotal = effectiveUnitPrice * pieces
+  const parsedPriceText = parseFloat(priceText.replace(',', '.'))
+  const priceForSubtotal = !isNaN(parsedPriceText) && parsedPriceText > 0 ? parsedPriceText : effectiveUnitPrice
+  const subtotal = priceForSubtotal * pieces
 
   const inputNum = 'w-10 text-center border border-outline-variant rounded px-0.5 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
 
@@ -1609,10 +1615,12 @@ function ItemRow({
                 const newText = e.target.value
                 isEditingPrice.current = true
                 setPriceText(newText)
-                // Atualiza o estado pai IMEDIATAMENTE para garantir que
-                // handleSave() leia o valor correto mesmo sem blur prévio
                 const v = parseFloat(newText.replace(',', '.'))
-                if (!isNaN(v) && v > 0) onPriceChange?.(v)
+                if (!isNaN(v) && v > 0) {
+                  // Usuário digita o preço FINAL; converte para pré-desconto para armazenar
+                  const discFactor = (1 - orderPolicyDiscPct / 100) * (1 - orderCashDiscPct / 100)
+                  onPriceChange?.(discFactor > 0 ? v / discFactor : v)
+                }
               }}
               onBlur={e => {
                 isEditingPrice.current = false
@@ -1621,7 +1629,8 @@ function ItemRow({
                 if (!isNaN(v) && v > 0) {
                   const formatted = v.toFixed(2).replace('.', ',')
                   setPriceText(formatted)
-                  onPriceChange?.(v)  // garante formato final correto no pai
+                  const discFactor = (1 - orderPolicyDiscPct / 100) * (1 - orderCashDiscPct / 100)
+                  onPriceChange?.(discFactor > 0 ? v / discFactor : v)
                 } else {
                   setPriceText(effectiveUnitPrice.toFixed(2).replace('.', ','))
                 }
