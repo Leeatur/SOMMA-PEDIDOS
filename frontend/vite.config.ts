@@ -22,30 +22,20 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+        // Inclui o index.html no PRECACHE (junto com js/css). Assim a "casca" do app
+        // fica sempre disponível offline E consistente com os bundles daquela build
+        // (o precache é atômico por build; cleanupOutdatedCaches remove o antigo).
+        // Isso resolve o offline e também o bug antigo de tela branca pós-deploy —
+        // que acontecia porque o index.html ficava num cache SEPARADO dos bundles e
+        // apontava para arquivos já removidos. Pré-cacheado, index + bundles batem.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
-        // Desativa o fallback de navegação pré-cacheado (index.html). Por padrão o
-        // Workbox serve um index.html "congelado" do cache para qualquer navegação —
-        // mas esse HTML aponta para os arquivos JS/CSS com hash da build em que foi
-        // gerado. A cada novo deploy esses arquivos antigos são removidos do servidor,
-        // então abrir o app (inclusive pelo ícone na tela de início do iPad/Android)
-        // carregava um index.html cacheado apontando para um bundle que não existe
-        // mais (404) e a página ficava em branco, sem o React nunca montar.
-        // Com `navigateFallback` desligado e a rota abaixo, a navegação sempre busca
-        // o index.html mais recente da rede primeiro (com cache só como reserva).
-        navigateFallback: undefined,
+        // Navegação (inclusive abrindo pelo ícone, offline) serve o index.html do precache.
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/uploads/],
         runtimeCaching: [
-          {
-            urlPattern: ({ request }) => request.mode === 'navigate',
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'html-cache-v2',
-              networkTimeoutSeconds: 8,
-              expiration: { maxEntries: 5, maxAgeSeconds: 24 * 60 * 60 },
-            },
-          },
           {
             urlPattern: /^https?:\/\/.*\/api\//,
             handler: 'NetworkFirst',
