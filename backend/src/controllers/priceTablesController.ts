@@ -1023,12 +1023,19 @@ export async function uploadPhotoByRef(req: AuthRequest, res: Response) {
       finalUrl = `/uploads/products/${reference}.jpg`
     }
 
-    await query(
+    // Propaga a foto para a referência em TODAS as tabelas do MESMO fornecedor
+    // (ex.: Sepé 30/60 e Sepé 30/60/90 compartilham as mesmas referências). Escopo
+    // por fornecedor evita vazar foto entre fornecedores que tenham ref numérica igual.
+    const upd = await query(
       `UPDATE products SET image_url=$1, updated_at=NOW()
-       WHERE price_table_id=$2 AND UPPER(reference)=$3`,
-      [finalUrl, priceTableId, reference]
+       WHERE UPPER(reference)=UPPER($2)
+         AND price_table_id IN (
+           SELECT id FROM price_tables
+           WHERE factory_id = (SELECT factory_id FROM price_tables WHERE id=$3)
+         )`,
+      [finalUrl, reference, priceTableId]
     )
-    res.json({ matched: true, reference, url: finalUrl })
+    res.json({ matched: true, reference, url: finalUrl, applied: upd.rowCount || 1 })
   } catch (err) {
     console.error(`Erro upload foto ${reference}:`, err)
     res.status(500).json({ error: `Erro ao processar ${reference}` })
