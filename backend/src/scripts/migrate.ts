@@ -93,6 +93,22 @@ ALTER TABLE products ALTER COLUMN size_range TYPE VARCHAR(255);
 ALTER TABLE products ADD COLUMN IF NOT EXISTS stock JSONB DEFAULT '{}';
 ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_updated_at TIMESTAMPTZ;
 
+-- Galeria de fotos por produto (várias imagens). products.image_url continua sendo a
+-- foto-capa (1ª imagem) para compatibilidade com listagens/telas existentes.
+CREATE TABLE IF NOT EXISTS product_images (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  url VARCHAR(500) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id);
+-- Backfill: produtos que já têm foto-capa entram na galeria como 1ª imagem (idempotente)
+INSERT INTO product_images (product_id, url, sort_order)
+SELECT id, image_url, 0 FROM products p
+WHERE image_url IS NOT NULL AND image_url <> ''
+  AND NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id = p.id);
+
 -- Composição da Grade Fechada por Produto
 -- Regular (TE...): uma linha sem cor, sizes = {"34":1,"36":1,...}
 -- Pack (PKTE...): uma linha por cor, sizes = {"36":1,"38":2,...}

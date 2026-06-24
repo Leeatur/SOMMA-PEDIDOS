@@ -5,6 +5,7 @@ import {
   ShoppingCart, Package, ChevronDown, ChevronUp,
   CheckCircle, ArrowLeft, X, Search, RefreshCw,
 } from 'lucide-react'
+import { ProductPhotos } from '../components/ui/ProductPhotos'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ interface GradeConfig { color: string | null; sizes: Record<string, number>; tot
 interface Product {
   id: string; reference: string; product_name: string | null; model: string | null
   base_price: number; type: 'regular' | 'pack'; image_url: string | null
+  images?: (string | null)[] | null
   size_range: string | null; grade_configs: GradeConfig[] | null; price_table_id: string
   blocked_sizes: string[]
 }
@@ -800,18 +802,8 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
     onClose()
   }
 
-  const [zoomOpen, setZoomOpen] = useState(false)
-
   return (
     <>
-    {/* Zoom fullscreen */}
-    {zoomOpen && product.image_url && (
-      <div className="fixed inset-0 z-[60] bg-black flex items-center justify-center" onClick={() => setZoomOpen(false)}>
-        <img src={product.image_url} alt={product.reference} className="max-w-full max-h-full object-contain" style={{ touchAction: 'pinch-zoom' }} />
-        <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center text-xl">✕</button>
-      </div>
-    )}
-
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
@@ -821,13 +813,14 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
           <button onClick={onClose} className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center">
             <X className="h-4 w-4" />
           </button>
-          {product.image_url ? (
-            <div className="relative w-full cursor-zoom-in" onClick={() => setZoomOpen(true)} style={{ height: '260px' }}>
-              <img src={product.image_url} alt={product.reference} className="w-full h-full object-contain" />
-              <div className="absolute bottom-2 right-3 bg-black/30 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-1 rounded-full flex items-center gap-1">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                ampliar
-              </div>
+          {(product.images?.length || product.image_url) ? (
+            <div className="relative w-full" style={{ height: '260px' }}>
+              <ProductPhotos
+                images={product.images?.length ? product.images : [product.image_url]}
+                alt={product.reference}
+                className="w-full h-full"
+                imgClassName="w-full h-full object-contain"
+              />
             </div>
           ) : (
             <div className="w-full h-40 flex items-center justify-center">

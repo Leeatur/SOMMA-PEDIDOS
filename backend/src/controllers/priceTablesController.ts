@@ -384,6 +384,79 @@ export async function uploadProductImage(req: AuthRequest, res: Response) {
   }
 }
 
+// ── Galeria de fotos do produto ───────────────────────────────────────────────
+// Adiciona UMA imagem à galeria (append). Define como capa só se o produto ainda não tiver.
+export async function addProductImage(req: AuthRequest, res: Response) {
+  if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
+  const { id } = req.params
+  try {
+    const sharpLib = (await import('sharp')).default
+    const resized = await sharpLib(req.file.buffer)
+      .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 85 }).toBuffer()
+
+    const key = `${id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+    let url: string
+    if (isR2Configured()) {
+      url = await uploadToR2(resized, key, 'products')
+    } else {
+      const fs = await import('fs')
+      const dest = path.join(__dirname, '../../..', 'uploads', 'products', key)
+      fs.writeFileSync(dest, resized)
+      url = `/uploads/products/${key}`
+    }
+
+    const { rows: [{ next }] } = await query(
+      'SELECT COALESCE(MAX(sort_order)+1,0) as next FROM product_images WHERE product_id=$1', [id]
+    )
+    const { rows: [img] } = await query(
+      'INSERT INTO product_images (product_id, url, sort_order) VALUES ($1,$2,$3) RETURNING *',
+      [id, url, next]
+    )
+    // Define capa se ainda não houver
+    await query(
+      `UPDATE products SET image_url=COALESCE(NULLIF(image_url,''),$1), updated_at=NOW() WHERE id=$2`,
+      [url, id]
+    )
+    res.status(201).json(img)
+  } catch (err) {
+    console.error('Erro ao adicionar imagem à galeria:', err)
+    res.status(500).json({ error: 'Erro ao adicionar imagem' })
+  }
+}
+
+export async function listProductImages(req: AuthRequest, res: Response) {
+  const { rows } = await query(
+    'SELECT * FROM product_images WHERE product_id=$1 ORDER BY sort_order, created_at', [req.params.id]
+  )
+  res.json(rows)
+}
+
+// Remove imagem da galeria. Se era a capa, promove a próxima (ou limpa).
+export async function deleteProductImage(req: AuthRequest, res: Response) {
+  const { id, imageId } = req.params
+  const { rows: [img] } = await query('SELECT url FROM product_images WHERE id=$1 AND product_id=$2', [imageId, id])
+  if (!img) { res.status(404).json({ error: 'Imagem não encontrada' }); return }
+  await query('DELETE FROM product_images WHERE id=$1', [imageId])
+  const { rows: [prod] } = await query('SELECT image_url FROM products WHERE id=$1', [id])
+  if (prod && prod.image_url === img.url) {
+    const { rows: [nextImg] } = await query(
+      'SELECT url FROM product_images WHERE product_id=$1 ORDER BY sort_order, created_at LIMIT 1', [id]
+    )
+    await query('UPDATE products SET image_url=$1, updated_at=NOW() WHERE id=$2', [nextImg ? nextImg.url : null, id])
+  }
+  res.json({ deleted: true })
+}
+
+// Define a foto-capa (image_url) a partir de uma imagem da galeria
+export async function setCoverImage(req: AuthRequest, res: Response) {
+  const { id, imageId } = req.params
+  const { rows: [img] } = await query('SELECT url FROM product_images WHERE id=$1 AND product_id=$2', [imageId, id])
+  if (!img) { res.status(404).json({ error: 'Imagem não encontrada' }); return }
+  await query('UPDATE products SET image_url=$1, updated_at=NOW() WHERE id=$2', [img.url, id])
+  res.json({ cover: img.url })
+}
+
 export async function listProducts(req: AuthRequest, res: Response) {
   const { price_table_id, search, type, include_inactive, sem_foto, com_foto } = req.query
   const isAdmin = req.user?.role === 'admin'
@@ -391,6 +464,8 @@ export async function listProducts(req: AuthRequest, res: Response) {
     SELECT p.*,
       pt.name as price_table_name,
       f.name as factory_name,
+      COALESCE((SELECT json_agg(pi.url ORDER BY pi.sort_order, pi.created_at)
+                FROM product_images pi WHERE pi.product_id = p.id), '[]') as images,
       json_agg(gc ORDER BY gc.sort_order) FILTER (WHERE gc.id IS NOT NULL) as grade_configs
     FROM products p
     LEFT JOIN price_tables pt ON pt.id = p.price_table_id

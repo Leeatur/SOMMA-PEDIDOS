@@ -195,6 +195,15 @@ export const productsApi = {
     fd.append('file', file)
     return apiClient.post(`/products/${id}/image`, fd)
   },
+  // Galeria (várias fotos por produto)
+  listImages: (id: string) => apiClient.get(`/products/${id}/images`),
+  addImage: (id: string, file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return apiClient.post(`/products/${id}/images`, fd, { timeout: 60000 })
+  },
+  deleteImage: (id: string, imageId: string) => apiClient.delete(`/products/${id}/images/${imageId}`),
+  setCoverImage: (id: string, imageId: string) => apiClient.patch(`/products/${id}/images/${imageId}/cover`),
   updateGrade: (product_id: string, grade_configs: Array<{
     color: string | null
     sizes: Record<string, number>

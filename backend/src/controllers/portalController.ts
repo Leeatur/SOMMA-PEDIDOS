@@ -99,6 +99,8 @@ async function fetchCatalogProducts(tableIds: string[]) {
   const { rows } = await query(
     `SELECT p.id, p.reference, p.product_name, p.model, p.size_range, p.base_price,
             p.type, p.image_url, p.observation, p.price_table_id, p.blocked_sizes,
+            COALESCE((SELECT json_agg(pi.url ORDER BY pi.sort_order, pi.created_at)
+                      FROM product_images pi WHERE pi.product_id = p.id), '[]') AS images,
             COALESCE(
               (SELECT json_agg(json_build_object('color',gc.color,'sizes',gc.sizes,'total_pieces',gc.total_pieces) ORDER BY gc.sort_order)
                FROM grade_configs gc WHERE gc.product_id = p.id),
@@ -256,6 +258,8 @@ export async function getPortalCatalog(req: Request, res: Response) {
     `SELECT p.id, p.reference, p.product_name, p.model, p.size_range, p.base_price,
             p.type, p.image_url, p.observation, p.price_table_id,
             p.blocked_sizes,
+            COALESCE((SELECT json_agg(pi.url ORDER BY pi.sort_order, pi.created_at)
+                      FROM product_images pi WHERE pi.product_id = p.id), '[]') AS images,
        (SELECT json_agg(json_build_object('color', gc.color, 'sizes', gc.sizes, 'total_pieces', gc.total_pieces) ORDER BY gc.sort_order)
         FROM grade_configs gc WHERE gc.product_id=p.id) AS grade_configs
      FROM products p

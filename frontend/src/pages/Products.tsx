@@ -123,6 +123,41 @@ function ProductDetailModal({
   const [editSyncMsg, setEditSyncMsg] = useState('')
   const pasteZoneRef = useRef<HTMLDivElement>(null)
 
+  // ── Galeria (várias fotos) ───────────────────────────────────────────────
+  const { data: galleryImages = [], refetch: refetchGallery } = useQuery<{ id: string; url: string }[]>({
+    queryKey: ['product-images', p.id],
+    queryFn: () => productsApi.listImages(p.id).then(r => r.data),
+    enabled: isAdmin,
+  })
+  const [addingGallery, setAddingGallery] = useState(false)
+  async function handleAddGallery(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length || !isAdmin) return
+    setAddingGallery(true)
+    try {
+      for (const f of files) { if (f.type.startsWith('image/')) await productsApi.addImage(p.id, f) }
+      const { data } = await productsApi.listImages(p.id)
+      await refetchGallery()
+      // se o produto ainda não tinha capa, a 1ª virou capa no backend
+      if (!currentImageUrl && data[0]?.url) { setCurrentImageUrl(data[0].url); onUpdated({ image_url: data[0].url }) }
+      qc.invalidateQueries({ queryKey: ['all-products'] })
+    } catch {
+      setImageUploadError('Erro ao adicionar fotos à galeria.')
+    } finally { setAddingGallery(false); e.target.value = '' }
+  }
+  async function handleDeleteGalleryImg(imageId: string) {
+    await productsApi.deleteImage(p.id, imageId)
+    const { data } = await productsApi.listImages(p.id)
+    await refetchGallery()
+    setCurrentImageUrl(data[0]?.url || '')
+    qc.invalidateQueries({ queryKey: ['all-products'] })
+  }
+  async function handleSetCover(imageId: string, url: string) {
+    await productsApi.setCoverImage(p.id, imageId)
+    setCurrentImageUrl(url); onUpdated({ image_url: url })
+    qc.invalidateQueries({ queryKey: ['all-products'] })
+  }
+
   async function uploadImageFile(file: File) {
     if (!isAdmin) return
     setUploadingImage(true)
@@ -636,6 +671,37 @@ function ProductDetailModal({
           <p className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
             <Check className="h-3 w-3" /> {editSyncMsg}
           </p>
+        )}
+
+        {/* Galeria — fotos adicionais (a foto-capa acima também entra) */}
+        {isAdmin && (
+          <div className="mt-1">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[12px] font-semibold text-on-surface-variant">Galeria de fotos ({galleryImages.length})</p>
+              <label className="text-[12px] text-primary font-semibold cursor-pointer hover:underline">
+                {addingGallery ? 'Enviando…' : '+ Adicionar fotos'}
+                <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddGallery} disabled={addingGallery} />
+              </label>
+            </div>
+            {galleryImages.length > 0 ? (
+              <div className="grid grid-cols-4 gap-2">
+                {galleryImages.map(img => (
+                  <div key={img.id} className="relative group aspect-square rounded-lg overflow-hidden bg-surface-container border border-outline-variant/40">
+                    <img src={img.url} alt="" className="w-full h-full object-cover" />
+                    {currentImageUrl === img.url && <span className="absolute top-0.5 left-0.5 bg-primary text-white text-[9px] font-bold px-1 rounded">CAPA</span>}
+                    <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/0 group-hover:bg-black/45 opacity-0 group-hover:opacity-100 transition">
+                      {currentImageUrl !== img.url && (
+                        <button type="button" onClick={() => handleSetCover(img.id, img.url)} title="Tornar capa" className="px-1.5 py-0.5 bg-white/90 rounded text-[10px] font-bold text-on-surface">capa</button>
+                      )}
+                      <button type="button" onClick={() => handleDeleteGalleryImg(img.id)} title="Remover" className="px-1.5 py-0.5 bg-white/90 rounded text-[10px] font-bold text-red-600">remover</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-outline">Sem fotos extras. Use "+ Adicionar fotos" pra montar a galeria (várias de uma vez).</p>
+            )}
+          </div>
         )}
 
         <div className="flex items-start gap-2 flex-wrap">
