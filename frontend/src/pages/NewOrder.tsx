@@ -1845,21 +1845,18 @@ function QuickAddModal({
       }
 
       if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement)) {
-        // Verifica se está no ÚLTIMO input numérico da grade (não move para próximo)
         const target = e.target as HTMLElement
         const isInSizeGrid = target.tagName === 'INPUT' && target.getAttribute('type') === 'number'
-        if (isInSizeGrid) {
-          // Se há próximo input, deixa o grid handler mover o foco (não adiciona ainda)
+        // Só na grade cor×tamanho (multicor) o Enter navega entre as células; na última, confirma.
+        // Na grade simples (uma linha), Enter confirma direto.
+        if (isInSizeGrid && multiVariant) {
           const table = target.closest('table')
           const inputs = table ? Array.from(table.querySelectorAll<HTMLInputElement>('input[type="number"]')) : []
           const idx = inputs.indexOf(target as HTMLInputElement)
-          if (idx >= 0 && idx < inputs.length - 1) {
-            // Não é o último — deixa navegar para o próximo
-            return
-          }
+          if (idx >= 0 && idx < inputs.length - 1) return  // deixa navegar para a próxima célula
         }
 
-        // É o último campo ou Enter fora da grade — adiciona o item
+        // Confirma (adiciona) o item
         e.preventDefault()
         if (totalPieces > 0) {
           if (multiGradePack) onAdd(product, mgFlat, 1, observation, customPrice, mgCustomGrade)
@@ -1870,7 +1867,8 @@ function QuickAddModal({
     }
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [onClose, onAdd, product, safeSizes, boxes, observation, totalPieces, customPrice])
+  }, [onClose, onAdd, product, safeSizes, boxes, observation, totalPieces, customPrice,
+      multiVariant, multiGradePack, mgFlat, mgCustomGrade, flatSizes, customGrade])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
