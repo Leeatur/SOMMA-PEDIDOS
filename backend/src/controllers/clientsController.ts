@@ -44,13 +44,13 @@ export async function getClient(req: AuthRequest, res: Response) {
 }
 
 export async function createClient(req: AuthRequest, res: Response) {
-  const { name, trade_name, cnpj, cpf, state_registration, address, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name } = req.body
+  const { name, trade_name, cnpj, cpf, state_registration, address, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name } = req.body
   if (!name) { res.status(400).json({ error: 'Nome é obrigatório' }); return }
   const assignedRep = req.user!.role === 'admin' ? (rep_id || req.user!.id) : req.user!.id
   const { rows } = await query(
-    `INSERT INTO clients (name, trade_name, cnpj, cpf, state_registration, address, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
-    [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, city||null,
+    `INSERT INTO clients (name, trade_name, cnpj, cpf, state_registration, address, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+    [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, neighborhood||null, city||null,
      state||null, zip||null, phone||null, whatsapp||null, email||null, assignedRep, notes||null, buyer_name||null]
   )
   res.status(201).json(rows[0])
@@ -154,16 +154,16 @@ export async function exportClients(req: AuthRequest, res: Response) {
 }
 
 export async function updateClient(req: AuthRequest, res: Response) {
-  const { name, trade_name, cnpj, cpf, state_registration, address, city, state, zip, phone, whatsapp, email, rep_id, notes, active, buyer_name } = req.body
+  const { name, trade_name, cnpj, cpf, state_registration, address, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, active, buyer_name } = req.body
   const { rows: [existing] } = await query('SELECT rep_id FROM clients WHERE id=$1', [req.params.id])
   if (!existing) { res.status(404).json({ error: 'Cliente não encontrado' }); return }
   const isAdmin = req.user!.role === 'admin'
   const assignedRep = isAdmin ? (rep_id || existing.rep_id) : existing.rep_id
   const { rows } = await query(
-    `UPDATE clients SET name=$1, trade_name=$2, cnpj=$3, cpf=$4, state_registration=$5, address=$6, city=$7,
-     state=$8, zip=$9, phone=$10, whatsapp=$11, email=$12, rep_id=$13, notes=$14, active=$15, buyer_name=$16, updated_at=NOW()
-     WHERE id=$17 RETURNING *`,
-    [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, city||null,
+    `UPDATE clients SET name=$1, trade_name=$2, cnpj=$3, cpf=$4, state_registration=$5, address=$6, neighborhood=$7, city=$8,
+     state=$9, zip=$10, phone=$11, whatsapp=$12, email=$13, rep_id=$14, notes=$15, active=$16, buyer_name=$17, updated_at=NOW()
+     WHERE id=$18 RETURNING *`,
+    [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, neighborhood||null, city||null,
      state||null, zip||null, phone||null, whatsapp||null, email||null, assignedRep, notes||null, active??true, buyer_name||null, req.params.id]
   )
   res.json(rows[0])

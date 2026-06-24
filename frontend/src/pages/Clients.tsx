@@ -25,6 +25,7 @@ interface Client {
   whatsapp: string | null
   email: string | null
   address: string | null
+  neighborhood: string | null
   zip: string | null
   notes: string | null
   buyer_name: string | null
@@ -41,6 +42,7 @@ interface FormState {
   cpf: string
   state_registration: string
   address: string
+  neighborhood: string
   city: string
   state: string
   zip: string
@@ -54,7 +56,7 @@ interface FormState {
 
 const emptyForm: FormState = {
   name: '', trade_name: '', cnpj: '', cpf: '', state_registration: '',
-  address: '', city: '', state: '', zip: '',
+  address: '', neighborhood: '', city: '', state: '', zip: '',
   phone: '', whatsapp: '', email: '', rep_id: '', notes: '', buyer_name: '',
 }
 
@@ -160,7 +162,7 @@ export function Clients() {
       name: c.name, trade_name: c.trade_name || '',
       cnpj: maskCnpj(c.cnpj || ''), cpf: maskCpf(c.cpf || ''),
       state_registration: c.state_registration || '',
-      address: c.address || '', city: c.city || '',
+      address: c.address || '', neighborhood: c.neighborhood || '', city: c.city || '',
       state: c.state || '', zip: maskCep(c.zip || ''),
       phone: maskPhone(c.phone || ''), whatsapp: maskPhone(c.whatsapp || ''),
       email: c.email || '', rep_id: c.rep_id || '', notes: c.notes || '', buyer_name: c.buyer_name || '',
@@ -615,6 +617,9 @@ export function Clients() {
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Input label="Endereço" {...f('address')} />
+              </div>
+              <div className="col-span-2">
+                <Input label="Bairro" {...f('neighborhood')} />
               </div>
               <MaskedInput label="CEP" mask="cep" value={form.zip} onChangeValue={v => setForm(p => ({ ...p, zip: v }))} />
               <Input label="Cidade" {...f('city')} />

@@ -422,6 +422,9 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS needs_review_discount BOOLEAN DEFAUL
 -- Desconto À Vista separado do desconto comercial (prazo).
 -- discount_pct = prazo + cash; cash_discount_pct = só à vista (não afeta comissão).
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS cash_discount_pct DECIMAL(5,2) DEFAULT 0;
+
+-- Bairro no cadastro de clientes
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(150);
 `
 
 async function migrate() {

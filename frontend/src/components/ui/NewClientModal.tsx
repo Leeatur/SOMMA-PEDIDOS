@@ -43,6 +43,7 @@ interface FormData {
   phone: string
   whatsapp: string
   address: string
+  neighborhood: string
   city: string
   state: string
   zip: string
@@ -68,7 +69,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
   const qc = useQueryClient()
   const [form, setForm] = useState<FormData>({
     cnpj: '', name: '', trade_name: '', state_registration: '', email: '',
-    phone: '', whatsapp: '', address: '', city: '',
+    phone: '', whatsapp: '', address: '', neighborhood: '', city: '',
     state: '', zip: '', notes: '',
   })
   const [cnpjInput, setCnpjInput] = useState('')
@@ -108,7 +109,6 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
         data.logradouro,
         data.numero,
         data.complemento,
-        data.bairro,
       ].filter(Boolean).join(', ')
 
       const newForm: Partial<FormData> = {
@@ -116,6 +116,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
         name: data.razao_social || '',
         trade_name: data.nome_fantasia || '',
         address: addressFull,
+        neighborhood: data.bairro || '',
         city: data.municipio || '',
         state: data.uf || '',
         zip: maskCep(data.cep || ''),
@@ -142,6 +143,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
       cnpj: form.cnpj || undefined,
       state_registration: form.state_registration || undefined,
       address: form.address || undefined,
+      neighborhood: form.neighborhood || undefined,
       city: form.city || undefined,
       state: form.state || undefined,
       zip: form.zip || undefined,
@@ -160,10 +162,14 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
   function validate(): boolean {
     const e: Partial<FormData> = {}
     if (!form.name.trim()) e.name = 'Nome é obrigatório'
-    // E-mail e WhatsApp são obrigatórios (a Receita não traz confiável)
     if (!form.email.trim()) e.email = 'E-mail é obrigatório'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = 'E-mail inválido'
     if (!form.whatsapp.trim()) e.whatsapp = 'WhatsApp é obrigatório'
+    if (!form.address.trim()) e.address = 'Logradouro é obrigatório'
+    if (!form.neighborhood.trim()) e.neighborhood = 'Bairro é obrigatório'
+    if (!form.city.trim()) e.city = 'Cidade é obrigatória'
+    if (!form.state.trim()) e.state = 'UF é obrigatório'
+    if (!form.zip.trim()) e.zip = 'CEP é obrigatório'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -173,7 +179,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
   }
 
   function handleClose() {
-    setForm({ cnpj: '', name: '', trade_name: '', state_registration: '', email: '', phone: '', whatsapp: '', address: '', city: '', state: '', zip: '', notes: '' })
+    setForm({ cnpj: '', name: '', trade_name: '', state_registration: '', email: '', phone: '', whatsapp: '', address: '', neighborhood: '', city: '', state: '', zip: '', notes: '' })
     setCnpjInput('')
     setCnpjError('')
     setCnpjFound(false)
@@ -341,43 +347,67 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
             <MapPin className="h-3.5 w-3.5" /> Endereço
           </p>
           <div>
-            <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Logradouro</label>
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-1">
+              Logradouro <span className="text-red-500">*</span>
+            </label>
             <input
               value={form.address}
               onChange={e => set('address', e.target.value)}
-              placeholder="Rua, número, complemento, bairro"
-              className="w-full px-3 py-1 text-[12px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Rua, número, complemento"
+              className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.address ? 'border-red-400' : 'border-outline-variant'}`}
             />
+            {errors.address && <p className="text-[12px] text-red-500 mt-0.5">{errors.address}</p>}
+          </div>
+          <div>
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-1">
+              Bairro <span className="text-red-500">*</span>
+            </label>
+            <input
+              value={form.neighborhood}
+              onChange={e => set('neighborhood', e.target.value)}
+              placeholder="Nome do bairro"
+              className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.neighborhood ? 'border-red-400' : 'border-outline-variant'}`}
+            />
+            {errors.neighborhood && <p className="text-[12px] text-red-500 mt-0.5">{errors.neighborhood}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Cidade</label>
+              <label className="block text-[12px] font-medium text-on-surface-variant mb-1">
+                Cidade <span className="text-red-500">*</span>
+              </label>
               <input
                 value={form.city}
                 onChange={e => set('city', e.target.value)}
-                className="w-full px-3 py-1 text-[12px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.city ? 'border-red-400' : 'border-outline-variant'}`}
               />
+              {errors.city && <p className="text-[12px] text-red-500 mt-0.5">{errors.city}</p>}
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-on-surface-variant mb-1">UF</label>
+              <label className="block text-[12px] font-medium text-on-surface-variant mb-1">
+                UF <span className="text-red-500">*</span>
+              </label>
               <input
                 value={form.state}
                 onChange={e => set('state', e.target.value.toUpperCase().slice(0, 2))}
                 placeholder="SP"
                 maxLength={2}
-                className="w-full px-3 py-1 text-[12px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.state ? 'border-red-400' : 'border-outline-variant'}`}
               />
+              {errors.state && <p className="text-[12px] text-red-500 mt-0.5">{errors.state}</p>}
             </div>
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-on-surface-variant mb-1">CEP</label>
+            <label className="block text-[12px] font-medium text-on-surface-variant mb-1">
+              CEP <span className="text-red-500">*</span>
+            </label>
             <input
               value={form.zip}
               onChange={e => set('zip', maskCep(e.target.value))}
               placeholder="00000-000"
               maxLength={9}
-              className="w-full px-3 py-1 text-[12px] border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.zip ? 'border-red-400' : 'border-outline-variant'}`}
             />
+            {errors.zip && <p className="text-[12px] text-red-500 mt-0.5">{errors.zip}</p>}
           </div>
         </div>
 
