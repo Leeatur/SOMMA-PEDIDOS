@@ -144,7 +144,11 @@ function parseRegularSheet(ws: XLSX.WorkSheet): { products: ImportedProduct[]; d
       size_range: String(row[colGrade] || '').trim(),
       base_price: basePrice,
       category: '',
-      observation: String(row[(FLEXIBLE_IMPORT && colObs >= 0) ? colObs : (colPrice + discountCols.length + 1)] || '').trim(),
+      // No modo flexível, só preenche observação se existir uma coluna OBSERVAÇÃO de verdade.
+      // (Sem ela, NÃO chutar colPrice+1 — senão vaza o valor/2ª coluna de preço pra observação.)
+      observation: FLEXIBLE_IMPORT
+        ? (colObs >= 0 ? String(row[colObs] || '').trim() : '')
+        : String(row[colPrice + discountCols.length + 1] || '').trim(),
       grade,
     })
   }
