@@ -927,7 +927,7 @@ export default function OrderEdit() {
                   </table>
                 </div>
                 <p className="text-[11px] text-outline mt-1">
-                  💡 Desconto de prazo afeta comissão. Desconto Comercial é separado e não afeta comissão.
+                  💡 Desconto À Vista não afeta comissão. Desconto Comercial a Prazo afeta comissão.
                 </p>
               </div>
             )}
