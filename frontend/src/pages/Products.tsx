@@ -1294,6 +1294,11 @@ export function Products() {
   const [typeFilter, setTypeFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<'active' | 'all' | 'inactive'>('active')
   const [fotoFilter, setFotoFilter] = useState<'' | 'com' | 'sem'>('')
+  const [tableFilter, setTableFilter] = useState('')
+  const { data: filterTables = [] } = useQuery<{ id: string; name: string; factory_name: string }[]>({
+    queryKey: ['price-tables-filter'],
+    queryFn: () => priceTablesApi.list().then(r => r.data),
+  })
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const [showZipImport, setShowZipImport] = useState(false)
@@ -1311,11 +1316,12 @@ export function Products() {
   }
 
   const { data: rawProducts, isLoading } = useQuery<Product[]>({
-    queryKey: ['all-products', debouncedSearch, typeFilter, activeFilter, fotoFilter],
+    queryKey: ['all-products', debouncedSearch, typeFilter, activeFilter, fotoFilter, tableFilter],
     queryFn: () =>
       productsApi.list({
         search: debouncedSearch || undefined,
         type: typeFilter || undefined,
+        price_table_id: tableFilter || undefined,
         include_inactive: isAdmin && activeFilter !== 'active' ? true : undefined,
         sem_foto: fotoFilter === 'sem' ? true : undefined,
         com_foto: fotoFilter === 'com' ? true : undefined,
@@ -1631,6 +1637,17 @@ export function Products() {
               leftIcon={<Search className="h-4 w-4" />}
             />
           </div>
+          <select
+            value={tableFilter}
+            onChange={(e) => setTableFilter(e.target.value)}
+            title="Filtrar por tabela de preços"
+            className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-white max-w-[220px]"
+          >
+            <option value="">Todas as tabelas</option>
+            {filterTables.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
