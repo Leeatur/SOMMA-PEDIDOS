@@ -556,7 +556,10 @@ export default function OrderEdit() {
 
       // 1. Só recalcula via changePriceTable se o desconto realmente mudou
       // (evita resetar preços manuais desnecessariamente)
-      if (isAdmin && Math.abs(totalDiscount - oldTotalDiscount) > 0.001) {
+      const oldCashDiscount = Number(order.cash_discount_pct || 0)
+      const discountChanged = Math.abs(totalDiscount - oldTotalDiscount) > 0.001
+                           || Math.abs(cashDiscount - oldCashDiscount) > 0.001
+      if (isAdmin && discountChanged) {
         // Passa commission_discount_pct separado = só o desconto de PRAZO para comissão
         await ordersApi.changePriceTable(id!, order.price_table_id, totalDiscount, policyDiscountPct, cashDiscount)
       }
