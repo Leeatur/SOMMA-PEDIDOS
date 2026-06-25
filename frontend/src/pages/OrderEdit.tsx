@@ -191,11 +191,6 @@ function calcPieces(item: EditableItem | NewItem): number {
   return item.draftGrade.reduce((s, gc) => s + gc.total_pieces, 0)
 }
 
-function calcSubtotal(item: EditableItem | NewItem): number {
-  // preço por PEÇA × total de peças (tanto regular quanto pack)
-  return item.unit_price * calcPieces(item)
-}
-
 // ── componente principal ───────────────────────────────────────────────────────
 
 // ─── Rascunho automático da edição de pedido (auto-save / auto-recover) ──────

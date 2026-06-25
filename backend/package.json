@@ -17,6 +17,8 @@
     "seed:dev": "tsx src/scripts/seedDev.ts",
     "seed:demo": "tsx src/scripts/seedDemoOrders.ts",
     "seed:demo:prod": "node dist/scripts/seedDemoOrders.js",
+    "geocode:clients": "tsx src/scripts/geocodeClients.ts",
+    "geocode:clients:prod": "node dist/scripts/geocodeClients.js",
     "fix:grade-zz70756": "tsx src/scripts/fixGradeZZ70756.ts",
     "fix:grade-zz70763": "tsx src/scripts/fixGradeZZ70763.ts"
   },
