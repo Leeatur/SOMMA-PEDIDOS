@@ -461,6 +461,25 @@ export default function OrderEdit() {
     setNewItems(prev => prev.filter(it => it.tempId !== tempId))
   }
 
+  // Quando o desconto comercial muda, re-normaliza unit_price dos itens com preço
+  // ajustado manualmente para que o preço efetivo exibido permaneça o mesmo.
+  const handlePolicyDiscountChange = (newPct: number) => {
+    const cashDisc = parseFloat(form.discount_pct.replace(',', '.')) || 0
+    const oldFactor = (1 - policyDiscountPct / 100) * (1 - cashDisc / 100)
+    const newFactor = (1 - newPct / 100) * (1 - cashDisc / 100)
+    if (Math.abs(oldFactor - newFactor) > 0.0001 && newFactor > 0) {
+      setItems(prev => prev.map(it => {
+        const origPrice = Number((it as EditableItem).original_unit_price ?? it.unit_price)
+        if (Math.abs(it.unit_price - origPrice) > 0.01) {
+          const effectivePrice = it.unit_price * oldFactor
+          return { ...it, unit_price: Math.round(effectivePrice / newFactor * 10000) / 10000 }
+        }
+        return it
+      }))
+    }
+    setPolicyDiscountPct(newPct)
+  }
+
   const updateGrade = (itemId: string, colorIdx: number, size: string, val: number) => {
     setItems(prev => prev.map(it => {
       if (it.id !== itemId) return it
@@ -915,7 +934,7 @@ export default function OrderEdit() {
                         const zeroActive = policyDiscountPct < 0.001
                         return (
                           <tr
-                            onClick={() => setPolicyDiscountPct(0)}
+                            onClick={() => handlePolicyDiscountChange(0)}
                             className={`cursor-pointer transition-colors ${zeroActive
                               ? 'bg-emerald-50 font-bold ring-1 ring-inset ring-emerald-400'
                               : 'bg-white hover:bg-emerald-50/60'
@@ -938,7 +957,7 @@ export default function OrderEdit() {
                         return (
                           <tr
                             key={i}
-                            onClick={() => setPolicyDiscountPct(Number(r.discount_pct))}
+                            onClick={() => handlePolicyDiscountChange(Number(r.discount_pct))}
                             className={`cursor-pointer transition-colors ${isActive
                               ? 'bg-primary/10 font-bold ring-1 ring-inset ring-primary/30'
                               : 'bg-white hover:bg-primary/5'
