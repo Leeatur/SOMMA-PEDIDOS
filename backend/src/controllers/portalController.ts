@@ -98,7 +98,7 @@ async function fetchCatalogProducts(tableIds: string[]) {
   if (!tableIds.length) return []
   const { rows } = await query(
     `SELECT p.id, p.reference, p.product_name, p.model, p.size_range, p.base_price,
-            p.type, p.image_url, p.observation, p.price_table_id, p.blocked_sizes,
+            p.type, p.image_url, p.observation, p.price_table_id, p.blocked_sizes, p.stock,
             COALESCE((SELECT json_agg(pi.url ORDER BY pi.sort_order, pi.created_at)
                       FROM product_images pi WHERE pi.product_id = p.id), '[]') AS images,
             COALESCE(

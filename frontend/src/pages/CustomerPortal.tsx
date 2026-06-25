@@ -17,6 +17,7 @@ interface Product {
   images?: (string | null)[] | null
   size_range: string | null; grade_configs: GradeConfig[] | null; price_table_id: string
   blocked_sizes: string[]
+  stock?: Record<string, Record<string, number>> | null
 }
 interface PriceTable {
   id: string; name: string; collection: string; season: string; year: number | null
@@ -784,6 +785,28 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
     .filter(e => e.total_pieces > 0)
   const mgTotal = mgCustomGrade.reduce((s, e) => s + e.total_pieces, 0)
 
+  // ── Estoque (grade fechada): valida no NÍVEL DE TAMANHO (soma cores) ──
+  const norm = (s: string) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const availBySize: Record<string, number> = {}
+  for (const sizes of Object.values(product.stock || {})) {
+    for (const [sz, q] of Object.entries(sizes || {})) {
+      const k = norm(sz); availBySize[k] = (availBySize[k] || 0) + (Number(q) || 0)
+    }
+  }
+  const hasStock = Object.keys(availBySize).length > 0
+  // Quanto cada tamanho é exigido pelas grades escolhidas
+  const neededBySize: Record<string, number> = {}
+  for (const e of mgCustomGrade) {
+    for (const [sz, q] of Object.entries(e.sizes)) {
+      const k = norm(sz); neededBySize[k] = (neededBySize[k] || 0) + (Number(q) || 0)
+    }
+  }
+  // Tamanhos que estouram o estoque
+  const stockShort = hasStock
+    ? Object.entries(neededBySize).filter(([sz, need]) => need > (availBySize[sz] ?? 0)).map(([sz]) => sz)
+    : []
+  const stockBlocked = multiGradePack && stockShort.length > 0
+
   const totalPiecesPerPack = grades.reduce((s: number, g: GradeConfig) => s + g.total_pieces, 0)
   const packPieces = isPack ? totalPiecesPerPack * boxes : 0
   const regularPieces = Object.values(sizes).reduce((s, v) => s + v, 0)
@@ -883,6 +906,11 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
                 <div className="flex items-center justify-between bg-purple-50 rounded-xl px-4 py-3 border border-purple-100">
                   <span className="font-bold text-purple-700">{mgTotal} peças no total</span>
                   <span className="font-black text-purple-800 text-lg">{fmtCur(product.base_price * mgTotal)}</span>
+                </div>
+              )}
+              {stockBlocked && (
+                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-[13px] text-red-700">
+                  ⚠️ <b>Estoque insuficiente</b> para esta combinação de grades nos tamanhos: <b>{stockShort.join(', ').toUpperCase()}</b>. Reduza a quantidade de grades.
                 </div>
               )}
             </div>
@@ -998,11 +1026,11 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
           )}
           <button
             onClick={handleConfirm}
-            disabled={totalPieces === 0}
+            disabled={totalPieces === 0 || stockBlocked}
             className="w-full py-4 rounded-2xl font-black text-base transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: totalPieces > 0 ? 'linear-gradient(135deg,#f59e0b,#d97706)' : '#9ca3af', color: '#fff', boxShadow: totalPieces > 0 ? '0 4px 20px rgba(217,119,6,0.4)' : 'none' }}
+            style={{ background: (totalPieces > 0 && !stockBlocked) ? 'linear-gradient(135deg,#f59e0b,#d97706)' : '#9ca3af', color: '#fff', boxShadow: (totalPieces > 0 && !stockBlocked) ? '0 4px 20px rgba(217,119,6,0.4)' : 'none' }}
           >
-            ✅ CONFIRMAR E VOLTAR AO CATÁLOGO
+            {stockBlocked ? '⚠️ Estoque insuficiente' : '✅ CONFIRMAR E VOLTAR AO CATÁLOGO'}
           </button>
           <button onClick={onClose} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600">
             Cancelar
