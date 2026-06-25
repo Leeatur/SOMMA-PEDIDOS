@@ -1672,14 +1672,14 @@ function ItemRow({
                 }
               }}
               className={`w-24 text-right text-[12px] font-semibold border rounded-lg px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-primary/40 ${
-                Math.abs(parseFloat(priceText.replace(',','.')) - unitPrice) > 0.01
+                Math.abs(parseFloat(priceText.replace(',','.')) - effectiveUnitPrice) > 0.01
                   ? 'border-amber-400 text-amber-700 bg-amber-50 focus:border-amber-500'
                   : 'border-outline-variant/50 text-primary bg-white focus:border-primary'
               }`}
               title="Clique para editar o preço unitário"
             />
           </div>
-          {Math.abs(parseFloat(priceText.replace(',','.')) - unitPrice) > 0.01 && (
+          {Math.abs(parseFloat(priceText.replace(',','.')) - effectiveUnitPrice) > 0.01 && (
             <span className="text-[10px] text-amber-600 font-semibold">✏️ alterado</span>
           )}
         </div>
