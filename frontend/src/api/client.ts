@@ -247,7 +247,6 @@ export const productsApi = {
 
 export const clientsApi = {
   list: (search?: string) => apiClient.get('/clients', { params: { search } }),
-  map: () => apiClient.get('/clients/map'),
   create: (data: Partial<ClientPayload>) => apiClient.post('/clients', data),
   update: (id: string, data: Partial<ClientPayload>) =>
     apiClient.put(`/clients/${id}`, data),

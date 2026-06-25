@@ -19,7 +19,6 @@ import { OrdersTrash } from './pages/OrdersTrash'
 import { OrderAlertsPage } from './pages/OrderAlertsPage'
 import OrderEdit from './pages/OrderEdit'
 import { Prospecting } from './pages/Prospecting'
-import { CarteiraMapa } from './pages/CarteiraMapa'
 import { CustomerPortal } from './pages/CustomerPortal'
 import { Portals } from './pages/Portals'
 import { ProntaEntrega } from './pages/ProntaEntrega'
@@ -64,7 +63,6 @@ export function App() {
         <Route path="/orders/:id/edit" element={<OrderEdit />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/prospecting" element={<Prospecting />} />
-        <Route path="/carteira-mapa" element={<CarteiraMapa />} />
 <Route path="/products" element={<Products />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/portals" element={<Portals />} />

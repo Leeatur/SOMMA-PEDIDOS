@@ -244,9 +244,6 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS buyer_name VARCHAR(200);
 
 -- Coluna whatsapp nos clientes (adicionada em v2)
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30);
--- Coordenadas do cliente (Carteira no Mapa / capilaridade) — geocodificadas por cidade/endereço
-ALTER TABLE clients ADD COLUMN IF NOT EXISTS lat DECIMAL(10,7);
-ALTER TABLE clients ADD COLUMN IF NOT EXISTS lng DECIMAL(10,7);
 
 -- Inscrição Estadual nos clientes (adicionada em v5)
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS state_registration VARCHAR(50);

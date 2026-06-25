@@ -91,6 +91,7 @@ interface OrderDetail {
   factory_name: string
   price_table_name: string
   discount_pct: number
+  cash_discount_pct: number
   total_commission_pct: number
   rep_commission_pct: number
   office_commission_pct: number
@@ -688,7 +689,7 @@ export function OrderDetail() {
             <div className="flex justify-between items-center text-on-surface-variant">
               <span>Desc. À Vista aplicado:</span>
               <div className="flex items-center gap-2">
-                <span className="font-medium">{formatPct(order.discount_pct)}</span>
+                <span className="font-medium">{formatPct(order.cash_discount_pct)}</span>
               </div>
             </div>
             <div className="flex justify-between font-bold text-on-surface text-[12px]">

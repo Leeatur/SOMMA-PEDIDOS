@@ -2,17 +2,6 @@ import { Response } from 'express'
 import * as XLSX from 'xlsx'
 import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
-import { geocodeAddress } from '../utils/geocode'
-
-// Geocodifica (best-effort, em background) e grava lat/lng no cliente. Não bloqueia a resposta.
-function geocodeClientAsync(id: string, address?: string | null, city?: string | null, uf?: string | null) {
-  if (!city) return
-  geocodeAddress(address, city, uf)
-    .then(coords => {
-      if (coords) query('UPDATE clients SET lat=$1, lng=$2 WHERE id=$3', [coords.lat, coords.lng, id]).catch(() => {})
-    })
-    .catch(() => {})
-}
 
 export async function listClients(req: AuthRequest, res: Response) {
   const { search } = req.query
@@ -65,7 +54,6 @@ export async function createClient(req: AuthRequest, res: Response) {
      state||null, zip||null, phone||null, whatsapp||null, email||null, assignedRep, notes||null, buyer_name||null]
   )
   res.status(201).json(rows[0])
-  geocodeClientAsync(rows[0].id, address, city, state)
 }
 
 export async function deleteClient(req: AuthRequest, res: Response) {
@@ -179,33 +167,4 @@ export async function updateClient(req: AuthRequest, res: Response) {
      state||null, zip||null, phone||null, whatsapp||null, email||null, assignedRep, notes||null, active??true, buyer_name||null, req.params.id]
   )
   res.json(rows[0])
-  // Re-geocodifica se cidade definida (best-effort, em background)
-  geocodeClientAsync(req.params.id, address, city, state)
-}
-
-// Clientes com coordenadas + agregados de venda — para a "Carteira no Mapa"
-// Quando COMMISSION_ON_FINAL_ONLY=true (NXO), conta SÓ pedidos em status final
-// (faturado/enviado) e mostra só clientes com venda faturada — capilaridade do que faturou.
-export async function clientsMap(req: AuthRequest, res: Response) {
-  const isAdmin = req.user!.role === 'admin'
-  const onlyFinal = process.env.COMMISSION_ON_FINAL_ONLY === 'true'
-  const params: unknown[] = []
-  let repCond = ''
-  if (!isAdmin) { params.push(req.user!.id); repCond = `AND c.rep_id = $1` }
-  const finalJoin = onlyFinal
-    ? `AND EXISTS (SELECT 1 FROM order_statuses st WHERE st.id = o.status_id AND st.is_final = true)`
-    : ''
-  const having = onlyFinal ? 'HAVING COUNT(o.id) > 0' : ''
-  const { rows } = await query(
-    `SELECT c.id, c.name, c.trade_name, c.city, c.state, c.lat, c.lng,
-            COUNT(o.id)::int AS order_count,
-            COALESCE(SUM(o.total_value),0)::numeric AS total_value,
-            MAX(o.created_at) AS last_order
-     FROM clients c
-     LEFT JOIN orders o ON o.client_id = c.id AND o.deleted_at IS NULL ${finalJoin}
-     WHERE c.active = true AND c.lat IS NOT NULL AND c.lng IS NOT NULL ${repCond}
-     GROUP BY c.id ${having}`,
-    params
-  )
-  res.json(rows)
 }
