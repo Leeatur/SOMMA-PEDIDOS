@@ -184,20 +184,27 @@ export async function updateClient(req: AuthRequest, res: Response) {
 }
 
 // Clientes com coordenadas + agregados de venda — para a "Carteira no Mapa"
+// Quando COMMISSION_ON_FINAL_ONLY=true (NXO), conta SÓ pedidos em status final
+// (faturado/enviado) e mostra só clientes com venda faturada — capilaridade do que faturou.
 export async function clientsMap(req: AuthRequest, res: Response) {
   const isAdmin = req.user!.role === 'admin'
+  const onlyFinal = process.env.COMMISSION_ON_FINAL_ONLY === 'true'
   const params: unknown[] = []
   let repCond = ''
   if (!isAdmin) { params.push(req.user!.id); repCond = `AND c.rep_id = $1` }
+  const finalJoin = onlyFinal
+    ? `AND EXISTS (SELECT 1 FROM order_statuses st WHERE st.id = o.status_id AND st.is_final = true)`
+    : ''
+  const having = onlyFinal ? 'HAVING COUNT(o.id) > 0' : ''
   const { rows } = await query(
     `SELECT c.id, c.name, c.trade_name, c.city, c.state, c.lat, c.lng,
             COUNT(o.id)::int AS order_count,
             COALESCE(SUM(o.total_value),0)::numeric AS total_value,
             MAX(o.created_at) AS last_order
      FROM clients c
-     LEFT JOIN orders o ON o.client_id = c.id AND o.deleted_at IS NULL
+     LEFT JOIN orders o ON o.client_id = c.id AND o.deleted_at IS NULL ${finalJoin}
      WHERE c.active = true AND c.lat IS NOT NULL AND c.lng IS NOT NULL ${repCond}
-     GROUP BY c.id`,
+     GROUP BY c.id ${having}`,
     params
   )
   res.json(rows)
