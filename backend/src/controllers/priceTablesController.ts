@@ -1042,6 +1042,53 @@ export async function uploadPhotoByRef(req: AuthRequest, res: Response) {
   }
 }
 
+// Anexa UMA foto à GALERIA da referência (em todos os produtos do mesmo fornecedor).
+// Usado na importação em massa da galeria (várias fotos por código). A imagem já vem
+// comprimida do browser; só sobe ao R2 com chave única e cria as linhas em product_images.
+export async function addGalleryImageByRef(req: AuthRequest, res: Response) {
+  if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
+  const priceTableId = req.params.id
+  const reference = String(req.query.reference || '').trim()
+  if (!reference) { res.status(400).json({ error: 'reference obrigatório' }); return }
+
+  try {
+    const { rows: prods } = await query(
+      `SELECT p.id, p.image_url FROM products p
+       WHERE UPPER(p.reference)=UPPER($1)
+         AND p.price_table_id IN (
+           SELECT id FROM price_tables WHERE factory_id = (SELECT factory_id FROM price_tables WHERE id=$2)
+         )`,
+      [reference, priceTableId]
+    )
+    if (prods.length === 0) { res.json({ skipped: true, reason: 'not_found' }); return }
+
+    const key = `gal-${reference}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`
+    let url: string
+    if (isR2Configured()) {
+      url = await uploadToR2(req.file.buffer, key, 'products')
+    } else {
+      const fs = await import('fs')
+      const dest = path.join(__dirname, '../../..', 'uploads', 'products', key)
+      fs.writeFileSync(dest, req.file.buffer)
+      url = `/uploads/products/${key}`
+    }
+
+    for (const p of prods) {
+      const { rows: [{ next }] } = await query(
+        'SELECT COALESCE(MAX(sort_order)+1,0) as next FROM product_images WHERE product_id=$1', [p.id]
+      )
+      await query('INSERT INTO product_images (product_id, url, sort_order) VALUES ($1,$2,$3)', [p.id, url, next])
+      if (!p.image_url) {
+        await query('UPDATE products SET image_url=$1, updated_at=NOW() WHERE id=$2', [url, p.id])
+      }
+    }
+    res.json({ matched: true, reference, url, applied: prods.length })
+  } catch (err) {
+    console.error(`Erro galeria foto ${reference}:`, err)
+    res.status(500).json({ error: `Erro ao processar ${reference}` })
+  }
+}
+
 async function replaceGradeConfigs(client: PoolClient, productId: string, grade_configs: { color?: string | null; sizes: Record<string, number> }[]) {
   await client.query('DELETE FROM grade_configs WHERE product_id=$1', [productId])
   for (let i = 0; i < grade_configs.length; i++) {

@@ -82,6 +82,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
   const [priceTableId, setPriceTableId] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [overwrite, setOverwrite] = useState(false)
+  const [galleryMode, setGalleryMode] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [phase, setPhase] = useState<'idle' | 'reading' | 'uploading'>('idle')
   const [progress, setProgress] = useState({ done: 0, total: 0 })
@@ -98,6 +99,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
     setFile(null)
     setPriceTableId('')
     setOverwrite(false)
+    setGalleryMode(false)
     setProcessing(false)
     setPhase('idle')
     setProgress({ done: 0, total: 0 })
@@ -126,7 +128,10 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
       // 2. Coleta imagens; referência = trecho antes do 1º "-", espaço ou "(".
       //    Ex.: "H90-CINZA (7).jpg" → H90 | "FC558 PRETO.jpg" → FC558 | "5315.jpg" → 5315
       //    Mantém 1 foto por referência: prefere a sem número ou a de menor índice "(n)".
+      // Modo capa (padrão): 1 foto por referência (dedup pela menor "(n)").
+      // Modo galeria: TODAS as fotos de cada referência (várias por produto).
       const best = new Map<string, { n: number; zipFile: JSZip.JSZipObject }>()
+      const all: Array<{ ref: string; n: number; zipFile: JSZip.JSZipObject }> = []
       zip.forEach((relativePath, zipFile) => {
         if (zipFile.dir) return
         const base = relativePath.split('/').pop() || ''
@@ -139,9 +144,11 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
         const n = nm ? parseInt(nm[1], 10) : 0   // sem número = 0 (prioridade)
         const cur = best.get(head)
         if (!cur || n < cur.n) best.set(head, { n, zipFile })
+        all.push({ ref: head, n, zipFile })
       })
-      const images: Array<{ ref: string; zipFile: JSZip.JSZipObject }> =
-        [...best.entries()].map(([ref, { zipFile }]) => ({ ref, zipFile }))
+      const images: Array<{ ref: string; zipFile: JSZip.JSZipObject }> = galleryMode
+        ? all.sort((a, b) => a.ref.localeCompare(b.ref) || a.n - b.n).map(({ ref, zipFile }) => ({ ref, zipFile }))
+        : [...best.entries()].map(([ref, { zipFile }]) => ({ ref, zipFile }))
 
       if (images.length === 0) {
         setError('Nenhuma imagem com referência válida encontrada no ZIP. Os nomes precisam começar com o código (ex: H90-CINZA.jpg, FC558.jpg, 5315 (1).jpg).')
@@ -165,7 +172,9 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
           const rawBlob = await zipFile.async('blob')
           // Comprime no browser antes de enviar (25-44 MB → ~300 KB)
           const compressed = await compressImage(rawBlob)
-          const res = await priceTablesApi.uploadPhotoByRef(priceTableId, ref, compressed, overwrite)
+          const res = galleryMode
+            ? await priceTablesApi.galleryByRef(priceTableId, ref, compressed)
+            : await priceTablesApi.uploadPhotoByRef(priceTableId, ref, compressed, overwrite)
           const data = res.data as { matched?: boolean; skipped?: boolean; reason?: string }
           if (data.matched) matched++
           else if (data.skipped && data.reason === 'not_found') notFound++
@@ -342,16 +351,31 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
             />
           </div>
 
-          {/* Sobreescrever */}
-          <label className="flex items-center gap-2 cursor-pointer">
+          {/* Modo galeria: várias fotos por produto */}
+          <label className="flex items-start gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={overwrite}
-              onChange={e => setOverwrite(e.target.checked)}
-              className="rounded border-outline-variant text-primary focus:ring-primary"
+              checked={galleryMode}
+              onChange={e => setGalleryMode(e.target.checked)}
+              className="mt-0.5 rounded border-outline-variant text-primary focus:ring-primary"
             />
-            <span className="text-[12px] text-on-surface-variant">Sobreescrever fotos já existentes</span>
+            <span className="text-[12px] text-on-surface-variant">
+              <span className="font-semibold">Importar como galeria</span> — guarda <b>todas</b> as fotos de cada código (várias por produto). Desmarcado = só 1 foto (capa) por código.
+            </span>
           </label>
+
+          {/* Sobreescrever (só no modo capa) */}
+          {!galleryMode && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={overwrite}
+                onChange={e => setOverwrite(e.target.checked)}
+                className="rounded border-outline-variant text-primary focus:ring-primary"
+              />
+              <span className="text-[12px] text-on-surface-variant">Sobreescrever fotos já existentes</span>
+            </label>
+          )}
 
           {/* Progresso */}
           {processing && (

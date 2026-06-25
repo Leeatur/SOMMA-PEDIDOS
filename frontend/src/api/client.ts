@@ -176,6 +176,15 @@ export const priceTablesApi = {
       { timeout: 60_000 },
     )
   },
+  galleryByRef: (priceTableId: string, reference: string, imageBlob: Blob) => {
+    const fd = new FormData()
+    fd.append('file', imageBlob, `${reference}.jpg`)
+    return apiClient.post(
+      `/price-tables/${priceTableId}/gallery-by-ref?reference=${encodeURIComponent(reference)}`,
+      fd,
+      { timeout: 60_000 },
+    )
+  },
   clearProductImages: (id: string) => apiClient.delete(`/price-tables/${id}/images`),
   update: (id: string, data: object) => apiClient.put(`/price-tables/${id}`, data),
   delete: (id: string) => apiClient.delete(`/price-tables/${id}`),
