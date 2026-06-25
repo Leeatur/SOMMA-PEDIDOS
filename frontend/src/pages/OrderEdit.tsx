@@ -897,6 +897,12 @@ export default function OrderEdit() {
                     (condições especiais a prazo — clique para selecionar)
                   </span>
                 </label>
+                {/* Aviso quando há desconto comercial ativo mas sem linha correspondente na tabela */}
+                {policyDiscountPct > 0.001 && !discountRules.some(r => Math.abs(Number(r.discount_pct) - policyDiscountPct) < 0.11) && (
+                  <div className="mb-2 px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-[12px] text-amber-800 flex items-center gap-2">
+                    ⚠️ Desconto comercial ativo de <strong>{policyDiscountPct.toFixed(2)}%</strong> — não corresponde a nenhuma linha da tabela abaixo. Clique em "0% — Sem desconto" para zerar.
+                  </div>
+                )}
                 <div className="overflow-x-auto border border-outline-variant/40 rounded-xl">
                   <table className="text-[12px] w-full min-w-[480px]">
                     <thead className="bg-surface-container-low border-b border-outline-variant/40 sticky top-0 z-10">
@@ -909,6 +915,29 @@ export default function OrderEdit() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/20">
+                      {/* Linha especial para zerar o desconto comercial */}
+                      {(() => {
+                        const zeroActive = policyDiscountPct < 0.001
+                        return (
+                          <tr
+                            onClick={() => setPolicyDiscountPct(0)}
+                            className={`cursor-pointer transition-colors ${zeroActive
+                              ? 'bg-emerald-50 font-bold ring-1 ring-inset ring-emerald-400'
+                              : 'bg-white hover:bg-emerald-50/60'
+                            }`}
+                          >
+                            <td className="px-3 py-2.5">
+                              {zeroActive && <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full mr-2" />}
+                              <span className={zeroActive ? 'text-emerald-700' : 'text-outline/70'}>0,0% — Sem desconto</span>
+                              {zeroActive && <span className="ml-2 text-[10px] text-emerald-700 font-bold">← SELECIONADO</span>}
+                            </td>
+                            <td className="px-3 py-2.5 text-center text-outline/60">—</td>
+                            <td className="px-3 py-2.5 text-center text-outline/60">—</td>
+                            <td className="px-3 py-2.5 text-center text-outline/60">—</td>
+                            {FACTORY_COMM && <td className="px-3 py-2.5 text-center text-outline/60">—</td>}
+                          </tr>
+                        )
+                      })()}
                       {discountRules.map((r, i) => {
                         const isActive = Math.abs(Number(r.discount_pct) - policyDiscountPct) < 0.11
                         return (
