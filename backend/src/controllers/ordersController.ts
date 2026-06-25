@@ -163,7 +163,7 @@ export async function getOrder(req: AuthRequest, res: Response) {
       c.city as client_city, c.state as client_state,
       c.phone as client_phone, c.whatsapp as client_whatsapp,
       c.email as client_email, c.cnpj as client_cnpj,
-      c.address as client_address, c.zip as client_zip,
+      c.address as client_address, c.neighborhood as client_neighborhood, c.zip as client_zip,
       c.state_registration as client_state_registration,
       u.name as rep_name, u.email as rep_email,
       f.name as factory_name, f.contact as factory_contact,
