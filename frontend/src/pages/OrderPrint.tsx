@@ -191,7 +191,7 @@ export function OrderPrint() {
       }
       const gradeLabel = sortSizes(Object.keys(item.sizes).filter(s => (item.sizes![s] || 0) > 0)).join('/')
       const tabPrice = item.original_unit_price ?? item.unit_price
-      const adjPrice = tabPrice * (1 - commercialDiscPct / 100)
+      const adjPrice = item.unit_price * (1 - commercialDiscPct / 100)
       rows.push({
         seq,
         reference: item.reference,
@@ -208,7 +208,7 @@ export function OrderPrint() {
     } else if (hasCustomGrade && item.custom_grade) {
       // Pack com grade personalizada escolhida pelo cliente (ex.: pedidos via portal/PE)
       const tabPriceCustom = item.original_unit_price ?? item.unit_price
-      const adjPriceCustom = tabPriceCustom * (1 - commercialDiscPct / 100)
+      const adjPriceCustom = item.unit_price * (1 - commercialDiscPct / 100)
 
       for (const gc of item.custom_grade) {
         seq++
@@ -239,7 +239,7 @@ export function OrderPrint() {
     ) {
       // Pack: unit_price é preço POR PEÇA — usa o template padrão de grade do produto.
       const tabPricePack = item.original_unit_price ?? item.unit_price
-      const adjPricePack = tabPricePack * (1 - commercialDiscPct / 100)
+      const adjPricePack = item.unit_price * (1 - commercialDiscPct / 100)
 
       for (const gc of item.grade_configs) {
         seq++
@@ -270,7 +270,7 @@ export function OrderPrint() {
       const qtde = item.total_pieces || item.boxes_count
       const sizeCols: Record<string, number> = {}
       const tabP2 = item.original_unit_price ?? item.unit_price
-      const adjP2 = tabP2 * (1 - commercialDiscPct / 100)
+      const adjP2 = item.unit_price * (1 - commercialDiscPct / 100)
       rows.push({
         seq,
         reference: item.reference,
