@@ -35,6 +35,7 @@ const navPrimary: NavItem[] = [
   { to: '/reports',       label: 'Relatórios',    icon: <BarChart2 className="h-4 w-4" /> },
   { to: '/portals',       label: 'Catálogos',     icon: <Link2 className="h-4 w-4" /> },
   { to: '/pronta-entrega',label: 'Pronta Entrega',icon: <PackageCheck className="h-4 w-4" /> },
+  { to: '/carteira-mapa', label: 'Capilaridade',  icon: <MapPin className="h-4 w-4" /> },
 ].filter(item => !(HIDE_PRONTA_ENTREGA && item.to === '/pronta-entrega'))
 
 // Itens admin — ficam no dropdown do usuário

@@ -425,6 +425,10 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS cash_discount_pct DECIMAL(5,2) DEFAU
 
 -- Bairro no cadastro de clientes
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(150);
+
+-- Coordenadas geográficas para Carteira no Mapa
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS lat DECIMAL(10,7);
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS lng DECIMAL(10,7);
 `
 
 async function migrate() {

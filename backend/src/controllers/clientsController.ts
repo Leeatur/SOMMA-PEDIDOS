@@ -2,6 +2,7 @@ import { Response } from 'express'
 import * as XLSX from 'xlsx'
 import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
+import { geocodeCity } from '../utils/geocode'
 
 export async function listClients(req: AuthRequest, res: Response) {
   const { search } = req.query
@@ -53,7 +54,13 @@ export async function createClient(req: AuthRequest, res: Response) {
     [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, neighborhood||null, city||null,
      state||null, zip||null, phone||null, whatsapp||null, email||null, assignedRep, notes||null, buyer_name||null]
   )
-  res.status(201).json(rows[0])
+  const created = rows[0]
+  res.status(201).json(created)
+  if (city) {
+    geocodeCity(city, state).then(coords => {
+      if (coords) query('UPDATE clients SET lat=$1, lng=$2 WHERE id=$3', [coords.lat, coords.lng, created.id]).catch(() => {})
+    }).catch(() => {})
+  }
 }
 
 export async function deleteClient(req: AuthRequest, res: Response) {
@@ -166,5 +173,39 @@ export async function updateClient(req: AuthRequest, res: Response) {
     [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, neighborhood||null, city||null,
      state||null, zip||null, phone||null, whatsapp||null, email||null, assignedRep, notes||null, active??true, buyer_name||null, req.params.id]
   )
-  res.json(rows[0])
+  const updated = rows[0]
+  res.json(updated)
+  if (city && (city !== existing.city || state !== existing.state)) {
+    geocodeCity(city, state).then(coords => {
+      if (coords) query('UPDATE clients SET lat=$1, lng=$2 WHERE id=$3', [coords.lat, coords.lng, updated.id]).catch(() => {})
+    }).catch(() => {})
+  }
+}
+
+export async function clientsMap(req: AuthRequest, res: Response) {
+  const isAdmin = req.user!.role === 'admin'
+  const { date_from, date_to, factory_id, price_table_id, status_id } = req.query
+
+  const params: unknown[] = []
+  const orderFilters: string[] = ['o.deleted_at IS NULL']
+
+  if (!isAdmin) { params.push(req.user!.id); orderFilters.push(`o.rep_id = $${params.length}`) }
+  if (factory_id)     { params.push(factory_id);     orderFilters.push(`o.factory_id = $${params.length}`) }
+  if (price_table_id) { params.push(price_table_id); orderFilters.push(`o.price_table_id = $${params.length}`) }
+  if (status_id)      { params.push(status_id);       orderFilters.push(`o.status_id = $${params.length}`) }
+  if (date_from)      { params.push(date_from);       orderFilters.push(`o.created_at >= $${params.length}`) }
+  if (date_to)        { params.push(date_to);         orderFilters.push(`o.created_at < ($${params.length}::date + interval '1 day')`) }
+
+  const { rows } = await query(
+    `SELECT c.id, c.name, c.trade_name, c.city, c.state, c.lat, c.lng,
+            COUNT(DISTINCT o.id)::int AS order_count,
+            COALESCE(SUM(o.total_value),0)::numeric AS total_value
+     FROM clients c
+     JOIN orders o ON o.client_id = c.id AND ${orderFilters.join(' AND ')}
+     WHERE c.active = true AND c.lat IS NOT NULL AND c.lng IS NOT NULL
+     GROUP BY c.id
+     ORDER BY c.name`,
+    params
+  )
+  res.json(rows)
 }
