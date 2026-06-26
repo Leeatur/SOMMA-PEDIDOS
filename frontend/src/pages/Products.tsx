@@ -1605,20 +1605,6 @@ export function Products() {
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">{stockBusy ? 'Importando…' : 'Importar Estoque'}</span>
             </button>
-            <button
-              onClick={async () => {
-                const r = await apiClient.get('/products/sem-fotos', { responseType: 'blob' })
-                const url = URL.createObjectURL(r.data)
-                const a = document.createElement('a')
-                a.href = url; a.download = 'sem-fotos.xlsx'; a.click()
-                URL.revokeObjectURL(url)
-              }}
-              className="flex items-center gap-1.5 text-[12px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg px-3 py-1 transition-colors"
-              title="Baixar relatório de produtos sem foto"
-            >
-              <FileDown className="h-4 w-4" />
-              <span className="hidden sm:inline">Sem Foto</span>
-            </button>
             <ColumnConfigButton
               defs={PRODUCT_COL_DEFS}
               config={config}
