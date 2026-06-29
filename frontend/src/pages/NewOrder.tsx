@@ -1047,7 +1047,7 @@ export function NewOrder() {
               <PageSpinner />
             ) : (
               <div className="space-y-1">
-                {(products || []).map((p) => {
+                {[...(products || [])].sort((a, b) => a.reference.localeCompare(b.reference)).map((p) => {
                   const cartItem = cart.find((c) => c.product.id === p.id)
                   const isRegular = p.type === 'regular'
                   const totalPiecesPerBox = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
