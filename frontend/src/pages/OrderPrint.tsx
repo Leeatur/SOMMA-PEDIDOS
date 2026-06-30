@@ -356,7 +356,7 @@ export function OrderPrint() {
         .items-table .num { text-align: right; }
         .items-table .ctr { text-align: center; }
         .totals-row td { font-weight: bold; background: #f5f5f5; }
-        .grand-total { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #ccc; margin-top: 6px; }
+        .grand-total { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #ccc; margin-top: 6px; }
         .grand-total-cell { padding: 5px 8px; border-right: 1px solid #ccc; text-align: center; }
         .grand-total-cell:last-child { border-right: none; }
         .grand-total-cell .label { font-size: 9px; color: #555; }
@@ -504,10 +504,6 @@ export function OrderPrint() {
           <div className="grand-total-cell">
             <div className="label">Total Tabela (R$)</div>
             <div className="value">{fmt(totalGross)}</div>
-          </div>
-          <div className="grand-total-cell">
-            <div className="label">Total s/ Impostos (R$)</div>
-            <div className="value">{fmt(totalNet)}</div>
           </div>
           <div className="grand-total-cell">
             <div className="label">Desconto R$ Total</div>
