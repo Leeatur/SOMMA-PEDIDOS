@@ -24,6 +24,7 @@ import { Portals } from './pages/Portals'
 import { ProntaEntrega } from './pages/ProntaEntrega'
 import { PaymentConditions } from './pages/PaymentConditions'
 import { CarteiraMapa } from './pages/CarteiraMapa'
+import MetaFabricasPage from './pages/MetaFabricasPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuthStore()
@@ -69,6 +70,7 @@ export function App() {
         <Route path="/portals" element={<Portals />} />
         <Route path="/pronta-entrega" element={<ProntaEntrega />} />
         <Route path="/carteira-mapa" element={<CarteiraMapa />} />
+        <Route path="/metas-fabricas" element={<RequireAdmin><MetaFabricasPage /></RequireAdmin>} />
         <Route path="/settings" element={<Settings />} />
 
         {/* Admin-only routes */}

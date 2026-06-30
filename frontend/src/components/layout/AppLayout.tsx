@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, BellRing, CreditCard, MapPin,
+  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, BellRing, CreditCard, MapPin, Target,
 } from 'lucide-react'
 
 // SOMMA Maps — produto integrado (abre em nova aba)
@@ -40,6 +40,7 @@ const navPrimary: NavItem[] = [
 
 // Itens admin — ficam no dropdown do usuário
 const navAdmin: NavItem[] = [
+  { to: '/metas-fabricas',      label: 'Metas Fábricas', icon: <Target className="h-4 w-4" />,     adminOnly: true },
   { to: '/price-tables',        label: 'Tabelas',        icon: <Tags className="h-4 w-4" />,       adminOnly: true },
   { to: '/factories',           label: 'Fábricas',       icon: <Building2 className="h-4 w-4" />,  adminOnly: true },
   { to: '/statuses',            label: 'Status',         icon: <Package className="h-4 w-4" />,    adminOnly: true },

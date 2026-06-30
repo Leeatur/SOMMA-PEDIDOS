@@ -1175,6 +1175,43 @@ export async function ordersSummary(req: AuthRequest, res: Response) {
   })
 }
 
+// ── Meta Fábricas ─────────────────────────────────────────────────────────────
+// Retorna total de peças vendidas por rep+fábrica no período Jul-Set/2026
+export async function metaFabricas(_req: AuthRequest, res: Response) {
+  const PERIOD_FROM = '2026-07-01'
+  const PERIOD_TO   = '2026-09-30'
+
+  const now   = new Date()
+  const y     = now.getFullYear()
+  const m     = now.getMonth() + 1
+  const mStr  = String(m).padStart(2, '0')
+  const daysInMonth = new Date(y, m, 0).getDate()
+  const MONTH_FROM = `${y}-${mStr}-01`
+  const MONTH_TO   = `${y}-${mStr}-${daysInMonth}`
+  const TODAY      = now.toISOString().slice(0, 10)
+
+  const byRepFactory = `
+    SELECT u.id AS rep_id, u.name AS rep_name,
+           f.id AS factory_id, f.name AS factory_name,
+           COALESCE(SUM(o.total_pieces), 0)::int AS total_pieces
+    FROM orders o
+    JOIN users u     ON u.id = o.rep_id
+    JOIN factories f ON f.id = o.factory_id
+    WHERE o.deleted_at IS NULL
+      AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= $1::date
+      AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= $2::date
+    GROUP BY u.id, u.name, f.id, f.name
+    ORDER BY f.name, u.name
+  `
+
+  const [periodo, mesAtual] = await Promise.all([
+    query(byRepFactory, [PERIOD_FROM, PERIOD_TO]),
+    query(byRepFactory, [MONTH_FROM, MONTH_TO]),
+  ])
+
+  res.json({ data: { periodo: periodo.rows, mesAtual: mesAtual.rows, hoje: TODAY, mesAtualRange: { from: MONTH_FROM, to: MONTH_TO } } })
+}
+
 // ── Alertas de "aniversário" (a cada 15 dias desde a emissão) ─────────────────
 // Lista pedidos cuja idade (dias desde created_at) atingiu um múltiplo de 15
 // (15, 30, 45, 60...) e que ainda não foram dispensados PARA AQUELE MARCO
