@@ -137,9 +137,13 @@ export function OrderPrint() {
     )
   }
 
+  const sortedItems = [...order.items].sort((a, b) =>
+    (a.code || '').localeCompare(b.code || '', undefined, { numeric: true })
+  )
+
   // Coleta todos os tamanhos únicos de todos os itens
   const allSizes = new Set<string>()
-  for (const item of order.items) {
+  for (const item of sortedItems) {
     // Produto regular: usa item.sizes
     if (item.sizes && Object.keys(item.sizes).length > 0) {
       Object.keys(item.sizes).forEach(s => allSizes.add(s.trim()))
@@ -185,7 +189,7 @@ export function OrderPrint() {
     ? fmtPct(cashDiscPct)
     : fmtPct(commercialDiscPct)
 
-  for (const item of order.items) {
+  for (const item of sortedItems) {
     const hasCustomSizes = item.sizes && Object.keys(item.sizes).length > 0
       && Object.values(item.sizes).some(v => (v || 0) > 0)
     const hasCustomGrade = !!item.custom_grade && item.custom_grade.length > 0

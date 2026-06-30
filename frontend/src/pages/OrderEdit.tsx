@@ -1181,7 +1181,7 @@ export default function OrderEdit() {
               <tbody className="divide-y divide-outline-variant/50">
 
                 {/* Itens existentes */}
-                {items.map((it, idx) => !it.removed && (
+                {[...items].sort((a, b) => a.reference.localeCompare(b.reference, undefined, { numeric: true })).map((it, idx) => !it.removed && (
                   <ItemRow
                     key={it.id}
                     index={idx + 1}
