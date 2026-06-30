@@ -142,7 +142,7 @@ export async function listOrders(req: AuthRequest, res: Response) {
   if (date_to) { sql += ` AND o.created_at <= $${idx++}`; params.push(date_to) }
   if (search) {
     sql += ` AND (
-      c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR
+      c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR c.city ILIKE $${idx} OR
       f.name ILIKE $${idx} OR u.name ILIKE $${idx} OR
       o.industry_order_number ILIKE $${idx} OR
       o.payment_terms ILIKE $${idx} OR o.buyer_name ILIKE $${idx} OR
