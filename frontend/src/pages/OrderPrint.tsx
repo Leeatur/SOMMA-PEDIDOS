@@ -356,7 +356,7 @@ export function OrderPrint() {
         .items-table .num { text-align: right; }
         .items-table .ctr { text-align: center; }
         .totals-row td { font-weight: bold; background: #f5f5f5; }
-        .grand-total { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #ccc; margin-top: 6px; }
+        .grand-total { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #ccc; margin-top: 6px; }
         .grand-total-cell { padding: 5px 8px; border-right: 1px solid #ccc; text-align: center; }
         .grand-total-cell:last-child { border-right: none; }
         .grand-total-cell .label { font-size: 9px; color: #555; }
@@ -502,7 +502,7 @@ export function OrderPrint() {
         {/* ── RESUMO FINANCEIRO ── */}
         <div className="grand-total">
           <div className="grand-total-cell">
-            <div className="label">Total Tabela (R$)</div>
+            <div className="label">Valor Total Pedido (R$)</div>
             <div className="value">{fmt(totalGross)}</div>
           </div>
           <div className="grand-total-cell">
@@ -510,7 +510,11 @@ export function OrderPrint() {
             <div className="value">{fmt(totalDiscount)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Qtde Itens</div>
+            <div className="label">Valor Total Líquido Pedido (R$)</div>
+            <div className="value">{fmt(totalNet)}</div>
+          </div>
+          <div className="grand-total-cell">
+            <div className="label">Quantidade de Peças</div>
             <div className="value">{totalQtde}</div>
           </div>
         </div>
