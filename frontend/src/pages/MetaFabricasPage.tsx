@@ -126,7 +126,6 @@ function RepCard({
   const atrasoPeriodo = ritmoEsperadoPeriodo - vendidoPeriodo
 
   // Progresso mensal
-  const pctMensal    = pct(vendidoMes, goal.metaMensal)
   const faltaMes     = Math.max(0, goal.metaMensal - vendidoMes)
   const totalDiasMes = diasNoPeriodo(mesFrom, mesTo)
   const diasOcorridosMes = diasDecorridos(mesFrom, mesTo, hoje)
