@@ -750,7 +750,7 @@ export function OrderDetail() {
             Itens do Pedido ({order.items.length})
           </h2>
           <div className="space-y-1">
-            {order.items.map((item) => {
+            {[...order.items].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true })).map((item) => {
               const isExpanded = expandedItems.has(item.id)
               return (
                 <div key={item.id} className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden">
