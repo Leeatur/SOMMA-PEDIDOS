@@ -265,10 +265,10 @@ export function Dashboard() {
 
       {/* ─── Stat cards — overlap hero ──────────────────── */}
       <div className="px-4 lg:px-8 -mt-5">
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
 
           <StatCard
-            icon={<ShoppingCart className="h-4.5 w-4.5 text-blue-600" />}
+            icon={<ShoppingCart className="h-3.5 w-3.5 text-blue-600" />}
             iconBg="bg-blue-100"
             label="Total de pedidos"
             value={isAdmin ? filteredOrders.length.toString() : formatCurrency(totalValue)}
@@ -278,7 +278,7 @@ export function Dashboard() {
           />
 
           <StatCard
-            icon={<Clock className="h-4.5 w-4.5 text-emerald-600" />}
+            icon={<Clock className="h-3.5 w-3.5 text-emerald-600" />}
             iconBg="bg-emerald-100"
             label="Pedidos hoje"
             value={isAdmin ? todayOrders.length.toString() : formatCurrency(todayValue)}
@@ -291,7 +291,7 @@ export function Dashboard() {
 
           {isAdmin && (
             <StatCard
-              icon={<TrendingUp className="h-4.5 w-4.5 text-violet-600" />}
+              icon={<TrendingUp className="h-3.5 w-3.5 text-violet-600" />}
               iconBg="bg-violet-100"
               label="Total vendas"
               value={formatCurrency(totalValue)}
@@ -302,7 +302,7 @@ export function Dashboard() {
 
           {isAdmin && (
             <StatCard
-              icon={<CheckCircle className="h-4.5 w-4.5 text-amber-600" />}
+              icon={<CheckCircle className="h-3.5 w-3.5 text-amber-600" />}
               iconBg="bg-amber-100"
               label="Vendido hoje"
               value={formatCurrency(todayValue)}
@@ -317,13 +317,13 @@ export function Dashboard() {
 
       {/* ─── Cards extras Admin ──────────────────────────── */}
       {isAdmin && (
-        <div className="px-4 lg:px-8 mt-2 space-y-2.5">
+        <div className="px-4 lg:px-8 mt-2 space-y-2">
 
           {/* Row 1: cards de comissão — fábrica (Loja/Escritório/Guia), distribuidora (só rep) ou padrão SOMMA */}
           {factoryComm ? (
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-2">
               <StatCard
-                icon={<Award className="h-4.5 w-4.5 text-teal-600" />}
+                icon={<Award className="h-3.5 w-3.5 text-teal-600" />}
                 iconBg="bg-teal-100"
                 label="Comissão Loja"
                 value={formatCurrency(totalRepComm)}
@@ -331,7 +331,7 @@ export function Dashboard() {
                 onClick={() => setCardModal('comissao_rep')}
               />
               <StatCard
-                icon={<Award className="h-4.5 w-4.5 text-indigo-600" />}
+                icon={<Award className="h-3.5 w-3.5 text-indigo-600" />}
                 iconBg="bg-indigo-100"
                 label="Comissão Representante"
                 value={formatCurrency(totalOfficeComm)}
@@ -339,7 +339,7 @@ export function Dashboard() {
                 onClick={() => setCardModal('comissao')}
               />
               <StatCard
-                icon={<Award className="h-4.5 w-4.5 text-amber-600" />}
+                icon={<Award className="h-3.5 w-3.5 text-amber-600" />}
                 iconBg="bg-amber-100"
                 label="Comissão Guia"
                 value={formatCurrency(totalGuideComm)}
@@ -348,10 +348,10 @@ export function Dashboard() {
               />
             </div>
           ) : (
-          <div className={singleComm ? 'grid grid-cols-1 gap-2.5' : 'grid grid-cols-3 gap-2.5'}>
+          <div className={singleComm ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-3 gap-2'}>
             {!singleComm && (
               <StatCard
-                icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
+                icon={<Award className="h-3.5 w-3.5 text-emerald-600" />}
                 iconBg="bg-emerald-100"
                 label="Com. Escritório s/ Repres."
                 value={formatCurrency(commEscritorioSobreRep)}
@@ -360,7 +360,7 @@ export function Dashboard() {
               />
             )}
             <StatCard
-              icon={<Award className="h-4.5 w-4.5 text-teal-600" />}
+              icon={<Award className="h-3.5 w-3.5 text-teal-600" />}
               iconBg="bg-teal-100"
               label={singleComm ? 'Comissão' : 'Comissão Representantes'}
               value={formatCurrency(totalRepComm)}
@@ -369,7 +369,7 @@ export function Dashboard() {
             />
             {!singleComm && (
               <StatCard
-                icon={<Award className="h-4.5 w-4.5 text-indigo-600" />}
+                icon={<Award className="h-3.5 w-3.5 text-indigo-600" />}
                 iconBg="bg-indigo-100"
                 label="Comissão Total Escritório"
                 value={formatCurrency(totalOfficeComm)}
@@ -381,9 +381,9 @@ export function Dashboard() {
           )}
 
           {/* Row 2: Peças, Ticket, Clientes */}
-          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
             <StatCard
-              icon={<Package className="h-4.5 w-4.5 text-violet-600" />}
+              icon={<Package className="h-3.5 w-3.5 text-violet-600" />}
               iconBg="bg-violet-100"
               label="Total de Peças"
               value={totalPieces.toLocaleString('pt-BR')}
@@ -391,7 +391,7 @@ export function Dashboard() {
               onClick={() => setCardModal('pecas')}
             />
             <StatCard
-              icon={<TrendingUp className="h-4.5 w-4.5 text-blue-600" />}
+              icon={<TrendingUp className="h-3.5 w-3.5 text-blue-600" />}
               iconBg="bg-blue-100"
               label="Ticket Médio"
               value={formatCurrency(ticketMedio)}
@@ -399,7 +399,7 @@ export function Dashboard() {
               onClick={() => setCardModal('ticket')}
             />
             <StatCard
-              icon={<Users className="h-4.5 w-4.5 text-amber-600" />}
+              icon={<Users className="h-3.5 w-3.5 text-amber-600" />}
               iconBg="bg-amber-100"
               label="Clientes Atendidos"
               value={uniqueClients.toString()}
@@ -683,23 +683,23 @@ export function Dashboard() {
           <div className="space-y-3">
 
             {/* Cards adicionais: Peças, Comissão, Clientes, Pendentes */}
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               <StatCard
-                icon={<Package className="h-4.5 w-4.5 text-violet-600" />}
+                icon={<Package className="h-3.5 w-3.5 text-violet-600" />}
                 iconBg="bg-violet-100"
                 label="Total de peças"
                 value={totalPieces.toLocaleString('pt-BR')}
                 accentColor="#7C3AED"
               />
               <StatCard
-                icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
+                icon={<Award className="h-3.5 w-3.5 text-emerald-600" />}
                 iconBg="bg-emerald-100"
                 label="Minha comissão"
                 value={formatCurrency(totalCommission)}
                 accentColor="#10B981"
               />
               <StatCard
-                icon={<Users className="h-4.5 w-4.5 text-blue-600" />}
+                icon={<Users className="h-3.5 w-3.5 text-blue-600" />}
                 iconBg="bg-blue-100"
                 label="Clientes atendidos"
                 value={uniqueClients.toString()}
@@ -714,7 +714,7 @@ export function Dashboard() {
                 const metaColor = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : '#7C3AED'
                 return (
                   <StatCard
-                    icon={<Target className="h-4.5 w-4.5" style={{ color: metaColor }} />}
+                    icon={<Target className="h-3.5 w-3.5" style={{ color: metaColor }} />}
                     iconBg={pct >= 100 ? 'bg-emerald-100' : pct >= 70 ? 'bg-amber-100' : 'bg-violet-100'}
                     label="Minha meta"
                     value={repGoals.length === 0 ? '—' : `${pct}%`}
@@ -1147,35 +1147,35 @@ function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-2xl p-3 border-0 relative overflow-hidden ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform' : ''}`}
+      className={`bg-white rounded-xl p-2 border-0 relative overflow-hidden ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform' : ''}`}
       style={{
         boxShadow: accentColor
-          ? `0 10px 28px -6px ${accentColor}35, 0 4px 10px -4px ${accentColor}20`
-          : '0 8px 24px -4px rgba(0,0,0,0.10)',
+          ? `0 8px 20px -6px ${accentColor}35, 0 3px 8px -4px ${accentColor}20`
+          : '0 6px 18px -4px rgba(0,0,0,0.10)',
       }}
     >
       {accentColor && (
-        <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: accentColor }} />
+        <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ background: accentColor }} />
       )}
       {onClick && (
-        <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black/5 flex items-center justify-center">
-          <svg className="w-2.5 h-2.5 text-outline/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-black/5 flex items-center justify-center">
+          <svg className="w-2 h-2 text-outline/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </div>
       )}
-      <div className="flex items-center justify-between mb-2 mt-0.5">
-        <div className={`w-9 h-9 ${iconBg} rounded-xl flex items-center justify-center`}>
+      <div className="flex items-center justify-between mb-1.5 mt-0.5">
+        <div className={`w-7 h-7 ${iconBg} rounded-lg flex items-center justify-center`}>
           {icon}
         </div>
         {badge && (
-          <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${badgeCls}`}>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${badgeCls}`}>
             {badge}
           </span>
         )}
       </div>
-      <p className="text-[12px] font-bold uppercase text-outline tracking-wide mb-1.5">{label}</p>
-      <p className={`font-display font-bold text-on-surface leading-none truncate ${large ? 'text-[22px] lg:text-[38px]' : 'text-[17px] lg:text-[28px]'}`}>
+      <p className="text-[10px] font-bold uppercase text-outline tracking-wide mb-1">{label}</p>
+      <p className={`font-display font-bold text-on-surface leading-none truncate ${large ? 'text-[16px] lg:text-[26px]' : 'text-[13px] lg:text-[20px]'}`}>
         {value}
       </p>
     </div>
