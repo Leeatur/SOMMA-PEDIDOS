@@ -23,6 +23,7 @@ export async function listGoals(req: AuthRequest, res: Response) {
     SELECT g.*,
       f.name as factory_name,
       u.name as rep_name,
+      ROUND(g.target_pieces / 3)::int AS monthly_target,
       COALESCE((
         SELECT SUM(oi.total_pieces)
         FROM order_items oi
@@ -31,7 +32,20 @@ export async function listGoals(req: AuthRequest, res: Response) {
         JOIN price_tables pt ON pt.id = p.price_table_id
         WHERE o.deleted_at IS NULL
           ${achievedFilter}
-      ), 0)::int AS achieved_pieces
+          AND (g.period_start IS NULL OR DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= g.period_start)
+          AND (g.period_end   IS NULL OR DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= g.period_end)
+      ), 0)::int AS achieved_pieces,
+      COALESCE((
+        SELECT SUM(oi.total_pieces)
+        FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        JOIN products p ON p.id = oi.product_id
+        JOIN price_tables pt ON pt.id = p.price_table_id
+        WHERE o.deleted_at IS NULL
+          ${achievedFilter}
+          AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Sao_Paulo')::date
+          AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= (DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Sao_Paulo') + INTERVAL '1 month - 1 day')::date
+      ), 0)::int AS monthly_achieved
     FROM goals g
     LEFT JOIN factories f ON f.id = g.factory_id
     LEFT JOIN users u ON u.id = g.rep_id
@@ -42,24 +56,24 @@ export async function listGoals(req: AuthRequest, res: Response) {
 }
 
 export async function createGoal(req: AuthRequest, res: Response) {
-  const { type, factory_id, rep_id, label, target_pieces, period_label } = req.body
+  const { type, factory_id, rep_id, label, target_pieces, period_label, period_start, period_end } = req.body
   if (!type || !label || !target_pieces) {
     res.status(400).json({ error: 'Campos obrigatórios: type, label, target_pieces' }); return
   }
   const { rows: [goal] } = await query(
-    `INSERT INTO goals (type, factory_id, rep_id, label, target_pieces, period_label)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [type, factory_id || null, rep_id || null, label, target_pieces, period_label || null]
+    `INSERT INTO goals (type, factory_id, rep_id, label, target_pieces, period_label, period_start, period_end)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [type, factory_id || null, rep_id || null, label, target_pieces, period_label || null, period_start || null, period_end || null]
   )
   res.status(201).json(goal)
 }
 
 export async function updateGoal(req: AuthRequest, res: Response) {
-  const { label, target_pieces, period_label, active } = req.body
+  const { label, target_pieces, period_label, period_start, period_end, active } = req.body
   const { rows: [goal] } = await query(
-    `UPDATE goals SET label=$1, target_pieces=$2, period_label=$3, active=$4, updated_at=NOW()
-     WHERE id=$5 RETURNING *`,
-    [label, target_pieces, period_label || null, active ?? true, req.params.id]
+    `UPDATE goals SET label=$1, target_pieces=$2, period_label=$3, active=$4, period_start=$5, period_end=$6, updated_at=NOW()
+     WHERE id=$7 RETURNING *`,
+    [label, target_pieces, period_label || null, active ?? true, period_start || null, period_end || null, req.params.id]
   )
   if (!goal) { res.status(404).json({ error: 'Meta não encontrada' }); return }
   res.json(goal)
