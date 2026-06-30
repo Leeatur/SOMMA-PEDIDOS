@@ -138,7 +138,7 @@ export function OrderPrint() {
   }
 
   const sortedItems = [...order.items].sort((a, b) =>
-    (a.code || '').localeCompare(b.code || '', undefined, { numeric: true })
+    a.reference.localeCompare(b.reference, undefined, { numeric: true })
   )
 
   // Coleta todos os tamanhos únicos de todos os itens
