@@ -42,7 +42,6 @@ interface Goal {
   id: string; type: 'factory'|'rep'; factory_id: string|null; rep_id: string|null
   label: string; target_pieces: number; period_label: string|null
   factory_name: string|null; rep_name: string|null; achieved_pieces: number
-  monthly_achieved: number; monthly_target: number
 }
 
 export function Dashboard() {
@@ -428,8 +427,6 @@ export function Dashboard() {
           const GoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
             const pct = g.target_pieces > 0 ? Math.min(100, (g.achieved_pieces / g.target_pieces) * 100) : 0
             const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : pct >= 40 ? '#3B82F6' : '#EF4444'
-            const mPct = g.monthly_target > 0 ? Math.min(100, (g.monthly_achieved / g.monthly_target) * 100) : 0
-            const mColor = mPct >= 100 ? '#10B981' : mPct >= 70 ? '#F59E0B' : mPct >= 40 ? '#60A5FA' : '#FCA5A5'
             return (
               <div className="space-y-1">
                 <div className="flex items-end justify-between gap-2">
@@ -447,19 +444,6 @@ export function Dashboard() {
                   </span>
                   <span className="text-[13px] font-bold text-white">{pct.toFixed(1)}%</span>
                 </div>
-                {large && (
-                  <div className="mt-2 pt-2 border-t border-white/10">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-white/50 font-semibold uppercase tracking-wide">Este mês</span>
-                      <span className="text-[11px] font-bold" style={{ color: mColor }}>
-                        {g.monthly_achieved.toLocaleString('pt-BR')} / {g.monthly_target.toLocaleString('pt-BR')} pç ({mPct.toFixed(0)}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${mPct}%`, backgroundColor: mColor }} />
-                    </div>
-                  </div>
-                )}
               </div>
             )
           }
@@ -521,8 +505,6 @@ export function Dashboard() {
                               {reps.sort((a, b) => b.achieved_pieces - a.achieved_pieces).map(g => {
                                 const pct = g.target_pieces > 0 ? Math.min(100, (g.achieved_pieces / g.target_pieces) * 100) : 0
                                 const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : pct >= 40 ? '#60A5FA' : '#FCA5A5'
-                                const mPct = g.monthly_target > 0 ? Math.min(100, (g.monthly_achieved / g.monthly_target) * 100) : 0
-                                const mColor = mPct >= 100 ? '#10B981' : mPct >= 70 ? '#F59E0B' : mPct >= 40 ? '#60A5FA' : '#FCA5A5'
                                 return (
                                   <div key={g.id} className="bg-white/10 hover:bg-white/15 rounded-2xl p-3 transition-colors group">
                                     <div className="flex items-start justify-between mb-2">
@@ -532,21 +514,12 @@ export function Dashboard() {
                                         <button onClick={() => window.confirm('Excluir?') && deleteGoalMut.mutate(g.id)} className="p-1 rounded text-white/50 hover:text-white"><Trash2 className="h-3 w-3" /></button>
                                       </div>
                                     </div>
-                                    {/* Período */}
-                                    <div className="flex items-baseline gap-1 mb-1">
+                                    <div className="flex items-baseline gap-1 mb-1.5">
                                       <span className="text-[18px] font-black" style={{ color }}>{g.achieved_pieces.toLocaleString('pt-BR')}</span>
                                       <span className="text-[10px] text-white/40">/ {(g.target_pieces/1000).toFixed(0)}k</span>
                                     </div>
-                                    <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden mb-2">
+                                    <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
                                       <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
-                                    </div>
-                                    {/* Mês atual */}
-                                    <div className="flex items-center justify-between mb-0.5">
-                                      <span className="text-[9px] text-white/40 font-semibold uppercase tracking-wide">Mês</span>
-                                      <span className="text-[10px] font-bold" style={{ color: mColor }}>{g.monthly_achieved.toLocaleString('pt-BR')} / {g.monthly_target.toLocaleString('pt-BR')}</span>
-                                    </div>
-                                    <div className="w-full bg-black/20 rounded-full h-1 overflow-hidden">
-                                      <div className="h-full rounded-full" style={{ width: `${mPct}%`, backgroundColor: mColor }} />
                                     </div>
                                     <p className="text-[10px] mt-1 font-bold text-right" style={{ color }}>{pct.toFixed(0)}%</p>
                                   </div>

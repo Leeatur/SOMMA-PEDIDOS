@@ -23,7 +23,6 @@ export async function listGoals(req: AuthRequest, res: Response) {
     SELECT g.*,
       f.name as factory_name,
       u.name as rep_name,
-      ROUND(g.target_pieces / 3)::int AS monthly_target,
       COALESCE((
         SELECT SUM(oi.total_pieces)
         FROM order_items oi
@@ -34,18 +33,7 @@ export async function listGoals(req: AuthRequest, res: Response) {
           ${achievedFilter}
           AND (g.period_start IS NULL OR DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= g.period_start)
           AND (g.period_end   IS NULL OR DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= g.period_end)
-      ), 0)::int AS achieved_pieces,
-      COALESCE((
-        SELECT SUM(oi.total_pieces)
-        FROM order_items oi
-        JOIN orders o ON o.id = oi.order_id
-        JOIN products p ON p.id = oi.product_id
-        JOIN price_tables pt ON pt.id = p.price_table_id
-        WHERE o.deleted_at IS NULL
-          ${achievedFilter}
-          AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Sao_Paulo')::date
-          AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= (DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Sao_Paulo') + INTERVAL '1 month - 1 day')::date
-      ), 0)::int AS monthly_achieved
+      ), 0)::int AS achieved_pieces
     FROM goals g
     LEFT JOIN factories f ON f.id = g.factory_id
     LEFT JOIN users u ON u.id = g.rep_id
