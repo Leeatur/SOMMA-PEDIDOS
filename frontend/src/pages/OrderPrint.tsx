@@ -27,6 +27,10 @@ function fmt(n: number | string | null | undefined) {
   return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function fmtPct(n: number) {
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
 function fmtDate(d: string | null | undefined) {
   if (!d) return '—'
   const s = String(d).trim()
@@ -175,6 +179,11 @@ export function OrderPrint() {
 
   const cashDiscPct = Number(order.cash_discount_pct || 0)
   const commercialDiscPct = Math.max(0, Number(order.discount_pct || 0) - cashDiscPct)
+  const discLabel = cashDiscPct > 0 && commercialDiscPct > 0
+    ? `${fmtPct(cashDiscPct)}+${fmtPct(commercialDiscPct)}`
+    : cashDiscPct > 0
+    ? fmtPct(cashDiscPct)
+    : fmtPct(commercialDiscPct)
 
   for (const item of order.items) {
     const hasCustomSizes = item.sizes && Object.keys(item.sizes).length > 0
@@ -192,7 +201,7 @@ export function OrderPrint() {
       }
       const gradeLabel = sortSizes(Object.keys(item.sizes).filter(s => (item.sizes![s] || 0) > 0)).join('/')
       const tabPrice = item.original_unit_price ?? item.unit_price
-      const adjPrice = item.unit_price * (1 - commercialDiscPct / 100)
+      const adjPrice = item.unit_price * (1 - commercialDiscPct / 100) * (1 - cashDiscPct / 100)
       rows.push({
         seq,
         reference: item.reference,
@@ -209,7 +218,7 @@ export function OrderPrint() {
     } else if (hasCustomGrade && item.custom_grade) {
       // Pack com grade personalizada escolhida pelo cliente (ex.: pedidos via portal/PE)
       const tabPriceCustom = item.original_unit_price ?? item.unit_price
-      const adjPriceCustom = item.unit_price * (1 - commercialDiscPct / 100)
+      const adjPriceCustom = item.unit_price * (1 - commercialDiscPct / 100) * (1 - cashDiscPct / 100)
 
       for (const gc of item.custom_grade) {
         seq++
@@ -240,7 +249,7 @@ export function OrderPrint() {
     ) {
       // Pack: unit_price é preço POR PEÇA — usa o template padrão de grade do produto.
       const tabPricePack = item.original_unit_price ?? item.unit_price
-      const adjPricePack = item.unit_price * (1 - commercialDiscPct / 100)
+      const adjPricePack = item.unit_price * (1 - commercialDiscPct / 100) * (1 - cashDiscPct / 100)
 
       for (const gc of item.grade_configs) {
         seq++
@@ -271,7 +280,7 @@ export function OrderPrint() {
       const qtde = item.total_pieces || item.boxes_count
       const sizeCols: Record<string, number> = {}
       const tabP2 = item.original_unit_price ?? item.unit_price
-      const adjP2 = item.unit_price * (1 - commercialDiscPct / 100)
+      const adjP2 = item.unit_price * (1 - commercialDiscPct / 100) * (1 - cashDiscPct / 100)
       rows.push({
         seq,
         reference: item.reference,
@@ -295,10 +304,8 @@ export function OrderPrint() {
   }
   const totalQtde = rows.reduce((s, r) => s + r.qtde, 0)
   const totalGross = rows.reduce((s, r) => s + r.unitPriceBase * r.qtde, 0)
-  const totalAfterCommercial = rows.reduce((s, r) => s + r.total, 0)  // = adjPrice × qtde (sem à vista)
-  const totalCommercialDiscount = totalGross - totalAfterCommercial
-  const totalCashDiscount = cashDiscPct > 0 ? Math.round(totalAfterCommercial * cashDiscPct / 100 * 100) / 100 : 0
-  const totalFinal = totalAfterCommercial - totalCashDiscount  // valor líquido total (após todos descontos)
+  const totalNet = rows.reduce((s, r) => s + r.total, 0)  // após todos os descontos (comercial + à vista)
+  const totalDiscount = totalGross - totalNet
 
   const companyName    = company.name || 'SOMMA FORÇA DE VENDAS'
   const companyAddress = [company.address, company.city, company.state].filter(Boolean).join(' — ')
@@ -458,7 +465,7 @@ export function OrderPrint() {
               {sizes.map(s => <th key={s}>{s}</th>)}
               <th style={{ width: '4%' }}>Qtde</th>
               <th style={{ width: '6%' }}>R$ Tab.</th>
-              <th style={{ width: '4%' }}>%Desc. Coml.</th>
+              <th style={{ width: '4%' }}>%Desc.</th>
               <th style={{ width: '7%' }}>R$ c/Desc.</th>
               <th style={{ width: '7%' }}>R$ Total</th>
             </tr>
@@ -475,7 +482,7 @@ export function OrderPrint() {
                 ))}
                 <td className="ctr" style={{ fontWeight: 'bold' }}>{row.qtde}</td>
                 <td className="num">{fmt(row.unitPriceBase)}</td>
-                <td className="ctr">{fmt(row.discPct)}</td>
+                <td className="ctr">{discLabel}</td>
                 <td className="num">{fmt(row.unitPriceDisc)}</td>
                 <td className="num" style={{ fontWeight: 'bold' }}>{fmt(row.total)}</td>
               </tr>
@@ -499,34 +506,16 @@ export function OrderPrint() {
             <div className="value">{fmt(totalGross)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Total c/ Desc. Comercial (R$)</div>
-            <div className="value">{fmt(totalAfterCommercial)}</div>
+            <div className="label">Total s/ Impostos (R$)</div>
+            <div className="value">{fmt(totalNet)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Desc. Comercial R$ Total</div>
-            <div className="value">{fmt(totalCommercialDiscount)}</div>
+            <div className="label">Desconto R$ Total</div>
+            <div className="value">{fmt(totalDiscount)}</div>
           </div>
           <div className="grand-total-cell">
-            <div className="label">Total Qtde Itens</div>
+            <div className="label">Qtde Itens</div>
             <div className="value">{totalQtde}</div>
-          </div>
-        </div>
-
-        {/* ── VALOR LÍQUIDO TOTAL (com desconto à vista) ── */}
-        <div style={{ border: '1px solid #ccc', marginTop: 4, padding: '5px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f9f9f9' }}>
-          {cashDiscPct > 0 ? (
-            <div style={{ fontSize: 10, color: '#555' }}>
-              Desconto À Vista ({cashDiscPct.toFixed(1)}%)
-              <span style={{ marginLeft: 6, fontWeight: 'bold', color: '#c00' }}>
-                -{fmt(totalCashDiscount)}
-              </span>
-            </div>
-          ) : (
-            <div />
-          )}
-          <div style={{ fontSize: 12, fontWeight: 'bold' }}>
-            VALOR LÍQUIDO TOTAL:&nbsp;
-            <span style={{ fontSize: 14 }}>{fmt(totalFinal)}</span>
           </div>
         </div>
 
