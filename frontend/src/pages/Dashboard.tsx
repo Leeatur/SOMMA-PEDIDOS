@@ -67,11 +67,16 @@ export function Dashboard() {
   function setPeriod(p: string) {
     setActivePeriod(p)
     const now = new Date()
-    if (p === 'today')  { setDateFrom(spDate(now)); setDateTo(spDate(now)) }
-    if (p === '7d')     { const d=new Date(now); d.setDate(d.getDate()-6); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
-    if (p === '30d')    { const d=new Date(now); d.setDate(d.getDate()-29); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
-    if (p === 'month')  { const d=new Date(now); d.setDate(1); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
-    if (p === 'custom') { /* usuário digita nas caixas */ }
+    if (p === 'today')   { setDateFrom(spDate(now)); setDateTo(spDate(now)) }
+    if (p === '7d')      { const d=new Date(now); d.setDate(d.getDate()-6); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === '30d')     { const d=new Date(now); d.setDate(d.getDate()-29); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === 'month')   { const d=new Date(now); d.setDate(1); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === 'prevmonth') {
+      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const last  = new Date(now.getFullYear(), now.getMonth(), 0)
+      setDateFrom(spDate(first)); setDateTo(spDate(last))
+    }
+    if (p === 'custom')  { /* usuário digita nas caixas */ }
   }
 
   function setMonth(month: number) {
@@ -242,15 +247,16 @@ export function Dashboard() {
       </div>
 
       {/* ─── Filtro de período ───────────────────────────── */}
-      <div className="pt-3 pb-1">
+      <div className="pt-3 pb-3" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}>
         {/* Filtros — scroll horizontal no mobile */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pb-1">
           {[
-            { id: 'today', label: 'Hoje' },
-            { id: '7d',    label: '7 dias' },
-            { id: '30d',   label: '30 dias' },
-            { id: 'month', label: 'Este mês' },
-            { id: 'custom',label: 'Personalizado' },
+            { id: 'today',     label: 'Hoje' },
+            { id: '7d',        label: '7 dias' },
+            { id: '30d',       label: '30 dias' },
+            { id: 'month',     label: 'Este mês' },
+            { id: 'prevmonth', label: 'Mês ant.' },
+            { id: 'custom',    label: 'Personalizado' },
           ].map(p => (
             <button key={p.id} onClick={() => setPeriod(p.id)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-xl text-[13px] font-semibold border transition-colors active:scale-95 ${
