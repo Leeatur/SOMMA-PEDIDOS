@@ -375,7 +375,7 @@ export function Clients() {
                 const initials = c.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
                 return (
                   <div key={c.id} className="bg-white rounded-xl border border-outline-variant/40 shadow-sm overflow-hidden active:bg-surface-container-low transition-colors">
-                    <div className="flex items-start gap-2 p-2">
+                    <div className="flex items-start gap-2 p-2 cursor-pointer" onClick={() => openEdit(c)}>
                       {/* Avatar */}
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-[12px]"
                            style={{ backgroundColor: bg, color: fg }}>
@@ -555,7 +555,10 @@ export function Clients() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
               {sortedClients.map(c => (
-                <tr key={c.id} className="border-b border-outline-variant/30 hover:bg-primary/5 transition-colors h-7">
+                <tr key={c.id}
+                    onClick={() => openEdit(c)}
+                    title="Ver / editar cadastro do cliente"
+                    className="border-b border-outline-variant/30 hover:bg-primary/5 transition-colors h-7 cursor-pointer">
                   {visibleCols.map(col => renderClientCell(col.id, c))}
                 </tr>
               ))}
