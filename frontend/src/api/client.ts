@@ -372,6 +372,10 @@ export const reportsApi = {
     apiClient.get('/reports/period-comparison', { params }),
   region: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
     apiClient.get('/reports/region', { params }),
+  cidade: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/cidade', { params }),
+  penetracao: (params: { date_from?: string; date_to?: string; factory_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/penetracao', { params }),
   commissionProjection: (params: { factory_id?: string; rep_id?: string }) =>
     apiClient.get('/reports/commission-projection', { params }),
 }

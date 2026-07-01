@@ -592,6 +592,81 @@ export async function regionReport(req: AuthRequest, res: Response) {
   res.json(rows)
 }
 
+// ─── Clientes por Cidade / Marca ─────────────────────────────────────────────
+export async function cidadeReport(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+  const [from, to] = dateRange(req)
+
+  const params: unknown[] = [from, to]
+  const { cond } = buildCond(params, repId || undefined, factoryId || undefined, 3)
+
+  const { rows } = await query(`
+    SELECT
+      COALESCE(c.state, 'N/D') AS uf,
+      COALESCE(c.city, 'N/D') AS cidade,
+      COUNT(DISTINCT o.id)::int AS total_pedidos,
+      COUNT(DISTINCT o.client_id)::int AS clientes_atendidos,
+      COALESCE(SUM(o.total_value), 0)::numeric AS total_value,
+      COALESCE(SUM(o.total_pieces), 0)::int AS total_pieces,
+      COALESCE(AVG(o.total_value), 0)::numeric AS ticket_medio,
+      STRING_AGG(DISTINCT f.name, ', ' ORDER BY f.name) FILTER (WHERE f.name IS NOT NULL) AS fabricas,
+      STRING_AGG(DISTINCT u.name, ', ' ORDER BY u.name) FILTER (WHERE u.name IS NOT NULL) AS representantes
+    FROM orders o
+    JOIN clients c ON c.id = o.client_id
+    LEFT JOIN factories f ON f.id = o.factory_id
+    LEFT JOIN users u ON u.id = o.rep_id
+    WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
+    GROUP BY c.state, c.city
+    ORDER BY total_value DESC
+  `, params)
+
+  res.json(rows)
+}
+
+// ─── Penetração de Carteira ───────────────────────────────────────────────────
+export async function penetracaoReport(req: AuthRequest, res: Response) {
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+  const [from, to] = dateRange(req)
+
+  const params: unknown[] = [from, to]
+  let idx = 3
+  let factCond = ''
+  let repCond = ''
+
+  if (factoryId) { factCond = ` AND o.factory_id = $${idx++}`; params.push(factoryId) }
+  if (repId) { repCond = ` AND c.rep_id = $${idx++}`; params.push(repId) }
+
+  const { rows } = await query(`
+    SELECT
+      COALESCE(u.name, 'Sem Rep.') AS rep_name,
+      COUNT(DISTINCT c.id)::int AS total_clientes,
+      COUNT(DISTINCT has_order.client_id)::int AS clientes_ativos,
+      COUNT(DISTINCT c.id)::int - COUNT(DISTINCT has_order.client_id)::int AS clientes_sem_pedido,
+      ROUND(
+        COUNT(DISTINCT has_order.client_id)::numeric * 100 /
+        NULLIF(COUNT(DISTINCT c.id), 0), 1
+      ) AS penetracao_pct
+    FROM clients c
+    LEFT JOIN users u ON u.id = c.rep_id
+    LEFT JOIN (
+      SELECT DISTINCT o.client_id
+      FROM orders o
+      WHERE o.deleted_at IS NULL
+        AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date
+        ${factCond}
+    ) has_order ON has_order.client_id = c.id
+    WHERE c.active = true ${repCond}
+    GROUP BY u.name, c.rep_id
+    ORDER BY penetracao_pct DESC NULLS LAST, total_clientes DESC
+  `, params)
+
+  res.json(rows)
+}
+
 // ─── Projeção de Comissão ─────────────────────────────────────────────────────
 export async function commissionProjectionReport(req: AuthRequest, res: Response) {
   const isAdmin = req.user?.role === 'admin'

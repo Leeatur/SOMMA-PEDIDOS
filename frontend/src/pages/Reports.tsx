@@ -35,7 +35,7 @@ function fmtDatePtBR(d: string | Date): string {
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance' | 'abc' | 'comparison' | 'region' | 'projection'
+type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance' | 'abc' | 'comparison' | 'region' | 'cidade' | 'penetracao' | 'projection'
 
 // Modo fábrica (NXO): comissão de 3 vias — Loja (rep) + Representante (office) + Guia (guide). Default off.
 const FACTORY_COMM = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
@@ -532,7 +532,9 @@ const REPORT_META: ReportMeta[] = [
   { id: 'clients',        group: 'clientes',  title: 'Por Cliente',                description: 'Ranking de clientes por valor comprado no período, com total de pedidos e unidades.' },
   { id: 'abc',            group: 'clientes',  title: 'Curva ABC de Clientes',      description: 'Classifica clientes em A (80% da receita), B (15%) e C (5%) — foco no que importa.' },
   { id: 'inactive',       group: 'clientes',  title: 'Clientes Inativos',          description: 'Clientes que não fizeram pedidos nos últimos X dias. Identifique quem precisa de contato.' },
-  { id: 'region',         group: 'clientes',  title: 'Por Região / UF',            description: 'Distribuição geográfica das vendas por estado e cidade.' },
+  { id: 'region',         group: 'clientes',  title: 'Por Região / UF',            description: 'Distribuição geográfica das vendas por estado.' },
+  { id: 'cidade',         group: 'clientes',  title: 'Por Cidade / Marca',         description: 'Vendas agrupadas por cidade com breakdown de fábricas e representantes.' },
+  { id: 'penetracao',     group: 'clientes',  title: 'Penetração de Carteira',     description: 'Percentual de clientes da carteira que realizaram pedido no período.' },
   // Produtos
   { id: 'products',       group: 'produtos',  title: 'Produtos Mais Vendidos',     description: 'Referências com maior volume de vendas no período — em quantidade e valor.' },
   { id: 'collections',    group: 'produtos',  title: 'Curva ABC de Produtos',      description: 'Quais coleções e produtos concentram o maior faturamento.' },
@@ -752,6 +754,16 @@ export function Reports() {
     queryFn: () => reportsApi.region({ date_from: dateFrom, date_to: dateTo, factory_id: factoryId||undefined, rep_id: repId||undefined }).then(r => r.data),
     enabled: tab === 'region',
   })
+  const cidadeQ = useQuery({
+    queryKey: ['rpt-cidade', dateFrom, dateTo, factoryId, repId],
+    queryFn: () => reportsApi.cidade({ date_from: dateFrom, date_to: dateTo, factory_id: factoryId||undefined, rep_id: repId||undefined }).then(r => r.data),
+    enabled: tab === 'cidade',
+  })
+  const penetracaoQ = useQuery({
+    queryKey: ['rpt-penetracao', dateFrom, dateTo, factoryId, repId],
+    queryFn: () => reportsApi.penetracao({ date_from: dateFrom, date_to: dateTo, factory_id: factoryId||undefined, rep_id: repId||undefined }).then(r => r.data),
+    enabled: tab === 'penetracao',
+  })
   const projectionQ = useQuery({
     queryKey: ['rpt-projection', factoryId, repId],
     queryFn: () => reportsApi.commissionProjection({ factory_id: factoryId||undefined, rep_id: repId||undefined }).then(r => r.data),
@@ -762,7 +774,7 @@ export function Reports() {
 
   // ─── Relatórios visíveis para este usuário ────────────────────────────────
   const VISIBLE_META = REPORT_META.filter(r =>
-    r.id !== 'repperformance' || isAdmin
+    (r.id !== 'repperformance' && r.id !== 'penetracao') || isAdmin
   )
   const currentMeta = VISIBLE_META.find(r => r.id === tab) ?? VISIBLE_META[0]
 
@@ -806,8 +818,14 @@ export function Reports() {
       exportCsv(`clientes-inativos`, ['Cliente','Cidade','UF','Vendedor','Último Pedido','Dias Inativo'],
         (inactiveQ.data as any[]).map(r=>[r.client_name, r.city||'', r.state||'', r.rep_name||'', fmtDatePtBR(r.last_order_date), r.days_inactive]))
     } else if (tab === 'region' && regionQ.data) {
-      exportCsv(`por-regiao-${period}`, ['UF','Pedidos','Clientes','Valor Total'],
-        (regionQ.data as any[]).map(r=>[r.state, r.pedidos, r.clientes, fmtR(r.total_value)]))
+      exportCsv(`por-regiao-${period}`, ['UF','Pedidos','Clientes','Peças','Valor Total'],
+        (regionQ.data as any[]).map(r=>[r.uf, r.total_pedidos, r.clientes_atendidos, r.total_pieces, fmtR(r.total_value)]))
+    } else if (tab === 'cidade' && cidadeQ.data) {
+      exportCsv(`por-cidade-${period}`, ['UF','Cidade','Pedidos','Clientes','Peças','Valor Total','Ticket Médio','Fábricas','Representantes'],
+        (cidadeQ.data as any[]).map(r=>[r.uf, r.cidade, r.total_pedidos, r.clientes_atendidos, r.total_pieces, fmtR(r.total_value), fmtR(r.ticket_medio), r.fabricas||'', r.representantes||'']))
+    } else if (tab === 'penetracao' && penetracaoQ.data) {
+      exportCsv(`penetracao-carteira-${period}`, ['Representante','Total Clientes','Ativos','Sem Pedido','Penetração %'],
+        (penetracaoQ.data as any[]).map(r=>[r.rep_name, r.total_clientes, r.clientes_ativos, r.clientes_sem_pedido, `${r.penetracao_pct}%`]))
     } else if (tab === 'abc' && abcQ.data) {
       exportCsv(`abc-clientes-${period}`, ['Classe','Cliente','Cidade','Pedidos','Valor Total','% Acumulado'],
         (abcQ.data as any[]).map(r=>[r.classe, r.name, r.city||'', r.order_count, fmtR(r.total_value), `${Number(r.pct_acumulado||0).toFixed(1)}%`]))
@@ -1810,6 +1828,131 @@ export function Reports() {
                       </tr>
                     </tfoot>
                   </table>
+                </div>
+              </div>
+            )
+          })()
+        )}
+
+        {/* ═══ POR CIDADE / MARCA ═════════════════════════════════════ */}
+        {tab === 'cidade' && (
+          cidadeQ.isLoading ? <PageSpinner /> : !cidadeQ.data?.length ? <EmptyState label="Nenhum dado no período" /> : (() => {
+            const data = cidadeQ.data as any[]
+            const grandTotal = data.reduce((s:number,r:any)=>s+Number(r.total_value),0)
+            return (
+              <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="text-[12px] w-full">
+                    <thead className="bg-surface-container-low sticky top-0 z-10">
+                      <tr>{['UF','Cidade','Pedidos','Clientes','Peças','Total Vendido','% do Total','Ticket Médio','Fábricas','Representantes'].map(h=>(
+                        <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {data.map((r:any,i:number) => (
+                        <tr key={i} className="hover:bg-surface-container-low/50">
+                          <td className="px-3 py-2 font-bold text-on-surface">{r.uf}</td>
+                          <td className="px-3 py-2 text-on-surface">{r.cidade}</td>
+                          <td className="px-3 py-2 text-center">{r.total_pedidos}</td>
+                          <td className="px-3 py-2 text-center">{r.clientes_atendidos}</td>
+                          <td className="px-3 py-2 text-center">{Number(r.total_pieces).toLocaleString('pt-BR')}</td>
+                          <td className="px-3 py-2 font-bold text-primary">{fmtR(r.total_value)}</td>
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+                                <div className="h-full rounded-full bg-primary" style={{width:`${grandTotal>0?Number(r.total_value)/grandTotal*100:0}%`}} />
+                              </div>
+                              <span className="text-[11px] text-outline w-10 text-right">{grandTotal>0?(Number(r.total_value)/grandTotal*100).toFixed(1):0}%</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-outline">{fmtR(r.ticket_medio)}</td>
+                          <td className="px-3 py-2 text-outline text-[11px]">{r.fabricas||'—'}</td>
+                          <td className="px-3 py-2 text-outline text-[11px]">{r.representantes||'—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[12px]">
+                      <tr>
+                        <td className="px-3 py-2" colSpan={2}>TOTAL</td>
+                        <td className="px-3 py-2 text-center">{data.reduce((s:number,r:any)=>s+r.total_pedidos,0)}</td>
+                        <td className="px-3 py-2 text-center">{data.reduce((s:number,r:any)=>s+r.clientes_atendidos,0)}</td>
+                        <td className="px-3 py-2 text-center">{data.reduce((s:number,r:any)=>s+r.total_pieces,0).toLocaleString('pt-BR')}</td>
+                        <td className="px-3 py-2 text-primary">{fmtR(grandTotal)}</td>
+                        <td className="px-3 py-2">100%</td>
+                        <td className="px-3 py-2">—</td>
+                        <td className="px-3 py-2" colSpan={2}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )
+          })()
+        )}
+
+        {/* ═══ PENETRAÇÃO DE CARTEIRA ══════════════════════════════════ */}
+        {tab === 'penetracao' && (
+          penetracaoQ.isLoading ? <PageSpinner /> : !penetracaoQ.data?.length ? <EmptyState label="Nenhum dado no período" /> : (() => {
+            const data = penetracaoQ.data as any[]
+            const totalGeral = data.reduce((s:number,r:any)=>s+r.total_clientes,0)
+            const totalAtivos = data.reduce((s:number,r:any)=>s+r.clientes_ativos,0)
+            const totalSem = data.reduce((s:number,r:any)=>s+r.clientes_sem_pedido,0)
+            const penetracaoGeral = totalGeral > 0 ? Math.round(totalAtivos * 100 / totalGeral) : 0
+            const pctColor = (v:number) => v >= 70 ? '#16a34a' : v >= 40 ? '#d97706' : '#dc2626'
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Total de Clientes', v: totalGeral.toLocaleString('pt-BR'), color: '#4f46e5', sub: 'na carteira' },
+                    { label: 'Ativos no Período', v: totalAtivos.toLocaleString('pt-BR'), color: '#16a34a', sub: 'fizeram pedido' },
+                    { label: 'Penetração Geral', v: `${penetracaoGeral}%`, color: pctColor(penetracaoGeral), sub: 'da carteira' },
+                  ].map(c => (
+                    <div key={c.label} className="bg-white rounded-xl border border-outline-variant p-4">
+                      <p className="text-[11px] font-semibold text-outline uppercase tracking-wide mb-1">{c.label}</p>
+                      <p className="text-[22px] font-black" style={{color:c.color}}>{c.v}</p>
+                      <p className="text-[11px] text-outline mt-0.5">{c.sub}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="text-[12px] w-full">
+                      <thead className="bg-surface-container-low sticky top-0 z-10">
+                        <tr>{['Representante','Carteira','Compraram','Sem Pedido','Penetração %'].map(h=>(
+                          <th key={h} className="px-4 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
+                        ))}</tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {data.map((r:any) => (
+                          <tr key={r.rep_name} className="hover:bg-surface-container-low/50">
+                            <td className="px-4 py-2.5 font-semibold text-on-surface">{r.rep_name}</td>
+                            <td className="px-4 py-2.5 text-on-surface-variant">{r.total_clientes}</td>
+                            <td className="px-4 py-2.5 text-emerald-700 font-semibold">{r.clientes_ativos}</td>
+                            <td className="px-4 py-2.5 text-red-500">{r.clientes_sem_pedido}</td>
+                            <td className="px-4 py-2.5">
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1 bg-surface-container-low rounded-full h-2 overflow-hidden min-w-[60px]">
+                                  <div className="h-full rounded-full" style={{width:`${r.penetracao_pct}%`,background:pctColor(Number(r.penetracao_pct))}} />
+                                </div>
+                                <span className="font-bold w-10 text-right" style={{color:pctColor(Number(r.penetracao_pct))}}>{r.penetracao_pct}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[12px]">
+                        <tr>
+                          <td className="px-4 py-2">TOTAL</td>
+                          <td className="px-4 py-2">{totalGeral}</td>
+                          <td className="px-4 py-2 text-emerald-700">{totalAtivos}</td>
+                          <td className="px-4 py-2 text-red-500">{totalSem}</td>
+                          <td className="px-4 py-2">
+                            <span className="font-bold" style={{color:pctColor(penetracaoGeral)}}>{penetracaoGeral}%</span>
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               </div>
             )

@@ -196,6 +196,8 @@ router.get('/reports/rep-performance', authenticate, requireAdmin, reports.repPe
 router.get('/reports/abc-clients', authenticate, reports.abcClientsReport)
 router.get('/reports/period-comparison', authenticate, reports.periodComparisonReport)
 router.get('/reports/region', authenticate, reports.regionReport)
+router.get('/reports/cidade', authenticate, reports.cidadeReport)
+router.get('/reports/penetracao', authenticate, requireAdmin, reports.penetracaoReport)
 router.get('/reports/commission-projection', authenticate, reports.commissionProjectionReport)
 
 // ── Pronta Entrega ────────────────────────────────────────────────────────────

@@ -9,7 +9,7 @@ import { formatCurrency, formatOrderNumber } from '../utils/format'
 
 interface Order {
   id: string; order_number: number; client_name: string; factory_name: string
-  client_city?: string
+  client_city?: string; price_table_name?: string
   total_value: number; total_pieces: number; status_name: string
   status_color: string; status_id: string; created_at: string; rep_name: string
   rep_commission_value: number
@@ -59,6 +59,10 @@ export function Dashboard() {
   const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); d.setDate(1); return spDate(d) }) // início do mês
   const [dateTo,   setDateTo]   = useState(() => spDate(new Date()))
   const [activePeriod, setActivePeriod] = useState('month')
+  const [collectionFilter, setCollectionFilter] = useState<string | null>(null)
+  const [filterYear, setFilterYear] = useState(() => new Date().getFullYear())
+
+  const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
   function setPeriod(p: string) {
     setActivePeriod(p)
@@ -68,6 +72,14 @@ export function Dashboard() {
     if (p === '30d')    { const d=new Date(now); d.setDate(d.getDate()-29); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
     if (p === 'month')  { const d=new Date(now); d.setDate(1); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
     if (p === 'custom') { /* usuário digita nas caixas */ }
+  }
+
+  function setMonth(month: number) {
+    const from = new Date(filterYear, month - 1, 1)
+    const to   = new Date(filterYear, month, 0)
+    setDateFrom(spDate(from))
+    setDateTo(spDate(to))
+    setActivePeriod(`${filterYear}-${String(month).padStart(2,'0')}`)
   }
 
   // Usa horário de Brasília (America/Sao_Paulo) para evitar bug de timezone UTC vs UTC-3
@@ -129,10 +141,14 @@ export function Dashboard() {
     return d === today
   })
 
-  // Pedidos filtrados pelo período selecionado
+  const collections = [...new Set(allOrders.map(o => o.price_table_name).filter((n): n is string => !!n))].sort()
+
+  // Pedidos filtrados pelo período e coleção selecionados
   const filteredOrders = allOrders.filter(o => {
     const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
-    return d >= dateFrom && d <= dateTo
+    const inPeriod = d >= dateFrom && d <= dateTo
+    const inCollection = !collectionFilter || o.price_table_name === collectionFilter
+    return inPeriod && inCollection
   })
 
   const totalValue  = filteredOrders.reduce((s, o) => s + Number(o.total_value), 0)
@@ -246,6 +262,48 @@ export function Dashboard() {
             </button>
           ))}
         </div>
+        {/* Meses */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide px-4 lg:px-8 pb-1 mt-1.5">
+          <button onClick={() => setFilterYear(y => y - 1)} className="flex-shrink-0 px-1.5 py-1 text-white/50 hover:text-white text-[12px] leading-none">‹</button>
+          <span className="flex-shrink-0 text-white/50 text-[11px] font-semibold w-[3ch] text-center">{filterYear}</span>
+          <button onClick={() => setFilterYear(y => y + 1)} className="flex-shrink-0 px-1.5 py-1 text-white/50 hover:text-white text-[12px] leading-none">›</button>
+          <div className="w-px h-3.5 bg-white/20 flex-shrink-0 mx-0.5" />
+          {MONTHS_PT.map((m, i) => {
+            const key = `${filterYear}-${String(i + 1).padStart(2,'0')}`
+            return (
+              <button key={m} onClick={() => setMonth(i + 1)}
+                className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors active:scale-95 ${
+                  activePeriod === key
+                    ? 'bg-white text-primary border-white shadow-sm'
+                    : 'bg-white/10 text-white/70 border-white/15 hover:bg-white/20'
+                }`}>
+                {m}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Coleção */}
+        {collections.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide px-4 lg:px-8 pb-1 mt-1">
+            <span className="flex-shrink-0 text-white/40 text-[10px] font-semibold uppercase tracking-wide pr-1">Coleção</span>
+            <button onClick={() => setCollectionFilter(null)}
+              className={`flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold border transition-colors active:scale-95 ${
+                !collectionFilter ? 'bg-white text-primary border-white shadow-sm' : 'bg-white/10 text-white/70 border-white/15 hover:bg-white/20'
+              }`}>
+              Todos
+            </button>
+            {collections.map(col => (
+              <button key={col} onClick={() => setCollectionFilter(col === collectionFilter ? null : col)}
+                className={`flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold border transition-colors active:scale-95 ${
+                  collectionFilter === col ? 'bg-white text-primary border-white shadow-sm' : 'bg-white/10 text-white/70 border-white/15 hover:bg-white/20'
+                }`}>
+                {col}
+              </button>
+            ))}
+          </div>
+        )}
+
         {activePeriod === 'custom' && (
           <div className="flex items-center gap-2 px-4 lg:px-8 mt-2 flex-wrap">
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
