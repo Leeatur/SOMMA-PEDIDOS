@@ -434,64 +434,6 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS lng DECIMAL(10,7);
 ALTER TABLE goals ADD COLUMN IF NOT EXISTS period_start DATE;
 ALTER TABLE goals ADD COLUMN IF NOT EXISTS period_end DATE;
 
--- Atualiza metas OUZZARE (fábrica): 50.000 → 39.000, período Jul-Set 2026
-UPDATE goals SET
-  target_pieces = 39000,
-  period_start  = '2026-07-01',
-  period_end    = '2026-09-30',
-  period_label  = 'Jul–Set 2026'
-FROM factories f
-WHERE goals.factory_id = f.id
-  AND UPPER(f.name) LIKE '%OUZZARE%'
-  AND goals.type = 'factory';
-
--- Atualiza metas TEEZZ (fábrica): período Jul-Set 2026
-UPDATE goals SET
-  target_pieces = 32150,
-  period_start  = '2026-07-01',
-  period_end    = '2026-09-30',
-  period_label  = 'Jul–Set 2026'
-FROM factories f
-WHERE goals.factory_id = f.id
-  AND UPPER(f.name) LIKE '%TEEZZ%'
-  AND goals.type = 'factory';
-
--- Atualiza reps OUZZARE
-UPDATE goals SET target_pieces = 14181, period_start = '2026-07-01', period_end = '2026-09-30', period_label = 'Jul–Set 2026'
-FROM factories f, users u
-WHERE goals.factory_id = f.id AND goals.rep_id = u.id
-  AND UPPER(f.name) LIKE '%OUZZARE%' AND UPPER(u.name) LIKE '%LEONARDO%';
-
-UPDATE goals SET target_pieces = 8477, period_start = '2026-07-01', period_end = '2026-09-30', period_label = 'Jul–Set 2026'
-FROM factories f, users u
-WHERE goals.factory_id = f.id AND goals.rep_id = u.id
-  AND UPPER(f.name) LIKE '%OUZZARE%' AND (UPPER(u.name) LIKE '%CUTI%' OR UPPER(u.name) LIKE '%CUTTI%');
-
-UPDATE goals SET target_pieces = 9293, period_start = '2026-07-01', period_end = '2026-09-30', period_label = 'Jul–Set 2026'
-FROM factories f, users u
-WHERE goals.factory_id = f.id AND goals.rep_id = u.id
-  AND UPPER(f.name) LIKE '%OUZZARE%' AND UPPER(u.name) LIKE '%RODRIGO%';
-
--- Atualiza reps TEEZZ
-UPDATE goals SET target_pieces = 2469, period_start = '2026-07-01', period_end = '2026-09-30', period_label = 'Jul–Set 2026'
-FROM factories f, users u
-WHERE goals.factory_id = f.id AND goals.rep_id = u.id
-  AND UPPER(f.name) LIKE '%TEEZZ%' AND UPPER(u.name) LIKE '%FABR%';
-
-UPDATE goals SET target_pieces = 8982, period_start = '2026-07-01', period_end = '2026-09-30', period_label = 'Jul–Set 2026'
-FROM factories f, users u
-WHERE goals.factory_id = f.id AND goals.rep_id = u.id
-  AND UPPER(f.name) LIKE '%TEEZZ%' AND UPPER(u.name) LIKE '%EDSON%';
-
-UPDATE goals SET target_pieces = 9148, period_start = '2026-07-01', period_end = '2026-09-30', period_label = 'Jul–Set 2026'
-FROM factories f, users u
-WHERE goals.factory_id = f.id AND goals.rep_id = u.id
-  AND UPPER(f.name) LIKE '%TEEZZ%' AND UPPER(u.name) LIKE '%MARCOS%';
-
-UPDATE goals SET target_pieces = 9293, period_start = '2026-07-01', period_end = '2026-09-30', period_label = 'Jul–Set 2026'
-FROM factories f, users u
-WHERE goals.factory_id = f.id AND goals.rep_id = u.id
-  AND UPPER(f.name) LIKE '%TEEZZ%' AND (UPPER(u.name) LIKE '%ERICO%' OR UPPER(u.name) LIKE '%ÉRICO%');
 `
 
 async function migrate() {
