@@ -247,7 +247,7 @@ export function Dashboard() {
       </div>
 
       {/* ─── Filtro de período ───────────────────────────── */}
-      <div className="pt-3 pb-3" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}>
+      <div className="pt-3 pb-4 lg:pb-3" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}>
         {/* Filtros — scroll horizontal no mobile */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pb-1">
           {[
@@ -384,7 +384,7 @@ export function Dashboard() {
 
           {/* Row 1: cards de comissão — fábrica (Loja/Escritório/Guia), distribuidora (só rep) ou padrão SOMMA */}
           {factoryComm ? (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
               <StatCard
                 icon={<Award className="h-3.5 w-3.5 text-teal-600" />}
                 iconBg="bg-teal-100"
@@ -411,7 +411,7 @@ export function Dashboard() {
               />
             </div>
           ) : (
-          <div className={singleComm ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-3 gap-2'}>
+          <div className={singleComm ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-2 lg:grid-cols-3 gap-2'}>
             {!singleComm && (
               <StatCard
                 icon={<Award className="h-3.5 w-3.5 text-emerald-600" />}
