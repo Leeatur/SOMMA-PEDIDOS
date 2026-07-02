@@ -108,6 +108,22 @@ export function AppLayout() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // ESC — fecha UI aberta ou volta para a tela anterior
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Não navega se o foco estiver num campo de texto
+      const tag = (document.activeElement as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+      if (mobileOpen) { setMobileOpen(false); return }
+      if (moreOpen)   { setMoreOpen(false);   return }
+      if (userOpen)   { setUserOpen(false);   return }
+      navigate(-1)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [mobileOpen, moreOpen, userOpen, navigate])
+
   async function handleLogout() {
     try { if (refreshToken) await authApi.logout(refreshToken) } catch { /* ignore */ }
     logout()
