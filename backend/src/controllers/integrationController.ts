@@ -50,7 +50,14 @@ export async function getSales(req: Request, res: Response) {
     res.status(403).json({ error: 'Token de integração inválido' }); return
   }
 
-  const since = req.query.since ? String(req.query.since) : null
+  const since   = req.query.since   ? String(req.query.since)   : null
+  const colecao = req.query.colecao ? String(req.query.colecao) : null
+  const fabrica = req.query.fabrica ? String(req.query.fabrica) : null
+
+  const params: unknown[] = [since]
+  let extra = ''
+  if (colecao) { extra += ` AND pt.name = $${params.push(colecao)}`   }
+  if (fabrica) { extra += ` AND f.name  ILIKE $${params.push('%' + fabrica + '%')}` }
 
   const { rows } = await query(
     `SELECT o.created_at::date            AS data,
@@ -60,24 +67,35 @@ export async function getSales(req: Request, res: Response) {
             o.total_value                 AS valor,
             st.name                       AS status,
             f.name                        AS fabrica,
+            pt.name                       AS colecao,
             o.id                          AS pedido_id,
             (SELECT string_agg(oi.reference, ', ')
                FROM order_items oi WHERE oi.order_id = o.id) AS itens
        FROM orders o
-       JOIN clients c        ON c.id = o.client_id
-       JOIN users u          ON u.id = o.rep_id
-       JOIN order_statuses st ON st.id = o.status_id       -- só pedidos COM status
-       LEFT JOIN factories f  ON f.id = o.factory_id       -- fábrica/marca
+       JOIN clients c         ON c.id = o.client_id
+       JOIN users u           ON u.id = o.rep_id
+       JOIN order_statuses st  ON st.id = o.status_id
+       LEFT JOIN factories f   ON f.id = o.factory_id
+       LEFT JOIN order_items oi2 ON oi2.order_id = o.id
+       LEFT JOIN products p    ON p.id = oi2.product_id
+       LEFT JOIN price_tables pt ON pt.id = p.price_table_id
       WHERE o.deleted_at IS NULL
         AND ($1::timestamptz IS NULL OR o.created_at >= $1)
+        ${extra}
+      GROUP BY o.id, o.created_at, u.name, c.city, c.state,
+               o.total_value, st.name, f.name, pt.name
       ORDER BY o.created_at DESC`,
-    [since]
+    params
   )
+
+  // Coleta coleções distintas para o Maps usar como opções de filtro
+  const colecoes = [...new Set(rows.map((r: any) => r.colecao).filter(Boolean))].sort()
 
   res.json({
     gerado_em: new Date().toISOString(),
     total: rows.length,
-    vendas: rows.map(r => ({
+    colecoes,
+    vendas: rows.map((r: any) => ({
       data: r.data,
       vendedor: r.vendedor,
       cidade: r.cidade,
@@ -85,6 +103,7 @@ export async function getSales(req: Request, res: Response) {
       valor: Number(r.valor),
       status: r.status,
       fabrica: r.fabrica,
+      colecao: r.colecao || null,
       itens: r.itens || '',
       pedido_id: r.pedido_id,
     })),
