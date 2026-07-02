@@ -226,14 +226,14 @@ export function Dashboard() {
     <div className="pb-24 lg:pb-8 min-h-full">
 
       {/* ─── Hero header ─────────────────────────────────── */}
-      <div className="relative px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10"
+      <div className="relative px-5 pt-3 pb-3 lg:px-8 lg:pt-4 lg:pb-4"
         style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}>
         {/* Linha decorativa sutil na base */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
 
-        <p className="text-white/60 text-[12px] font-medium tracking-wide uppercase">{greeting()}</p>
-        <h1 className="font-display text-[34px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
-        <p className="text-white/50 text-[12px] mt-1.5">
+        <p className="text-white/60 text-[11px] font-medium tracking-wide uppercase">{greeting()}</p>
+        <h1 className="font-display text-[24px] lg:text-[28px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
+        <p className="text-white/50 text-[11px] mt-0.5">
           {isAdmin ? 'Administrador' : 'Representante'} &bull;{' '}
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
@@ -326,8 +326,8 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* ─── Stat cards — overlap hero ──────────────────── */}
-      <div className="px-4 lg:px-8 -mt-5">
+      {/* ─── Stat cards ─────────────────────────────────── */}
+      <div className="px-4 lg:px-8 mt-3">
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
 
           <StatCard
