@@ -62,7 +62,7 @@ const ALL_COL_DEFS: ColumnDef[] = [
   { id: 'number',         label: 'Nº Pedido',         alwaysVisible: true },
   { id: 'factory',        label: 'Indústria' },
   { id: 'rep',            label: 'Vendedor' },
-  { id: 'nr_rep',         label: 'Nº na Representada', defaultVisible: true },
+  { id: 'nr_rep',         label: 'Doc. orig.',          defaultVisible: true },
   { id: 'razao_social',   label: 'Razão Social',       alwaysVisible: true },
   { id: 'client',         label: 'Cliente' },
   { id: 'city',           label: 'Cidade' },

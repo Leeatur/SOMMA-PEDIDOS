@@ -1220,7 +1220,7 @@ export function OrderDetail() {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Nº na Representada</label>
+              <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Doc. orig.</label>
               <input
                 type="text"
                 value={editInfoForm.industry_order_number}
