@@ -35,7 +35,7 @@ function fmtDatePtBR(d: string | Date): string {
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance' | 'abc' | 'comparison' | 'region' | 'cidade' | 'penetracao' | 'projection'
+type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance' | 'abc' | 'comparison' | 'region' | 'cidade' | 'penetracao' | 'projection' | 'fechamento'
 
 // Modo fábrica (NXO): comissão de 3 vias — Loja (rep) + Representante (office) + Guia (guide). Default off.
 const FACTORY_COMM = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
@@ -132,7 +132,7 @@ const COMM_COL_DEFS: ColumnDef[] = [
   { id: 'data',           label: 'Data',          alwaysVisible: true },
   { id: 'vendedor',       label: 'Vendedor' },
   { id: 'industria',      label: 'Indústria' },
-  { id: 'nr_fabrica',     label: 'Nr. Fábrica' },
+  { id: 'nr_fabrica',     label: 'Doc. Original' },
   { id: 'razao_social',   label: 'Razão Social',  alwaysVisible: true },
   { id: 'nome_fantasia',  label: 'Nome Fantasia' },
   { id: 'cidade',         label: 'Cidade' },
@@ -540,6 +540,7 @@ const REPORT_META: ReportMeta[] = [
   { id: 'collections',    group: 'produtos',  title: 'Curva ABC de Produtos',      description: 'Quais coleções e produtos concentram o maior faturamento.' },
   // Equipe
   { id: 'commissions',    group: 'equipe',    title: 'Comissões por Pedido',       description: 'Detalhamento de comissões por vendedor e pedido, com status de faturamento.' },
+  { id: 'fechamento',     group: 'equipe',    title: 'Fechamento de Comissão',     description: 'Relatório de fechamento mensal por representante — pronto para enviar.' },
   { id: 'repperformance', group: 'equipe',    title: 'Performance da Equipe',      description: 'Ranking comparativo de desempenho entre vendedores no período.' },
   { id: 'projection',     group: 'equipe',    title: 'Projeção de Comissões',      description: 'Comissões em aberto (a faturar) por vendedor — previsão de recebimento.' },
 ]
@@ -681,7 +682,7 @@ export function Reports() {
   const commissionsQ = useQuery<CommissionRow[]>({
     queryKey: ['rpt-commissions', dateFrom, dateTo, repId, factoryId],
     queryFn: () => reportsApi.commissions({ date_from: dateFrom, date_to: dateTo, rep_id: repId || undefined, factory_id: factoryId || undefined }).then(r => r.data),
-    enabled: tab === 'commissions',
+    enabled: tab === 'commissions' || tab === 'fechamento',
   })
 
   const clientsQ = useQuery<ClientRow[]>({
@@ -1142,7 +1143,7 @@ export function Reports() {
                               const colWidth = commWidths[colId] ?? COMM_DEFAULT_WIDTHS[colId] ?? 100
                               const labels: Record<string,string> = {
                                 data:'Data', vendedor:'Vendedor', industria:'Indústria',
-                                nr_fabrica:'Nr. Fábrica', razao_social:'Razão Social',
+                                nr_fabrica:'Doc. Original', razao_social:'Razão Social',
                                 nome_fantasia:'Nome Fantasia', cidade:'Cidade', uf:'UF',
                                 valor:'Valor', politica:'Desc. Coml.', com_rep:'Com. Rep', com_escr:'Com. Escr.',
                                 faturado:'Faturado', a_faturar:'A Faturar',
@@ -2014,6 +2015,181 @@ export function Reports() {
                     </table>
                   </div>
                 </div>
+              </div>
+            )
+          })()
+        )}
+
+        {/* ═══ FECHAMENTO DE COMISSÃO ══════════════════════════════════════ */}
+        {tab === 'fechamento' && (
+          commissionsQ.isLoading ? <PageSpinner /> :
+          !commissionsQ.data?.length ? <EmptyState label="Nenhum pedido no período selecionado" /> :
+          (() => {
+            const rows = commissionsQ.data as CommissionRow[]
+            const fmtPeriod = `${fmtDatePtBR(dateFrom)} a ${fmtDatePtBR(dateTo)}`
+
+            // Agrupa por vendedor mantendo a ordem de aparição
+            const grupos = new Map<string, CommissionRow[]>()
+            for (const r of rows) {
+              const rep = r.vendedor || 'Sem vendedor'
+              if (!grupos.has(rep)) grupos.set(rep, [])
+              grupos.get(rep)!.push(r)
+            }
+
+            const totalGeral = rows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+            const totalValor = rows.reduce((s, r) => s + Number(r.total_value), 0)
+
+            function exportarFechamento(repNome: string, repRows: CommissionRow[]) {
+              const headers = ['Data', 'Razão Social', 'Nome Fantasia', 'Doc. Original', 'Valor (R$)', '% Com.', 'Comissão (R$)']
+              const dataRows = repRows.map(r => [
+                fmtDatePtBR(r.data_venda),
+                r.razao_social || '',
+                r.cliente || '',
+                r.nr_ped_fabrica || '',
+                Number(r.total_value),
+                Number(r.rep_commission_pct),
+                Number(r.rep_commission_value),
+              ])
+              const total: (string|number)[] = ['TOTAL', '', '', '', repRows.reduce((s,r)=>s+Number(r.total_value),0), '', repRows.reduce((s,r)=>s+Number(r.rep_commission_value),0)]
+              exportXlsx(
+                `Fechamento_${repNome.replace(/\s+/g,'_')}_${dateFrom}_${dateTo}`,
+                headers,
+                [...dataRows, [], total]
+              )
+            }
+
+            return (
+              <div className="space-y-6">
+                {/* Cabeçalho de ação */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <p className="text-[13px] font-semibold text-on-surface">Período: {fmtPeriod}</p>
+                    <p className="text-[12px] text-outline">{rows.length} pedido{rows.length !== 1 ? 's' : ''} · {grupos.size} representante{grupos.size !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.print()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] border border-outline-variant rounded-lg hover:bg-surface-container-low"
+                    >
+                      <Printer className="h-3.5 w-3.5" /> Imprimir
+                    </button>
+                    {grupos.size === 1 && (() => {
+                      const [nome, r] = [...grupos.entries()][0]
+                      return (
+                        <button
+                          onClick={() => exportarFechamento(nome, r)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] bg-primary text-on-primary rounded-lg hover:brightness-110"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Exportar Excel
+                        </button>
+                      )
+                    })()}
+                  </div>
+                </div>
+
+                {/* Cards resumo */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  {[
+                    { label: 'Valor Total de Pedidos', v: totalValor, color: '#0891b2' },
+                    { label: 'Total de Comissão', v: totalGeral, color: '#16a34a' },
+                    { label: 'Representantes', v: grupos.size, color: '#7c3aed', isCount: true },
+                  ].map(c => (
+                    <div key={c.label} className="bg-white rounded-xl border border-outline-variant p-4">
+                      <p className="text-[11px] font-semibold text-outline uppercase tracking-wide mb-1">{c.label}</p>
+                      <p className="text-[20px] font-black" style={{ color: c.color }}>
+                        {c.isCount ? c.v : fmtR(c.v)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Um bloco por representante */}
+                {[...grupos.entries()].map(([repNome, repRows]) => {
+                  const totalRep = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+                  const totalValorRep = repRows.reduce((s, r) => s + Number(r.total_value), 0)
+                  const pctMedio = totalValorRep > 0 ? totalRep / totalValorRep * 100 : 0
+
+                  return (
+                    <div key={repNome} className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                      {/* Cabeçalho do representante */}
+                      <div className="flex items-center justify-between px-4 py-3 bg-surface-container-low border-b border-outline-variant">
+                        <div>
+                          <p className="text-[13px] font-bold text-on-surface">{repNome}</p>
+                          <p className="text-[11px] text-outline">{repRows.length} pedido{repRows.length !== 1 ? 's' : ''} · {fmtPeriod}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-[11px] text-outline">Comissão total</p>
+                            <p className="text-[16px] font-black text-emerald-700">{fmtR(totalRep)}</p>
+                            <p className="text-[11px] text-outline">{fmtN(pctMedio).replace(',',',')}% s/ {fmtR(totalValorRep)}</p>
+                          </div>
+                          <button
+                            onClick={() => exportarFechamento(repNome, repRows)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] bg-primary text-on-primary rounded-lg hover:brightness-110"
+                            title="Exportar Excel deste representante"
+                          >
+                            <Download className="h-3 w-3" /> Excel
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Tabela de pedidos */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-[12px]">
+                          <thead className="bg-surface-container-lowest">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-semibold text-outline">Data</th>
+                              <th className="px-3 py-2 text-left font-semibold text-outline">Razão Social</th>
+                              <th className="px-3 py-2 text-left font-semibold text-outline">Nome Fantasia</th>
+                              <th className="px-3 py-2 text-left font-semibold text-outline">Doc. Original</th>
+                              <th className="px-3 py-2 text-left font-semibold text-outline">Indústria</th>
+                              <th className="px-3 py-2 text-right font-semibold text-outline">Valor</th>
+                              <th className="px-3 py-2 text-right font-semibold text-outline">%</th>
+                              <th className="px-3 py-2 text-right font-semibold text-outline">Comissão</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {repRows.map(r => (
+                              <tr key={r.id} className="hover:bg-surface-container-low/40">
+                                <td className="px-3 py-1.5 whitespace-nowrap text-on-surface-variant">{fmtDatePtBR(r.data_venda)}</td>
+                                <td className="px-3 py-1.5 text-on-surface font-medium max-w-[180px] truncate">{r.razao_social}</td>
+                                <td className="px-3 py-1.5 text-on-surface-variant max-w-[140px] truncate">{r.cliente || '—'}</td>
+                                <td className="px-3 py-1.5 text-on-surface-variant whitespace-nowrap">{r.nr_ped_fabrica || '—'}</td>
+                                <td className="px-3 py-1.5 text-on-surface-variant whitespace-nowrap">{r.industria}</td>
+                                <td className="px-3 py-1.5 text-right font-medium text-on-surface">{fmtR(r.total_value)}</td>
+                                <td className="px-3 py-1.5 text-right text-outline">{Number(r.rep_commission_pct).toFixed(2).replace('.',',')}%</td>
+                                <td className="px-3 py-1.5 text-right font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
+                              <td className="px-3 py-2 text-[12px] text-on-surface-variant" colSpan={5}>
+                                Total — {repRows.length} pedido{repRows.length !== 1 ? 's' : ''}
+                              </td>
+                              <td className="px-3 py-2 text-right text-[12px] text-on-surface">{fmtR(totalValorRep)}</td>
+                              <td className="px-3 py-2 text-right text-[12px] text-outline">
+                                {totalValorRep > 0 ? (totalRep/totalValorRep*100).toFixed(2).replace('.',',') : '0,00'}%
+                              </td>
+                              <td className="px-3 py-2 text-right text-[13px] text-emerald-700">{fmtR(totalRep)}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Rodapé geral (só quando há mais de um rep) */}
+                {grupos.size > 1 && (
+                  <div className="bg-surface-container rounded-xl border border-outline-variant px-5 py-4 flex items-center justify-between">
+                    <p className="text-[13px] font-semibold text-on-surface">{rows.length} pedidos no período</p>
+                    <div className="text-right">
+                      <p className="text-[11px] text-outline">Total geral de comissão</p>
+                      <p className="text-[22px] font-black text-emerald-700">{fmtR(totalGeral)}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })()
