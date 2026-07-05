@@ -1,23 +1,26 @@
 import { Response } from 'express'
 import * as XLSX from 'xlsx'
+import bcrypt from 'bcryptjs'
 import { AuthRequest } from '../middleware/auth'
 import { query } from '../config/database'
 
-const FACTORY_MAP: Record<string, string> = {
-  'TEEZZ':   '13a0f746-f637-42a6-856e-01f9a495a537',
-  'OUZZARE': 'b09bfdee-37ab-40ef-8a4d-9e5c8eec573f',
+// Mapa nome SuasVendas → nome no banco (lookup por name ILIKE)
+const REP_NAME_MAP: Record<string, string> = {
+  'SOMMA - Alex':        'Alex',
+  'SOMMA - Érico':       'Erico',
+  'SOMMA - Erico':       'Erico',
+  'SOMMA - Leonardo':    'Leonardo',
+  'SOMMA - Fabrício H.': 'Fabricio',
+  'SOMMA - Fabricio H.': 'Fabricio',
 }
 
-const REP_MAP: Record<string, string> = {
-  'SOMMA - Alex':         '4d4fde47-aeb0-4fa1-aed4-a579a023e0e0',
-  'SOMMA - Érico':        'ef133bbe-5950-4908-922e-1ceef37b0af6',
-  'SOMMA - Erico':        'ef133bbe-5950-4908-922e-1ceef37b0af6',
-  'SOMMA - Leonardo':     '9e96f00b-ca77-4642-ae76-dcecdf5e8c2b',
-  'SOMMA - Fabrício H.':  'ec7755ba-2aef-4628-b8ec-da28263d2381',
-  'SOMMA - Fabricio H.':  'ec7755ba-2aef-4628-b8ec-da28263d2381',
+// Dados dos reps para criação automática caso não existam em produção
+const REP_CREATE_DATA: Record<string, { name: string; email: string }> = {
+  'Erico':    { name: 'Erico da Silveira',  email: 'erico@somma.com.br' },
+  'Leonardo': { name: 'Leonardo',           email: 'leonardo@somma.com.br' },
+  'Fabricio': { name: 'Fabricio Hunecke',   email: 'fabricio@somma.com.br' },
+  'Alex':     { name: 'Alex Beneduzi',      email: 'somma.alex@hotmail.com' },
 }
-
-const STATUS_CONFIRMADO = '5f46281d-9750-4dc3-8cf3-731a59fc045b'
 
 function normalizeCnpj(raw: string | null): string {
   return raw ? raw.replace(/[^\d]/g, '') : ''
@@ -36,6 +39,70 @@ function toDate(val: unknown): Date | null {
   if (typeof val === 'number') return new Date(Math.round((val - 25569) * 86400 * 1000))
   const d = new Date(String(val))
   return isNaN(d.getTime()) ? null : d
+}
+
+// Cache de lookups para não bater no banco a cada linha
+const cache = {
+  factories: new Map<string, string>(),
+  reps: new Map<string, string>(),
+  statusConfirmado: null as string | null,
+}
+
+async function getFactoryId(name: string): Promise<string | null> {
+  if (cache.factories.has(name)) return cache.factories.get(name)!
+  const r = await query('SELECT id FROM factories WHERE name ILIKE $1 LIMIT 1', [name])
+  if (!r.rows.length) return null
+  cache.factories.set(name, r.rows[0].id)
+  return r.rows[0].id
+}
+
+async function getOrCreateRepId(svName: string): Promise<string | null> {
+  if (cache.reps.has(svName)) return cache.reps.get(svName)!
+
+  const nameKey = REP_NAME_MAP[svName]
+  if (!nameKey) return null
+
+  // Tenta achar pelo name parcial
+  const r = await query(
+    `SELECT id FROM users WHERE name ILIKE $1 LIMIT 1`,
+    [`%${nameKey}%`],
+  )
+  if (r.rows.length) {
+    cache.reps.set(svName, r.rows[0].id)
+    return r.rows[0].id
+  }
+
+  // Não existe: cria automaticamente
+  const data = REP_CREATE_DATA[nameKey]
+  if (!data) return null
+
+  const hash = await bcrypt.hash('Somma@2026', 10)
+  const ins = await query(
+    `INSERT INTO users (name, email, password_hash, role, active)
+     VALUES ($1, $2, $3, 'representante', true)
+     ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
+     RETURNING id`,
+    [data.name, data.email, hash],
+  )
+  cache.reps.set(svName, ins.rows[0].id)
+  return ins.rows[0].id
+}
+
+async function getStatusConfirmado(): Promise<string> {
+  if (cache.statusConfirmado) return cache.statusConfirmado
+  const r = await query(
+    `SELECT id FROM order_statuses WHERE name ILIKE '%confirmado%' LIMIT 1`,
+  )
+  if (r.rows.length) {
+    cache.statusConfirmado = r.rows[0].id
+    return r.rows[0].id
+  }
+  // fallback: primeiro status não-inicial não-final
+  const r2 = await query(
+    `SELECT id FROM order_statuses WHERE is_final = false ORDER BY sort_order LIMIT 1`,
+  )
+  cache.statusConfirmado = r2.rows[0].id
+  return r2.rows[0].id
 }
 
 async function findOrCreateClient(
@@ -59,12 +126,26 @@ async function findOrCreateClient(
 export async function importSuasVendas(req: AuthRequest, res: Response) {
   if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
 
-  const wb = XLSX.read(req.file.buffer, { type: 'buffer' })
+  // Limpa cache entre requisições
+  cache.factories.clear()
+  cache.reps.clear()
+  cache.statusConfirmado = null
+
+  let wb: XLSX.WorkBook
+  try {
+    wb = XLSX.read(req.file.buffer, { type: 'buffer' })
+  } catch {
+    res.status(400).json({ error: 'Arquivo inválido ou corrompido' })
+    return
+  }
+
   const ws = wb.Sheets[wb.SheetNames[0]]
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null }) as unknown[][]
 
   // Linha 0 = título, Linha 1 = cabeçalho, demais = dados
   const dataRows = rows.slice(2).filter(r => r[0] != null && r[3] != null)
+
+  const statusId = await getStatusConfirmado()
 
   let imported = 0, skipped = 0, errors = 0
   const unmappedReps = new Set<string>()
@@ -80,8 +161,8 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
     ] = row as [unknown, string, string, unknown, string, string, string, string,
                  number, number, unknown, string, number, number, string, string]
 
-    const factoryId = FACTORY_MAP[industria]
-    const repId = REP_MAP[representante]
+    const factoryId = await getFactoryId(String(industria ?? ''))
+    const repId     = await getOrCreateRepId(String(representante ?? ''))
 
     if (!factoryId) { unmappedFactories.add(String(industria ?? '')); skipped++; continue }
     if (!repId)     { unmappedReps.add(String(representante ?? ''));  skipped++; continue }
@@ -113,7 +194,7 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
            notes, created_at, updated_at, synced_at
          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true,$12,$13,$14,$15,$16,$16,$16)`,
         [
-          clientId, repId, factoryId, STATUS_CONFIRMADO,
+          clientId, repId, factoryId, statusId,
           valor ?? 0, itens ?? 0,
           repPct, officePct, totalCommPct,
           comissaoVendedor ?? 0, comissaoEscrit ?? 0,
