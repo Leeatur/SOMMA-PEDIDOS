@@ -79,6 +79,7 @@ export default function SuasVendasHistorico() {
       form.append('file', file)
       const res = await apiClient.post('/orders/import-suasvendas', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300_000, // 5 min para arquivos grandes
       })
       setImportResult(res.data)
       queryClient.invalidateQueries({ queryKey: ['orders-suasvendas'] })

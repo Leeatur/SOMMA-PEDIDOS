@@ -49,10 +49,12 @@ const cache = {
 }
 
 async function getFactoryId(name: string): Promise<string | null> {
-  if (cache.factories.has(name)) return cache.factories.get(name)!
+  const key = name.toUpperCase()
+  if (cache.factories.has(key)) return cache.factories.get(key)!
+  // fallback: consulta DB se não veio no pré-carregamento
   const r = await query('SELECT id FROM factories WHERE name ILIKE $1 LIMIT 1', [name])
   if (!r.rows.length) return null
-  cache.factories.set(name, r.rows[0].id)
+  cache.factories.set(key, r.rows[0].id)
   return r.rows[0].id
 }
 
@@ -144,6 +146,21 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
 
   // Linha 0 = título, Linha 1 = cabeçalho, demais = dados
   const dataRows = rows.slice(2).filter(r => r[0] != null && r[3] != null)
+
+  // Pré-carrega fábricas, reps e status em bloco (evita N+1 queries via rede)
+  const [factoriesRes, usersRes] = await Promise.all([
+    query('SELECT id, name FROM factories'),
+    query('SELECT id, name FROM users'),
+  ])
+  factoriesRes.rows.forEach((f: { id: string; name: string }) => cache.factories.set(f.name.toUpperCase(), f.id))
+  usersRes.rows.forEach((u: { id: string; name: string }) => {
+    // Mapeia cada entrada REP_NAME_MAP para o id do usuário encontrado
+    for (const [svKey, nameKey] of Object.entries(REP_NAME_MAP)) {
+      if (u.name.toLowerCase().includes(nameKey.toLowerCase())) {
+        cache.reps.set(svKey, u.id)
+      }
+    }
+  })
 
   const statusId = await getStatusConfirmado()
 
