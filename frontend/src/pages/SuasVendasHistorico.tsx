@@ -82,8 +82,11 @@ export default function SuasVendasHistorico() {
       })
       setImportResult(res.data)
       queryClient.invalidateQueries({ queryKey: ['orders-suasvendas'] })
-    } catch {
-      setImportResult({ imported: 0, skipped: 0, errors: 1, unmappedReps: [], unmappedFactories: ['Erro ao importar. Verifique o formato do arquivo.'] })
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error
+        || (err as { message?: string })?.message
+        || 'Erro desconhecido'
+      setImportResult({ imported: 0, skipped: 0, errors: 1, unmappedReps: [], unmappedFactories: [msg] })
     } finally {
       setImporting(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
