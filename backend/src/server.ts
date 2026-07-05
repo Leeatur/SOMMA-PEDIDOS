@@ -89,6 +89,9 @@ async function runStartupMigrations() {
     await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_discount_pct NUMERIC(5,2) DEFAULT NULL')
     await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_manual_override BOOLEAN DEFAULT FALSE')
     await query('UPDATE orders SET commission_manual_override = FALSE WHERE commission_manual_override IS NULL')
+    // Garante nome correto do admin principal e remove contas placeholder
+    await query(`UPDATE users SET name = 'SOMMA - Uliano Spèrandio' WHERE email = 'somma.uliano@hotmail.com' AND name != 'SOMMA - Uliano Spèrandio'`)
+    await query(`DELETE FROM users WHERE email IN ('admin2@somma.com.br', 'admin3@somma.com.br')`)
     console.log('✅ Migrations de startup concluídas')
   } catch (err) {
     console.warn('⚠️  Migration startup falhou (não crítico):', err)
