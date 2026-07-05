@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { ordersApi, factoriesApi, usersApi } from '../api/client'
+import { useState, useMemo, useRef } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ordersApi, factoriesApi, usersApi, apiClient } from '../api/client'
 import * as XLSX from 'xlsx'
 
 interface Order {
@@ -36,6 +36,10 @@ export default function SuasVendasHistorico() {
   const [factoryId, setFactoryId] = useState('')
   const [dateFrom, setDateFrom]   = useState('')
   const [dateTo, setDateTo]       = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: number; unmappedReps: string[]; unmappedFactories: string[] } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const queryClient = useQueryClient()
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['orders-suasvendas', repId, factoryId, dateFrom, dateTo],
@@ -64,6 +68,27 @@ export default function SuasVendasHistorico() {
     commRep: orders.reduce((s, o) => s + Number(o.rep_commission_value), 0),
     commEscrit: orders.reduce((s, o) => s + Number(o.office_commission_value), 0),
   }), [orders])
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    setImportResult(null)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await apiClient.post('/orders/import-suasvendas', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setImportResult(res.data)
+      queryClient.invalidateQueries({ queryKey: ['orders-suasvendas'] })
+    } catch {
+      setImportResult({ imported: 0, skipped: 0, errors: 1, unmappedReps: [], unmappedFactories: ['Erro ao importar. Verifique o formato do arquivo.'] })
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   function exportExcel() {
     const rows = orders.map(o => ({
@@ -102,17 +127,46 @@ export default function SuasVendasHistorico() {
             Pedidos importados do SuasVendas — somente leitura
           </p>
         </div>
-        <button
-          onClick={exportExcel}
-          disabled={orders.length === 0}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-40 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          Exportar Excel
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Importar */}
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {importing ? 'Importando...' : 'Importar Excel'}
+          </button>
+          {/* Exportar */}
+          <button
+            onClick={exportExcel}
+            disabled={orders.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-40 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Exportar Excel
+          </button>
+        </div>
       </div>
+
+      {/* Resultado da importação */}
+      {importResult && (
+        <div className={`px-6 py-2.5 text-xs flex items-center justify-between border-b ${importResult.errors > 0 || importResult.unmappedFactories.length > 0 ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+          <span>
+            ✓ <strong>{importResult.imported}</strong> importados &nbsp;·&nbsp;
+            ⊘ <strong>{importResult.skipped}</strong> pulados (já existiam)
+            {importResult.errors > 0 && <> &nbsp;·&nbsp; ✗ <strong>{importResult.errors}</strong> erros</>}
+            {importResult.unmappedReps.length > 0 && <> &nbsp;·&nbsp; Reps sem mapeamento: {importResult.unmappedReps.join(', ')}</>}
+            {importResult.unmappedFactories.length > 0 && <> &nbsp;·&nbsp; {importResult.unmappedFactories.join(', ')}</>}
+          </span>
+          <button onClick={() => setImportResult(null)} className="ml-4 opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 px-6 py-3 border-b border-border bg-card/50">

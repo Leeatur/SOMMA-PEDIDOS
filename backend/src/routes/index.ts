@@ -19,6 +19,7 @@ import * as pdf from '../controllers/pdfController'
 import * as pe from '../controllers/peController'
 import * as paymentConds from '../controllers/paymentConditionsController'
 import * as integration from '../controllers/integrationController'
+import * as suasVendasImport from '../controllers/suasVendasImportController'
 
 const router = Router()
 
@@ -124,6 +125,7 @@ router.patch('/orders/:id/items/:item_id', authenticate, orders.updateOrderItem)
 router.delete('/orders/:id/items/:item_id', authenticate, orders.removeOrderItem)
 router.post('/orders/:id/recalculate', authenticate, orders.recalcOrderTotals)
 router.post('/orders/sync', authenticate, orders.syncOfflineOrders)
+router.post('/orders/import-suasvendas', authenticate, requireAdmin, upload.single('file'), suasVendasImport.importSuasVendas)
 
 // Relatórios
 router.get('/reports/orders', authenticate, reports.ordersReport)
