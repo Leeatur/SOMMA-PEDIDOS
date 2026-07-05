@@ -13,23 +13,10 @@ async function seed() {
     // Admin PRINCIPAL — garantido a cada deploy (anti-lockout: nunca trava o acesso)
     await client.query(`
       INSERT INTO users (name, email, password_hash, role, active)
-      VALUES ('Uliano', 'somma.uliano@hotmail.com', $1, 'admin', true)
+      VALUES ('SOMMA - Uliano Spèrandio', 'somma.uliano@hotmail.com', $1, 'admin', true)
       ON CONFLICT (email) DO UPDATE
-        SET password_hash = EXCLUDED.password_hash, active = true, updated_at = NOW()
+        SET name = EXCLUDED.name, password_hash = EXCLUDED.password_hash, active = true, updated_at = NOW()
     `, [hash])
-
-    // Admin 2 / Admin 3 — só na PRIMEIRA configuração (tabela só com o principal).
-    // Assim, se forem excluídos depois, NÃO voltam a cada boot.
-    const { rows: [{ count: userCount }] } = await client.query('SELECT COUNT(*) FROM users')
-    if (parseInt(userCount) <= 1) {
-      await client.query(`
-        INSERT INTO users (name, email, password_hash, role, active)
-        VALUES
-          ('Admin 2', 'admin2@somma.com.br', $1, 'admin', true),
-          ('Admin 3', 'admin3@somma.com.br', $1, 'admin', true)
-        ON CONFLICT (email) DO NOTHING
-      `, [hash])
-    }
     console.log('   ✅ Admin principal garantido: somma.uliano@hotmail.com / somma@2026')
 
     // Status padrão — só insere se a tabela estiver vazia
