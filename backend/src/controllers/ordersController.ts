@@ -114,7 +114,7 @@ async function computeOrderTotals(
 }
 
 export async function listOrders(req: AuthRequest, res: Response) {
-  const { status_id, factory_id, rep_id, date_from, date_to, search } = req.query
+  const { status_id, factory_id, rep_id, date_from, date_to, search, source } = req.query
   const isAdmin = req.user!.role === 'admin'
 
   let sql = `
@@ -140,6 +140,8 @@ export async function listOrders(req: AuthRequest, res: Response) {
   if (rep_id && isAdmin) { sql += ` AND o.rep_id = $${idx++}`; params.push(rep_id) }
   if (date_from) { sql += ` AND o.created_at >= $${idx++}`; params.push(date_from) }
   if (date_to) { sql += ` AND o.created_at <= $${idx++}`; params.push(date_to) }
+  if (source === 'suasvendas') { sql += ` AND o.notes LIKE 'Importado SuasVendas%'` }
+  if (source === 'native') { sql += ` AND (o.notes IS NULL OR o.notes NOT LIKE 'Importado SuasVendas%')` }
   if (search) {
     sql += ` AND (
       c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR c.city ILIKE $${idx} OR

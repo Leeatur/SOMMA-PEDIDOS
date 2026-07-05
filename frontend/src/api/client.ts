@@ -290,6 +290,7 @@ export const ordersApi = {
     date_from?: string
     date_to?: string
     search?: string
+    source?: 'suasvendas' | 'native'
   }) => apiClient.get('/orders', { params }),
   get: (id: string) => apiClient.get(`/orders/${id}`),
   summary: (params?: { date_from?: string; date_to?: string; rep_id?: string }) =>

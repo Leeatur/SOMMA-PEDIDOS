@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, BellRing, CreditCard, MapPin, Target,
+  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, BellRing, CreditCard, MapPin, Target, History,
 } from 'lucide-react'
 
 // SOMMA Maps — produto integrado (abre em nova aba)
@@ -45,6 +45,7 @@ const navAdmin: NavItem[] = [
   { to: '/statuses',            label: 'Status',         icon: <Package className="h-4 w-4" />,    adminOnly: true },
   { to: '/users',               label: 'Usuários',       icon: <UserCog className="h-4 w-4" />,    adminOnly: true },
   { to: '/orders/trash',        label: 'Lixeira',        icon: <Trash2 className="h-4 w-4" />,     adminOnly: true },
+  { to: '/orders/historico',    label: 'SuasVendas',     icon: <History className="h-4 w-4" />,    adminOnly: true },
 ]
 
 function useOnlineStatus() {

@@ -25,6 +25,7 @@ import { ProntaEntrega } from './pages/ProntaEntrega'
 import { PaymentConditions } from './pages/PaymentConditions'
 import { CarteiraMapa } from './pages/CarteiraMapa'
 import MetaFabricasPage from './pages/MetaFabricasPage'
+import SuasVendasHistorico from './pages/SuasVendasHistorico'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuthStore()
@@ -59,6 +60,7 @@ export function App() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/new" element={<NewOrder />} />
         <Route path="/orders/trash" element={<RequireAdmin><OrdersTrash /></RequireAdmin>} />
+        <Route path="/orders/historico" element={<RequireAdmin><SuasVendasHistorico /></RequireAdmin>} />
         <Route path="/payment-conditions" element={<RequireAdmin><PaymentConditions /></RequireAdmin>} />
         <Route path="/orders/alerts" element={<OrderAlertsPage />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
