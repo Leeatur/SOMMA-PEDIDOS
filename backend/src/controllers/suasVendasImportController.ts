@@ -199,16 +199,17 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
     ] = row as [unknown, string, string, unknown, string, string, string, string,
                  number, number, unknown, string, number, number, string, string]
 
-    const factoryId = await getFactoryId(String(industria ?? ''))
-    const repId     = await getOrCreateRepId(String(representante ?? ''))
-
-    if (!factoryId) { unmappedFactories.add(String(industria ?? '')); skipped++; continue }
-    if (!repId)     { unmappedReps.add(String(representante ?? ''));  skipped++; continue }
-
     const docStr = String(docOriginal ?? '').trim()
-    if (!docStr) { skipped++; continue }
 
     try {
+      const factoryId = await getFactoryId(String(industria ?? ''))
+      const repId     = await getOrCreateRepId(String(representante ?? ''))
+
+      if (!factoryId) { unmappedFactories.add(String(industria ?? '')); skipped++; continue }
+      if (!repId)     { unmappedReps.add(String(representante ?? ''));  skipped++; continue }
+
+      if (!docStr) { skipped++; continue }
+
       const exists = await query(
         'SELECT id FROM orders WHERE industry_order_number = $1 AND factory_id = $2 LIMIT 1',
         [docStr, factoryId],
@@ -244,7 +245,9 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
       imported++
     } catch (e: unknown) {
       errors++
-      errorDetails.push(`Doc. ${docStr}: ${e instanceof Error ? e.message : String(e)}`)
+      if (errorDetails.length < 5) {
+        errorDetails.push(`Doc. ${docStr || '?'}: ${e instanceof Error ? e.message : String(e)}`)
+      }
     }
   }
 
