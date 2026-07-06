@@ -81,21 +81,31 @@ process.on('unhandledRejection', (reason) => {
 // Migration automática: remove restrição UNIQUE(price_table_id, reference) para permitir
 // que a mesma referência exista em múltiplas tabelas de preço e quantas vezes for necessário.
 async function runStartupMigrations() {
-  try {
-    const { query } = await import('./config/database')
-    await query('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_price_table_id_reference_key')
-    await query('ALTER TABLE price_tables ADD COLUMN IF NOT EXISTS max_cash_discount_pct NUMERIC(5,2) DEFAULT NULL')
-    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS needs_review_discount BOOLEAN DEFAULT FALSE')
-    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_discount_pct NUMERIC(5,2) DEFAULT NULL')
-    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_manual_override BOOLEAN DEFAULT FALSE')
-    await query('UPDATE orders SET commission_manual_override = FALSE WHERE commission_manual_override IS NULL')
-    // Garante nome correto do admin principal e remove contas placeholder
-    await query(`UPDATE users SET name = 'SOMMA - Uliano Spèrandio' WHERE email = 'somma.uliano@hotmail.com' AND name != 'SOMMA - Uliano Spèrandio'`)
-    await query(`DELETE FROM users WHERE email IN ('admin2@somma.com.br', 'admin3@somma.com.br')`)
-    console.log('✅ Migrations de startup concluídas')
-  } catch (err) {
-    console.warn('⚠️  Migration startup falhou (não crítico):', err)
+  // Cada migration roda isolada para não bloquear as demais em caso de erro
+  const { query } = await import('./config/database')
+  const safe = async (sql: string) => {
+    try { await query(sql) } catch { /* coluna/constraint já existe ou não aplicável */ }
   }
+
+  await safe('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_price_table_id_reference_key')
+  await safe('ALTER TABLE price_tables ADD COLUMN IF NOT EXISTS max_cash_discount_pct NUMERIC(5,2) DEFAULT NULL')
+  await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS needs_review_discount BOOLEAN DEFAULT FALSE')
+  await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_discount_pct NUMERIC(5,2) DEFAULT NULL')
+  await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_manual_override BOOLEAN DEFAULT FALSE')
+  await safe('UPDATE orders SET commission_manual_override = FALSE WHERE commission_manual_override IS NULL')
+  // Colunas que podem não existir em instâncias antigas
+  await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS industry_order_number VARCHAR(100)')
+  await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS buyer_name VARCHAR(200)')
+  await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS transportadora VARCHAR(200)')
+  await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_date DATE')
+  await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS synced_at TIMESTAMPTZ')
+  await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_terms VARCHAR(200)')
+  // price_table_id pode ser NOT NULL em instâncias antigas — importação histórica não tem tabela de preço
+  await safe('ALTER TABLE orders ALTER COLUMN price_table_id DROP NOT NULL')
+  // Admin principal
+  await safe(`UPDATE users SET name = 'SOMMA - Uliano Spèrandio' WHERE email = 'somma.uliano@hotmail.com' AND name != 'SOMMA - Uliano Spèrandio'`)
+  await safe(`DELETE FROM users WHERE email IN ('admin2@somma.com.br', 'admin3@somma.com.br')`)
+  console.log('✅ Migrations de startup concluídas')
 }
 
 app.listen(PORT, async () => {

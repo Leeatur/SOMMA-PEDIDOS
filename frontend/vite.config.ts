@@ -40,7 +40,7 @@ export default defineConfig({
             urlPattern: /^https?:\/\/.*\/api\//,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-cache-v4',
+              cacheName: 'api-cache-v5',
               networkTimeoutSeconds: 5,
               expiration: { maxEntries: 500, maxAgeSeconds: 1 * 24 * 60 * 60 },
             },
