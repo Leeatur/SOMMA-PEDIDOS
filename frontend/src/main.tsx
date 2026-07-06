@@ -15,7 +15,7 @@ import './index.css'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 30, // 30 segundos — dados ficam frescos por menos tempo
+      staleTime: 1000 * 60 * 2, // 2 minutos — reduz refetch desnecessário
       retry: (failureCount, error) => {
         // Don't retry 401/403
         const status = (error as { response?: { status: number } })?.response?.status

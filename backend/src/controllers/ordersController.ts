@@ -25,6 +25,27 @@ async function computeOrderTotals(
   let totalValue = 0  // valor final que o cliente paga (após todos os descontos)
   const enrichedItems = []
 
+  // Pre-load grade_configs em batch para evitar N+1 queries
+  const packItemIds = items
+    .filter(item => {
+      const sizesMap = item.sizes && typeof item.sizes === 'object' ? item.sizes : {}
+      const sizesTotal = Object.values(sizesMap).reduce((s: number, v: unknown) => s + Number(v || 0), 0)
+      const hasCustomGrade = item.custom_grade && Array.isArray(item.custom_grade) && item.custom_grade.length > 0
+      return sizesTotal === 0 && !hasCustomGrade
+    })
+    .map(item => item.product_id)
+
+  const gradeMap = new Map<string, number>()
+  if (packItemIds.length > 0) {
+    const { rows: allGrades } = await client.query(
+      'SELECT product_id, SUM(total_pieces) as total FROM grade_configs WHERE product_id = ANY($1) GROUP BY product_id',
+      [packItemIds]
+    )
+    allGrades.forEach((g: { product_id: string; total: string }) => {
+      gradeMap.set(g.product_id, Number(g.total) || 1)
+    })
+  }
+
   for (const item of items) {
     let itemPieces: number
     let subtotal: number
@@ -50,11 +71,8 @@ async function computeOrderTotals(
       finalBoxesCount = 1
       finalSizes = null
     } else {
-      // Pack padrão
-      const { rows: grades } = await client.query(
-        'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
-      )
-      const piecesPerBox = grades.reduce((sum: number, g: { total_pieces: number }) => sum + g.total_pieces, 0) || 1
+      // Pack padrão — usa cache pré-carregado
+      const piecesPerBox = gradeMap.get(item.product_id) ?? 1
       const boxCount = item.boxes_count || 1
       itemPieces = boxCount * piecesPerBox
       subtotal = Math.round(discountedPrice * itemPieces * 100) / 100
@@ -702,13 +720,39 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
       [orderId]
     )
 
-    // Para cada item, busca o preço base na nova tabela (pela referência)
+    // Busca todos os produtos da nova tabela em batch (pela referência)
+    const refs = currentItems.map((i: { reference: string }) => i.reference)
+    const { rows: newProducts } = await dbClient.query(
+      'SELECT id, base_price, reference FROM products WHERE price_table_id=$1 AND reference = ANY($2)',
+      [price_table_id, refs]
+    )
+    const productMap = new Map(newProducts.map((p: { id: string; base_price: string; reference: string }) =>
+      [p.reference, p]
+    ))
+
+    // Pre-load grade_configs em batch para packs padrão
+    const packProductIds = newProducts
+      .filter((_: unknown, idx: number) => {
+        const item = currentItems[idx]
+        if (!item) return false
+        const sizesMap = item.sizes && typeof item.sizes === 'object' ? item.sizes as Record<string,number> : {}
+        return Object.values(sizesMap).reduce((s, v) => s + Number(v || 0), 0) === 0
+      })
+      .map((p: { id: string }) => p.id)
+    const gradeMapPT = new Map<string, number>()
+    if (packProductIds.length > 0) {
+      const { rows: allGrades } = await dbClient.query(
+        'SELECT product_id, SUM(total_pieces) as total FROM grade_configs WHERE product_id = ANY($1) GROUP BY product_id',
+        [packProductIds]
+      )
+      allGrades.forEach((g: { product_id: string; total: string }) => {
+        gradeMapPT.set(g.product_id, Number(g.total) || 1)
+      })
+    }
+
     const notFound: string[] = []
     for (const item of currentItems) {
-      const { rows: [newProduct] } = await dbClient.query(
-        'SELECT id, base_price FROM products WHERE price_table_id=$1 AND reference=$2',
-        [price_table_id, item.reference]
-      )
+      const newProduct = productMap.get(item.reference)
       if (!newProduct) {
         notFound.push(item.reference)
         continue
@@ -724,12 +768,8 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
         itemPieces = sizesTotal
         subtotal = discountedPrice * itemPieces
       } else {
-        const { rows: grades } = await dbClient.query(
-          'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [newProduct.id]
-        )
-        const piecesPerBox = grades.reduce((s: number, g: {total_pieces:number}) => s + g.total_pieces, 0) || 1
+        const piecesPerBox = gradeMapPT.get(newProduct.id) ?? 1
         itemPieces = (item.boxes_count || 1) * piecesPerBox
-        // preço por PEÇA × total de peças
         subtotal = discountedPrice * itemPieces
       }
 
@@ -873,9 +913,9 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
         res.status(400).json({ error: 'Quantidade de caixas deve ser maior que zero' }); return
       }
       const { rows: grades } = await query(
-        'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
+        'SELECT SUM(total_pieces) as total FROM grade_configs WHERE product_id=$1', [item.product_id]
       )
-      const piecesPerBox = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0) || 1
+      const piecesPerBox = Number(grades[0]?.total) || 1
       newTotalPieces = newBoxes * piecesPerBox
       // preço por PEÇA × total de peças
       newSubtotal = Math.round(discountedPrice * newTotalPieces * 100) / 100

@@ -105,25 +105,36 @@ async function runStartupMigrations() {
   // Admin principal
   await safe(`UPDATE users SET name = 'SOMMA - Uliano Spèrandio' WHERE email = 'somma.uliano@hotmail.com' AND name != 'SOMMA - Uliano Spèrandio'`)
   await safe(`DELETE FROM users WHERE email IN ('admin2@somma.com.br', 'admin3@somma.com.br')`)
+  // Índices para acelerar queries críticas
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_deleted_at ON orders(deleted_at)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_created_at ON orders(created_at)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_factory_id ON orders(factory_id)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_rep_id ON orders(rep_id)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_status_id ON orders(status_id)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_order_items_reference ON order_items(reference)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_grade_configs_product_id ON grade_configs(product_id)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_products_price_table_ref ON products(price_table_id, reference)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_name ON clients(name)`)
+  await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_cnpj ON clients(cnpj)`)
   console.log('✅ Migrations de startup concluídas')
 }
 
 app.listen(PORT, async () => {
-  await runStartupMigrations()
-  // 1. Recalcula percentuais a partir das regras de comissão (corrige PCT zerado)
-  try {
-    await fixAllCommissionPcts()
-  } catch (err) {
-    console.warn('⚠️  fixAllCommissionPcts falhou (não crítico):', err)
-  }
-  // 2. Garante que os valores estejam sincronizados com os percentuais
-  try {
-    await fixCommissions()
-  } catch (err) {
-    console.warn('⚠️  fixCommissions falhou (não crítico):', err)
-  }
   console.log(`🚀 Somma Pedidos rodando em http://localhost:${PORT}`)
   if (isProd) console.log('📦 Servindo frontend buildado')
+
+  // Migrations e correções rodam em background para não atrasar o primeiro request
+  setImmediate(async () => {
+    await runStartupMigrations()
+    // Recalcula comissões apenas se necessário (scripts idempotentes)
+    try { await fixAllCommissionPcts() } catch (err) {
+      console.warn('⚠️  fixAllCommissionPcts falhou (não crítico):', err)
+    }
+    try { await fixCommissions() } catch (err) {
+      console.warn('⚠️  fixCommissions falhou (não crítico):', err)
+    }
+  })
 })
 
 export default app
