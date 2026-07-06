@@ -129,19 +129,13 @@ async function getStatusConfirmado(): Promise<string> {
 }
 
 async function findOrCreateClient(
-  cnpj: string, razaoSocial: string, nomeFantasia: string | null, cidade: string | null,
+  razaoSocial: string, nomeFantasia: string | null, cidade: string | null,
 ): Promise<string> {
-  const cnpjNorm = normalizeCnpj(cnpj)
-  if (cnpjNorm) {
-    const r = await query('SELECT id FROM clients WHERE cnpj = $1 LIMIT 1', [cnpjNorm])
-    if (r.rows.length) return r.rows[0].id
-  } else {
-    const r = await query('SELECT id FROM clients WHERE name ILIKE $1 LIMIT 1', [razaoSocial])
-    if (r.rows.length) return r.rows[0].id
-  }
+  const r = await query('SELECT id FROM clients WHERE name ILIKE $1 LIMIT 1', [razaoSocial])
+  if (r.rows.length) return r.rows[0].id
   const ins = await query(
-    `INSERT INTO clients (name, trade_name, cnpj, city, active) VALUES ($1,$2,$3,$4,true) RETURNING id`,
-    [razaoSocial, nomeFantasia || razaoSocial, cnpjNorm || null, cidade],
+    `INSERT INTO clients (name, trade_name, city, active) VALUES ($1,$2,$3,true) RETURNING id`,
+    [razaoSocial, nomeFantasia || razaoSocial, cidade],
   )
   return ins.rows[0].id
 }
@@ -191,13 +185,17 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
   const errorDetails: string[] = []
 
   for (const row of dataRows) {
+    // Colunas reais do export SuasVendas (Pedidos):
+    // 0:Dt.Venda 1:Indústria 2:Vendedor 3:Doc.Original 4:RazãoSocial
+    // 5:Cliente(fantasia) 6:Cidade 7:Itens 8:Valor 9:Prev.Entrega
+    // 10:Cond.Pgto 11:Comissão(valor escritório) 12:Status 13:Obs.Privada 14:DescontoGlobal
     const [
       dtVenda, industria, representante, docOriginal,
-      cnpj, razaoSocial, nomeFantasia, cidade,
+      razaoSocial, nomeFantasia, cidade,
       itens, valor, previsaoEntrega, condicaoPagamento,
-      comissaoEscrit, comissaoVendedor, statusSV, obsPrivada,
-    ] = row as [unknown, string, string, unknown, string, string, string, string,
-                 number, number, unknown, string, number, number, string, string]
+      comissaoEscritValue, statusSV, obsPrivada,
+    ] = row as [unknown, string, string, unknown, string, string, string,
+                 number, number, unknown, string, number, string, string]
 
     const docStr = String(docOriginal ?? '').trim()
 
@@ -216,9 +214,12 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
       )
       if (exists.rows.length) { skipped++; continue }
 
-      const clientId = await findOrCreateClient(cnpj, razaoSocial, nomeFantasia, cidade)
-      const { repPct, officePct } = parseCamp(obsPrivada)
+      const clientId = await findOrCreateClient(razaoSocial, nomeFantasia, cidade)
+      const { repPct, officePct } = parseCamp(String(obsPrivada ?? ''))
       const totalCommPct = repPct + officePct
+      const totalVal = Number(valor) || 0
+      const repCommValue = totalVal * repPct / 100
+      const officeCommValue = Number(comissaoEscritValue) || (totalVal * officePct / 100)
       const orderDate = toDate(dtVenda) || new Date()
       const delivDate = toDate(previsaoEntrega)
 
@@ -234,9 +235,9 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true,$12,$13,$14,$15,$16,$16,$16)`,
         [
           clientId, repId, factoryId, statusId,
-          valor ?? 0, itens ?? 0,
+          totalVal, Number(itens) || 0,
           repPct, officePct, totalCommPct,
-          comissaoVendedor ?? 0, comissaoEscrit ?? 0,
+          repCommValue, officeCommValue,
           docStr, condicaoPagamento, delivDate,
           `Importado SuasVendas. ${statusSV ?? ''}`.trim(),
           orderDate,
