@@ -245,11 +245,11 @@ export default function SuasVendasHistorico() {
             <p className="text-sm">Nenhum pedido importado encontrado</p>
           </div>
         ) : (
-          <table className="w-full text-xs border-collapse">
-            <thead className="sticky top-0 bg-card border-b border-border z-10">
+          <table className="w-full text-xs border-separate border-spacing-0">
+            <thead className="sticky top-0 z-10" style={{ backgroundColor: 'hsl(var(--card))' }}>
               <tr>
                 {['Data', 'Doc. Original', 'Cliente', 'Fábrica', 'Representante', 'Itens', 'Valor', '% Rep', '% Escrit.', 'Comissão Rep', 'Comissão Escrit.', 'Cond. Pgto'].map(h => (
-                  <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">
+                  <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap border-b border-border">
                     {h}
                   </th>
                 ))}
@@ -259,37 +259,37 @@ export default function SuasVendasHistorico() {
               {orders.map((o, i) => (
                 <tr
                   key={o.id}
-                  className={`border-b border-border/50 hover:bg-muted/40 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}
+                  className={`hover:bg-muted/40 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}
                 >
-                  <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{fmtDate(o.created_at)}</td>
-                  <td className="px-3 py-2 whitespace-nowrap font-mono">{o.industry_order_number ?? '—'}</td>
-                  <td className="px-3 py-2 max-w-[200px] truncate" title={o.client_name}>
+                  <td className="px-3 py-2 whitespace-nowrap text-muted-foreground border-b border-border/40">{fmtDate(o.created_at)}</td>
+                  <td className="px-3 py-2 whitespace-nowrap font-mono border-b border-border/40">{o.industry_order_number ?? '—'}</td>
+                  <td className="px-3 py-2 max-w-[200px] truncate border-b border-border/40" title={o.client_name}>
                     {o.client_trade_name || o.client_name}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap">{o.factory_name}</td>
-                  <td className="px-3 py-2 whitespace-nowrap">{o.rep_name}</td>
-                  <td className="px-3 py-2 text-right">{o.total_pieces}</td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap">R$ {fmt(Number(o.total_value))}</td>
-                  <td className="px-3 py-2 text-right">{Number(o.rep_commission_pct).toFixed(1)}%</td>
-                  <td className="px-3 py-2 text-right">{Number(o.office_commission_pct).toFixed(1)}%</td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap text-emerald-700 font-medium">
+                  <td className="px-3 py-2 whitespace-nowrap border-b border-border/40">{o.factory_name}</td>
+                  <td className="px-3 py-2 whitespace-nowrap border-b border-border/40">{o.rep_name}</td>
+                  <td className="px-3 py-2 text-right border-b border-border/40">{o.total_pieces}</td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap border-b border-border/40">R$ {fmt(Number(o.total_value))}</td>
+                  <td className="px-3 py-2 text-right border-b border-border/40">{Number(o.rep_commission_pct).toFixed(1)}%</td>
+                  <td className="px-3 py-2 text-right border-b border-border/40">{Number(o.office_commission_pct).toFixed(1)}%</td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap text-emerald-700 font-medium border-b border-border/40">
                     R$ {fmt(Number(o.rep_commission_value))}
                   </td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap text-blue-700 font-medium">
+                  <td className="px-3 py-2 text-right whitespace-nowrap text-blue-700 font-medium border-b border-border/40">
                     R$ {fmt(Number(o.office_commission_value))}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{o.payment_terms ?? '—'}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-muted-foreground border-b border-border/40">{o.payment_terms ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="sticky bottom-0 bg-card border-t-2 border-border">
+            <tfoot className="sticky bottom-0 z-10" style={{ backgroundColor: 'hsl(var(--card))' }}>
               <tr>
-                <td colSpan={6} className="px-3 py-2 font-semibold text-right text-muted-foreground">TOTAL</td>
-                <td className="px-3 py-2 text-right font-semibold">R$ {fmt(totals.valor)}</td>
-                <td colSpan={2} />
-                <td className="px-3 py-2 text-right font-semibold text-emerald-700">R$ {fmt(totals.commRep)}</td>
-                <td className="px-3 py-2 text-right font-semibold text-blue-700">R$ {fmt(totals.commEscrit)}</td>
-                <td />
+                <td colSpan={6} className="px-3 py-2 font-semibold text-right text-muted-foreground border-t-2 border-border">TOTAL</td>
+                <td className="px-3 py-2 text-right font-semibold border-t-2 border-border">R$ {fmt(totals.valor)}</td>
+                <td colSpan={2} className="border-t-2 border-border" />
+                <td className="px-3 py-2 text-right font-semibold text-emerald-700 border-t-2 border-border">R$ {fmt(totals.commRep)}</td>
+                <td className="px-3 py-2 text-right font-semibold text-blue-700 border-t-2 border-border">R$ {fmt(totals.commEscrit)}</td>
+                <td className="border-t-2 border-border" />
               </tr>
             </tfoot>
           </table>
