@@ -56,6 +56,7 @@ export default function SuasVendasHistorico() {
   const [factoryId, setFactoryId] = useState('')
   const [dateFrom, setDateFrom]   = useState('')
   const [dateTo, setDateTo]       = useState('')
+  const [search, setSearch]       = useState('')
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{
     imported: number; skipped: number; errors: number
@@ -105,11 +106,24 @@ export default function SuasVendasHistorico() {
     ),
   })
 
+  const filteredOrders = useMemo(() => {
+    if (!search.trim()) return orders
+    const q = search.trim().toLowerCase()
+    return orders.filter(o =>
+      (o.client_trade_name || o.client_name).toLowerCase().includes(q) ||
+      o.client_name.toLowerCase().includes(q) ||
+      (o.industry_order_number ?? '').toLowerCase().includes(q) ||
+      o.rep_name.toLowerCase().includes(q) ||
+      o.factory_name.toLowerCase().includes(q) ||
+      (o.payment_terms ?? '').toLowerCase().includes(q)
+    )
+  }, [orders, search])
+
   const totals = useMemo(() => ({
-    valor:      orders.reduce((s, o) => s + Number(o.total_value), 0),
-    commRep:    orders.reduce((s, o) => s + Number(o.rep_commission_value), 0),
-    commEscrit: orders.reduce((s, o) => s + Number(o.office_commission_value), 0),
-  }), [orders])
+    valor:      filteredOrders.reduce((s, o) => s + Number(o.total_value), 0),
+    commRep:    filteredOrders.reduce((s, o) => s + Number(o.rep_commission_value), 0),
+    commEscrit: filteredOrders.reduce((s, o) => s + Number(o.office_commission_value), 0),
+  }), [filteredOrders])
 
   const visibleColList = COLS.filter(c => visibleCols.has(c.key))
 
@@ -302,6 +316,27 @@ export default function SuasVendasHistorico() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 px-6 py-3 border-b border-border bg-card/50">
+        {/* Campo de busca */}
+        <div className="relative">
+          <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar cliente, doc, rep..."
+            className="text-xs border border-border rounded pl-7 pr-7 py-1.5 bg-background text-foreground outline-none focus:ring-1 focus:ring-primary w-52"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          )}
+        </div>
+
         <select
           value={repId}
           onChange={e => setRepId(e.target.value)}
@@ -326,9 +361,9 @@ export default function SuasVendasHistorico() {
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="text-xs border border-border rounded px-2 py-1.5 bg-background text-foreground outline-none focus:ring-1 focus:ring-primary" />
         </div>
-        {(repId || factoryId || dateFrom || dateTo) && (
+        {(search || repId || factoryId || dateFrom || dateTo) && (
           <button
-            onClick={() => { setRepId(''); setFactoryId(''); setDateFrom(''); setDateTo('') }}
+            onClick={() => { setSearch(''); setRepId(''); setFactoryId(''); setDateFrom(''); setDateTo('') }}
             className="text-xs text-muted-foreground hover:text-foreground underline"
           >
             Limpar filtros
@@ -337,9 +372,11 @@ export default function SuasVendasHistorico() {
       </div>
 
       {/* Totalizadores */}
-      {orders.length > 0 && (
+      {filteredOrders.length > 0 && (
         <div className="flex gap-4 px-6 py-2 bg-muted/30 border-b border-border text-xs">
-          <span className="text-muted-foreground">{orders.length} pedidos</span>
+          <span className="text-muted-foreground">
+            {filteredOrders.length}{search ? ` de ${orders.length}` : ''} pedidos
+          </span>
           <span className="text-muted-foreground">·</span>
           <span>Valor total: <strong className="text-foreground">R$ {fmt(totals.valor)}</strong></span>
           <span className="text-muted-foreground">·</span>
@@ -357,6 +394,12 @@ export default function SuasVendasHistorico() {
           <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground">
             <span className="text-4xl">📂</span>
             <p className="text-sm">Nenhum pedido importado encontrado</p>
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground">
+            <span className="text-4xl">🔍</span>
+            <p className="text-sm">Nenhum resultado para "<strong>{search}</strong>"</p>
+            <button onClick={() => setSearch('')} className="text-xs text-primary hover:underline">Limpar busca</button>
           </div>
         ) : (
           <table className="w-full text-xs border-separate border-spacing-0">
@@ -376,7 +419,7 @@ export default function SuasVendasHistorico() {
             </thead>
 
             <tbody>
-              {orders.map((o, i) => (
+              {filteredOrders.map((o, i) => (
                 <tr key={o.id} className={`hover:bg-muted/40 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
                   {visibleColList.map(col => (
                     <td
