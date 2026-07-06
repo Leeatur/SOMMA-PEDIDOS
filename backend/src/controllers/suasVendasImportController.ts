@@ -4,22 +4,43 @@ import bcrypt from 'bcryptjs'
 import { AuthRequest } from '../middleware/auth'
 import { query } from '../config/database'
 
-// Mapa nome SuasVendas → nome no banco (lookup por name ILIKE)
+// Mapa nome SuasVendas → chave interna (usada para lookup e criação)
 const REP_NAME_MAP: Record<string, string> = {
-  'SOMMA - Alex':        'Alex',
-  'SOMMA - Érico':       'Erico',
-  'SOMMA - Erico':       'Erico',
-  'SOMMA - Leonardo':    'Leonardo',
-  'SOMMA - Fabrício H.': 'Fabricio',
-  'SOMMA - Fabricio H.': 'Fabricio',
+  'SOMMA - Alex':         'Alex',
+  'SOMMA - Érico':        'Erico',
+  'SOMMA - Erico':        'Erico',
+  'SOMMA - Leonardo':     'Leonardo',
+  'SOMMA - Fabrício H.':  'Fabricio',
+  'SOMMA - Fabricio H.':  'Fabricio',
+  'SOMMA - Fabrício L.':  'FabricioL',
+  'SOMMA - Fabricio L.':  'FabricioL',
+  'SOMMA - Edson':        'Edson',
+  'SOMMA - Uliano':       'Uliano',
+  'SOMMA - Darlan':       'Darlan',
+  'SOMMA - Cletiel':      'Cletiel',
+  'SOMMA - Diovani':      'Diovani',
+  'SOMMA - Gustavo':      'Gustavo',
+  'SOMMA - Aline':        'Aline',
+  'SOMMA - Everton':      'Everton',
+  'SOMMA - Gerson':       'Gerson',
 }
 
-// Dados dos reps para criação automática caso não existam em produção
+// Dados para criação automática se não existirem no banco
 const REP_CREATE_DATA: Record<string, { name: string; email: string }> = {
-  'Erico':    { name: 'Erico da Silveira',  email: 'erico@somma.com.br' },
-  'Leonardo': { name: 'Leonardo',           email: 'leonardo@somma.com.br' },
-  'Fabricio': { name: 'Fabricio Hunecke',   email: 'fabricio@somma.com.br' },
-  'Alex':     { name: 'Alex Beneduzi',      email: 'somma.alex@hotmail.com' },
+  'Alex':      { name: 'Alex Beneduzi',      email: 'somma.alex@hotmail.com' },
+  'Erico':     { name: 'Erico da Silveira',   email: 'erico@somma.com.br' },
+  'Leonardo':  { name: 'Leonardo',            email: 'leonardo@somma.com.br' },
+  'Fabricio':  { name: 'Fabricio Hunecke',    email: 'fabricio@somma.com.br' },
+  'FabricioL': { name: 'Fabricio L.',         email: 'fabriciol@somma.com.br' },
+  'Edson':     { name: 'Edson',               email: 'edson@somma.com.br' },
+  'Uliano':    { name: 'SOMMA - Uliano Spèrandio', email: 'somma.uliano@hotmail.com' },
+  'Darlan':    { name: 'Darlan',              email: 'darlan@somma.com.br' },
+  'Cletiel':   { name: 'Cletiel',             email: 'cletiel@somma.com.br' },
+  'Diovani':   { name: 'Diovani',             email: 'diovani@somma.com.br' },
+  'Gustavo':   { name: 'Gustavo',             email: 'gustavo@somma.com.br' },
+  'Aline':     { name: 'Aline',               email: 'somma.atendimento@hotmail.com' },
+  'Everton':   { name: 'Everton',             email: 'everton@somma.com.br' },
+  'Gerson':    { name: 'Gerson',              email: 'gerson@somma.com.br' },
 }
 
 function normalizeCnpj(raw: string | null): string {

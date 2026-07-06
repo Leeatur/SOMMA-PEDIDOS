@@ -37,7 +37,7 @@ export default function SuasVendasHistorico() {
   const [dateFrom, setDateFrom]   = useState('')
   const [dateTo, setDateTo]       = useState('')
   const [importing, setImporting] = useState(false)
-  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: number; unmappedReps: string[]; unmappedFactories: string[] } | null>(null)
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: number; unmappedReps: string[]; unmappedFactories: string[]; errorDetails: string[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
 
@@ -87,7 +87,7 @@ export default function SuasVendasHistorico() {
       const msg = (err as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error
         || (err as { message?: string })?.message
         || 'Erro desconhecido'
-      setImportResult({ imported: 0, skipped: 0, errors: 1, unmappedReps: [], unmappedFactories: [msg] })
+      setImportResult({ imported: 0, skipped: 0, errors: 1, unmappedReps: [], unmappedFactories: [msg], errorDetails: [] })
     } finally {
       setImporting(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -167,6 +167,7 @@ export default function SuasVendasHistorico() {
             {importResult.errors > 0 && <> &nbsp;·&nbsp; ✗ <strong>{importResult.errors}</strong> erros</>}
             {importResult.unmappedReps.length > 0 && <> &nbsp;·&nbsp; Reps sem mapeamento: {importResult.unmappedReps.join(', ')}</>}
             {importResult.unmappedFactories.length > 0 && <> &nbsp;·&nbsp; {importResult.unmappedFactories.join(', ')}</>}
+            {importResult.errorDetails?.length > 0 && <> &nbsp;·&nbsp; 1º erro: {importResult.errorDetails[0]}</>}
           </span>
           <button onClick={() => setImportResult(null)} className="ml-4 opacity-60 hover:opacity-100">✕</button>
         </div>
