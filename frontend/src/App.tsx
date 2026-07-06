@@ -16,7 +16,6 @@ import { OrderPrint } from './pages/OrderPrint'
 import { Products } from './pages/Products'
 import { Reports } from './pages/Reports'
 import { OrdersTrash } from './pages/OrdersTrash'
-import { OrderAlertsPage } from './pages/OrderAlertsPage'
 import OrderEdit from './pages/OrderEdit'
 import { Prospecting } from './pages/Prospecting'
 import { CustomerPortal } from './pages/CustomerPortal'
@@ -62,7 +61,6 @@ export function App() {
         <Route path="/orders/trash" element={<RequireAdmin><OrdersTrash /></RequireAdmin>} />
         <Route path="/orders/historico" element={<RequireAdmin><SuasVendasHistorico /></RequireAdmin>} />
         <Route path="/payment-conditions" element={<RequireAdmin><PaymentConditions /></RequireAdmin>} />
-        <Route path="/orders/alerts" element={<OrderAlertsPage />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
         <Route path="/orders/:id/edit" element={<OrderEdit />} />
         <Route path="/clients" element={<Clients />} />

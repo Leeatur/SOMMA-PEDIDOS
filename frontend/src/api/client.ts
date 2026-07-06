@@ -296,9 +296,6 @@ export const ordersApi = {
   summary: (params?: { date_from?: string; date_to?: string; rep_id?: string }) =>
     apiClient.get('/orders/summary', { params }),
   metaFabricas: () => apiClient.get('/orders/meta-fabricas'),
-  alerts: () => apiClient.get('/orders/alerts'),
-  dismissAlert: (id: string, milestone_days: number) =>
-    apiClient.post(`/orders/${id}/alerts/dismiss`, { milestone_days }),
   create: (data: {
     client_id: string
     factory_id: string
