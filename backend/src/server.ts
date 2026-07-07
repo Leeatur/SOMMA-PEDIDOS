@@ -120,6 +120,24 @@ async function runStartupMigrations() {
   // order_number pode ser NULL para pedidos importados (não consomem a sequência nativa)
   await safe(`ALTER TABLE orders ALTER COLUMN order_number DROP NOT NULL`)
   await safe(`UPDATE orders SET order_number = NULL WHERE notes LIKE 'Importado SuasVendas%' AND order_number IS NOT NULL`)
+  // Renumera pedidos nativos com número alto (gap gerado pelo import SuasVendas)
+  // Idempotente: se não houver order_number > 1000 em pedidos nativos, não faz nada
+  await safe(`
+    UPDATE orders SET order_number = sub.new_num
+    FROM (
+      SELECT id,
+        (SELECT COALESCE(MAX(order_number), 0) FROM orders
+         WHERE (notes IS NULL OR notes NOT LIKE 'Importado SuasVendas%')
+           AND order_number <= 1000
+        ) + CAST(ROW_NUMBER() OVER (ORDER BY created_at ASC, id ASC) AS INTEGER) AS new_num
+      FROM orders
+      WHERE (notes IS NULL OR notes NOT LIKE 'Importado SuasVendas%')
+        AND order_number > 1000
+    ) sub
+    WHERE orders.id = sub.id
+  `)
+  // Ajusta a sequência para continuar a partir do maior order_number atual
+  await safe(`SELECT setval(pg_get_serial_sequence('orders', 'order_number'), (SELECT COALESCE(MAX(order_number), 1) FROM orders WHERE order_number IS NOT NULL))`)
   console.log('✅ Migrations de startup concluídas')
 }
 
