@@ -1,6 +1,8 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth'
 import { query } from '../config/database'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
 
 const SIZES = ['34', '36', '38', '40', '42', '44', '46', '48', '50', '52']
 
@@ -119,7 +121,6 @@ export async function parseOrderFile(req: AuthRequest, res: Response) {
 
   let parsed: { header: ParsedHeader; items: ParsedItem[] }
   try {
-    const pdfParse = (await import('pdf-parse')).default
     const { text } = await pdfParse(file.buffer)
     parsed = parseTeezzPdf(text)
   } catch {
