@@ -6,10 +6,12 @@ const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string
 
 const SIZES = ['34', '36', '38', '40', '42', '44', '46', '48', '50', '52']
 
-// Matches a TEEZZ item line:
-// TE22311 BALLON CALCA JE FEM 34 1 36 1 38 1 40 1 42 1 44 1 46 1 48 0 50 0 52 0 7 62,90 ...
+// pdf-parse v1 concatenates size+qty pairs without spaces, e.g.:
+// "TE22311 BALLON CALCA JE FEM  3413613814014214414614805005207  62,90 ..."
+// → 34(1)36(1)38(1)40(1)42(1)44(1)46(1)48(0)50(0)52(0) total=7
+// Note: some lines have no space between reference and product name (TE22374BERMUDA...)
 const ITEM_RE =
-  /^(TE\d+)\s+(.+?)\s+34\s+(\d+)\s+36\s+(\d+)\s+38\s+(\d+)\s+40\s+(\d+)\s+42\s+(\d+)\s+44\s+(\d+)\s+46\s+(\d+)\s+48\s+(\d+)\s+50\s+(\d+)\s+52\s+(\d+)\s+\d+\s+([\d,]+)/
+  /^(TE\d+)\s*(.+?)\s+34(\d)36(\d)38(\d)40(\d)42(\d)44(\d)46(\d)48(\d)50(\d)52(\d)(\d+)\s+([\d,]+)/
 
 function parsePrice(s: string): number {
   return parseFloat(s.replace(',', '.')) || 0
@@ -52,7 +54,8 @@ function parseTeezzPdf(text: string): { header: ParsedHeader; items: ParsedItem[
     const reference = m[1]
     const product_name_pdf = m[2].trim()
     const qtys = [m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12]].map(Number)
-    const unit_price = parsePrice(m[13])
+    // m[13] = total qty (from PDF), m[14] = unit price
+    const unit_price = parsePrice(m[14])
 
     const sizes: Record<string, number> = {}
     let total_pieces = 0
@@ -75,31 +78,38 @@ function parseTeezzPdf(text: string): { header: ParsedHeader; items: ParsedItem[
     })
   }
 
-  // Factory: standalone TEEZZ line
-  const factoryMatch = /\n(TEEZZ)\n/i.exec(text) || /^(TEEZZ)$/m.exec(text)
+  // Factory: standalone uppercase line (e.g. "TEEZZ")
+  const factoryMatch = /^(TEEZZ|OUZZARE|[A-Z]{4,})$/m.exec(text)
   const factory_name = factoryMatch ? factoryMatch[1] : ''
 
-  // Client name + trade name: "FMV Confeccoes Ltda Fantasia : Ponto Econômico"
-  const clientMatch = /([A-Za-zÀ-ú0-9\s]+?(?:Ltda|ME|EPP|SA|S\/A|EIRELI|Comercial|Ind\.|Ind |Comercio)[^\n]*?)\s+Fantasia\s*:\s*([^\n]+)/i.exec(text)
+  // pdf-parse v1 concatenates adjacent fields without spaces, e.g.:
+  // "FMV Confeccoes LtdaFantasia : Ponto Econômico"
+  const clientMatch = /(.+?(?:Ltda|ME|EPP|SA|S\/A|EIRELI|Comercial)[^\n]*?)Fantasia\s*:\s*([^\n]+)/i.exec(text)
   const client_name = clientMatch ? clientMatch[1].trim() : ''
   const client_trade_name = clientMatch ? clientMatch[2].trim() : null
 
+  // "CNPJ: 20.354.516/0001-41I. E.: ..."
   const cnpjMatch = /CNPJ:\s*([\d.\/\-]+)/i.exec(text)
   const client_cnpj = cnpjMatch ? cnpjMatch[1].trim() : null
 
-  const dateMatch = /Data\s*:\s*(\d{2}\/\d{2}\/\d{4})/i.exec(text)
+  // "Data :07/07/2026Vendedor:ULIANO"
+  const dateMatch = /Data\s*:(\d{2}\/\d{2}\/\d{4})/i.exec(text)
   const order_date = dateMatch ? parseDateBR(dateMatch[1]) : null
 
-  const delivMatch = /Entrega\s*:\s*(\d{2}\/\d{2}\/\d{4})/i.exec(text)
+  // "Entrega :15/07/2026"
+  const delivMatch = /Entrega\s*:(\d{2}\/\d{2}\/\d{4})/i.exec(text)
   const delivery_date = delivMatch ? parseDateBR(delivMatch[1]) : null
 
-  const payMatch = /Cond\.\s*Pagt\.\s*:\s*([^\n0-9]+?)(?:\s+0)?\s*$/m.exec(text)
+  // "Cond. Pagt. :30/60/90/1200" — match only 2-3 digit segments to avoid trailing Transp "0"
+  const payMatch = /Cond\.\s*Pagt\.\s*:((?:\d{2,3}\/)*\d{2,3})/i.exec(text)
   const payment_terms = payMatch ? payMatch[1].trim() : null
 
-  const freteMatch = /Frete\s*:\s*(\w+)/i.exec(text)
+  // "Frete :CIFTransp.:0" — take exactly 3 uppercase chars (CIF/FOB)
+  const freteMatch = /Frete\s*:([A-Z]{3})/i.exec(text)
   const freight_type = freteMatch ? freteMatch[1].trim() : null
 
-  const vendMatch = /Vendedor:\s*([A-Za-zÀ-ú\s]+?)(?=\s+Entrega|\s*$)/m.exec(text)
+  // "Data :07/07/2026Vendedor:ULIANO"
+  const vendMatch = /Vendedor:([A-Za-zÀ-ú\s]+?)(?:\n|$)/m.exec(text)
   const rep_name = vendMatch ? vendMatch[1].trim() : null
 
   return {
