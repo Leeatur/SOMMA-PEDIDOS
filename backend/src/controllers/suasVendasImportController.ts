@@ -225,6 +225,7 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
 
       await query(
         `INSERT INTO orders (
+           order_number,
            client_id, rep_id, factory_id, status_id,
            total_value, total_pieces,
            rep_commission_pct, office_commission_pct, total_commission_pct,
@@ -232,7 +233,7 @@ export async function importSuasVendas(req: AuthRequest, res: Response) {
            commission_manual_override,
            industry_order_number, payment_terms, delivery_date,
            notes, created_at, updated_at, synced_at
-         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true,$12,$13,$14,$15,$16,$16,$16)`,
+         ) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true,$12,$13,$14,$15,$16,$16,$16)`,
         [
           clientId, repId, factoryId, statusId,
           totalVal, Number(itens) || 0,
