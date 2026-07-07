@@ -257,7 +257,7 @@ export function ImportOrderModal({ onClose, onCreated }: Props) {
                         <td className="px-3 py-2 text-center">
                           {item.matched
                             ? <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto" />
-                            : <AlertCircle className="w-4 h-4 text-destructive mx-auto" title="Referência não encontrada" />}
+                            : <AlertCircle className="w-4 h-4 text-destructive mx-auto" />}
                         </td>
                       </tr>
                     ))}
