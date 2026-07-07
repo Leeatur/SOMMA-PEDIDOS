@@ -171,7 +171,7 @@ export async function listOrders(req: AuthRequest, res: Response) {
     params.push(`%${search}%`)
     idx++
   }
-  sql += ' ORDER BY o.created_at DESC'
+  sql += ' ORDER BY o.created_at DESC, o.order_number DESC'
   const { rows } = await query(sql, params)
   res.json(rows)
 }
