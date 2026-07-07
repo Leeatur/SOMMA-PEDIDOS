@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -11,6 +11,7 @@ import {
   PlusCircle,
   BarChart3,
   Download,
+  FileUp,
 } from 'lucide-react'
 import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { svgIconSrc } from '../components/ui/Badge'
@@ -25,6 +26,7 @@ import {
   useColumnConfig,
 } from '../components/ui/ColumnConfig'
 import { useColumnResize } from '../components/ui/useColumnResize.tsx'
+import { ImportOrderModal } from '../components/orders/ImportOrderModal'
 
 interface Order {
   id: string
@@ -338,6 +340,8 @@ export function Orders() {
   const [dateTo, setDateTo] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const handleImportCreated = useCallback(() => { setShowImport(false) }, [])
 
   const { data: statuses } = useQuery<Status[]>({
     queryKey: ['statuses'],
@@ -468,6 +472,7 @@ export function Orders() {
   }
 
   return (
+    <>
     <div className="flex flex-col h-full">
 
       {/* ══ MOBILE VIEW ══════════════════════════════════════════════════════ */}
@@ -602,6 +607,14 @@ export function Orders() {
               >
                 <Filter className="h-4 w-4" />
                 {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+              <button
+                onClick={() => setShowImport(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-muted/60 text-muted-foreground"
+                title="Importar pedido via PDF"
+              >
+                <FileUp className="h-4 w-4" />
+                Importar
               </button>
               <Button onClick={() => navigate('/orders/new')} icon={<PlusCircle className="h-4 w-4" />} size="sm">
                 Novo
@@ -821,5 +834,13 @@ export function Orders() {
         )}
       </div>
     </div>
+
+    {showImport && (
+      <ImportOrderModal
+        onClose={() => setShowImport(false)}
+        onCreated={handleImportCreated}
+      />
+    )}
+  </>
   )
 }

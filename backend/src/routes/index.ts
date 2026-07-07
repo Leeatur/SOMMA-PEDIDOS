@@ -20,6 +20,7 @@ import * as pe from '../controllers/peController'
 import * as paymentConds from '../controllers/paymentConditionsController'
 import * as integration from '../controllers/integrationController'
 import * as suasVendasImport from '../controllers/suasVendasImportController'
+import * as importOrder from '../controllers/importOrderController'
 
 const router = Router()
 
@@ -126,6 +127,7 @@ router.delete('/orders/:id/items/:item_id', authenticate, orders.removeOrderItem
 router.post('/orders/:id/recalculate', authenticate, orders.recalcOrderTotals)
 router.post('/orders/sync', authenticate, orders.syncOfflineOrders)
 router.post('/orders/import-suasvendas', authenticate, requireAdmin, upload.single('file'), suasVendasImport.importSuasVendas)
+router.post('/orders/parse-file', authenticate, upload.single('file'), importOrder.parseOrderFile)
 
 // Relatórios
 router.get('/reports/orders', authenticate, reports.ordersReport)

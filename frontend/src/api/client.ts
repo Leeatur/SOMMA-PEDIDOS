@@ -343,6 +343,14 @@ export const ordersApi = {
   delete: (id: string) => apiClient.delete(`/orders/${id}`),
   listTrash: () => apiClient.get('/orders/trash'),
   restore: (id: string) => apiClient.patch(`/orders/${id}/restore`, {}),
+  parseFile: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiClient.post('/orders/parse-file', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+    })
+  },
 }
 
 export const reportsApi = {
