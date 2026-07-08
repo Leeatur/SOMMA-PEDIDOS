@@ -8,10 +8,40 @@ const SIZES = ['34', '36', '38', '40', '42', '44', '46', '48', '50', '52']
 
 // pdf-parse v1 concatenates size+qty pairs without spaces, e.g.:
 // "TE22311 BALLON CALCA JE FEM  3413613814014214414614805005207  62,90 ..."
-// → 34(1)36(1)38(1)40(1)42(1)44(1)46(1)48(0)50(0)52(0) total=7
-// Note: some lines have no space between reference and product name (TE22374BERMUDA...)
-const ITEM_RE =
-  /^(TE\d+)\s*(.+?)\s+34(\d)36(\d)38(\d)40(\d)42(\d)44(\d)46(\d)48(\d)50(\d)52(\d)(\d+)\s+([\d,]+)/
+// Quantities can be 1 or 2 digits (e.g. 46→10 appears as "4610").
+// LINE_RE captures: reference, product name, sizes+total block starting with "34", unit price.
+// parseSizesBlock handles variable-width qtys via backtracking + sum validation.
+const LINE_RE =
+  /^(TE\d+)\s*(.+?)\s+(34[\d]+)\s{2,}([\d,]+)/
+
+// Parse a concatenated sizes block like "3403603884084284484610481050052052"
+// Each size label is 2 chars; each qty is 1 or 2 digits; trailing digits are the PDF total.
+// Uses recursive backtracking and validates that sum(qtys) === PDF total.
+function parseSizesBlock(block: string): Record<string, number> | null {
+  function recurse(pos: number, idx: number, acc: number[]): number[] | null {
+    if (idx === SIZES.length) {
+      const rest = block.substring(pos)
+      if (!rest || !/^\d+$/.test(rest)) return null
+      const total = parseInt(rest, 10)
+      return acc.reduce((s, v) => s + v, 0) === total ? acc : null
+    }
+    if (block.substring(pos, pos + 2) !== SIZES[idx]) return null
+    pos += 2
+    for (const len of [1, 2]) {
+      if (pos + len > block.length) continue
+      const qty = parseInt(block.substring(pos, pos + len), 10)
+      const result = recurse(pos + len, idx + 1, [...acc, qty])
+      if (result !== null) return result
+    }
+    return null
+  }
+
+  const qtys = recurse(0, 0, [])
+  if (!qtys) return null
+  const sizes: Record<string, number> = {}
+  SIZES.forEach((sz, i) => { if (qtys[i] > 0) sizes[sz] = qtys[i] })
+  return sizes
+}
 
 function parsePrice(s: string): number {
   return parseFloat(s.replace(',', '.')) || 0
@@ -48,24 +78,18 @@ function parseTeezzPdf(text: string): { header: ParsedHeader; items: ParsedItem[
   const items: ParsedItem[] = []
 
   for (const line of lines) {
-    const m = ITEM_RE.exec(line)
+    const m = LINE_RE.exec(line)
     if (!m) continue
 
     const reference = m[1]
     const product_name_pdf = m[2].trim()
-    const qtys = [m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12]].map(Number)
-    // m[13] = total qty (from PDF), m[14] = unit price
-    const unit_price = parsePrice(m[14])
+    const sizesBlock = m[3]
+    const unit_price = parsePrice(m[4])
 
-    const sizes: Record<string, number> = {}
-    let total_pieces = 0
-    SIZES.forEach((sz, i) => {
-      if (qtys[i] > 0) {
-        sizes[sz] = qtys[i]
-        total_pieces += qtys[i]
-      }
-    })
+    const sizes = parseSizesBlock(sizesBlock)
+    if (!sizes) continue
 
+    const total_pieces = Object.values(sizes).reduce((s, v) => s + v, 0)
     if (total_pieces === 0) continue
 
     items.push({
