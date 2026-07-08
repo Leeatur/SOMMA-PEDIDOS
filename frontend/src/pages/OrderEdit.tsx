@@ -48,12 +48,14 @@ interface OrderItemRaw {
   grade_configs: GradeConfig[] | null
   custom_grade: DraftGradeEntry[] | null
   observation: string | null
+  item_obs: string | null
 }
 
 interface EditableItem extends OrderItemRaw {
   draftSizes: Record<string, number>
   draftBoxes: number
   draftGrade: DraftGradeEntry[]
+  draftItemObs: string
   removed: boolean
 }
 
@@ -71,6 +73,7 @@ interface NewItem {
   draftSizes: Record<string, number>
   draftBoxes: number
   draftGrade: DraftGradeEntry[]
+  draftItemObs: string
 }
 
 interface Product {
@@ -401,6 +404,7 @@ export default function OrderEdit() {
       draftSizes: initSizes(it),
       draftBoxes: it.boxes_count || 1,
       draftGrade: initDraftGrade(it),
+      draftItemObs: it.item_obs || '',
       removed: false,
     }))
     setForm(baseForm)
@@ -461,6 +465,13 @@ export default function OrderEdit() {
   }
   const updateNewPrice = (tempId: string, val: number) => {
     setNewItems(prev => prev.map(it => it.tempId === tempId ? { ...it, unit_price: val } : it))
+  }
+
+  const updateExistingItemObs = (itemId: string, val: string) => {
+    setItems(prev => prev.map(it => it.id === itemId ? { ...it, draftItemObs: val } : it))
+  }
+  const updateNewItemObs = (tempId: string, val: string) => {
+    setNewItems(prev => prev.map(it => it.tempId === tempId ? { ...it, draftItemObs: val } : it))
   }
 
   const updateNewSize = (tempId: string, size: string, val: number) => {
@@ -535,7 +546,7 @@ export default function OrderEdit() {
     setQuickEditProduct(prod)
   }
 
-  const confirmAddProduct = (prod: Product, sizes: Record<string, number>, boxes: number, customGrade?: DraftGradeEntry[]) => {
+  const confirmAddProduct = (prod: Product, sizes: Record<string, number>, boxes: number, customGrade?: DraftGradeEntry[], obs?: string) => {
     const newItem: NewItem = {
       tempId: `new-${Date.now()}`,
       product_id: prod.id,
@@ -551,6 +562,7 @@ export default function OrderEdit() {
       draftBoxes: boxes,
       // pack → grade do produto; regular multicor → grade por cor escolhida no modal; regular simples → []
       draftGrade: prod.type === 'pack' ? initDraftGradeFromProduct(prod) : (customGrade || []),
+      draftItemObs: obs || '',
     }
     setNewItems(prev => [...prev, newItem])
     setQuickEditProduct(null)
@@ -645,28 +657,31 @@ export default function OrderEdit() {
       const removedIds = items.filter(it => it.removed).map(it => it.id)
       for (const iid of removedIds) { await ordersApi.removeItem(id!, iid) }
 
-      // 6. Atualizar itens modificados (tamanhos, grade e preço unitário)
+      // 6. Atualizar itens modificados (tamanhos, grade, preço unitário e observação)
       for (const it of activeItems) {
         const origItem = order.items?.find((o: OrderItemRaw) => o.id === it.id)
         if (!origItem) continue
 
         const priceChanged = Math.abs(it.unit_price - Number(origItem.unit_price || 0)) > 0.001
+        const obsChanged = it.draftItemObs !== (origItem.item_obs || '')
 
         if (it.type === 'regular') {
           const sizesChanged = JSON.stringify(it.draftSizes) !== JSON.stringify(origItem.sizes || {})
-          if (sizesChanged || priceChanged) {
+          if (sizesChanged || priceChanged || obsChanged) {
             await ordersApi.updateItem(id!, it.id, {
               sizes: it.draftSizes,
               ...(priceChanged ? { unit_price: it.unit_price } : {}),
+              item_obs: it.draftItemObs || null,
             })
           }
         } else {
           const origGrade = initDraftGrade(origItem)
           const gradeChanged = JSON.stringify(it.draftGrade) !== JSON.stringify(origGrade)
-          if (gradeChanged || priceChanged) {
+          if (gradeChanged || priceChanged || obsChanged) {
             await ordersApi.updateItem(id!, it.id, {
               custom_grade: it.draftGrade,
               ...(priceChanged ? { unit_price: it.unit_price } : {}),
+              item_obs: it.draftItemObs || null,
             })
           }
         }
@@ -682,6 +697,7 @@ export default function OrderEdit() {
           sizes: it.type === 'regular' ? it.draftSizes : undefined,
           // pack sempre tem grade; regular multicor também envia custom_grade (detalhe por cor)
           custom_grade: it.draftGrade.length > 0 ? it.draftGrade : undefined,
+          item_obs: it.draftItemObs || null,
         }))
         await ordersApi.addItems(id!, toAdd)
       }
@@ -1262,6 +1278,8 @@ export default function OrderEdit() {
                     onRemove={() => removeItem(it.id)}
                     priceTableName={order?.price_table_name}
                     productObservation={it.observation}
+                    itemObs={it.draftItemObs}
+                    onObsChange={val => updateExistingItemObs(it.id, val)}
                   />
                 ))}
 
@@ -1291,6 +1309,8 @@ export default function OrderEdit() {
                     onRemove={() => removeNewItem(it.tempId)}
                     isNew
                     priceTableName={order?.price_table_name}
+                    itemObs={it.draftItemObs}
+                    onObsChange={val => updateNewItemObs(it.tempId, val)}
                   />
                 ))}
 
@@ -1362,7 +1382,7 @@ function OrderEditQuickModal({
 }: {
   product: Product
   onClose: () => void
-  onAdd: (p: Product, sizes: Record<string,number>, boxes: number, customGrade?: DraftGradeEntry[]) => void
+  onAdd: (p: Product, sizes: Record<string,number>, boxes: number, customGrade?: DraftGradeEntry[], obs?: string) => void
 }) {
   const isPack = product.type === 'pack'
   const grades = product.grade_configs || []
@@ -1385,6 +1405,7 @@ function OrderEditQuickModal({
 
   const [sizes, setSizes] = useState<Record<string,number>>(() => Object.fromEntries(allSizes.map(s=>[s,0])))
   const [boxes, setBoxes] = useState(1)
+  const [obs, setObs] = useState('')
 
   // Regular com variantes cor × tamanho (distribuidora): grade editável por cor
   const multiVariant = !isPack && grades.length > 0 && grades.some(g => (g.color || '').trim() !== '')
@@ -1593,13 +1614,25 @@ function OrderEditQuickModal({
             <div><p className="text-[11px] text-outline mb-1">Preço Unit.</p><div className="px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg text-[12px] font-semibold">{fmtN(Number(product.base_price))}</div></div>
             <div><p className="text-[11px] text-outline mb-1">Total</p><div className="px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg text-[12px] font-bold text-primary">{fmtN(totalValue)}</div></div>
           </div>
+
+          {/* Observação do item */}
+          <div>
+            <p className="text-[11px] text-outline font-medium mb-1">Observação (opcional)</p>
+            <textarea
+              value={obs}
+              onChange={e => setObs(e.target.value)}
+              placeholder="Ex: cliente pediu entrega urgente, cor específica..."
+              rows={2}
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] text-on-surface bg-surface focus:outline-none focus:border-primary resize-none"
+            />
+          </div>
         </div>
 
         {/* Footer */}
         <div className="px-4 py-3 border-t border-outline-variant flex items-center justify-end gap-3 bg-surface-container-low flex-shrink-0">
           <button type="button" onClick={onClose} className="text-[12px] text-outline hover:text-on-surface px-4 py-2">Cancelar</button>
           <button type="button" disabled={totalPieces===0}
-            onClick={()=>onAdd(product, multiVariant ? flatSizes : sizes, boxes, multiVariant ? customGrade : undefined)}
+            onClick={()=>onAdd(product, multiVariant ? flatSizes : sizes, boxes, multiVariant ? customGrade : undefined, obs || undefined)}
             className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-xl font-semibold text-[12px] disabled:opacity-50 hover:bg-primary/90 active:scale-95">
             <Check className="h-4 w-4"/> Adicionar
           </button>
@@ -1635,6 +1668,8 @@ interface ItemRowProps {
   isNew?: boolean
   priceTableName?: string | null
   productObservation?: string | null
+  itemObs?: string
+  onObsChange?: (val: string) => void
 }
 
 function ItemRow({
@@ -1642,7 +1677,7 @@ function ItemRow({
   orderPolicyDiscPct, orderCashDiscPct,
   gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
   onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
-  productObservation,
+  productObservation, itemObs, onObsChange,
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
 
@@ -1703,6 +1738,15 @@ function ItemRow({
               </p>
             )}
             {isNew && <span className="text-[12px] text-primary font-medium">+ novo</span>}
+            {onObsChange !== undefined && (
+              <input
+                type="text"
+                value={itemObs || ''}
+                onChange={e => onObsChange(e.target.value)}
+                placeholder="Obs. do item..."
+                className="mt-1 w-full border border-outline-variant/50 rounded px-1.5 py-0.5 text-[11px] text-on-surface-variant bg-surface focus:outline-none focus:border-primary/50"
+              />
+            )}
           </div>
         </div>
       </td>

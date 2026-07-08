@@ -420,10 +420,11 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
       const customGradeJson = origItem.custom_grade && Array.isArray(origItem.custom_grade) && origItem.custom_grade.length > 0
         ? JSON.stringify(origItem.custom_grade) : null
       await dbClient.query(
-        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, sizes, custom_grade)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, total_pieces, subtotal, sizes, custom_grade, item_obs)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
         [orderId, item.product_id, item.reference, item.boxes_count, item.unit_price, item.total_pieces, item.subtotal,
-         item.sizes ? JSON.stringify(item.sizes) : null, customGradeJson]
+         item.sizes ? JSON.stringify(item.sizes) : null, customGradeJson,
+         (origItem as any).item_obs || null]
       )
     }
 
@@ -843,7 +844,7 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
 // Atualiza quantidades de um item (tamanhos para regular, caixas para pack) e recalcula totais
 export async function updateOrderItem(req: AuthRequest, res: Response) {
   const { id, item_id } = req.params
-  const { sizes, boxes_count, custom_grade, unit_price: newUnitPrice } = req.body
+  const { sizes, boxes_count, custom_grade, unit_price: newUnitPrice, item_obs } = req.body
 
   const { rows: [order] } = await query(
     'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
@@ -863,6 +864,13 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     [item_id, id]
   )
   if (!item) { res.status(404).json({ error: 'Item não encontrado' }); return }
+
+  // Atualização somente de observação (sem recalcular totais)
+  if (item_obs !== undefined && sizes === undefined && custom_grade === undefined && boxes_count === undefined && newUnitPrice === undefined) {
+    await query('UPDATE order_items SET item_obs=$1 WHERE id=$2', [item_obs || null, item_id])
+    res.json({ ok: true })
+    return
+  }
 
   // Usa o novo preço se fornecido, senão mantém o atual
   const effectiveUnitPrice = (newUnitPrice !== undefined && !isNaN(parseFloat(newUnitPrice)))
@@ -927,9 +935,10 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
 
   await query(
     `UPDATE order_items SET
-       sizes=$1, boxes_count=$2, total_pieces=$3, subtotal=$4, custom_grade=$5, unit_price=$6
-     WHERE id=$7`,
-    [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, newCustomGrade, effectiveUnitPrice, item_id]
+       sizes=$1, boxes_count=$2, total_pieces=$3, subtotal=$4, custom_grade=$5, unit_price=$6, item_obs=$7
+     WHERE id=$8`,
+    [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, newCustomGrade, effectiveUnitPrice,
+     item_obs !== undefined ? (item_obs || null) : item.item_obs, item_id]
   )
 
   // Recalcula totais — comissão sobre preço líquido (subtotal)

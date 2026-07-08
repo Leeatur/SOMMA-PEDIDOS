@@ -434,6 +434,9 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS lng DECIMAL(10,7);
 ALTER TABLE goals ADD COLUMN IF NOT EXISTS period_start DATE;
 ALTER TABLE goals ADD COLUMN IF NOT EXISTS period_end DATE;
 
+-- Observação por item de pedido
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_obs TEXT;
+
 `
 
 async function migrate() {
