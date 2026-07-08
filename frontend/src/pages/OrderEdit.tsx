@@ -149,9 +149,11 @@ function initSizes(product: Product | OrderItemRaw): Record<string, number> {
   const result: Record<string, number> = Object.fromEntries(allSizes.map(s => [s, 0]))
 
   // Sobrepõe com valores já salvos (se item existente)
+  // Sem `s in result`: preserva tamanhos do pedido mesmo que não constem
+  // no grade_configs atual (ex: pedidos importados com grade diferente)
   if ('sizes' in product && product.sizes) {
     for (const [s, v] of Object.entries(product.sizes)) {
-      if (!blocked.has(s) && s in result) result[s] = v
+      if (!blocked.has(s)) result[s] = v
     }
   }
 
