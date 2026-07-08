@@ -304,6 +304,7 @@ export default function OrderEdit() {
 
   const [items, setItems] = useState<EditableItem[]>([])
   const [newItems, setNewItems] = useState<NewItem[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // ── busca de clientes ────────────────────────────────────────────────────────
 
@@ -438,6 +439,21 @@ export default function OrderEdit() {
 
   const removeItem = (itemId: string) => {
     setItems(prev => prev.map(it => it.id === itemId ? { ...it, removed: true } : it))
+    setSelectedIds(prev => { const n = new Set(prev); n.delete(itemId); return n })
+  }
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+
+  const removeSelected = () => {
+    setItems(prev => prev.map(it => selectedIds.has(it.id) ? { ...it, removed: true } : it))
+    setNewItems(prev => prev.filter(it => !selectedIds.has(it.tempId)))
+    setSelectedIds(new Set())
   }
 
   const updateExistingPrice = (itemId: string, val: number) => {
@@ -1165,11 +1181,49 @@ export default function OrderEdit() {
             </div>
           </div>
 
+          {/* Barra de seleção */}
+          {selectedIds.size > 0 && (
+            <div className="mx-0 mb-1 flex items-center gap-3 px-4 py-2 bg-primary/8 border border-primary/20 rounded-lg text-[12px]">
+              <span className="font-medium text-primary">{selectedIds.size} selecionado{selectedIds.size !== 1 ? 's' : ''}</span>
+              <button
+                onClick={removeSelected}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-error text-white font-medium hover:bg-error/90 transition-colors"
+              >
+                <Trash2 size={13} />
+                Excluir selecionados
+              </button>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="ml-auto text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
+
           {/* Tabela de itens — scrollável horizontalmente no desktop */}
           <div className="overflow-x-auto">
             <table className="w-full min-w-max text-[12px]">
               <thead className="bg-surface-container-lowest sticky top-0 z-10">
                 <tr className="bg-surface-container-low text-on-surface-variant text-[12px]">
+                  <th className="pl-3 pr-1 py-1 w-6">
+                    {(() => {
+                      const visibleIds = [
+                        ...items.filter(it => !it.removed).map(it => it.id),
+                        ...newItems.map(it => it.tempId),
+                      ]
+                      const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id))
+                      const someSelected = visibleIds.some(id => selectedIds.has(id))
+                      return (
+                        <input type="checkbox" checked={allSelected} ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
+                          onChange={() => allSelected
+                            ? setSelectedIds(new Set())
+                            : setSelectedIds(new Set(visibleIds))}
+                          className="cursor-pointer accent-primary w-3.5 h-3.5"
+                        />
+                      )
+                    })()}
+                  </th>
                   <th className="px-4 py-1 text-left font-medium w-8">#</th>
                   <th className="px-2 py-1 text-left font-medium">Produto</th>
                   <th className="px-3 py-1 text-right font-medium whitespace-nowrap text-outline/70">R$ Tabela</th>
@@ -1187,6 +1241,8 @@ export default function OrderEdit() {
                   <ItemRow
                     key={it.id}
                     index={idx + 1}
+                    checked={selectedIds.has(it.id)}
+                    onToggle={() => toggleSelected(it.id)}
                     reference={it.reference}
                     productName={it.product_name}
                     imageUrl={it.image_url}
@@ -1214,6 +1270,8 @@ export default function OrderEdit() {
                   <ItemRow
                     key={it.tempId}
                     index={items.filter(i => !i.removed).length + idx + 1}
+                    checked={selectedIds.has(it.tempId)}
+                    onToggle={() => toggleSelected(it.tempId)}
                     reference={it.reference}
                     productName={it.product_name}
                     imageUrl={it.image_url}
@@ -1555,6 +1613,8 @@ function OrderEditQuickModal({
 
 interface ItemRowProps {
   index: number
+  checked?: boolean
+  onToggle?: () => void
   reference: string
   productName: string | null
   imageUrl: string | null
@@ -1578,7 +1638,7 @@ interface ItemRowProps {
 }
 
 function ItemRow({
-  index, reference, productName, imageUrl, type, unitPrice, originalUnitPrice,
+  index, checked, onToggle, reference, productName, imageUrl, type, unitPrice, originalUnitPrice,
   orderPolicyDiscPct, orderCashDiscPct,
   gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
   onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
@@ -1616,7 +1676,13 @@ function ItemRow({
   const inputNum = 'w-10 text-center border border-outline-variant rounded px-0.5 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
 
   return (
-    <tr className={`align-top hover:bg-surface-container/40 transition-colors ${isNew ? 'bg-primary/3' : ''}`}>
+    <tr className={`align-top hover:bg-surface-container/40 transition-colors ${isNew ? 'bg-primary/3' : ''} ${checked ? 'bg-primary/5' : ''}`}>
+
+      {/* Checkbox seleção */}
+      <td className="pl-3 pr-1 py-2 align-middle">
+        <input type="checkbox" checked={!!checked} onChange={onToggle}
+          className="cursor-pointer accent-primary w-3.5 h-3.5" />
+      </td>
 
       {/* # */}
       <td className="px-4 py-2 text-[12px] text-on-surface-variant">{index}</td>
