@@ -8,6 +8,8 @@ import { AuthRequest } from '../middleware/auth'
 const COMMISSION_ON_FINAL_ONLY = process.env.COMMISSION_ON_FINAL_ONLY === 'true'
 // Multiplica a comissão por 1 (final) ou 0 (não-final). Exige a tabela order_statuses como "s" no FROM.
 const FINAL_GATE = COMMISSION_ON_FINAL_ONLY ? ' * (CASE WHEN COALESCE(s.is_final,false) THEN 1 ELSE 0 END)' : ''
+// Pedidos importados do "Suas Vendas" são apenas para pesquisa — não entram em relatórios.
+const NOT_SV = ` AND (o.notes IS NULL OR o.notes NOT LIKE 'Importado SuasVendas%')`
 
 function dateRange(req: AuthRequest): [string, string] {
   // Usa horário de Brasília para comparação de datas
@@ -26,7 +28,7 @@ function buildCond(
   factoryId: string | undefined,
   startIdx: number
 ): { cond: string; idx: number } {
-  let cond = ''
+  let cond = NOT_SV
   let idx = startIdx
   if (repId) { cond += ` AND o.rep_id = $${idx++}`; params.push(repId) }
   if (factoryId) { cond += ` AND o.factory_id = $${idx++}`; params.push(factoryId) }
@@ -164,7 +166,7 @@ export async function collectionsReport(req: AuthRequest, res: Response) {
 
   // Constrói parâmetros e cláusulas em um único array sequencial
   const params: unknown[] = [from, to]
-  let salesCond = ''  // filtros dentro do subquery de vendas
+  let salesCond = NOT_SV  // filtros dentro do subquery de vendas
   let ptWhere   = ''  // filtro na tabela de preços
 
   if (repId)      { salesCond += ` AND o.rep_id = $${params.length + 1}`;      params.push(repId) }
@@ -370,7 +372,7 @@ export async function salesEvolutionReport(req: AuthRequest, res: Response) {
   const months = parseInt(String(req.query.months || '12'))
 
   const params: unknown[] = [months]
-  let cond = ''
+  let cond = NOT_SV
   let idx = 2
   if (repId && isAdmin) { cond += ` AND o.rep_id = $${idx++}`; params.push(repId) }
   if (!isAdmin) { cond += ` AND o.rep_id = $${idx++}`; params.push(req.user!.id) }
@@ -407,7 +409,7 @@ export async function inactiveClientsReport(req: AuthRequest, res: Response) {
   const days = parseInt(String(req.query.days || '60'))
 
   const params: unknown[] = [days]
-  let cond = ''
+  let cond = NOT_SV
   let idx = 2
   if (repId && isAdmin) { cond += ` AND o.rep_id = $${idx++}`; params.push(repId) }
   if (!isAdmin) { cond += ` AND o.rep_id = $${idx++}`; params.push(req.user!.id) }
@@ -446,7 +448,7 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
   const factoryId = req.query.factory_id as string | undefined
 
   const params: unknown[] = [from, to]
-  let cond = ''
+  let cond = NOT_SV
   if (factoryId) { cond += ` AND o.factory_id = $3`; params.push(factoryId) }
 
   const { rows } = await query(`
@@ -657,7 +659,7 @@ export async function penetracaoReport(req: AuthRequest, res: Response) {
       FROM orders o
       WHERE o.deleted_at IS NULL
         AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date
-        ${factCond}
+        ${factCond}${NOT_SV}
     ) has_order ON has_order.client_id = c.id
     WHERE c.active = true ${repCond}
     GROUP BY u.name, c.rep_id
@@ -696,7 +698,7 @@ export async function commissionProjectionReport(req: AuthRequest, res: Response
     FROM orders o
     JOIN users u ON u.id = o.rep_id
     LEFT JOIN order_statuses s ON s.id = o.status_id
-    WHERE o.deleted_at IS NULL ${repCond} ${factCond}
+    WHERE o.deleted_at IS NULL ${repCond} ${factCond}${NOT_SV}
     GROUP BY u.name, s.name, s.color, s.is_final
     ORDER BY situacao, comissao_rep DESC
   `, params)
