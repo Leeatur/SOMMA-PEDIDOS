@@ -78,9 +78,10 @@ function parseTeezzPdf(text: string): { header: ParsedHeader; items: ParsedItem[
     })
   }
 
-  // Factory: standalone uppercase line (e.g. "TEEZZ")
-  const factoryMatch = /^(TEEZZ|OUZZARE|[A-Z]{4,})$/m.exec(text)
-  const factory_name = factoryMatch ? factoryMatch[1] : ''
+  // Factory: prefer known brands (appear anywhere in text), fallback to first standalone uppercase word
+  const KNOWN_BRANDS = ['TEEZZ', 'OUZZARE']
+  const factory_name = KNOWN_BRANDS.find(b => text.includes(b))
+    ?? (/^([A-Z]{4,})$/m.exec(text)?.[1] ?? '')
 
   // pdf-parse v1 concatenates adjacent fields without spaces, e.g.:
   // "FMV Confeccoes LtdaFantasia : Ponto Econômico"

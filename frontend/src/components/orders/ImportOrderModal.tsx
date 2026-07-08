@@ -132,8 +132,8 @@ export function ImportOrderModal({ onClose, onCreated }: Props) {
     result.summary.matched_items > 0
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white border border-border rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" style={{ backgroundColor: '#ffffff' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
