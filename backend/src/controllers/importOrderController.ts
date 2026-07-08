@@ -10,9 +10,10 @@ const SIZES = ['34', '36', '38', '40', '42', '44', '46', '48', '50', '52']
 // "TE22311 BALLON CALCA JE FEM  3413613814014214414614805005207  62,90 ..."
 // Quantities can be 1 or 2 digits (e.g. 46→10 appears as "4610").
 // LINE_RE captures: reference, product name, sizes+total block starting with "34", unit price.
+// Reference pattern [A-Z]+\d+ matches TEEZZ (TE\d+), OUZZARE, PACKs, and any future factory format.
 // parseSizesBlock handles variable-width qtys via backtracking + sum validation.
 const LINE_RE =
-  /^(TE\d+)\s*(.+?)\s+(34[\d]+)\s{2,}([\d,]+)/
+  /^([A-Z]+\d+)\s*(.+?)\s+(34[\d]+)\s{2,}([\d,]+)/
 
 // Parse a concatenated sizes block like "3403603884084284484610481050052052"
 // Each size label is 2 chars; each qty is 1 or 2 digits; trailing digits are the PDF total.
