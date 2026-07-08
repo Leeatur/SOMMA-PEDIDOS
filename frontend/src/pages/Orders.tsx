@@ -864,7 +864,7 @@ export function Orders() {
                   <tr
                     key={o.id}
                     className={`border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : ''}`}
-                    onClick={() => navigate(`/orders/${o.id}`)}
+                    onDoubleClick={() => navigate(`/orders/${o.id}`)}
                   >
                     <td style={{ width: 36, minWidth: 36 }} className="pl-3 pr-1 py-2 align-middle">
                       <input type="checkbox"
