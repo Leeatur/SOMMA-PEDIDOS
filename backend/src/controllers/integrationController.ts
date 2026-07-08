@@ -80,6 +80,7 @@ export async function getSales(req: Request, res: Response) {
        LEFT JOIN products p    ON p.id = oi2.product_id
        LEFT JOIN price_tables pt ON pt.id = p.price_table_id
       WHERE o.deleted_at IS NULL
+        AND (o.notes IS NULL OR o.notes NOT LIKE 'Importado SuasVendas%')
         AND ($1::timestamptz IS NULL OR o.created_at >= $1)
         ${extra}
       GROUP BY o.id, o.created_at, u.name, c.city, c.state,
