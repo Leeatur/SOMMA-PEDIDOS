@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ShoppingCart,
@@ -12,6 +12,7 @@ import {
   BarChart3,
   Download,
   FileUp,
+  Trash2,
 } from 'lucide-react'
 import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { svgIconSrc } from '../components/ui/Badge'
@@ -342,6 +343,35 @@ export function Orders() {
   const [showSummary, setShowSummary] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const handleImportCreated = useCallback(() => { setShowImport(false) }, [])
+
+  // ── seleção múltipla ─────────────────────────────────────────────────────────
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set())
+  const qc = useQueryClient()
+
+  const toggleOrderSelected = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setSelectedOrderIds(prev => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map(id => ordersApi.delete(id)))
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders'] })
+      setSelectedOrderIds(new Set())
+    },
+  })
+
+  const handleDeleteSelected = () => {
+    const ids = [...selectedOrderIds]
+    if (!window.confirm(`Excluir ${ids.length} pedido${ids.length !== 1 ? 's' : ''}? Esta ação não pode ser desfeita.`)) return
+    deleteMutation.mutate(ids)
+  }
 
   const { data: statuses } = useQuery<Status[]>({
     queryKey: ['statuses'],
@@ -729,6 +759,27 @@ export function Orders() {
             </button>
           </div>
         ) : (
+          <>
+          {/* Barra de seleção */}
+          {selectedOrderIds.size > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2 bg-primary/8 border-b border-primary/20 text-[12px]">
+              <span className="font-medium text-primary">{selectedOrderIds.size} selecionado{selectedOrderIds.size !== 1 ? 's' : ''}</span>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={deleteMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-error text-white font-medium hover:bg-error/90 transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={13} />
+                Excluir selecionados
+              </button>
+              <button
+                onClick={() => setSelectedOrderIds(new Set())}
+                className="ml-auto text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
           <div className="flex-1 overflow-auto">
             {/* Dica de uso */}
             <div className="text-[11px] text-outline/50 px-3 py-1 bg-surface-container-low border-b border-outline-variant/30">
@@ -737,6 +788,21 @@ export function Orders() {
             <table className="text-left" style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead className="bg-surface-container-low border-b border-outline-variant sticky top-0 z-10">
                 <tr>
+                  {/* Checkbox "selecionar todos" */}
+                  <th style={{ width: 36, minWidth: 36 }} className="pl-3 pr-1 py-1">
+                    {(() => {
+                      const ids = displayedOrders.map(o => o.id)
+                      const allSel = ids.length > 0 && ids.every(id => selectedOrderIds.has(id))
+                      const someSel = ids.some(id => selectedOrderIds.has(id))
+                      return (
+                        <input type="checkbox" checked={allSel}
+                          ref={el => { if (el) el.indeterminate = someSel && !allSel }}
+                          onChange={e => { e.stopPropagation(); allSel ? setSelectedOrderIds(new Set()) : setSelectedOrderIds(new Set(ids)) }}
+                          className="cursor-pointer accent-primary w-3.5 h-3.5"
+                        />
+                      )
+                    })()}
+                  </th>
                   {visibleCols.map((col, colIdx) => {
                     const colWidth = widths[col.id] ?? DEFAULT_WIDTHS[col.id] ?? 100
                     return (
@@ -797,9 +863,17 @@ export function Orders() {
                 {displayedOrders.map(o => (
                   <tr
                     key={o.id}
-                    className="border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors"
+                    className={`border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : ''}`}
                     onClick={() => navigate(`/orders/${o.id}`)}
                   >
+                    <td style={{ width: 36, minWidth: 36 }} className="pl-3 pr-1 py-2 align-middle">
+                      <input type="checkbox"
+                        checked={selectedOrderIds.has(o.id)}
+                        onChange={e => toggleOrderSelected(o.id, e as unknown as React.MouseEvent)}
+                        onClick={e => e.stopPropagation()}
+                        className="cursor-pointer accent-primary w-3.5 h-3.5"
+                      />
+                    </td>
                     {visibleCols.map(col => (
                       <td key={col.id} style={{ width: widths[col.id] ?? DEFAULT_WIDTHS[col.id], overflow: 'hidden' }}>
                         <OrderCell id={col.id} o={o} />
@@ -811,6 +885,7 @@ export function Orders() {
               {/* Linha de totais — soma das colunas (reflete os filtros) */}
               <tfoot className="sticky bottom-0 z-10">
                 <tr className="bg-surface-container border-t-2 border-primary/40">
+                  <td style={{ width: 36, minWidth: 36 }} />
                   {visibleCols.map((col, i) => {
                     const meta = COL_META[col.id] || {}
                     let content: string | number = ''
@@ -831,6 +906,7 @@ export function Orders() {
               </tfoot>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
