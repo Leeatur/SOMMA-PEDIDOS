@@ -187,7 +187,10 @@ export async function clientsMap(req: AuthRequest, res: Response) {
   const { date_from, date_to, factory_id, price_table_id, status_id } = req.query
 
   const params: unknown[] = []
-  const orderFilters: string[] = ['o.deleted_at IS NULL']
+  const orderFilters: string[] = [
+    'o.deleted_at IS NULL',
+    `(o.notes IS NULL OR o.notes NOT LIKE 'Importado SuasVendas%')`,
+  ]
 
   if (!isAdmin) { params.push(req.user!.id); orderFilters.push(`o.rep_id = $${params.length}`) }
   if (factory_id)     { params.push(factory_id);     orderFilters.push(`o.factory_id = $${params.length}`) }
