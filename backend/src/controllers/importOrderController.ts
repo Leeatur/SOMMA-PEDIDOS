@@ -22,8 +22,9 @@ const LINE_RE =
 
 // Fallback parser for FORMAT B: everything concatenated.
 // Strategy: locate where sizes start (first "34\d" after the reference),
-// then find the first comma (marks boundary between sizes+total and price).
-// Price is always "NN,NN" so priceStart = commaPos - 2.
+// then find the first comma (decimal separator of the unit price).
+// Price may be 1–6 digits wide (e.g. 62,90 / 100,00 / 1200,00) — try each
+// width until parseSizesBlock validates the resulting sizes+total block.
 function parseLineFallback(line: string): { reference: string; product_name: string; sizesAndTotal: string; priceStr: string } | null {
   const refMatch = /^([A-Z]+\d+)\s*/.exec(line)
   if (!refMatch) return null
@@ -39,16 +40,19 @@ function parseLineFallback(line: string): { reference: string; product_name: str
 
   // First comma after sizeStart is the decimal separator of the unit price
   const commaPos = line.indexOf(',', sizeStart)
-  if (commaPos < 2) return null
+  if (commaPos < 0) return null
 
-  // Price format "NN,NN": 2 digits before comma (handles 52,51 / 56,89 / 62,90 etc.)
-  const priceStart = commaPos - 2
-  if (priceStart <= sizeStart) return null
-
-  const sizesAndTotal = line.substring(sizeStart, priceStart)
-  const priceStr = line.substring(priceStart, commaPos + 3) // e.g. "62,90"
-
-  return { reference, product_name, sizesAndTotal, priceStr }
+  // Try 1–6 digits before the comma until parseSizesBlock accepts the block
+  for (let digits = 1; digits <= 6; digits++) {
+    const priceStart = commaPos - digits
+    if (priceStart <= sizeStart) break
+    const sizesAndTotal = line.substring(sizeStart, priceStart)
+    const priceStr = line.substring(priceStart, commaPos + 3)
+    if (parseSizesBlock(sizesAndTotal) !== null) {
+      return { reference, product_name, sizesAndTotal, priceStr }
+    }
+  }
+  return null
 }
 
 // Parse a concatenated sizes block like "3403603884084284484610481050052052"
