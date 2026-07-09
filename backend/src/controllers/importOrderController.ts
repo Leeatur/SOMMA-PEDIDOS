@@ -6,14 +6,50 @@ const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string
 
 const SIZES = ['34', '36', '38', '40', '42', '44', '46', '48', '50', '52']
 
-// pdf-parse v1 concatenates size+qty pairs without spaces, e.g.:
-// "TE22311 BALLON CALCA JE FEM  3413613814014214414614805005207  62,90 ..."
-// Quantities can be 1 or 2 digits (e.g. 46→10 appears as "4610").
-// LINE_RE captures: reference, product name, sizes+total block starting with "34", unit price.
-// Reference pattern [A-Z]+\d+ matches TEEZZ (TE\d+), OUZZARE, PACKs, and any future factory format.
+// pdf-parse v1 may produce two formats depending on the PDF generator:
+//
+// FORMAT A (spaces preserved):
+//   "TE22311 BALLON CALCA JE FEM  3413613814014214414614805005207  62,90 440,30 ..."
+//   → LINE_RE_A captures reference, name, sizes+total block, unit price
+//
+// FORMAT B (everything concatenated — this PDF):
+//   "TE22311 BALLONCALCA JE FEM341361381401421441461480500520762,90440,3062,9062,90"
+//   → no spaces at all; parseLineFallback() handles it
+//
 // parseSizesBlock handles variable-width qtys via backtracking + sum validation.
 const LINE_RE =
-  /^([A-Z]+\d+)\s*(.+?)\s+(34[\d]+)\s{2,}([\d,]+)/
+  /^([A-Z]+\d+)\s*(.+?)\s+(34[\d]+)\s+([\d]+,[\d]{2})/
+
+// Fallback parser for FORMAT B: everything concatenated.
+// Strategy: locate where sizes start (first "34\d" after the reference),
+// then find the first comma (marks boundary between sizes+total and price).
+// Price is always "NN,NN" so priceStart = commaPos - 2.
+function parseLineFallback(line: string): { reference: string; product_name: string; sizesAndTotal: string; priceStr: string } | null {
+  const refMatch = /^([A-Z]+\d+)\s*/.exec(line)
+  if (!refMatch) return null
+  const reference = refMatch[1]
+  const afterRefPos = refMatch[0].length
+
+  // Find sizes block start: "34" immediately followed by a digit, after the reference
+  const sizeRelPos = line.substring(afterRefPos).search(/34\d/)
+  if (sizeRelPos < 0) return null
+  const sizeStart = afterRefPos + sizeRelPos
+
+  const product_name = line.substring(afterRefPos, sizeStart).trim()
+
+  // First comma after sizeStart is the decimal separator of the unit price
+  const commaPos = line.indexOf(',', sizeStart)
+  if (commaPos < 2) return null
+
+  // Price format "NN,NN": 2 digits before comma (handles 52,51 / 56,89 / 62,90 etc.)
+  const priceStart = commaPos - 2
+  if (priceStart <= sizeStart) return null
+
+  const sizesAndTotal = line.substring(sizeStart, priceStart)
+  const priceStr = line.substring(priceStart, commaPos + 3) // e.g. "62,90"
+
+  return { reference, product_name, sizesAndTotal, priceStr }
+}
 
 // Parse a concatenated sizes block like "3403603884084284484610481050052052"
 // Each size label is 2 chars; each qty is 1 or 2 digits; trailing digits are the PDF total.
@@ -79,13 +115,22 @@ function parseTeezzPdf(text: string): { header: ParsedHeader; items: ParsedItem[
   const items: ParsedItem[] = []
 
   for (const line of lines) {
-    const m = LINE_RE.exec(line)
-    if (!m) continue
+    let reference: string, product_name_pdf: string, sizesBlock: string, unit_price: number
 
-    const reference = m[1]
-    const product_name_pdf = m[2].trim()
-    const sizesBlock = m[3]
-    const unit_price = parsePrice(m[4])
+    const m = LINE_RE.exec(line)
+    if (m) {
+      reference = m[1]
+      product_name_pdf = m[2].trim()
+      sizesBlock = m[3]
+      unit_price = parsePrice(m[4])
+    } else {
+      const fb = parseLineFallback(line)
+      if (!fb) continue
+      reference = fb.reference
+      product_name_pdf = fb.product_name
+      sizesBlock = fb.sizesAndTotal
+      unit_price = parsePrice(fb.priceStr)
+    }
 
     const sizes = parseSizesBlock(sizesBlock)
     if (!sizes) continue
