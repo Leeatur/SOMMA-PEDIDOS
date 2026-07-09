@@ -326,7 +326,7 @@ export const ordersApi = {
   addItems: (id: string, items: Array<{ product_id: string; reference: string; boxes_count: number; unit_price: number; sizes?: Record<string, number> }>) =>
     apiClient.post(`/orders/${id}/items`, { items }),
   removeItem: (id: string, item_id: string) => apiClient.delete(`/orders/${id}/items/${item_id}`),
-  updateItem: (id: string, item_id: string, data: { sizes?: Record<string, number>; boxes_count?: number; unit_price?: number; custom_grade?: Array<{color: string | null; sizes: Record<string, number>; total_pieces: number; sort_order: number}> }) =>
+  updateItem: (id: string, item_id: string, data: { sizes?: Record<string, number>; boxes_count?: number; unit_price?: number; item_obs?: string | null; custom_grade?: Array<{color: string | null; sizes: Record<string, number>; total_pieces: number; sort_order: number}> }) =>
     apiClient.patch(`/orders/${id}/items/${item_id}`, data),
   updateCommission: (id: string, data: {
     rep_commission_value?: number; office_commission_value?: number;
