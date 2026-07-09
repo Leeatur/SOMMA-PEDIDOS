@@ -1157,39 +1157,75 @@ export default function OrderEdit() {
         </div>
 
         {/* ── Itens do Pedido ── */}
-        <div className="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-outline-variant flex items-center justify-between gap-4">
-            <h2 className="font-semibold text-on-surface text-[12px] uppercase tracking-wide text-on-surface-variant">
-              Itens do Pedido
-            </h2>
-            {/* Busca de produto */}
-            <div className="relative flex-1 max-w-sm">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+        <div className="bg-white rounded-2xl border border-outline-variant shadow-sm">
+          {/* Header — sticky no mobile abaixo da topbar (~48px), estático no desktop */}
+          <div className="sticky top-12 sm:static z-20 bg-white rounded-t-2xl px-4 pt-3 pb-3 sm:p-5 border-b border-outline-variant">
+            <div className="flex items-center justify-between mb-2 sm:mb-0">
+              <h2 className="font-semibold text-on-surface text-[12px] uppercase tracking-wide text-on-surface-variant">
+                Itens do Pedido
+              </h2>
+              {/* Versão desktop: busca ao lado do título */}
+              <div className="relative hidden sm:block flex-1 max-w-sm ml-4">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  className="w-full border border-outline-variant rounded-lg pl-8 pr-3 py-1 text-[12px] bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                  value={prodSearch}
+                  onChange={e => searchProducts(e.target.value)}
+                  onBlur={() => setTimeout(() => setShowProdDropdown(false), 150)}
+                  placeholder="Adicionar produto..."
+                />
+                {showProdDropdown && (
+                  <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-outline-variant rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                    {searching && <p className="px-3 py-1 text-[12px] text-on-surface-variant">Buscando...</p>}
+                    {!searching && prodResults.length === 0 && (
+                      <p className="px-3 py-1 text-[12px] text-on-surface-variant">Nenhum produto encontrado</p>
+                    )}
+                    {prodResults.map(p => (
+                      <button key={p.id} type="button"
+                        className="w-full flex items-center gap-2 px-3 py-1 text-[12px] hover:bg-surface-container text-left"
+                        onMouseDown={() => addProduct(p)}>
+                        {p.image_url
+                          ? <img src={p.image_url} className="w-8 h-8 object-cover rounded shrink-0" />
+                          : <div className="w-8 h-8 rounded bg-surface-container-low shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="font-medium text-on-surface truncate">{p.reference}</p>
+                          <p className="text-[12px] text-on-surface-variant truncate">{p.product_name}</p>
+                        </div>
+                        <span className="ml-auto text-[12px] font-medium text-primary shrink-0">{formatCurrency(p.base_price)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Versão mobile: busca em linha própria, maior e mais acessível */}
+            <div className="relative sm:hidden">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
               <input
-                className="w-full border border-outline-variant rounded-lg pl-8 pr-3 py-1 text-[12px] bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                className="w-full border-2 border-outline-variant rounded-xl pl-9 pr-4 py-2.5 text-[14px] bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                 value={prodSearch}
                 onChange={e => searchProducts(e.target.value)}
                 onBlur={() => setTimeout(() => setShowProdDropdown(false), 150)}
-                placeholder="Adicionar produto..."
+                placeholder="Buscar produto para adicionar..."
               />
               {showProdDropdown && (
-                <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-outline-variant rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                  {searching && <p className="px-3 py-1 text-[12px] text-on-surface-variant">Buscando...</p>}
+                <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white border border-outline-variant rounded-xl shadow-xl max-h-72 overflow-y-auto">
+                  {searching && <p className="px-4 py-2 text-[13px] text-on-surface-variant">Buscando...</p>}
                   {!searching && prodResults.length === 0 && (
-                    <p className="px-3 py-1 text-[12px] text-on-surface-variant">Nenhum produto encontrado</p>
+                    <p className="px-4 py-2 text-[13px] text-on-surface-variant">Nenhum produto encontrado</p>
                   )}
                   {prodResults.map(p => (
                     <button key={p.id} type="button"
-                      className="w-full flex items-center gap-2 px-3 py-1 text-[12px] hover:bg-surface-container text-left"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] hover:bg-surface-container active:bg-surface-container-high text-left border-b border-outline-variant/30 last:border-0"
                       onMouseDown={() => addProduct(p)}>
                       {p.image_url
-                        ? <img src={p.image_url} className="w-8 h-8 object-cover rounded shrink-0" />
-                        : <div className="w-8 h-8 rounded bg-surface-container-low shrink-0" />}
-                      <div className="min-w-0">
-                        <p className="font-medium text-on-surface truncate">{p.reference}</p>
+                        ? <img src={p.image_url} className="w-10 h-10 object-cover rounded-lg shrink-0" />
+                        : <div className="w-10 h-10 rounded-lg bg-surface-container-low shrink-0" />}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-on-surface truncate">{p.reference}</p>
                         <p className="text-[12px] text-on-surface-variant truncate">{p.product_name}</p>
                       </div>
-                      <span className="ml-auto text-[12px] font-medium text-primary shrink-0">{formatCurrency(p.base_price)}</span>
+                      <span className="text-[13px] font-bold text-primary shrink-0">{formatCurrency(p.base_price)}</span>
                     </button>
                   ))}
                 </div>
@@ -1220,7 +1256,7 @@ export default function OrderEdit() {
           {/* Tabela de itens — scrollável horizontalmente no desktop */}
           <div className="overflow-x-auto">
             <table className="w-full min-w-max text-[12px]">
-              <thead className="bg-surface-container-lowest sticky top-0 z-10">
+              <thead className="bg-surface-container-lowest sm:sticky sm:top-0 z-10">
                 <tr className="bg-surface-container-low text-on-surface-variant text-[12px]">
                   <th className="pl-3 pr-1 py-1 w-6">
                     {(() => {
