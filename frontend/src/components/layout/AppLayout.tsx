@@ -125,7 +125,7 @@ export function AppLayout() {
   const initials = user?.name?.slice(0, 2).toUpperCase() || 'US'
 
   const navLinkCls = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-1.5 px-3 py-2 rounded-lg text-[14px] font-semibold transition-all whitespace-nowrap ${
+    `flex items-center gap-2 px-4 py-2.5 rounded-lg text-[16px] font-semibold transition-all whitespace-nowrap ${
       isActive
         ? 'bg-white/20 text-white'
         : 'text-white/70 hover:bg-white/10 hover:text-white'
@@ -161,7 +161,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="hidden lg:flex sticky top-0 z-40 items-center gap-0.5 px-4 shadow-lg flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', height: 64 }}
+        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', height: 80 }}
       >
         {/* Logo */}
         <NavLink to="/dashboard" className="flex-shrink-0 mr-3">
@@ -193,7 +193,7 @@ export function AppLayout() {
           <div ref={moreRef} className="relative">
             <button
               onClick={() => setMoreOpen(v => !v)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[14px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[16px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white ${moreOpen ? 'bg-white/20 text-white' : ''}`}
             >
               Mais <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -215,7 +215,7 @@ export function AppLayout() {
 
         {/* Mapas — produto integrado SOMMA Maps (todos os usuários) */}
         <a href={MAPS_URL} target="_blank" rel="noreferrer"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[14px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white">
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[16px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white">
           <MapPin className="h-4 w-4" /> Mapas
         </a>
 
@@ -225,7 +225,7 @@ export function AppLayout() {
         {/* Novo pedido */}
         <button
           onClick={() => navigate('/orders/new')}
-          className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-[13.5px] font-bold px-4 py-2 rounded-lg border border-white/20 transition-all mr-2"
+          className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-[15px] font-bold px-5 py-2.5 rounded-lg border border-white/20 transition-all mr-2"
         >
           <Plus className="h-4 w-4" /> Novo Pedido
         </button>
