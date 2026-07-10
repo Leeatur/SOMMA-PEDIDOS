@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="16" fill="#E25822"/>
-  <text x="50" y="62" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="56" text-anchor="middle" fill="white">FV</text>
+  <rect width="100" height="100" rx="14" fill="#152535"/>
+  <text x="8" y="72" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="62" fill="white">S</text>
+  <text x="46" y="72" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="62" fill="#C55A11">FV</text>
 </svg>
