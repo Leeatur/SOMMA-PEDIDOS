@@ -165,7 +165,7 @@ export function AppLayout() {
       >
         {/* Logo */}
         <NavLink to="/dashboard" className="flex-shrink-0 mr-3">
-          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-9 w-auto" />
+          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-14 w-auto" />
         </NavLink>
 
         {/* Nav principal */}
