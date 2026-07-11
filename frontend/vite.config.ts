@@ -7,32 +7,25 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      includeAssets: ['apple-touch-icon.png', 'logo-somma.svg'],
       manifest: {
-        name: 'Somma Pedidos',
-        short_name: 'Somma',
-        description: 'Sistema de Pedidos Somma Gestão Comercial',
-        theme_color: '#6D28D9',
-        background_color: '#ffffff',
+        name: 'SOMMA Força de Vendas',
+        short_name: 'SOMMA FV',
+        description: 'Sistema de força de vendas e pedidos',
+        theme_color: '#121e36',
+        background_color: '#121e36',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
-          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
       workbox: {
-        // Inclui o index.html no PRECACHE (junto com js/css). Assim a "casca" do app
-        // fica sempre disponível offline E consistente com os bundles daquela build
-        // (o precache é atômico por build; cleanupOutdatedCaches remove o antigo).
-        // Isso resolve o offline e também o bug antigo de tela branca pós-deploy —
-        // que acontecia porque o index.html ficava num cache SEPARADO dos bundles e
-        // apontava para arquivos já removidos. Pré-cacheado, index + bundles batem.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
-        // Navegação (inclusive abrindo pelo ícone, offline) serve o index.html do precache.
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/uploads/],
         runtimeCaching: [
@@ -40,7 +33,7 @@ export default defineConfig({
             urlPattern: /^https?:\/\/.*\/api\//,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-cache-v5',
+              cacheName: 'api-cache-v6',
               networkTimeoutSeconds: 5,
               expiration: { maxEntries: 500, maxAgeSeconds: 1 * 24 * 60 * 60 },
             },
@@ -49,7 +42,7 @@ export default defineConfig({
             urlPattern: /^https:\/\/pub-.*\.r2\.dev\//,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'r2-images-cache-v1',
+              cacheName: 'r2-images-cache-v2',
               expiration: { maxEntries: 1000, maxAgeSeconds: 30 * 24 * 60 * 60 },
             },
           },
