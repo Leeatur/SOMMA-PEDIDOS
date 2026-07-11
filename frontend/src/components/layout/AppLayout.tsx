@@ -164,9 +164,11 @@ export function AppLayout() {
         style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', height: 80 }}
       >
         {/* Logo */}
-        <NavLink to="/dashboard" className="flex-shrink-0 mr-3">
+        <NavLink to="/dashboard" className="flex-shrink-0 mr-2">
           <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-[34px] w-auto" />
         </NavLink>
+        {/* Separador vertical */}
+        <div className="w-px h-7 bg-white/20 mx-3 flex-shrink-0" />
 
         {/* Nav principal */}
         {visiblePrimary.map(item => (
