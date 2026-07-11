@@ -126,15 +126,9 @@ export function AppLayout() {
   const initials = user?.name?.slice(0, 2).toUpperCase() || 'US'
 
   const navLinkCls = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[13.5px] font-semibold transition-all whitespace-nowrap ${
+    `flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[15.5px] font-semibold transition-all whitespace-nowrap ${
       isActive ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
     }`
-  const navLinkClsSub = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-1 px-2 py-1 rounded-md text-[12.5px] font-semibold transition-all whitespace-nowrap ${
-      isActive ? 'bg-white/20 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'
-    }`
-  const navRow1 = visiblePrimary.filter(item => item.to !== '/pronta-entrega')
-  const navRow2Pronta = visiblePrimary.filter(item => item.to === '/pronta-entrega')
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
@@ -162,124 +156,109 @@ export function AppLayout() {
       )}
 
       {/* ════════════════════════════
-          TOP NAV BAR (desktop) — 2 linhas
+          TOP NAV BAR (desktop)
       ════════════════════════════ */}
       <header
-        className="hidden lg:flex sticky top-0 z-40 shadow-lg flex-shrink-0"
+        className="hidden lg:flex items-center sticky top-0 z-40 shadow-lg flex-shrink-0"
         style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', height: 80 }}
       >
-        {/* Logo — ocupa a altura total */}
-        <NavLink to="/dashboard" className="flex items-center px-4 pr-3 flex-shrink-0 border-r border-white/10">
+        {/* Logo */}
+        <NavLink to="/dashboard" className="flex items-center px-4 pr-3 flex-shrink-0 self-stretch border-r border-white/10">
           <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-[46px] w-auto" />
         </NavLink>
 
-        {/* Container de duas linhas */}
-        <div className="flex flex-col flex-1 min-w-0">
+        {/* Nav — linha única */}
+        <div className="flex items-center gap-0.5 px-3 flex-1 min-w-0">
+          {visiblePrimary.map(item => (
+            <NavLink key={item.to} to={item.to} className={navLinkCls}>
+              {item.icon}
+              {item.label}
+              {!!item.badge && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+                  {item.badge > 99 ? '99+' : item.badge}
+                </span>
+              )}
+            </NavLink>
+          ))}
 
-          {/* LINHA 1 — nav principal + ações */}
-          <div className="flex items-center gap-0.5 px-3 flex-1 border-b border-white/10">
-            {navRow1.map(item => (
-              <NavLink key={item.to} to={item.to} className={navLinkCls}>
-                {item.icon}
-                {item.label}
-                {!!item.badge && (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-              </NavLink>
-            ))}
-
-            <div className="flex-1" />
-
-            {/* Novo pedido */}
-            <button
-              onClick={() => navigate('/orders/new')}
-              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-[14px] font-bold px-4 py-2 rounded-lg border border-white/20 transition-all mr-2"
-            >
-              <Plus className="h-4 w-4" /> Novo Pedido
-            </button>
-
-            {/* User menu */}
-            <div ref={userRef} className="relative flex-shrink-0">
+          {/* Dropdown "Mais" — admin only */}
+          {isAdmin && (
+            <div ref={moreRef} className="relative">
               <button
-                onClick={() => setUserOpen(v => !v)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors"
+                onClick={() => setMoreOpen(v => !v)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[15.5px] font-semibold transition-all whitespace-nowrap ${moreOpen ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
               >
-                <div className="w-7 h-7 rounded-full bg-white/20 border border-white/30 flex items-center justify-center">
-                  <span className="text-[11px] font-black text-white">{initials}</span>
-                </div>
-                <div className="text-left hidden xl:block">
-                  <p className="text-[13px] font-semibold text-white leading-none">{user?.name}</p>
-                  <p className="text-[11px] text-white/50">{isAdmin ? 'Administrador' : 'Representante'}</p>
-                </div>
-                <ChevronDown className={`h-3.5 w-3.5 text-white/60 transition-transform ${userOpen ? 'rotate-180' : ''}`} />
+                Mais <ChevronDown className={`h-3.5 w-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
               </button>
-              {userOpen && (
-                <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
-                  <div className="px-4 py-2.5 border-b border-outline-variant/20">
-                    <p className="text-[13px] font-bold text-on-surface">{user?.name}</p>
-                    <p className="text-[11px] text-outline">{isAdmin ? 'Administrador' : 'Representante'}</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                      <span className="text-[11px] text-outline">{online ? 'Online' : 'Offline'}</span>
-                    </div>
-                  </div>
-                  <NavLink to="/settings" onClick={() => setUserOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors">
-                    <Settings className="h-4 w-4 text-outline" /> Ajustes
-                  </NavLink>
-                  <div className="mx-4 my-1 border-t border-outline-variant/20" />
-                  <button onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors">
-                    <LogOut className="h-4 w-4" /> Sair
-                  </button>
+              {moreOpen && (
+                <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
+                  {visibleAdmin.map(item => (
+                    <NavLink key={item.to} to={item.to} onClick={() => setMoreOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-container-low'}`
+                      }>
+                      <span className="text-outline">{item.icon}</span>
+                      {item.label}
+                    </NavLink>
+                  ))}
                 </div>
               )}
             </div>
-          </div>
+          )}
 
-          {/* LINHA 2 — nav secundário */}
-          <div className="flex items-center gap-0.5 px-3" style={{ height: 32 }}>
-            {/* Pronta Entrega (ocultável por instância) */}
-            {navRow2Pronta.map(item => (
-              <NavLink key={item.to} to={item.to} className={navLinkClsSub}>
-                {item.icon} {item.label}
-              </NavLink>
-            ))}
+          {/* Mapas — produto integrado SOMMA Maps */}
+          <a href={MAPS_URL} target="_blank" rel="noreferrer"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[15.5px] font-semibold transition-all whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white">
+            <MapPin className="h-4 w-4" /> Mapas
+          </a>
 
-            {/* Dropdown "Mais" — admin only */}
-            {isAdmin && (
-              <div ref={moreRef} className="relative">
-                <button
-                  onClick={() => setMoreOpen(v => !v)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-[12.5px] font-semibold transition-all whitespace-nowrap ${moreOpen ? 'bg-white/20 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}
-                >
-                  Mais <ChevronDown className={`h-3 w-3 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {moreOpen && (
-                  <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
-                    {visibleAdmin.map(item => (
-                      <NavLink key={item.to} to={item.to} onClick={() => setMoreOpen(false)}
-                        className={({ isActive }) =>
-                          `flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-container-low'}`
-                        }>
-                        <span className="text-outline">{item.icon}</span>
-                        {item.label}
-                      </NavLink>
-                    ))}
+          <div className="flex-1" />
+
+          {/* Novo pedido */}
+          <button
+            onClick={() => navigate('/orders/new')}
+            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-[14px] font-bold px-4 py-2 rounded-lg border border-white/20 transition-all mr-2"
+          >
+            <Plus className="h-4 w-4" /> Novo Pedido
+          </button>
+
+          {/* User menu */}
+          <div ref={userRef} className="relative flex-shrink-0">
+            <button
+              onClick={() => setUserOpen(v => !v)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white hover:bg-white/10 transition-colors"
+            >
+              <div className="w-7 h-7 rounded-full bg-white/20 border border-white/30 flex items-center justify-center">
+                <span className="text-[11px] font-black text-white">{initials}</span>
+              </div>
+              <div className="text-left hidden xl:block">
+                <p className="text-[13px] font-semibold text-white leading-none">{user?.name}</p>
+                <p className="text-[11px] text-white/50">{isAdmin ? 'Administrador' : 'Representante'}</p>
+              </div>
+              <ChevronDown className={`h-3.5 w-3.5 text-white/60 transition-transform ${userOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {userOpen && (
+              <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50 py-1">
+                <div className="px-4 py-2.5 border-b border-outline-variant/20">
+                  <p className="text-[13px] font-bold text-on-surface">{user?.name}</p>
+                  <p className="text-[11px] text-outline">{isAdmin ? 'Administrador' : 'Representante'}</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                    <span className="text-[11px] text-outline">{online ? 'Online' : 'Offline'}</span>
                   </div>
-                )}
+                </div>
+                <NavLink to="/settings" onClick={() => setUserOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors">
+                  <Settings className="h-4 w-4 text-outline" /> Ajustes
+                </NavLink>
+                <div className="mx-4 my-1 border-t border-outline-variant/20" />
+                <button onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors">
+                  <LogOut className="h-4 w-4" /> Sair
+                </button>
               </div>
             )}
-
-            {/* Mapas — produto integrado SOMMA Maps */}
-            <a href={MAPS_URL} target="_blank" rel="noreferrer"
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[12.5px] font-semibold transition-all whitespace-nowrap text-white/60 hover:bg-white/10 hover:text-white">
-              <MapPin className="h-3.5 w-3.5" /> Mapas
-            </a>
           </div>
-
         </div>
       </header>
 
