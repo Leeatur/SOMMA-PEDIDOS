@@ -82,7 +82,7 @@ export function Login() {
         {/* Header */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-28 w-auto" />
+            <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-20 w-auto" />
             {isDev && (
               <span className="px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-black rounded-full tracking-widest">
                 DEV
@@ -136,7 +136,7 @@ export function Login() {
         {/* Mobile: logo topo */}
         <div className="lg:hidden flex flex-col items-center pt-10 pb-4"
           style={{ background: 'linear-gradient(135deg,#1a1a2e,#0f3460)' }}>
-          <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-24 w-auto" />
+          <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-16 w-auto" />
           {isDev && (
             <span className="mt-2 px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-black rounded-full tracking-widest">
               AMBIENTE DEV
