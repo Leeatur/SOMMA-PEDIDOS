@@ -37,7 +37,7 @@ function fmtN(n: number) {
 
 function pct(valor: number, total: number) {
   if (total === 0) return 0
-  return Math.min(100, Math.round((valor / total) * 100))
+  return Math.round((valor / total) * 100)
 }
 
 function diasNoPeriodo(from: string, to: string) {
@@ -58,11 +58,13 @@ function diasDecorridos(from: string, to: string, hoje: string) {
 // ─── Barra de progresso ───────────────────────────────────────────────────────
 
 function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
-  const p = Math.min(100, max === 0 ? 0 : (value / max) * 100)
+  const raw = max === 0 ? 0 : (value / max) * 100
+  const isOver = raw > 100
+  const p = Math.min(100, raw)
   return (
     <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
       <div
-        className={`h-2 rounded-full transition-all ${color}`}
+        className={`h-2 rounded-full transition-all ${isOver ? 'bg-amber-400' : color}`}
         style={{ width: `${p}%` }}
       />
     </div>
@@ -116,8 +118,8 @@ function RepCard({
   const vendidoMes     = mesRow?.total_pieces ?? 0
 
   // Progresso geral
-  const pctGeral  = pct(vendidoPeriodo, goal.metaGeral)
-  const faltaGeral = Math.max(0, goal.metaGeral - vendidoPeriodo)
+  const pctGeral   = pct(vendidoPeriodo, goal.metaGeral)
+  const faltaGeral = goal.metaGeral - vendidoPeriodo
 
   // Ritmo esperado no período até hoje
   const totalDiasPeriodo  = diasNoPeriodo(PERIOD_FROM, PERIOD_TO)
@@ -126,7 +128,7 @@ function RepCard({
   const atrasoPeriodo = ritmoEsperadoPeriodo - vendidoPeriodo
 
   // Progresso mensal
-  const faltaMes     = Math.max(0, goal.metaMensal - vendidoMes)
+  const faltaMes     = goal.metaMensal - vendidoMes
   const totalDiasMes = diasNoPeriodo(mesFrom, mesTo)
   const diasOcorridosMes = diasDecorridos(mesFrom, mesTo, hoje)
   const ritmoEsperadoMes = Math.round(goal.metaMensal * (diasOcorridosMes / totalDiasMes))
@@ -140,11 +142,14 @@ function RepCard({
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-on-surface text-[15px]">{goal.nome}</h3>
         <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-          pctGeral >= 100 ? 'bg-emerald-100 text-emerald-700' :
+          pctGeral > 100  ? 'bg-amber-100 text-amber-700' :
+          pctGeral === 100 ? 'bg-emerald-100 text-emerald-700' :
           pctGeral >= 60  ? 'bg-blue-100 text-blue-700' :
           pctGeral >= 30  ? 'bg-amber-100 text-amber-700' :
           'bg-gray-100 text-gray-500'
-        }`}>{pctGeral}% da meta</span>
+        }`}>
+          {pctGeral > 100 ? `🏆 ${pctGeral}%` : `${pctGeral}% da meta`}
+        </span>
       </div>
 
       {/* Metas */}
@@ -163,7 +168,10 @@ function RepCard({
       <div className="space-y-1">
         <div className="flex justify-between text-[11px]">
           <span className="text-gray-500 font-medium">Jul–Set: {fmtN(vendidoPeriodo)} vendidas</span>
-          <span className="text-gray-400">faltam {fmtN(faltaGeral)} pç</span>
+          {faltaGeral < 0
+            ? <span className="text-amber-500 font-semibold">+{fmtN(-faltaGeral)} pç da meta</span>
+            : <span className="text-gray-400">faltam {fmtN(faltaGeral)} pç</span>
+          }
         </div>
         <ProgressBar value={vendidoPeriodo} max={goal.metaGeral} color="bg-primary" />
         <div className="flex justify-between text-[10px] text-gray-400">
@@ -176,7 +184,10 @@ function RepCard({
       <div className="space-y-1">
         <div className="flex justify-between text-[11px]">
           <span className="text-gray-500 font-medium">Este mês: {fmtN(vendidoMes)} vendidas</span>
-          <span className="text-gray-400">faltam {fmtN(faltaMes)} pç</span>
+          {faltaMes < 0
+            ? <span className="text-amber-500 font-semibold">+{fmtN(-faltaMes)} pç da meta</span>
+            : <span className="text-gray-400">faltam {fmtN(faltaMes)} pç</span>
+          }
         </div>
         <ProgressBar value={vendidoMes} max={goal.metaMensal} color="bg-emerald-500" />
         <div className="flex justify-between text-[10px] text-gray-400">
@@ -297,8 +308,8 @@ export default function MetaFabricasPage() {
                 <div className="mt-2 flex items-center gap-3">
                   <div className="flex-1 bg-white/20 rounded-full h-2 overflow-hidden">
                     <div
-                      className="bg-white h-2 rounded-full transition-all"
-                      style={{ width: `${pctFab}%` }}
+                      className={`h-2 rounded-full transition-all ${pctFab > 100 ? 'bg-amber-300' : 'bg-white'}`}
+                      style={{ width: `${Math.min(100, pctFab)}%` }}
                     />
                   </div>
                   <span className="text-[12px] font-bold">
