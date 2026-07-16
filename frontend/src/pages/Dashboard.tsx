@@ -497,8 +497,10 @@ export function Dashboard() {
           const brandList = Object.keys(groups).sort()
 
           const GoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
-            const pct = g.target_pieces > 0 ? Math.min(100, (g.achieved_pieces / g.target_pieces) * 100) : 0
-            const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : pct >= 40 ? '#3B82F6' : '#EF4444'
+            const raw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
+            const isOver = raw > 100
+            const barPct = Math.min(100, raw)
+            const color = isOver ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
             return (
               <div className="space-y-1">
                 <div className="flex items-end justify-between gap-2">
@@ -508,13 +510,15 @@ export function Dashboard() {
                   <span className="text-[11px] text-outline pb-1">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
                 </div>
                 <div className={`w-full bg-black/10 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${barPct}%`, backgroundColor: color }} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-white/70">
-                    {pct >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
+                    {isOver
+                      ? `+${(g.achieved_pieces - g.target_pieces).toLocaleString('pt-BR')} pç da meta`
+                      : raw >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
                   </span>
-                  <span className="text-[13px] font-bold text-white">{pct.toFixed(1)}%</span>
+                  <span className="text-[13px] font-bold" style={{ color }}>{isOver ? `🏆 ${raw.toFixed(1)}%` : `${raw.toFixed(1)}%`}</span>
                 </div>
               </div>
             )
@@ -575,8 +579,10 @@ export function Dashboard() {
                             <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-3">👥 Por Representante</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                               {reps.sort((a, b) => b.achieved_pieces - a.achieved_pieces).map(g => {
-                                const pct = g.target_pieces > 0 ? Math.min(100, (g.achieved_pieces / g.target_pieces) * 100) : 0
-                                const color = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : pct >= 40 ? '#60A5FA' : '#FCA5A5'
+                                const raw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
+                                const isOver = raw > 100
+                                const barPct = Math.min(100, raw)
+                                const color = isOver ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#60A5FA' : '#FCA5A5'
                                 return (
                                   <div key={g.id} className="bg-white/10 hover:bg-white/15 rounded-2xl p-3 transition-colors group">
                                     <div className="flex items-start justify-between mb-2">
@@ -591,9 +597,9 @@ export function Dashboard() {
                                       <span className="text-[10px] text-white/40">/ {(g.target_pieces/1000).toFixed(0)}k</span>
                                     </div>
                                     <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
-                                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                                      <div className="h-full rounded-full" style={{ width: `${barPct}%`, backgroundColor: color }} />
                                     </div>
-                                    <p className="text-[10px] mt-1 font-bold text-right" style={{ color }}>{pct.toFixed(0)}%</p>
+                                    <p className="text-[10px] mt-1 font-bold text-right" style={{ color }}>{isOver ? `🏆 ${raw.toFixed(0)}%` : `${raw.toFixed(0)}%`}</p>
                                   </div>
                                 )
                               })}
