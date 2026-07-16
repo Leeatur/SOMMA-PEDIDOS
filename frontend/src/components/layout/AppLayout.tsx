@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, CreditCard, MapPin, Target, History,
+  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, CreditCard, MapPin, Target, History, Plug,
 } from 'lucide-react'
 
 // SOMMA Maps — produto integrado (abre em nova aba)
@@ -39,6 +39,7 @@ const navPrimary: NavItem[] = [
 // Itens admin — ficam no dropdown do usuário
 const navAdmin: NavItem[] = [
   { to: '/payment-conditions',  label: 'Cond. Pagam.',   icon: <CreditCard className="h-4 w-4" />, adminOnly: true },
+  { to: '/integrations',        label: 'Integrações',    icon: <Plug className="h-4 w-4" />,       adminOnly: true },
   { to: '/metas-fabricas',      label: 'Metas Fábricas', icon: <Target className="h-4 w-4" />,     adminOnly: true },
   { to: '/price-tables',        label: 'Tabelas',        icon: <Tags className="h-4 w-4" />,       adminOnly: true },
   { to: '/factories',           label: 'Fábricas',       icon: <Building2 className="h-4 w-4" />,  adminOnly: true },
@@ -272,8 +273,8 @@ export function AppLayout() {
         <button onClick={() => setMobileOpen(true)} className="p-1.5 text-white/70 hover:text-white mr-2">
           <Menu className="h-5 w-5" />
         </button>
-        <div className="flex-1 flex justify-center">
-          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-10 w-auto" />
+        <div className="flex-1 flex justify-center min-w-0">
+          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-9 w-auto max-w-[180px] object-contain" />
         </div>
         <div className="flex items-center gap-2">
           {online ? <Wifi className="h-4 w-4 text-emerald-400" /> : <WifiOff className="h-4 w-4 text-amber-400" />}
@@ -330,6 +331,10 @@ export function AppLayout() {
                   <p className="text-[11px] text-white/40">{isAdmin ? 'Administrador' : 'Representante'}</p>
                 </div>
               </div>
+              <NavLink to="/settings" onClick={() => setMobileOpen(false)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-white/60 hover:bg-white/10 rounded-lg transition-colors mb-1">
+                <Settings className="h-4 w-4" /> Ajustes
+              </NavLink>
               <button onClick={handleLogout}
                 className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-white/10 rounded-lg transition-colors">
                 <LogOut className="h-4 w-4" /> Sair
@@ -343,7 +348,7 @@ export function AppLayout() {
       {/* ════════════════════════════
           CONTENT
       ════════════════════════════ */}
-      <main className={`flex-1 overflow-auto main-content ${!online ? 'mt-7' : ''}`}>
+      <main className={`flex-1 overflow-y-auto overflow-x-hidden main-content pb-20 lg:pb-0 ${!online ? 'mt-7' : ''}`}>
         <Outlet />
       </main>
 
@@ -371,7 +376,7 @@ export function AppLayout() {
                 <div className={`w-9 h-6 rounded-xl flex items-center justify-center ${isActive ? 'bg-primary/10' : ''}`}>
                   {item.icon}
                 </div>
-                <span className="text-[12px] font-semibold">{item.label}</span>
+                <span className="text-[10px] font-semibold truncate max-w-full">{item.label}</span>
               </>)}
             </NavLink>
           ))}

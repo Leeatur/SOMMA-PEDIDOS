@@ -22,6 +22,7 @@ import { CustomerPortal } from './pages/CustomerPortal'
 import { Portals } from './pages/Portals'
 import { ProntaEntrega } from './pages/ProntaEntrega'
 import { PaymentConditions } from './pages/PaymentConditions'
+import { Integrations } from './pages/Integrations'
 import { CarteiraMapa } from './pages/CarteiraMapa'
 import MetaFabricasPage from './pages/MetaFabricasPage'
 import SuasVendasHistorico from './pages/SuasVendasHistorico'
@@ -71,6 +72,7 @@ export function App() {
         <Route path="/pronta-entrega" element={<ProntaEntrega />} />
         <Route path="/carteira-mapa" element={<CarteiraMapa />} />
         <Route path="/metas-fabricas" element={<RequireAdmin><MetaFabricasPage /></RequireAdmin>} />
+        <Route path="/integrations" element={<RequireAdmin><Integrations /></RequireAdmin>} />
         <Route path="/settings" element={<Settings />} />
 
         {/* Admin-only routes */}

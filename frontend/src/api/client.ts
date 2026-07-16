@@ -463,6 +463,12 @@ export const paymentConditionsApi = {
   reorder: (order: { id: string; sort_order: number }[]) => apiClient.post('/payment-conditions/reorder', { order }),
 }
 
+export const integrationApi = {
+  info:          () => apiClient.get('/integration/info'),
+  generateToken: () => apiClient.post('/integration/token'),
+  revokeToken:   () => apiClient.delete('/integration/token'),
+}
+
 export const peApi = {
   list: () => apiClient.get('/pe'),
   create: (data: { name: string; factory_id: string }) => apiClient.post('/pe', data),
