@@ -257,6 +257,20 @@ export async function getOrder(req: AuthRequest, res: Response) {
   res.json({ ...order, items, history })
 }
 
+// Blindagem de preço: só admin pode definir preço customizado. Para vendedor
+// (não-admin) o unit_price enviado é ignorado e substituído pelo base_price
+// cadastrado do produto — a interface já esconde a edição; isto garante no servidor.
+async function enforceTablePrices(items: OrderItem[], isAdmin: boolean, client: PoolClient): Promise<OrderItem[]> {
+  if (isAdmin) return items
+  const out: OrderItem[] = []
+  for (const item of items) {
+    const { rows } = await client.query('SELECT base_price FROM products WHERE id=$1', [item.product_id])
+    const tablePrice = rows[0] ? Number(rows[0].base_price) : item.unit_price
+    out.push({ ...item, unit_price: tablePrice })
+  }
+  return out
+}
+
 export async function createOrder(req: AuthRequest, res: Response) {
   const {
     client_id, factory_id, price_table_id, items, discount_pct, commission_discount_pct,
@@ -302,10 +316,11 @@ export async function createOrder(req: AuthRequest, res: Response) {
     const commDisc = commission_discount_pct !== undefined ? parseFloat(commission_discount_pct) || 0 : disc
     // Flag: pedido com DESC. ESPECIAL (fora das regras pré-cadastradas) deve ser revisado
     const needsReview = !!custom_discount
-    const totals = await computeOrderTotals(items, disc, price_table_id, dbClient as any, commDisc)
+    const isAdminOrder = req.user!.role === 'admin'
+    const safeItems = await enforceTablePrices(items, isAdminOrder, dbClient as any)
+    const totals = await computeOrderTotals(safeItems, disc, price_table_id, dbClient as any, commDisc)
 
     // Admin cria pedido: comissão 100% para o escritório, 0% para rep
-    const isAdminOrder = req.user!.role === 'admin'
     const repCommPct   = isAdminOrder ? 0 : totals.repCommissionPct
     const offCommPct   = isAdminOrder ? totals.totalCommissionPct : totals.officeCommissionPct
     const repCommVal   = isAdminOrder ? 0 : totals.repCommissionValue
@@ -413,7 +428,8 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
 
     // Insere os novos itens
     const disc = parseFloat(order.discount_pct) || 0
-    const newTotals = await computeOrderTotals(items, disc, order.price_table_id, dbClient as any)
+    const safeItems = await enforceTablePrices(items, isAdmin, dbClient as any)
+    const newTotals = await computeOrderTotals(safeItems, disc, order.price_table_id, dbClient as any)
     for (let i = 0; i < newTotals.enrichedItems.length; i++) {
       const item = newTotals.enrichedItems[i]
       const origItem = items[i]
@@ -872,8 +888,9 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     return
   }
 
-  // Usa o novo preço se fornecido, senão mantém o atual
-  const effectiveUnitPrice = (newUnitPrice !== undefined && !isNaN(parseFloat(newUnitPrice)))
+  // Usa o novo preço se fornecido, senão mantém o atual.
+  // Blindagem: só admin pode alterar preço; vendedor mantém o preço atual do item.
+  const effectiveUnitPrice = (isAdmin && newUnitPrice !== undefined && !isNaN(parseFloat(newUnitPrice)))
     ? parseFloat(newUnitPrice)
     : Number(item.unit_price)
 

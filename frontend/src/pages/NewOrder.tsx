@@ -1675,6 +1675,7 @@ export function NewOrder() {
           product={quickAddProduct}
           cartItem={cart.find(c => c.product.id === quickAddProduct.id) || null}
           selectedTable={selectedTable}
+          isAdmin={isAdmin}
           onClose={() => setQuickAddProduct(null)}
           onAdd={(p, sizes, boxes, observation, price, customGrade) => {
             const exists = cart.find(c => c.product.id === p.id)
@@ -1698,11 +1699,12 @@ export function NewOrder() {
 
 // ─── QuickAddModal ────────────────────────────────────────────────────────────
 function QuickAddModal({
-  product, cartItem, selectedTable, onClose, onAdd,
+  product, cartItem, selectedTable, isAdmin, onClose, onAdd,
 }: {
   product: Product
   cartItem: CartItem | null
   selectedTable: PriceTable | null
+  isAdmin: boolean
   onClose: () => void
   onAdd: (p: Product, sizes: Record<string, number>, boxes: number, observation: string, price: number, customGrade?: CustomGradeEntry[]) => void
 }) {
@@ -2197,27 +2199,31 @@ function QuickAddModal({
           {/* ── Totais ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[11px] text-outline font-medium mb-1">Preço Unit. (editável)</p>
-              <div className="flex items-center border border-outline-variant rounded-lg overflow-hidden bg-white focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30">
-                <span className="pl-3 text-[12px] text-outline/60">R$</span>
-                <input
-                  type="text" inputMode="decimal"
-                  defaultValue={customPrice.toFixed(2).replace('.', ',')}
-                  key={`cp-${product.id}`}
-                  onBlur={e => {
-                    const raw = e.target.value.replace(',', '.')
-                    const v = parseFloat(raw)
-                    if (!isNaN(v) && v > 0) {
-                      setCustomPrice(v)
-                      e.target.value = v.toFixed(2).replace('.', ',')
-                    } else {
-                      e.target.value = customPrice.toFixed(2).replace('.', ',')
-                    }
-                  }}
-                  onFocus={e => e.target.select()}
-                  className="flex-1 px-2 py-2 text-[12px] font-semibold text-on-surface focus:outline-none bg-transparent"
-                />
-              </div>
+              <p className="text-[11px] text-outline font-medium mb-1">Preço Unit. {isAdmin && '(editável)'}</p>
+              {isAdmin ? (
+                <div className="flex items-center border border-outline-variant rounded-lg overflow-hidden bg-white focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30">
+                  <span className="pl-3 text-[12px] text-outline/60">R$</span>
+                  <input
+                    type="text" inputMode="decimal"
+                    defaultValue={customPrice.toFixed(2).replace('.', ',')}
+                    key={`cp-${product.id}`}
+                    onBlur={e => {
+                      const raw = e.target.value.replace(',', '.')
+                      const v = parseFloat(raw)
+                      if (!isNaN(v) && v > 0) {
+                        setCustomPrice(v)
+                        e.target.value = v.toFixed(2).replace('.', ',')
+                      } else {
+                        e.target.value = customPrice.toFixed(2).replace('.', ',')
+                      }
+                    }}
+                    onFocus={e => e.target.select()}
+                    className="flex-1 px-2 py-2 text-[12px] font-semibold text-on-surface focus:outline-none bg-transparent"
+                  />
+                </div>
+              ) : (
+                <div className="px-3 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-[12px] font-semibold text-on-surface">R$ {customPrice.toFixed(2).replace('.', ',')}</div>
+              )}
             </div>
             <div>
               <p className="text-[11px] text-outline font-medium mb-1">Total</p>

@@ -1316,6 +1316,7 @@ export default function OrderEdit() {
                     productObservation={it.observation}
                     itemObs={it.draftItemObs}
                     onObsChange={val => updateExistingItemObs(it.id, val)}
+                    canEditPrice={isAdmin}
                   />
                 ))}
 
@@ -1347,6 +1348,7 @@ export default function OrderEdit() {
                     priceTableName={order?.price_table_name}
                     itemObs={it.draftItemObs}
                     onObsChange={val => updateNewItemObs(it.tempId, val)}
+                    canEditPrice={isAdmin}
                   />
                 ))}
 
@@ -1706,6 +1708,7 @@ interface ItemRowProps {
   productObservation?: string | null
   itemObs?: string
   onObsChange?: (val: string) => void
+  canEditPrice?: boolean             // só admin edita preço; vendedor apenas visualiza
 }
 
 function ItemRow({
@@ -1713,7 +1716,7 @@ function ItemRow({
   orderPolicyDiscPct, orderCashDiscPct,
   gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
   onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
-  productObservation, itemObs, onObsChange,
+  productObservation, itemObs, onObsChange, canEditPrice,
 }: ItemRowProps) {
   const sizes = sortSizes(Object.keys(draftSizes))
 
@@ -1797,9 +1800,10 @@ function ItemRow({
         }
       </td>
 
-      {/* Preço Final — editável */}
+      {/* Preço Final — editável só para admin; vendedor apenas visualiza */}
       <td className="px-3 py-2 text-right text-[12px] align-middle whitespace-nowrap">
         <div className="flex flex-col items-end gap-0.5">
+          {canEditPrice ? (<>
           <div className="flex items-center gap-0.5">
             <span className="text-outline/60 text-[11px]">R$</span>
             <input
@@ -1848,6 +1852,9 @@ function ItemRow({
           </div>
           {Math.abs(parseFloat(priceText.replace(',','.')) - effectiveUnitPrice) > 0.01 && (
             <span className="text-[10px] text-amber-600 font-semibold">✏️ alterado</span>
+          )}
+          </>) : (
+            <span className="text-[12px] font-semibold text-primary">R$ {effectiveUnitPrice.toFixed(2).replace('.', ',')}</span>
           )}
         </div>
       </td>
