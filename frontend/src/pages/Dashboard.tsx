@@ -58,6 +58,8 @@ export function Dashboard() {
   const spDate = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
   const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); d.setDate(1); return spDate(d) }) // início do mês
   const [dateTo,   setDateTo]   = useState(() => spDate(new Date()))
+  const [pendingFrom, setPendingFrom] = useState(() => { const d = new Date(); d.setDate(1); return spDate(d) })
+  const [pendingTo,   setPendingTo]   = useState(() => spDate(new Date()))
   const [activePeriod, setActivePeriod] = useState('month')
   const [collectionFilter, setCollectionFilter] = useState<string | null>(null)
   const [filterYear, setFilterYear] = useState(() => new Date().getFullYear())
@@ -76,7 +78,7 @@ export function Dashboard() {
       const last  = new Date(now.getFullYear(), now.getMonth(), 0)
       setDateFrom(spDate(first)); setDateTo(spDate(last))
     }
-    if (p === 'custom')  { /* usuário digita nas caixas */ }
+    if (p === 'custom')  { setPendingFrom(dateFrom); setPendingTo(dateTo) }
   }
 
   function setMonth(month: number) {
@@ -312,11 +314,17 @@ export function Dashboard() {
 
         {activePeriod === 'custom' && (
           <div className="flex items-center gap-2 px-4 lg:px-8 mt-2 flex-wrap">
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            <input type="date" value={pendingFrom} onChange={e => setPendingFrom(e.target.value)}
               className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
             <span className="text-white/60 text-[12px] flex-shrink-0">até</span>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            <input type="date" value={pendingTo} onChange={e => setPendingTo(e.target.value)}
               className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <button
+              onClick={() => { setDateFrom(pendingFrom); setDateTo(pendingTo) }}
+              className="flex-shrink-0 px-4 py-1.5 rounded-xl text-[12px] font-bold bg-white text-primary hover:bg-white/90 transition-colors"
+            >
+              Aplicar
+            </button>
           </div>
         )}
         {activePeriod !== 'today' && (
