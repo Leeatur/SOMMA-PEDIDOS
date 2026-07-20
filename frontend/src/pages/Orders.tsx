@@ -13,6 +13,7 @@ import {
   Download,
   FileUp,
   Trash2,
+  RefreshCw,
 } from 'lucide-react'
 import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { svgIconSrc } from '../components/ui/Badge'
@@ -517,6 +518,13 @@ export function Orders() {
                 {isLoading ? '' : `${total} pedido${total !== 1 ? 's' : ''}`}
               </p>
             </div>
+            <button
+              onClick={() => qc.invalidateQueries({ queryKey: ['orders'] })}
+              className="p-2 rounded-xl text-outline hover:bg-surface-container-low transition-colors"
+              title="Atualizar lista"
+            >
+              <RefreshCw className="h-5 w-5" />
+            </button>
           </div>
 
           {/* Search */}
@@ -606,6 +614,14 @@ export function Orders() {
             </div>
             <div className="flex items-center gap-2">
               <ColumnConfigButton defs={colDefs} config={config} onSave={save} onReset={reset} />
+              <button
+                onClick={() => qc.invalidateQueries({ queryKey: ['orders'] })}
+                className="flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors text-outline border-outline-variant bg-white hover:text-on-surface-variant"
+                title="Atualizar lista"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Atualizar
+              </button>
               <button
                 onClick={exportarCSV}
                 disabled={total === 0}

@@ -332,6 +332,7 @@ export default function OrderEdit() {
   const [showProdDropdown, setShowProdDropdown] = useState(false)
   const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null)
   const [searching, setSearching] = useState(false)
+  const prodSearchRef = useRef<HTMLInputElement | null>(null)
 
   const searchProducts = useCallback(async (val: string) => {
     setProdSearch(val)
@@ -566,6 +567,7 @@ export default function OrderEdit() {
     }
     setNewItems(prev => [...prev, newItem])
     setQuickEditProduct(null)
+    setTimeout(() => prodSearchRef.current?.focus(), 80)
   }
 
   // ── totais calculados ────────────────────────────────────────────────────────
@@ -1202,6 +1204,7 @@ export default function OrderEdit() {
             <div className="relative sm:hidden">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
               <input
+                ref={prodSearchRef}
                 className="w-full border-2 border-outline-variant rounded-xl pl-9 pr-4 py-2.5 text-[14px] bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                 value={prodSearch}
                 onChange={e => searchProducts(e.target.value)}
@@ -1776,7 +1779,6 @@ function ItemRow({
                 <span>⚠️</span>{productObservation}
               </p>
             )}
-            {isNew && <span className="text-[12px] text-primary font-medium">+ novo</span>}
             {onObsChange !== undefined && (
               <input
                 type="text"
