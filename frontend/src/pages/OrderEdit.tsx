@@ -1502,7 +1502,15 @@ function OrderEditQuickModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose}/>
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[92vh] overflow-hidden">
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[92vh] overflow-hidden"
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement) && totalPieces > 0) {
+            e.preventDefault()
+            onAdd(product, multiVariant ? flatSizes : sizes, boxes, multiVariant ? customGrade : undefined, obs || undefined)
+          }
+        }}
+      >
         {/* Header */}
         <div className="bg-surface-container-low px-4 py-3 border-b border-outline-variant flex items-start justify-between gap-3 flex-shrink-0">
           <div className="flex gap-3 flex-1 min-w-0">
