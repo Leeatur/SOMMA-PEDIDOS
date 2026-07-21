@@ -60,13 +60,50 @@ function diasDecorridos(from: string, to: string, hoje: string) {
 function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
   const raw = max === 0 ? 0 : (value / max) * 100
   const isOver = raw > 100
-  const p = Math.min(100, raw)
+
+  if (!isOver) {
+    return (
+      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+        <div className={`h-2 rounded-full transition-all ${color}`} style={{ width: `${raw}%` }} />
+      </div>
+    )
+  }
+
+  // Over 100%: dynamic scale with 15pp headroom so bar can extend visually past goal
+  const scale = Math.max(120, raw + 15)
+  const barWidth = (raw / scale) * 100
+  const goalPos  = (100 / scale) * 100
   return (
-    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-      <div
-        className={`h-2 rounded-full transition-all ${isOver ? 'bg-amber-400' : color}`}
-        style={{ width: `${p}%` }}
-      />
+    <div className="relative w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+      <div className="h-2 rounded-full bg-amber-400 transition-all" style={{ width: `${barWidth}%` }} />
+      {/* white tick marks the 100% goal position */}
+      <div className="absolute top-0 h-2 w-0.5 bg-white/80" style={{ left: `${goalPos}%` }} />
+    </div>
+  )
+}
+
+// ─── Card do escritório (vendas de admin) ────────────────────────────────────
+
+function EscritorioCard({ totalPeriodo, totalMes }: { totalPeriodo: number; totalMes: number }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-on-surface text-[15px]">Escritório</h3>
+        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+          vendas diretas
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-center">
+        <div className="bg-gray-50 rounded-xl p-2">
+          <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Jul–Set</p>
+          <p className="text-[14px] font-bold text-on-surface">{fmtN(totalPeriodo)} pç</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-2">
+          <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Este mês</p>
+          <p className="text-[14px] font-bold text-on-surface">{fmtN(totalMes)} pç</p>
+        </div>
+      </div>
+      <p className="text-[10px] text-gray-400 text-center">Pedidos feitos pelo escritório / admin</p>
     </div>
   )
 }
@@ -295,6 +332,27 @@ export default function MetaFabricasPage() {
 
         const pctFab = pct(totalVendidoPeriodo, fab.totalGeral)
 
+        // Orders not matched to any listed rep → office/admin sales
+        const escritorioPeriodoTotal = d.periodo
+          .filter(r =>
+            r.factory_name.toUpperCase().includes(fab.fabrica.toUpperCase()) &&
+            !fab.reps.some(rep => match(r.rep_name, rep.nome))
+          )
+          .reduce((s, r) => s + r.total_pieces, 0)
+        const escritorioMesTotal = d.mesAtual
+          .filter(r =>
+            r.factory_name.toUpperCase().includes(fab.fabrica.toUpperCase()) &&
+            !fab.reps.some(rep => match(r.rep_name, rep.nome))
+          )
+          .reduce((s, r) => s + r.total_pieces, 0)
+        const showEscritorio = escritorioPeriodoTotal > 0 || escritorioMesTotal > 0
+
+        // Factory-level bar: same dynamic scale as ProgressBar when over 100%
+        const fabIsOver = pctFab > 100
+        const fabScale  = fabIsOver ? Math.max(120, pctFab + 15) : 100
+        const fabBarW   = fabIsOver ? (pctFab / fabScale) * 100 : Math.min(100, pctFab)
+        const fabGoalPos = fabIsOver ? (100 / fabScale) * 100 : null
+
         return (
           <section key={fab.fabrica} className="space-y-4">
             {/* Header da fábrica */}
@@ -306,11 +364,14 @@ export default function MetaFabricasPage() {
                   <span className="text-white/60 text-[12px]">meta {fmtN(fab.totalGeral)} peças</span>
                 </div>
                 <div className="mt-2 flex items-center gap-3">
-                  <div className="flex-1 bg-white/20 rounded-full h-2 overflow-hidden">
+                  <div className="relative flex-1 bg-white/20 rounded-full h-2 overflow-hidden">
                     <div
-                      className={`h-2 rounded-full transition-all ${pctFab > 100 ? 'bg-amber-300' : 'bg-white'}`}
-                      style={{ width: `${Math.min(100, pctFab)}%` }}
+                      className={`h-2 rounded-full transition-all ${fabIsOver ? 'bg-amber-300' : 'bg-white'}`}
+                      style={{ width: `${fabBarW}%` }}
                     />
+                    {fabGoalPos !== null && (
+                      <div className="absolute top-0 h-2 w-0.5 bg-white/60" style={{ left: `${fabGoalPos}%` }} />
+                    )}
                   </div>
                   <span className="text-[12px] font-bold">
                     {fmtN(totalVendidoPeriodo)} pç vendidas ({pctFab}%)
@@ -333,6 +394,12 @@ export default function MetaFabricasPage() {
                   mesTo={d.mesAtualRange.to}
                 />
               ))}
+              {showEscritorio && (
+                <EscritorioCard
+                  totalPeriodo={escritorioPeriodoTotal}
+                  totalMes={escritorioMesTotal}
+                />
+              )}
             </div>
           </section>
         )
