@@ -28,7 +28,7 @@ export function Portals() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', price_table_ids: [] as string[] })
+  const [form, setForm] = useState({ name: '', price_table_ids: [] as string[], min_order_value: '', only_in_stock: false })
 
   const { data: portals = [], isLoading } = useQuery<Portal[]>({
     queryKey: ['portals'],
@@ -41,8 +41,16 @@ export function Portals() {
   })
 
   const createMut = useMutation({
-    mutationFn: () => portalsApi.create({ name: form.name, price_table_ids: form.price_table_ids, factory_ids: [] }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['portals'] }); setCreateOpen(false); setForm({ name: '', price_table_ids: [] }) },
+    mutationFn: () => portalsApi.create({
+      name: form.name, price_table_ids: form.price_table_ids, factory_ids: [],
+      min_order_value: parseFloat(form.min_order_value.replace(',', '.')) || 0,
+      only_in_stock: form.only_in_stock,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['portals'] })
+      setCreateOpen(false)
+      setForm({ name: '', price_table_ids: [], min_order_value: '', only_in_stock: false })
+    },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao criar link. Tente novamente.'
       alert(msg)
@@ -312,6 +320,40 @@ export function Portals() {
               ⚠️ Selecione pelo menos uma tabela de preço para o cliente acessar.
             </div>
           )}
+
+          {/* Condições do pedido */}
+          <div className="border-t border-outline-variant/30 pt-4 space-y-3">
+            <p className="text-[13px] font-semibold text-on-surface">⚙️ Condições do pedido</p>
+
+            <div>
+              <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Valor mínimo do pedido</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-outline">R$</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00 (sem mínimo)"
+                  value={form.min_order_value}
+                  onChange={e => setForm(f => ({ ...f, min_order_value: e.target.value }))}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-outline-variant rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <p className="text-[11px] text-outline mt-1">O cliente não consegue fechar abaixo desse valor. Deixe vazio para sem mínimo.</p>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer p-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-low transition-colors">
+              <input
+                type="checkbox"
+                checked={form.only_in_stock}
+                onChange={e => setForm(f => ({ ...f, only_in_stock: e.target.checked }))}
+                className="w-4 h-4 accent-primary rounded flex-shrink-0 mt-0.5"
+              />
+              <div>
+                <p className="text-[13px] font-semibold text-on-surface">Só referências com estoque</p>
+                <p className="text-[11px] text-outline mt-0.5">Produtos sem estoque aparecem marcados como <strong>esgotado</strong> e não podem ser adicionados ao pedido.</p>
+              </div>
+            </label>
+          </div>
         </div>
       </Modal>
     </div>

@@ -33,20 +33,21 @@ export async function listPortals(req: AuthRequest, res: Response) {
 }
 
 export async function createPortal(req: AuthRequest, res: Response) {
-  const { name, factory_ids, price_table_ids, expires_at } = req.body
+  const { name, factory_ids, price_table_ids, expires_at, min_order_value, only_in_stock } = req.body
   if (!name) { res.status(400).json({ error: 'Nome é obrigatório' }); return }
   const token = crypto.randomBytes(24).toString('hex')
   const repId = req.user!.id
   const { rows: [portal] } = await query(
-    `INSERT INTO customer_portals (rep_id, factory_ids, price_table_ids, token, name, expires_at)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [repId, factory_ids || [], price_table_ids || [], token, name, expires_at || null]
+    `INSERT INTO customer_portals (rep_id, factory_ids, price_table_ids, token, name, expires_at, min_order_value, only_in_stock)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [repId, factory_ids || [], price_table_ids || [], token, name, expires_at || null,
+     Number(min_order_value) || 0, only_in_stock === true]
   )
   res.status(201).json(portal)
 }
 
 export async function updatePortal(req: AuthRequest, res: Response) {
-  const { name, factory_ids, active, expires_at } = req.body
+  const { name, factory_ids, active, expires_at, min_order_value, only_in_stock } = req.body
   const { rows: [existing] } = await query(
     'SELECT rep_id FROM customer_portals WHERE id=$1', [req.params.id]
   )
@@ -55,9 +56,14 @@ export async function updatePortal(req: AuthRequest, res: Response) {
     res.status(403).json({ error: 'Sem permissão' }); return
   }
   const { rows: [portal] } = await query(
-    `UPDATE customer_portals SET name=$1, factory_ids=$2, active=$3, expires_at=$4, updated_at=NOW()
-     WHERE id=$5 RETURNING *`,
-    [name, factory_ids || [], active ?? true, expires_at || null, req.params.id]
+    `UPDATE customer_portals SET name=$1, factory_ids=$2, active=$3, expires_at=$4,
+      min_order_value=COALESCE($5, min_order_value), only_in_stock=COALESCE($6, only_in_stock),
+      updated_at=NOW()
+     WHERE id=$7 RETURNING *`,
+    [name, factory_ids || [], active ?? true, expires_at || null,
+     min_order_value !== undefined ? Number(min_order_value) : null,
+     only_in_stock !== undefined ? only_in_stock === true : null,
+     req.params.id]
   )
   res.json(portal)
 }
@@ -94,8 +100,9 @@ async function getPortal(token: string) {
 }
 
 // Helper: busca produtos + grade_configs de uma lista de tableIds
-async function fetchCatalogProducts(tableIds: string[]) {
+async function fetchCatalogProducts(tableIds: string[], onlyInStock = false) {
   if (!tableIds.length) return []
+  const stockFilter = onlyInStock ? `AND (p.stock IS NOT NULL AND p.stock != '{}'::jsonb)` : ''
   const { rows } = await query(
     `SELECT p.id, p.reference, p.product_name, p.model, p.size_range, p.base_price,
             p.type, p.image_url, p.observation, p.price_table_id, p.blocked_sizes, p.stock,
@@ -107,7 +114,7 @@ async function fetchCatalogProducts(tableIds: string[]) {
               '[]'::json
             ) AS grade_configs
      FROM products p
-     WHERE p.price_table_id = ANY($1) AND p.active = true
+     WHERE p.price_table_id = ANY($1) AND p.active = true ${stockFilter}
      ORDER BY p.reference`,
     [tableIds]
   )
@@ -123,7 +130,12 @@ export async function getPortalInfo(req: Request, res: Response) {
   const { rows: [pe] } = await query('SELECT id FROM pe_catalogs WHERE portal_id=$1', [portal.id])
   // Texto institucional (condições + política de troca) — reusa o "Rodapé do pedido" (company_settings.order_footer)
   const { rows: [footerRow] } = await query(`SELECT value FROM company_settings WHERE key='order_footer'`)
-  const portalMeta = { id: portal.id, name: portal.name, rep_name: portal.rep_name, is_pe: !!pe, terms: footerRow?.value || null }
+  const portalMeta = {
+    id: portal.id, name: portal.name, rep_name: portal.rep_name, is_pe: !!pe,
+    terms: footerRow?.value || null,
+    min_order_value: Number(portal.min_order_value) || 0,
+    only_in_stock: !!portal.only_in_stock,
+  }
 
   // Fluxo principal: tabelas específicas → retorna catálogo completo de uma vez
   if (portal.price_table_ids?.length > 0) {
@@ -135,7 +147,7 @@ export async function getPortalInfo(req: Request, res: Response) {
        ORDER BY f.name, pt.name`,
       [portal.price_table_ids]
     )
-    const products = await fetchCatalogProducts(priceTables.map((t: { id: string }) => t.id))
+    const products = await fetchCatalogProducts(priceTables.map((t: { id: string }) => t.id), portal.only_in_stock)
     const tables = priceTables.map((t: Record<string, unknown>) => ({
       ...t,
       products: products.filter((p: { price_table_id: string }) => p.price_table_id === t.id),
@@ -163,7 +175,7 @@ export async function getPortalInfo(req: Request, res: Response) {
        ORDER BY f.name, pt.name`,
       [factoryIds]
     )
-    const products = await fetchCatalogProducts(priceTables.map((t: { id: string }) => t.id))
+    const products = await fetchCatalogProducts(priceTables.map((t: { id: string }) => t.id), portal.only_in_stock)
     const tables = priceTables.map((t: Record<string, unknown>) => ({
       ...t,
       products: products.filter((p: { price_table_id: string }) => p.price_table_id === t.id),
@@ -291,11 +303,10 @@ export async function submitPortalOrder(req: Request, res: Response) {
     res.status(400).json({ error: 'E-mail e WhatsApp são obrigatórios' }); return
   }
 
-  // Pedido mínimo (validação espelhada no backend): PE usa R$ 2.500 fixo;
-  // catálogo normal usa MIN_ORDER_VALUE (env, por instância — NXO = 2500). Default 0 = sem mínimo.
+  // Pedido mínimo: PE usa R$ 2.500 fixo; catálogo normal usa portal.min_order_value (configurável por link).
   const PE_MIN_ORDER_VALUE = 2500
   const { rows: [peCatalog] } = await query('SELECT id FROM pe_catalogs WHERE portal_id=$1', [portal.id])
-  const minOrderValue = peCatalog ? PE_MIN_ORDER_VALUE : (Number(process.env.MIN_ORDER_VALUE) || 0)
+  const minOrderValue = peCatalog ? PE_MIN_ORDER_VALUE : (Number(portal.min_order_value) || 0)
   if (minOrderValue > 0) {
     const cartSubtotal = items.reduce((s: number, it: { unit_price?: number; total_pieces?: number }) =>
       s + (Number(it.unit_price) || 0) * (Number(it.total_pieces) || 0), 0)

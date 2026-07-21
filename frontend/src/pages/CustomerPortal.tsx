@@ -37,15 +37,12 @@ interface CartItem {
   subtotal: number
 }
 
-// Pedido mínimo de R$ 2.500,00 — exigido apenas em catálogos de Pronta Entrega (portal.is_pe)
+// Pedido mínimo de R$ 2.500,00 — exigido em catálogos de Pronta Entrega (portal.is_pe)
 const PE_MIN_ORDER_VALUE = 2500
 const MIN_PIECES_PER_REF = 1
 
 // Pack multi-grade (NXO): cliente escolhe multiplicador por grade e pode misturar. Default off.
 const MULTI_GRADE = import.meta.env.VITE_MULTI_GRADE === 'true'
-
-// Pedido mínimo (R$) para catálogos normais — configurável por instância (NXO = 2500). Default 0 (sem mínimo).
-const MIN_ORDER_VALUE = Number(import.meta.env.VITE_MIN_ORDER_VALUE) || 0
 
 const PAYMENT_OPTIONS = [
   { label: 'À Vista (3% desconto)',         value: 'À Vista',                  discount: 3 },
@@ -95,7 +92,7 @@ export function CustomerPortal() {
 
   // Steps: 'loading' | 'cnpj' | 'catalog' | 'cart' | 'success' | 'error'
   const [step, setStep] = useState<string>('loading')
-  const [portalInfo, setPortalInfo] = useState<{ name: string; rep_name: string; is_pe?: boolean; terms?: string | null } | null>(null)
+  const [portalInfo, setPortalInfo] = useState<{ name: string; rep_name: string; is_pe?: boolean; terms?: string | null; min_order_value?: number; only_in_stock?: boolean } | null>(null)
   const [factories, setFactories] = useState<Factory[]>([])
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -257,8 +254,8 @@ export function CustomerPortal() {
   const cartDiscount = selectedPayment.discount  // % desconto à vista
   const cartTotal = cartSubtotal * (1 - cartDiscount / 100)
   const cartPieces = cart.reduce((s, i) => s + i.total_pieces, 0)
-  // Pedido mínimo: PE usa o mínimo fixo; catálogo normal usa o configurável (VITE_MIN_ORDER_VALUE)
-  const minOrderValue = portalInfo?.is_pe ? PE_MIN_ORDER_VALUE : MIN_ORDER_VALUE
+  // Pedido mínimo: PE usa fixo R$ 2.500; catálogo normal usa o valor configurado no link
+  const minOrderValue = portalInfo?.is_pe ? PE_MIN_ORDER_VALUE : (portalInfo?.min_order_value ?? 0)
 
   async function handleSubmit() {
     if (!cart.length || !clientData) return
@@ -530,12 +527,32 @@ export function CustomerPortal() {
                           </button>
 
                           {isOpen && (
-                            <div className="border-t border-gray-100 p-3 grid grid-cols-2 gap-2">
-                              {filtered.map(p => (
-                                <ProductCard key={p.id} product={p}
-                                  cartItems={cart.filter(i => i.product.id === p.id)}
-                                  onOpenModal={setModalProduct} />
-                              ))}
+                            <div className="border-t border-gray-100 p-3 space-y-4">
+                              {(() => {
+                                const groups: Record<string, Product[]> = {}
+                                for (const p of filtered) {
+                                  const key = p.model || ''
+                                  if (!groups[key]) groups[key] = []
+                                  groups[key].push(p)
+                                }
+                                return Object.entries(groups).map(([modelName, prods]) => (
+                                  <div key={modelName}>
+                                    {modelName && (
+                                      <div className="flex items-center justify-between mb-2 px-0.5">
+                                        <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">{modelName}</p>
+                                        <span className="text-[10px] text-gray-400">{prods.length} refs</span>
+                                      </div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {prods.map(p => (
+                                        <ProductCard key={p.id} product={p}
+                                          cartItems={cart.filter(i => i.product.id === p.id)}
+                                          onOpenModal={setModalProduct} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))
+                              })()}
                             </div>
                           )}
                         </div>
@@ -1042,7 +1059,7 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
   )
 }
 
-// ─── ProductCard — card simples, abre modal ao clicar ────────────────────────
+// ─── ProductCard — card com duas imagens (produto + modelo) ──────────────────
 
 function ProductCard({ product, cartItems, onOpenModal }: {
   product: Product
@@ -1053,43 +1070,52 @@ function ProductCard({ product, cartItems, onOpenModal }: {
   const fmtCur = (v: number) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
   const inCart = cartItems.reduce((s, i) => s + i.total_pieces, 0)
   const inCartBoxes = cartItems.reduce((s, i) => s + i.boxes, 0)
+  const images = (product.images?.filter(Boolean) as string[]) || (product.image_url ? [product.image_url] : [])
+  const frontImg = images[0] ?? null
+  const modelImg = images[1] ?? null
 
   return (
     <div
       className={`rounded-xl overflow-hidden active:scale-[0.98] transition-transform cursor-pointer ${
         inCart > 0
-          ? 'border-2 border-green-500 bg-green-50 shadow-md shadow-green-100'
-          : 'border border-gray-200 bg-white shadow-sm hover:shadow-md hover:border-purple-200'
+          ? 'border-2 border-green-500 shadow-md shadow-green-100'
+          : 'border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-200'
       }`}
       onClick={() => onOpenModal(product)}
     >
-      {/* Imagem */}
-      <div className="aspect-[3/4] bg-white overflow-hidden relative">
-        {product.image_url
-          ? <img src={product.image_url} alt={product.reference} className="w-full h-full object-contain" loading="lazy" />
-          : <div className="w-full h-full flex items-center justify-center text-gray-200"><Package className="h-10 w-10" /></div>
-        }
-        {inCart > 0 && (
-          <div className="absolute top-1.5 right-1.5 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow">
-            {isPack ? `${inCartBoxes}cx` : `${inCart}pç`}
-          </div>
-        )}
-        {/* Indicador de clique */}
-        <div className="absolute inset-0 bg-purple-900/0 hover:bg-purple-900/5 flex items-end justify-center pb-2 opacity-0 hover:opacity-100 transition-opacity">
-          <span className="bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Toque para abrir</span>
+      {/* Duas imagens lado a lado */}
+      <div className="flex">
+        {/* Esquerda: foto do produto */}
+        <div className="w-1/2 aspect-[3/4] bg-gray-100 overflow-hidden relative flex items-center justify-center">
+          {frontImg
+            ? <img src={frontImg} alt={product.reference} className="w-full h-full object-contain" loading="lazy" />
+            : <Package className="h-10 w-10 text-gray-300" />
+          }
+          {inCart > 0 && (
+            <div className="absolute top-1.5 left-1.5 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow">
+              {isPack ? `${inCartBoxes}cx` : `${inCart}pç`}
+            </div>
+          )}
+        </div>
+        {/* Direita: foto do modelo/lookbook */}
+        <div className="w-1/2 aspect-[3/4] bg-gray-50 border-l border-gray-100 overflow-hidden relative flex items-center justify-center">
+          {modelImg
+            ? <img src={modelImg} alt={`${product.reference} modelo`} className="w-full h-full object-cover" loading="lazy" />
+            : <Package className="h-10 w-10 text-gray-200" />
+          }
         </div>
       </div>
 
-      <div className="p-2.5">
-        <p className="font-bold text-sm text-gray-900 truncate">{product.reference}</p>
-        {product.product_name && <p className="text-xs text-gray-500 truncate">{product.product_name}</p>}
-        <div className="flex items-center justify-between mt-1.5">
-          <p className="font-bold text-purple-700 text-sm">{fmtCur(product.base_price)}/pç</p>
-          {inCart > 0
-            ? <span className="text-[10px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded-full">✓ No carrinho</span>
-            : <span className="text-[10px] bg-purple-100 text-purple-600 font-semibold px-1.5 py-0.5 rounded-full">{isPack ? 'Pack' : 'Regular'}</span>
-          }
+      {/* Info do produto */}
+      <div className={`px-3 py-2 ${inCart > 0 ? 'bg-green-50' : 'bg-white'}`}>
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-bold text-sm text-gray-900 truncate">{product.reference}</p>
+          <p className="font-bold text-purple-700 text-sm whitespace-nowrap">{fmtCur(product.base_price)}<span className="text-[10px] font-normal text-gray-400">/pç</span></p>
         </div>
+        {product.product_name && <p className="text-xs text-gray-500 truncate">{product.product_name}</p>}
+        {inCart > 0 && (
+          <p className="text-[10px] text-green-700 font-bold mt-0.5">✓ No carrinho</p>
+        )}
       </div>
     </div>
   )
