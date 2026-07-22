@@ -85,9 +85,10 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
       const subtotal = Number(item.subtotal || 0)
       const pieces = Number(item.total_pieces || 0)
 
+      const obsHtml = item.item_obs ? `<br><span style="color:#dc2626;font-style:italic;font-size:10px">${item.item_obs}</span>` : ''
       itemsHtml += `<tr class="item-row">
         <td class="ref">${item.reference}</td>
-        <td>${descName}</td>
+        <td>${descName}${obsHtml}</td>
         <td class="center">${isPack ? `${item.boxes_count}cx · ${pieces}pç` : `${pieces}pç`}</td>
         <td class="right">R$ ${fmt(discountedPrice)}/pç</td>
         <td class="right total">R$ ${fmt(subtotal)}</td>
