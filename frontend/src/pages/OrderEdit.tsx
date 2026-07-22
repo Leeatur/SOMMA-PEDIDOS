@@ -1787,6 +1787,9 @@ function ItemRow({
                 <span>⚠️</span>{productObservation}
               </p>
             )}
+            {itemObs && (
+              <p className="text-[11px] font-medium text-red-600 italic mt-0.5">{itemObs}</p>
+            )}
             {onObsChange !== undefined && (
               <input
                 type="text"
