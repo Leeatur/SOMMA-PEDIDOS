@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award } from 'lucide-react'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
+import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, ChevronUp, ChevronsUpDown } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -71,6 +71,9 @@ interface CommissionRow {
   guide_commission_value?: number
   guide_commission_pct?: number
   commission_manual_override: boolean
+  valor_faturado_fabrica: number | null
+  faturamento_status: 'pendente' | 'parcial' | 'liquidado'
+  sem_comissao_fabrica: boolean
   valor_faturado: number
   falta_faturar: number
   status_name: string | null
@@ -551,6 +554,367 @@ const GROUPS = [
   { id: 'produtos',  label: 'Produtos',  icon: <Package className="h-3.5 w-3.5" /> },
   { id: 'equipe',    label: 'Equipe',    icon: <Award className="h-3.5 w-3.5" /> },
 ]
+
+// ─── FechamentoTab ────────────────────────────────────────────────────────────
+
+type SortKey = 'data_venda' | 'razao_social' | 'nr_ped_fabrica' | 'industria' | 'total_value' | 'valor_faturado_fabrica' | 'rep_commission_value'
+type SortDir = 'asc' | 'desc'
+type FatStatus = 'todos' | 'pendente' | 'parcial' | 'liquidado'
+
+function FatBadge({ status, sem }: { status: string; sem: boolean }) {
+  if (sem) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-600 border border-red-100">sem com.</span>
+  if (status === 'liquidado') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">✓ liquidado</span>
+  if (status === 'parcial')   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-100">parcial</span>
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">pendente</span>
+}
+
+function SortTh({ label, k, sort, onSort, className }: { label: string; k: SortKey; sort: [SortKey, SortDir]; onSort: (k: SortKey) => void; className?: string }) {
+  const [sk, sd] = sort
+  const active = sk === k
+  return (
+    <th
+      className={`px-3 py-2 text-[11px] font-semibold text-gray-500 cursor-pointer select-none whitespace-nowrap hover:text-gray-800 ${className ?? ''}`}
+      onClick={() => onSort(k)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active
+          ? (sd === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)
+          : <ChevronsUpDown className="h-3 w-3 opacity-30" />}
+      </span>
+    </th>
+  )
+}
+
+function FechamentoTab({
+  commissionsQ,
+  dateFrom,
+  dateTo,
+  qc,
+}: {
+  commissionsQ: ReturnType<typeof useQuery<CommissionRow[]>>
+  dateFrom: string
+  dateTo: string
+  qc: ReturnType<typeof useQueryClient>
+}) {
+  const [search, setSearch]           = useState('')
+  const [statusFilt, setStatusFilt]   = useState<FatStatus>('todos')
+  const [sort, setSort]               = useState<[SortKey, SortDir]>(['data_venda', 'desc'])
+  const [expandedId, setExpandedId]   = useState<string | null>(null)
+  const [editValor, setEditValor]     = useState('')
+  const [editStatus, setEditStatus]   = useState<'pendente'|'parcial'|'liquidado'>('pendente')
+  const [editSem, setEditSem]         = useState(false)
+
+  const fatMut = useMutation({
+    mutationFn: ({ id, valor_faturado, status, sem_comissao }: { id: string; valor_faturado: number | null; status: string; sem_comissao: boolean }) =>
+      ordersApi.updateFaturamento(id, { valor_faturado, status, sem_comissao }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
+      setExpandedId(null)
+    },
+  })
+
+  function openEdit(r: CommissionRow) {
+    if (expandedId === r.id) { setExpandedId(null); return }
+    setExpandedId(r.id)
+    setEditValor(r.valor_faturado_fabrica != null ? String(Number(r.valor_faturado_fabrica).toFixed(2)).replace('.', ',') : '')
+    setEditStatus(r.faturamento_status ?? 'pendente')
+    setEditSem(r.sem_comissao_fabrica ?? false)
+  }
+
+  function handleSave(id: string) {
+    const raw = editValor.replace(/\./g, '').replace(',', '.')
+    const valor = raw === '' ? null : parseFloat(raw)
+    fatMut.mutate({ id, valor_faturado: isNaN(valor!) ? null : valor, status: editStatus, sem_comissao: editSem })
+  }
+
+  function toggleSort(k: SortKey) {
+    setSort(prev => prev[0] === k ? [k, prev[1] === 'asc' ? 'desc' : 'asc'] : [k, 'asc'])
+  }
+
+  function exportarRep(repNome: string, repRows: CommissionRow[]) {
+    const headers = ['Data', 'Razão Social', 'Nome Fantasia', 'Doc. Fábrica', 'Indústria', 'Vlr. Pedido', 'Vlr. Faturado', '% Com.', 'Comissão (R$)', 'Status']
+    const dataRows = repRows.map(r => [
+      fmtDatePtBR(r.data_venda),
+      r.razao_social || '',
+      r.cliente || '',
+      r.nr_ped_fabrica || '',
+      r.industria || '',
+      Number(r.total_value),
+      r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : '',
+      Number(r.rep_commission_pct),
+      Number(r.rep_commission_value),
+      r.sem_comissao_fabrica ? 'Sem comissão' : (r.faturamento_status ?? 'pendente'),
+    ])
+    const sumPedido  = repRows.reduce((s, r) => s + Number(r.total_value), 0)
+    const sumFat     = repRows.reduce((s, r) => s + Number(r.valor_faturado_fabrica ?? r.total_value), 0)
+    const sumCom     = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+    exportXlsx(
+      `Fechamento_${repNome.replace(/\s+/g, '_')}_${dateFrom}_${dateTo}`,
+      headers,
+      [...dataRows, [], ['TOTAL', '', '', '', '', sumPedido, sumFat, '', sumCom, '']],
+    )
+  }
+
+  if (commissionsQ.isLoading) return <PageSpinner />
+  if (!commissionsQ.data?.length) return <EmptyState label="Nenhum pedido no período selecionado" />
+
+  const allRows = commissionsQ.data as CommissionRow[]
+
+  const filtered = allRows.filter(r => {
+    if (statusFilt !== 'todos' && (r.faturamento_status ?? 'pendente') !== statusFilt) return false
+    if (search) {
+      const q = search.toLowerCase()
+      const hit = [r.razao_social, r.cliente, r.nr_ped_fabrica, r.industria, r.vendedor]
+        .some(v => String(v ?? '').toLowerCase().includes(q))
+      if (!hit) return false
+    }
+    return true
+  })
+
+  const [sk, sd] = sort
+  const sorted = [...filtered].sort((a, b) => {
+    let av: string | number = a[sk] ?? ''
+    let bv: string | number = b[sk] ?? ''
+    if (sk === 'valor_faturado_fabrica') {
+      av = a.valor_faturado_fabrica ?? a.total_value
+      bv = b.valor_faturado_fabrica ?? b.total_value
+    }
+    if (typeof av === 'string') av = av.toLowerCase()
+    if (typeof bv === 'string') bv = bv.toLowerCase()
+    return sd === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
+  })
+
+  // Métricas globais
+  const pendRows = allRows.filter(r => (r.faturamento_status ?? 'pendente') === 'pendente')
+  const parcRows = allRows.filter(r => r.faturamento_status === 'parcial')
+  const liqRows  = allRows.filter(r => r.faturamento_status === 'liquidado')
+  const totalComEfetiva = allRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+
+  // Grupos por rep
+  const grupos = new Map<string, CommissionRow[]>()
+  for (const r of sorted) {
+    const rep = r.vendedor || 'Sem vendedor'
+    if (!grupos.has(rep)) grupos.set(rep, [])
+    grupos.get(rep)!.push(r)
+  }
+
+  const fmtPeriod = `${fmtDatePtBR(dateFrom)} a ${fmtDatePtBR(dateTo)}`
+
+  return (
+    <div className="space-y-4">
+      {/* Barra de filtros */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar cliente, doc. fábrica…"
+            className="w-full pl-8 pr-3 h-8 text-[12px] border border-gray-200 rounded-lg bg-white outline-none focus:border-blue-400"
+          />
+        </div>
+        <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden text-[12px]">
+          {(['todos', 'pendente', 'parcial', 'liquidado'] as FatStatus[]).map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilt(s)}
+              className={`px-3 h-8 capitalize transition-colors ${statusFilt === s ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              {s === 'todos' ? 'todos' : s}
+              {s !== 'todos' && (
+                <span className="ml-1 opacity-60">
+                  ({s === 'pendente' ? pendRows.length : s === 'parcial' ? parcRows.length : liqRows.length})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => window.print()} className="flex items-center gap-1.5 h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white hover:bg-gray-50">
+          <Printer className="h-3.5 w-3.5" /> Imprimir
+        </button>
+      </div>
+
+      {/* Cards de resumo */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: 'pendente', v: pendRows.reduce((s,r)=>s+Number(r.total_value),0), sub: `${pendRows.length} pedidos`, color: 'text-gray-600' },
+          { label: 'parcial',  v: parcRows.reduce((s,r)=>s+Number(r.valor_faturado_fabrica ?? r.total_value),0), sub: `${parcRows.length} pedidos`, color: 'text-amber-600' },
+          { label: 'liquidado', v: liqRows.reduce((s,r)=>s+Number(r.valor_faturado_fabrica ?? r.total_value),0), sub: `${liqRows.length} pedidos`, color: 'text-emerald-600' },
+          { label: 'comissão efetiva', v: totalComEfetiva, sub: `sobre ${fmtR(filtered.reduce((s,r)=>s+Number(r.valor_faturado_fabrica ?? r.total_value),0))} faturado`, color: 'text-blue-600' },
+        ].map(c => (
+          <div key={c.label} className="bg-white rounded-xl border border-gray-100 p-4">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{c.label}</p>
+            <p className={`text-[18px] font-bold ${c.color} font-variant-numeric: tabular-nums`}>{fmtR(c.v)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{c.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Um bloco por representante */}
+      {[...grupos.entries()].map(([repNome, repRows]) => {
+        const totalRepCom    = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+        const totalRepFat    = repRows.reduce((s, r) => s + Number(r.valor_faturado_fabrica ?? r.total_value), 0)
+        const totalRepPedido = repRows.reduce((s, r) => s + Number(r.total_value), 0)
+
+        return (
+          <div key={repNome} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50/80 border-b border-gray-100">
+              <div>
+                <p className="text-[13px] font-semibold text-gray-800">{repNome}</p>
+                <p className="text-[11px] text-gray-400">{repRows.length} pedido{repRows.length !== 1 ? 's' : ''} · {fmtPeriod}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-[10px] text-gray-400">comissão efetiva</p>
+                  <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalRepCom)}</p>
+                  <p className="text-[10px] text-gray-400">s/ {fmtR(totalRepFat)} faturado</p>
+                </div>
+                <button
+                  onClick={() => exportarRep(repNome, repRows)}
+                  className="flex items-center gap-1 h-7 px-2.5 text-[11px] bg-gray-800 text-white rounded-lg hover:bg-gray-700"
+                >
+                  <Download className="h-3 w-3" /> Excel
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead className="bg-gray-50/50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[88px]">Status</th>
+                    <SortTh label="Data"         k="data_venda"            sort={sort} onSort={toggleSort} className="text-left w-[72px]" />
+                    <SortTh label="Razão social"  k="razao_social"          sort={sort} onSort={toggleSort} className="text-left" />
+                    <SortTh label="Doc. fábrica"  k="nr_ped_fabrica"        sort={sort} onSort={toggleSort} className="text-left w-[90px]" />
+                    <SortTh label="Indústria"     k="industria"             sort={sort} onSort={toggleSort} className="text-left w-[72px]" />
+                    <SortTh label="Vlr. pedido"   k="total_value"           sort={sort} onSort={toggleSort} className="text-right w-[88px]" />
+                    <SortTh label="Vlr. faturado" k="valor_faturado_fabrica" sort={sort} onSort={toggleSort} className="text-right w-[96px]" />
+                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[44px]">%</th>
+                    <SortTh label="Comissão"      k="rep_commission_value"  sort={sort} onSort={toggleSort} className="text-right w-[80px]" />
+                    <th className="px-3 py-2 w-[70px]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {repRows.map(r => {
+                    const isExp = expandedId === r.id
+                    const fatVal = r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : null
+                    const diferente = fatVal != null && Math.abs(fatVal - Number(r.total_value)) > 0.01
+
+                    return (
+                      <>
+                        <tr
+                          key={r.id}
+                          className={`border-b border-gray-50 hover:bg-gray-50/60 ${isExp ? 'bg-blue-50/40' : ''}`}
+                        >
+                          <td className="px-3 py-1.5">
+                            <FatBadge status={r.faturamento_status ?? 'pendente'} sem={r.sem_comissao_fabrica ?? false} />
+                          </td>
+                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{fmtDatePtBR(r.data_venda)}</td>
+                          <td className="px-3 py-1.5 font-medium text-gray-800 max-w-[160px] truncate">{r.razao_social}</td>
+                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.nr_ped_fabrica || '—'}</td>
+                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.industria}</td>
+                          <td className={`px-3 py-1.5 text-right tabular-nums ${diferente ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                            {fmtR(r.total_value)}
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums font-medium text-blue-600">
+                            {fatVal != null ? fmtR(fatVal) : <span className="text-gray-300">—</span>}
+                          </td>
+                          <td className="px-3 py-1.5 text-right text-gray-400">{Number(r.rep_commission_pct).toFixed(1)}%</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-emerald-600">
+                            {r.sem_comissao_fabrica ? <span className="text-gray-300">—</span> : fmtR(r.rep_commission_value)}
+                          </td>
+                          <td className="px-3 py-1.5 text-right">
+                            <button
+                              onClick={() => openEdit(r)}
+                              className={`h-6 px-2 text-[11px] rounded font-medium transition-colors ${isExp ? 'bg-blue-100 text-blue-700' : 'border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
+                            >
+                              {r.faturamento_status === 'pendente' || !r.faturamento_status ? 'Faturar' : 'Editar'}
+                            </button>
+                          </td>
+                        </tr>
+                        {isExp && (
+                          <tr key={`exp-${r.id}`} className="bg-blue-50/60 border-b border-blue-100">
+                            <td colSpan={10} className="px-4 py-3">
+                              <div className="flex flex-wrap items-end gap-3">
+                                <div>
+                                  <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Valor faturado pela fábrica</p>
+                                  <input
+                                    value={editValor}
+                                    onChange={e => setEditValor(e.target.value)}
+                                    placeholder={fmtR(r.total_value).replace('R$ ', '')}
+                                    className="w-36 h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400 tabular-nums"
+                                  />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Status</p>
+                                  <select
+                                    value={editStatus}
+                                    onChange={e => setEditStatus(e.target.value as 'pendente'|'parcial'|'liquidado')}
+                                    className="h-8 px-2 text-[12px] border border-blue-200 rounded-lg bg-white outline-none"
+                                  >
+                                    <option value="pendente">Pendente</option>
+                                    <option value="parcial">Parcial</option>
+                                    <option value="liquidado">Liquidado</option>
+                                  </select>
+                                </div>
+                                <label className="flex items-center gap-1.5 text-[11px] text-gray-600 cursor-pointer pb-1.5">
+                                  <input type="checkbox" checked={editSem} onChange={e => setEditSem(e.target.checked)} className="rounded" />
+                                  Sem comissão do fornecedor
+                                </label>
+                                <div className="flex gap-2 pb-0.5">
+                                  <button
+                                    onClick={() => setExpandedId(null)}
+                                    className="h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50"
+                                  >
+                                    Cancelar
+                                  </button>
+                                  <button
+                                    onClick={() => handleSave(r.id)}
+                                    disabled={fatMut.isPending}
+                                    className="h-8 px-3 text-[12px] bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                                  >
+                                    {fatMut.isPending ? 'Salvando…' : 'Salvar'}
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    )
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50 border-t border-gray-200">
+                    <td colSpan={5} className="px-3 py-2 text-[11px] text-gray-400">
+                      {repRows.length} pedido{repRows.length !== 1 ? 's' : ''}
+                    </td>
+                    <td className="px-3 py-2 text-right text-[12px] tabular-nums text-gray-500">{fmtR(totalRepPedido)}</td>
+                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-blue-600">{fmtR(totalRepFat)}</td>
+                    <td></td>
+                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-bold text-emerald-600">{fmtR(totalRepCom)}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )
+      })}
+
+      {grupos.size > 1 && (
+        <div className="bg-white rounded-xl border border-gray-100 px-5 py-4 flex items-center justify-between">
+          <p className="text-[13px] text-gray-600">{filtered.length} pedido{filtered.length !== 1 ? 's' : ''} no período</p>
+          <div className="text-right">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide">comissão efetiva total</p>
+            <p className="text-[20px] font-bold text-emerald-600">{fmtR(totalComEfetiva)}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ─── main component ───────────────────────────────────────────────────────────
 
@@ -2022,177 +2386,12 @@ export function Reports() {
 
         {/* ═══ FECHAMENTO DE COMISSÃO ══════════════════════════════════════ */}
         {tab === 'fechamento' && (
-          commissionsQ.isLoading ? <PageSpinner /> :
-          !commissionsQ.data?.length ? <EmptyState label="Nenhum pedido no período selecionado" /> :
-          (() => {
-            const rows = commissionsQ.data as CommissionRow[]
-            const fmtPeriod = `${fmtDatePtBR(dateFrom)} a ${fmtDatePtBR(dateTo)}`
-
-            // Agrupa por vendedor mantendo a ordem de aparição
-            const grupos = new Map<string, CommissionRow[]>()
-            for (const r of rows) {
-              const rep = r.vendedor || 'Sem vendedor'
-              if (!grupos.has(rep)) grupos.set(rep, [])
-              grupos.get(rep)!.push(r)
-            }
-
-            const totalGeral = rows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
-            const totalValor = rows.reduce((s, r) => s + Number(r.total_value), 0)
-
-            function exportarFechamento(repNome: string, repRows: CommissionRow[]) {
-              const headers = ['Data', 'Razão Social', 'Nome Fantasia', 'Doc. Original', 'Valor (R$)', '% Com.', 'Comissão (R$)']
-              const dataRows = repRows.map(r => [
-                fmtDatePtBR(r.data_venda),
-                r.razao_social || '',
-                r.cliente || '',
-                r.nr_ped_fabrica || '',
-                Number(r.total_value),
-                Number(r.rep_commission_pct),
-                Number(r.rep_commission_value),
-              ])
-              const total: (string|number)[] = ['TOTAL', '', '', '', repRows.reduce((s,r)=>s+Number(r.total_value),0), '', repRows.reduce((s,r)=>s+Number(r.rep_commission_value),0)]
-              exportXlsx(
-                `Fechamento_${repNome.replace(/\s+/g,'_')}_${dateFrom}_${dateTo}`,
-                headers,
-                [...dataRows, [], total]
-              )
-            }
-
-            return (
-              <div className="space-y-6">
-                {/* Cabeçalho de ação */}
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <p className="text-[13px] font-semibold text-on-surface">Período: {fmtPeriod}</p>
-                    <p className="text-[12px] text-outline">{rows.length} pedido{rows.length !== 1 ? 's' : ''} · {grupos.size} representante{grupos.size !== 1 ? 's' : ''}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => window.print()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] border border-outline-variant rounded-lg hover:bg-surface-container-low"
-                    >
-                      <Printer className="h-3.5 w-3.5" /> Imprimir
-                    </button>
-                    {grupos.size === 1 && (() => {
-                      const [nome, r] = [...grupos.entries()][0]
-                      return (
-                        <button
-                          onClick={() => exportarFechamento(nome, r)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] bg-primary text-on-primary rounded-lg hover:brightness-110"
-                        >
-                          <Download className="h-3.5 w-3.5" /> Exportar Excel
-                        </button>
-                      )
-                    })()}
-                  </div>
-                </div>
-
-                {/* Cards resumo */}
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                  {[
-                    { label: 'Valor Total de Pedidos', v: totalValor, color: '#0891b2' },
-                    { label: 'Total de Comissão', v: totalGeral, color: '#16a34a' },
-                    { label: 'Representantes', v: grupos.size, color: '#7c3aed', isCount: true },
-                  ].map(c => (
-                    <div key={c.label} className="bg-white rounded-xl border border-outline-variant p-4">
-                      <p className="text-[11px] font-semibold text-outline uppercase tracking-wide mb-1">{c.label}</p>
-                      <p className="text-[20px] font-black" style={{ color: c.color }}>
-                        {c.isCount ? c.v : fmtR(c.v)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Um bloco por representante */}
-                {[...grupos.entries()].map(([repNome, repRows]) => {
-                  const totalRep = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
-                  const totalValorRep = repRows.reduce((s, r) => s + Number(r.total_value), 0)
-                  const pctMedio = totalValorRep > 0 ? totalRep / totalValorRep * 100 : 0
-
-                  return (
-                    <div key={repNome} className="bg-white rounded-xl border border-outline-variant overflow-hidden">
-                      {/* Cabeçalho do representante */}
-                      <div className="flex items-center justify-between px-4 py-3 bg-surface-container-low border-b border-outline-variant">
-                        <div>
-                          <p className="text-[13px] font-bold text-on-surface">{repNome}</p>
-                          <p className="text-[11px] text-outline">{repRows.length} pedido{repRows.length !== 1 ? 's' : ''} · {fmtPeriod}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-[11px] text-outline">Comissão total</p>
-                            <p className="text-[16px] font-black text-emerald-700">{fmtR(totalRep)}</p>
-                            <p className="text-[11px] text-outline">{fmtN(pctMedio).replace(',',',')}% s/ {fmtR(totalValorRep)}</p>
-                          </div>
-                          <button
-                            onClick={() => exportarFechamento(repNome, repRows)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] bg-primary text-on-primary rounded-lg hover:brightness-110"
-                            title="Exportar Excel deste representante"
-                          >
-                            <Download className="h-3 w-3" /> Excel
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Tabela de pedidos */}
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-[12px]">
-                          <thead className="bg-surface-container-lowest">
-                            <tr>
-                              <th className="px-3 py-2 text-left font-semibold text-outline">Data</th>
-                              <th className="px-3 py-2 text-left font-semibold text-outline">Razão Social</th>
-                              <th className="px-3 py-2 text-left font-semibold text-outline">Nome Fantasia</th>
-                              <th className="px-3 py-2 text-left font-semibold text-outline">Doc. Original</th>
-                              <th className="px-3 py-2 text-left font-semibold text-outline">Indústria</th>
-                              <th className="px-3 py-2 text-right font-semibold text-outline">Valor</th>
-                              <th className="px-3 py-2 text-right font-semibold text-outline">%</th>
-                              <th className="px-3 py-2 text-right font-semibold text-outline">Comissão</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {repRows.map(r => (
-                              <tr key={r.id} className="hover:bg-surface-container-low/40">
-                                <td className="px-3 py-1.5 whitespace-nowrap text-on-surface-variant">{fmtDatePtBR(r.data_venda)}</td>
-                                <td className="px-3 py-1.5 text-on-surface font-medium max-w-[180px] truncate">{r.razao_social}</td>
-                                <td className="px-3 py-1.5 text-on-surface-variant max-w-[140px] truncate">{r.cliente || '—'}</td>
-                                <td className="px-3 py-1.5 text-on-surface-variant whitespace-nowrap">{r.nr_ped_fabrica || '—'}</td>
-                                <td className="px-3 py-1.5 text-on-surface-variant whitespace-nowrap">{r.industria}</td>
-                                <td className="px-3 py-1.5 text-right font-medium text-on-surface">{fmtR(r.total_value)}</td>
-                                <td className="px-3 py-1.5 text-right text-outline">{Number(r.rep_commission_pct).toFixed(2).replace('.',',')}%</td>
-                                <td className="px-3 py-1.5 text-right font-bold text-emerald-700">{fmtR(r.rep_commission_value)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                          <tfoot>
-                            <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold">
-                              <td className="px-3 py-2 text-[12px] text-on-surface-variant" colSpan={5}>
-                                Total — {repRows.length} pedido{repRows.length !== 1 ? 's' : ''}
-                              </td>
-                              <td className="px-3 py-2 text-right text-[12px] text-on-surface">{fmtR(totalValorRep)}</td>
-                              <td className="px-3 py-2 text-right text-[12px] text-outline">
-                                {totalValorRep > 0 ? (totalRep/totalValorRep*100).toFixed(2).replace('.',',') : '0,00'}%
-                              </td>
-                              <td className="px-3 py-2 text-right text-[13px] text-emerald-700">{fmtR(totalRep)}</td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                    </div>
-                  )
-                })}
-
-                {/* Rodapé geral (só quando há mais de um rep) */}
-                {grupos.size > 1 && (
-                  <div className="bg-surface-container rounded-xl border border-outline-variant px-5 py-4 flex items-center justify-between">
-                    <p className="text-[13px] font-semibold text-on-surface">{rows.length} pedidos no período</p>
-                    <div className="text-right">
-                      <p className="text-[11px] text-outline">Total geral de comissão</p>
-                      <p className="text-[22px] font-black text-emerald-700">{fmtR(totalGeral)}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })()
+          <FechamentoTab
+            commissionsQ={commissionsQ}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            qc={qc}
+          />
         )}
 
         </div>

@@ -439,6 +439,11 @@ ALTER TABLE goals ADD COLUMN IF NOT EXISTS period_end DATE;
 -- Observação por item de pedido
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_obs TEXT;
 
+-- Faturamento pela fábrica (fechamento de comissão)
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS valor_faturado_fabrica DECIMAL(12,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS faturamento_status VARCHAR(20) NOT NULL DEFAULT 'pendente' CHECK (faturamento_status IN ('pendente','parcial','liquidado'));
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS sem_comissao_fabrica BOOLEAN NOT NULL DEFAULT FALSE;
+
 `
 
 async function migrate() {

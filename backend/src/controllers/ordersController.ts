@@ -1355,3 +1355,25 @@ export async function dismissOrderAlert(req: AuthRequest, res: Response) {
   )
   res.json({ ok: true })
 }
+
+export async function updateFaturamento(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { valor_faturado, status, sem_comissao } = req.body as {
+    valor_faturado: number | null
+    status: 'pendente' | 'parcial' | 'liquidado'
+    sem_comissao: boolean
+  }
+
+  const { rows } = await query(`
+    UPDATE orders SET
+      valor_faturado_fabrica = $1,
+      faturamento_status     = $2,
+      sem_comissao_fabrica   = $3,
+      updated_at             = NOW()
+    WHERE id = $4 AND deleted_at IS NULL
+    RETURNING id, valor_faturado_fabrica, faturamento_status, sem_comissao_fabrica
+  `, [valor_faturado ?? null, status ?? 'pendente', sem_comissao ?? false, id])
+
+  if (!rows.length) return res.status(404).json({ error: 'Pedido não encontrado' })
+  res.json(rows[0])
+}

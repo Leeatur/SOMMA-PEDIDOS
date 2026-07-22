@@ -102,13 +102,22 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
       o.total_pieces,
       o.total_value::numeric,
       o.discount_pct::numeric,
-      (o.total_value * COALESCE(o.rep_commission_pct,0)/100${FINAL_GATE})::numeric    AS rep_commission_value,
       o.rep_commission_pct::numeric,
-      (o.total_value * COALESCE(o.office_commission_pct,0)/100${FINAL_GATE})::numeric AS office_commission_value,
+      CASE WHEN o.sem_comissao_fabrica THEN 0
+           ELSE (COALESCE(o.valor_faturado_fabrica, o.total_value) * COALESCE(o.rep_commission_pct,0)/100${FINAL_GATE})
+      END::numeric                                                   AS rep_commission_value,
       o.office_commission_pct::numeric,
-      (o.total_value * COALESCE(o.guide_commission_pct,0)/100${FINAL_GATE})::numeric AS guide_commission_value,
+      CASE WHEN o.sem_comissao_fabrica THEN 0
+           ELSE (COALESCE(o.valor_faturado_fabrica, o.total_value) * COALESCE(o.office_commission_pct,0)/100${FINAL_GATE})
+      END::numeric                                                   AS office_commission_value,
       o.guide_commission_pct::numeric,
+      CASE WHEN o.sem_comissao_fabrica THEN 0
+           ELSE (COALESCE(o.valor_faturado_fabrica, o.total_value) * COALESCE(o.guide_commission_pct,0)/100${FINAL_GATE})
+      END::numeric                                                   AS guide_commission_value,
       o.commission_manual_override,
+      o.valor_faturado_fabrica,
+      o.faturamento_status,
+      o.sem_comissao_fabrica,
       CASE WHEN COALESCE(s.is_final, false) = true
            THEN o.total_value ELSE 0 END::numeric                   AS valor_faturado,
       CASE WHEN COALESCE(s.is_final, false) = false

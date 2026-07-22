@@ -351,6 +351,8 @@ export const ordersApi = {
       timeout: 30000,
     })
   },
+  updateFaturamento: (id: string, data: { valor_faturado: number | null; status: string; sem_comissao: boolean }) =>
+    apiClient.patch(`/orders/${id}/faturamento`, data),
 }
 
 export const reportsApi = {
