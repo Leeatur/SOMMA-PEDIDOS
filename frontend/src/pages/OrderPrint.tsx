@@ -65,6 +65,7 @@ interface OrderItem {
   sizes: Record<string, number> | null
   custom_grade: GradeConfig[] | null
   grade_configs: GradeConfig[] | null
+  item_obs: string | null
 }
 
 interface Order {
@@ -168,6 +169,7 @@ export function OrderPrint() {
     seq: number
     reference: string
     product_name: string
+    item_obs: string
     color: string
     gradeLabel: string
     sizeCols: Record<string, number>
@@ -210,6 +212,7 @@ export function OrderPrint() {
         seq,
         reference: item.reference,
         product_name: item.product_name || '',
+        item_obs: item.item_obs || '',
         color: '',
         gradeLabel,
         sizeCols,
@@ -237,6 +240,7 @@ export function OrderPrint() {
           seq,
           reference: item.reference,
           product_name: item.product_name || '',
+          item_obs: item.item_obs || '',
           color: gc.color || '',
           gradeLabel,
           sizeCols,
@@ -268,6 +272,7 @@ export function OrderPrint() {
           seq,
           reference: item.reference,
           product_name: item.product_name || '',
+          item_obs: item.item_obs || '',
           color: gc.color || '',
           gradeLabel,
           sizeCols,
@@ -289,6 +294,7 @@ export function OrderPrint() {
         seq,
         reference: item.reference,
         product_name: item.product_name || '',
+        item_obs: item.item_obs || '',
         color: '',
         gradeLabel: '',
         sizeCols,
@@ -479,7 +485,10 @@ export function OrderPrint() {
               <tr key={row.seq}>
                 <td className="ctr">{row.seq}</td>
                 <td className="ref">{row.reference}</td>
-                <td>{row.product_name}</td>
+                <td>
+                  {row.product_name}
+                  {row.item_obs && <><br /><span style={{ color: '#dc2626', fontStyle: 'italic', fontSize: '9px' }}>{row.item_obs}</span></>}
+                </td>
                 <td>{row.color}</td>
                 {sizes.map(s => (
                   <td key={s} className="ctr">{row.sizeCols[s] > 0 ? row.sizeCols[s] : ''}</td>
