@@ -565,11 +565,16 @@ export function Dashboard() {
                           )}
                         </div>
 
-                        {/* Meta geral da fábrica */}
+                        {/* Meta geral da fábrica — achieved = soma dos reps com meta */}
                         {factory && (
                           <div className="px-4 lg:px-5 pb-4">
                             <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
-                            <GoalBar g={factory} large />
+                            <GoalBar g={{
+                              ...factory,
+                              achieved_pieces: reps.length > 0
+                                ? reps.reduce((s, g) => s + g.achieved_pieces, 0)
+                                : factory.achieved_pieces,
+                            }} large />
                           </div>
                         )}
 
