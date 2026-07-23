@@ -294,13 +294,11 @@ interface MetaData {
 }
 
 export default function MetaFabricasPage() {
-  const { data, isLoading } = useQuery<{ data: MetaData }>({
+  const { data: d, isLoading } = useQuery<MetaData>({
     queryKey: ['meta-fabricas'],
-    queryFn: () => ordersApi.metaFabricas(),
+    queryFn: () => ordersApi.metaFabricas().then(r => r.data.data),
     staleTime: 5 * 60 * 1000,
   })
-
-  const d = data?.data
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-8">
