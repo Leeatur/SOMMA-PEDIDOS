@@ -196,14 +196,14 @@ export function Dashboard() {
     }, {} as Record<string, number>)
   ).sort((a, b) => b[1] - a[1]).slice(0, 5) : []
 
-  const statusSummary = isAdmin ? Object.entries(
+  const statusSummary = Object.entries(
     filteredOrders.reduce((acc, o) => {
       const k = o.status_name || 'Sem status'
       if (!acc[k]) acc[k] = { count: 0, color: o.status_color || '#9CA3AF' }
       acc[k].count++
       return acc
     }, {} as Record<string, { count: number; color: string }>)
-  ).sort((a, b) => b[1].count - a[1].count) : []
+  ).sort((a, b) => b[1].count - a[1].count)
 
   const totalCommission = isAdmin ? totalOfficeComm : totalRepComm
 
@@ -852,6 +852,112 @@ export function Dashboard() {
                 )
               })()}
             </div>
+
+            {/* Metas por Marca — versão do rep */}
+            {goals.length > 0 && (() => {
+              const getBrand = (g: Goal) => g.label.split(' ')[0]
+              const factoryGoals = goals.filter(g => g.type === 'factory')
+              const myGoals = goals.filter(g => g.type === 'rep' && g.rep_id === user?.id)
+              const groups: Record<string, { factory: Goal | null; mine: Goal | null }> = {}
+              factoryGoals.forEach(g => {
+                const brand = getBrand(g)
+                if (!groups[brand]) groups[brand] = { factory: null, mine: null }
+                groups[brand].factory = g
+              })
+              myGoals.forEach(g => {
+                const brand = getBrand(g)
+                if (!groups[brand]) groups[brand] = { factory: null, mine: null }
+                groups[brand].mine = g
+              })
+              const brandList = Object.keys(groups).sort()
+              if (brandList.length === 0) return null
+
+              const brandColors: Record<string, { from: string; to: string }> = {
+                OUZZARE: { from: '#312e81', to: '#1e1b4b' },
+                TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
+              }
+
+              const RepGoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
+                const raw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
+                const isOver = raw > 100
+                const barPct = Math.min(100, raw)
+                const color = isOver ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
+                return (
+                  <div className="space-y-1">
+                    <div className="flex items-end justify-between gap-2">
+                      <span className={`font-bold leading-none ${large ? 'text-[32px]' : 'text-[22px]'}`} style={{ color }}>
+                        {g.achieved_pieces.toLocaleString('pt-BR')}
+                      </span>
+                      <span className="text-[11px] text-white/50 pb-1">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+                    </div>
+                    <div className={`w-full bg-black/20 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${barPct}%`, backgroundColor: color }} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-white/60">
+                        {isOver
+                          ? `+${(g.achieved_pieces - g.target_pieces).toLocaleString('pt-BR')} pç da meta`
+                          : raw >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
+                      </span>
+                      <span className="text-[13px] font-bold" style={{ color }}>{isOver ? `🏆 ${raw.toFixed(1)}%` : `${raw.toFixed(1)}%`}</span>
+                    </div>
+                  </div>
+                )
+              }
+
+              return (
+                <section>
+                  <SectionTitle>🎯 Metas por Marca</SectionTitle>
+                  <div className="space-y-5">
+                    {brandList.map(brand => {
+                      const { factory, mine } = groups[brand]
+                      const bc = brandColors[brand] || { from: '#1f2937', to: '#111827' }
+                      return (
+                        <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
+                          <div className="px-4 pt-4 pb-3">
+                            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">{factory?.period_label || mine?.period_label || ''}</p>
+                            <h3 className="text-white text-[22px] font-black tracking-tight">{brand}</h3>
+                          </div>
+                          {factory && (
+                            <div className="px-4 pb-4">
+                              <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
+                              <RepGoalBar g={factory} large />
+                            </div>
+                          )}
+                          {mine && (
+                            <div className="bg-black/20 px-4 py-3">
+                              <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🎯 Minha Meta</p>
+                              <RepGoalBar g={mine} />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )
+            })()}
+
+            {/* Pedidos por Status */}
+            {statusSummary.length > 0 && (
+              <section>
+                <SectionTitle>Pedidos por Status</SectionTitle>
+                <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4 space-y-2">
+                  {statusSummary.map(([name, { count, color }]) => (
+                    <div key={name} className="flex items-center gap-3">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                      <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${filteredOrders.length > 0 ? (count / filteredOrders.length * 100) : 0}%`, backgroundColor: color }} />
+                        </div>
+                        <span className="text-[12px] font-bold text-on-surface w-6 text-right">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Pedidos recentes */}
             <section>

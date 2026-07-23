@@ -929,17 +929,15 @@ export default function OrderEdit() {
             </div>
 
             {/* Desconto */}
-            {isAdmin && (
-              <div>
-                <label className="block text-[12px] font-bold text-on-surface-variant mb-1 uppercase tracking-wide">Desconto Financeiro | Desc. À Vista %</label>
-                <input className={inputCls} value={form.discount_pct} inputMode="decimal"
-                  onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))}
-                  placeholder="0,00" />
-              </div>
-            )}
+            <div>
+              <label className="block text-[12px] font-bold text-on-surface-variant mb-1 uppercase tracking-wide">Desconto Financeiro | Desc. À Vista %</label>
+              <input className={inputCls} value={form.discount_pct} inputMode="decimal"
+                onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))}
+                placeholder="0,00" />
+            </div>
 
             {/* Tabela de Política de Prazo — SEPARADA do Desconto Comercial */}
-            {isAdmin && discountRules.length > 0 && (
+            {discountRules.length > 0 && (
               <div className="sm:col-span-2 lg:col-span-3">
                 <label className="block text-[12px] font-bold text-on-surface-variant mb-1 uppercase tracking-wide">
                   Desconto Comercial | Política de Prazo
