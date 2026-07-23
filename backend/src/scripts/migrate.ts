@@ -444,6 +444,16 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS valor_faturado_fabrica DECIMAL(12,2)
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS faturamento_status VARCHAR(20) NOT NULL DEFAULT 'pendente' CHECK (faturamento_status IN ('pendente','parcial','liquidado'));
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS sem_comissao_fabrica BOOLEAN NOT NULL DEFAULT FALSE;
 
+-- Múltiplos faturamentos parciais por pedido
+CREATE TABLE IF NOT EXISTS order_faturamentos (
+  id               SERIAL PRIMARY KEY,
+  order_id         UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  valor            DECIMAL(12,2) NOT NULL,
+  data_faturamento DATE NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_order_faturamentos_order_id ON order_faturamentos(order_id);
+
 `
 
 async function migrate() {

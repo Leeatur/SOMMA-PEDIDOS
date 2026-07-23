@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, ChevronUp, ChevronsUpDown } from 'lucide-react'
+import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, ChevronUp, ChevronsUpDown, Trash2, Plus } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -603,31 +603,56 @@ function FechamentoTab({
   const [factFilt, setFactFilt]       = useState('')
   const [sort, setSort]               = useState<[SortKey, SortDir]>(['data_venda', 'desc'])
   const [expandedId, setExpandedId]   = useState<string | null>(null)
-  const [editValor, setEditValor]     = useState('')
-  const [editStatus, setEditStatus]   = useState<'pendente'|'parcial'|'liquidado'>('pendente')
-  const [editSem, setEditSem]         = useState(false)
+  const [expandedSem, setExpandedSem] = useState(false)
+  const [newFatData, setNewFatData]   = useState(() => new Date().toISOString().slice(0, 10))
+  const [newFatValor, setNewFatValor] = useState('')
 
-  const fatMut = useMutation({
-    mutationFn: ({ id, valor_faturado, status, sem_comissao }: { id: string; valor_faturado: number | null; status: string; sem_comissao: boolean }) =>
-      ordersApi.updateFaturamento(id, { valor_faturado, status, sem_comissao }),
+  type FatRow = { id: number; valor: string; data_faturamento: string }
+
+  const { data: faturamentos = [], isLoading: fatLoading } = useQuery<FatRow[]>({
+    queryKey: ['faturamentos', expandedId],
+    queryFn: () => ordersApi.listFaturamentos(expandedId!).then(r => r.data),
+    enabled: !!expandedId,
+  })
+
+  const addFatMut = useMutation({
+    mutationFn: ({ orderId, valor, data_faturamento }: { orderId: string; valor: number; data_faturamento: string }) =>
+      ordersApi.addFaturamento(orderId, { valor, data_faturamento }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['faturamentos', expandedId] })
       qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
-      setExpandedId(null)
+      setNewFatValor('')
     },
+  })
+
+  const delFatMut = useMutation({
+    mutationFn: ({ orderId, fatId }: { orderId: string; fatId: number }) =>
+      ordersApi.deleteFaturamento(orderId, fatId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['faturamentos', expandedId] })
+      qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
+    },
+  })
+
+  const semMut = useMutation({
+    mutationFn: ({ id, sem_comissao }: { id: string; sem_comissao: boolean }) =>
+      ordersApi.updateSemComissao(id, { sem_comissao }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rpt-commissions'] }),
   })
 
   function openEdit(r: CommissionRow) {
     if (expandedId === r.id) { setExpandedId(null); return }
     setExpandedId(r.id)
-    setEditValor(r.valor_faturado_fabrica != null ? String(Number(r.valor_faturado_fabrica).toFixed(2)).replace('.', ',') : '')
-    setEditStatus(r.faturamento_status ?? 'pendente')
-    setEditSem(r.sem_comissao_fabrica ?? false)
+    setExpandedSem(r.sem_comissao_fabrica ?? false)
+    setNewFatValor('')
+    setNewFatData(new Date().toISOString().slice(0, 10))
   }
 
-  function handleSave(id: string) {
-    const raw = editValor.replace(/\./g, '').replace(',', '.')
-    const valor = raw === '' ? null : parseFloat(raw)
-    fatMut.mutate({ id, valor_faturado: isNaN(valor!) ? null : valor, status: editStatus, sem_comissao: editSem })
+  function handleAddFat(orderId: string) {
+    const raw = newFatValor.replace(/\./g, '').replace(',', '.')
+    const valor = parseFloat(raw)
+    if (isNaN(valor) || valor <= 0 || !newFatData) return
+    addFatMut.mutate({ orderId, valor, data_faturamento: newFatData })
   }
 
   function toggleSort(k: SortKey) {
@@ -860,54 +885,71 @@ function FechamentoTab({
                             </button>
                           </td>
                         </tr>
-                        {isExp && (
-                          <tr key={`exp-${r.id}`} className="bg-blue-50/60 border-b border-blue-100">
-                            <td colSpan={10} className="px-4 py-3">
-                              <div className="flex flex-wrap items-end gap-3">
-                                <div>
-                                  <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Valor faturado pela fábrica</p>
-                                  <input
-                                    value={editValor}
-                                    onChange={e => setEditValor(e.target.value)}
-                                    placeholder={fmtR(r.total_value).replace('R$ ', '')}
-                                    className="w-36 h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400 tabular-nums"
-                                  />
+                        {isExp && (() => {
+                          const totalFat = faturamentos.reduce((s, f) => s + Number(f.valor), 0)
+                          const saldo = Number(r.total_value) - totalFat
+                          return (
+                            <tr key={`exp-${r.id}`} className="bg-blue-50/60 border-b border-blue-100">
+                              <td colSpan={10} className="px-4 py-3">
+                                <div className="space-y-3">
+                                  {fatLoading ? (
+                                    <p className="text-[12px] text-gray-400">Carregando…</p>
+                                  ) : faturamentos.length > 0 ? (
+                                    <div>
+                                      <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1.5">Faturamentos registrados</p>
+                                      <div className="space-y-1">
+                                        {faturamentos.map(f => (
+                                          <div key={f.id} className="flex items-center gap-3 bg-white border border-blue-100 rounded-lg px-3 py-1.5">
+                                            <span className="text-[12px] text-gray-500 w-20 flex-shrink-0">{fmtDatePtBR(f.data_faturamento)}</span>
+                                            <span className="text-[13px] font-semibold tabular-nums text-gray-800 flex-1">{fmtR(Number(f.valor))}</span>
+                                            <button onClick={() => delFatMut.mutate({ orderId: r.id, fatId: f.id })} disabled={delFatMut.isPending} className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40">
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex gap-4 mt-2 px-1 text-[11px]">
+                                        <span className="text-gray-500">Total faturado: <span className="font-semibold text-blue-700">{fmtR(totalFat)}</span></span>
+                                        <span className={saldo > 0.01 ? 'text-amber-600 font-semibold' : 'text-emerald-600 font-semibold'}>
+                                          {saldo > 0.01 ? `Saldo a faturar: ${fmtR(saldo)}` : '✅ Totalmente faturado'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="text-[12px] text-gray-400 italic">Nenhum faturamento registrado ainda.</p>
+                                  )}
+                                  <div className="flex flex-wrap items-end gap-2 pt-1 border-t border-blue-100">
+                                    <div>
+                                      <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Data</p>
+                                      <input type="date" value={newFatData} onChange={e => setNewFatData(e.target.value)}
+                                        className="h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400" />
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Valor faturado</p>
+                                      <input value={newFatValor} onChange={e => setNewFatValor(e.target.value)}
+                                        placeholder={saldo > 0.01 ? String(saldo.toFixed(2)).replace('.', ',') : '0,00'}
+                                        className="w-36 h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400 tabular-nums" />
+                                    </div>
+                                    <button onClick={() => handleAddFat(r.id)} disabled={addFatMut.isPending || !newFatValor || !newFatData}
+                                      className="h-8 px-3 text-[12px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 flex items-center gap-1.5">
+                                      <Plus className="h-3.5 w-3.5" />
+                                      {addFatMut.isPending ? 'Salvando…' : 'Registrar'}
+                                    </button>
+                                    <label className="flex items-center gap-1.5 text-[11px] text-gray-600 cursor-pointer ml-2">
+                                      <input type="checkbox" checked={expandedSem}
+                                        onChange={e => { setExpandedSem(e.target.checked); semMut.mutate({ id: r.id, sem_comissao: e.target.checked }) }}
+                                        className="rounded" />
+                                      Sem comissão do fornecedor
+                                    </label>
+                                    <button onClick={() => setExpandedId(null)} className="h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50 ml-auto">
+                                      Fechar
+                                    </button>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Status</p>
-                                  <select
-                                    value={editStatus}
-                                    onChange={e => setEditStatus(e.target.value as 'pendente'|'parcial'|'liquidado')}
-                                    className="h-8 px-2 text-[12px] border border-blue-200 rounded-lg bg-white outline-none"
-                                  >
-                                    <option value="pendente">Pendente</option>
-                                    <option value="parcial">Parcial</option>
-                                    <option value="liquidado">Liquidado</option>
-                                  </select>
-                                </div>
-                                <label className="flex items-center gap-1.5 text-[11px] text-gray-600 cursor-pointer pb-1.5">
-                                  <input type="checkbox" checked={editSem} onChange={e => setEditSem(e.target.checked)} className="rounded" />
-                                  Sem comissão do fornecedor
-                                </label>
-                                <div className="flex gap-2 pb-0.5">
-                                  <button
-                                    onClick={() => setExpandedId(null)}
-                                    className="h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50"
-                                  >
-                                    Cancelar
-                                  </button>
-                                  <button
-                                    onClick={() => handleSave(r.id)}
-                                    disabled={fatMut.isPending}
-                                    className="h-8 px-3 text-[12px] bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
-                                  >
-                                    {fatMut.isPending ? 'Salvando…' : 'Salvar'}
-                                  </button>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
+                              </td>
+                            </tr>
+                          )
+                        })()}
                       </>
                     )
                   })}

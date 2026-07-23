@@ -1377,3 +1377,63 @@ export async function updateFaturamento(req: AuthRequest, res: Response) {
   if (!rows.length) return res.status(404).json({ error: 'Pedido não encontrado' })
   res.json(rows[0])
 }
+
+async function recalcFaturamentos(orderId: string) {
+  await query(`
+    UPDATE orders o SET
+      valor_faturado_fabrica = (SELECT SUM(valor) FROM order_faturamentos WHERE order_id = $1),
+      faturamento_status = CASE
+        WHEN NOT EXISTS (SELECT 1 FROM order_faturamentos WHERE order_id = $1) THEN 'pendente'
+        WHEN (SELECT SUM(valor) FROM order_faturamentos WHERE order_id = $1) >= o.total_value THEN 'liquidado'
+        ELSE 'parcial'
+      END,
+      updated_at = NOW()
+    WHERE id = $1
+  `, [orderId])
+}
+
+export async function listFaturamentos(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { rows } = await query(
+    `SELECT id, valor, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
+    [id]
+  )
+  res.json(rows)
+}
+
+export async function addFaturamento(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { valor, data_faturamento } = req.body as { valor: number; data_faturamento: string }
+  if (!valor || !data_faturamento) return res.status(400).json({ error: 'valor e data_faturamento obrigatórios' })
+
+  await query(
+    `INSERT INTO order_faturamentos (order_id, valor, data_faturamento) VALUES ($1, $2, $3)`,
+    [id, valor, data_faturamento]
+  )
+  await recalcFaturamentos(id)
+
+  const { rows } = await query(
+    `SELECT id, valor, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
+    [id]
+  )
+  res.json(rows)
+}
+
+export async function deleteFaturamento(req: AuthRequest, res: Response) {
+  const { id, fatId } = req.params
+  const { rows } = await query(`DELETE FROM order_faturamentos WHERE id = $1 AND order_id = $2 RETURNING id`, [fatId, id])
+  if (!rows.length) return res.status(404).json({ error: 'Faturamento não encontrado' })
+  await recalcFaturamentos(id)
+  res.json({ ok: true })
+}
+
+export async function updateSemComissao(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { sem_comissao } = req.body as { sem_comissao: boolean }
+  const { rows } = await query(
+    `UPDATE orders SET sem_comissao_fabrica = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL RETURNING id, sem_comissao_fabrica`,
+    [sem_comissao ?? false, id]
+  )
+  if (!rows.length) return res.status(404).json({ error: 'Pedido não encontrado' })
+  res.json(rows[0])
+}

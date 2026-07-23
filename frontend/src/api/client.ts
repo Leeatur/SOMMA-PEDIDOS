@@ -353,6 +353,14 @@ export const ordersApi = {
   },
   updateFaturamento: (id: string, data: { valor_faturado: number | null; status: string; sem_comissao: boolean }) =>
     apiClient.patch(`/orders/${id}/faturamento`, data),
+  updateSemComissao: (id: string, data: { sem_comissao: boolean }) =>
+    apiClient.patch(`/orders/${id}/sem-comissao`, data),
+  listFaturamentos: (id: string) =>
+    apiClient.get(`/orders/${id}/faturamentos`),
+  addFaturamento: (id: string, data: { valor: number; data_faturamento: string }) =>
+    apiClient.post(`/orders/${id}/faturamentos`, data),
+  deleteFaturamento: (id: string, fatId: number) =>
+    apiClient.delete(`/orders/${id}/faturamentos/${fatId}`),
 }
 
 export const reportsApi = {
