@@ -122,14 +122,15 @@ export function AppLayout() {
     navigate('/login')
   }
 
-  const [updating, setUpdating] = useState(false)
+  const [swState, setSwState] = useState<'idle' | 'checking' | 'done'>('idle')
   async function handleUpdateSW() {
-    setUpdating(true)
+    setSwState('checking')
     try {
       const reg = await navigator.serviceWorker.getRegistration()
       if (reg) await reg.update()
     } catch { /* ignore */ }
-    setTimeout(() => setUpdating(false), 2000)
+    setSwState('done')
+    setTimeout(() => setSwState('idle'), 4000)
   }
 
   if (!accessToken) { navigate('/login'); return null }
@@ -264,8 +265,8 @@ export function AppLayout() {
                 </NavLink>
                 <button onClick={handleUpdateSW}
                   className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors">
-                  <RefreshCw className={`h-4 w-4 text-outline ${updating ? 'animate-spin' : ''}`} />
-                  {updating ? 'Verificando...' : 'Verificar atualização'}
+                  <RefreshCw className={`h-4 w-4 text-outline ${swState === 'checking' ? 'animate-spin' : ''}`} />
+                  {swState === 'checking' ? 'Verificando...' : swState === 'done' ? 'Atualizado ✓' : 'Verificar atualização'}
                 </button>
                 <div className="mx-4 my-1 border-t border-outline-variant/20" />
                 <button onClick={handleLogout}
@@ -352,8 +353,8 @@ export function AppLayout() {
               </NavLink>
               <button onClick={handleUpdateSW}
                 className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-white/60 hover:bg-white/10 rounded-lg transition-colors mb-1">
-                <RefreshCw className={`h-4 w-4 ${updating ? 'animate-spin' : ''}`} />
-                {updating ? 'Verificando...' : 'Atualizar app'}
+                <RefreshCw className={`h-4 w-4 ${swState === 'checking' ? 'animate-spin' : ''}`} />
+                {swState === 'checking' ? 'Verificando...' : swState === 'done' ? 'Atualizado ✓' : 'Atualizar app'}
               </button>
               <button onClick={handleLogout}
                 className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-white/10 rounded-lg transition-colors">

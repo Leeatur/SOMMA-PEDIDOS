@@ -853,31 +853,18 @@ export function Dashboard() {
               })()}
             </div>
 
-            {/* Metas por Marca — versão do rep */}
+            {/* Minha régua de desempenho por marca */}
             {goals.length > 0 && (() => {
               const getBrand = (g: Goal) => g.label.split(' ')[0]
-              const factoryGoals = goals.filter(g => g.type === 'factory')
               const myGoals = goals.filter(g => g.type === 'rep' && g.rep_id === user?.id)
-              const groups: Record<string, { factory: Goal | null; mine: Goal | null }> = {}
-              factoryGoals.forEach(g => {
-                const brand = getBrand(g)
-                if (!groups[brand]) groups[brand] = { factory: null, mine: null }
-                groups[brand].factory = g
-              })
-              myGoals.forEach(g => {
-                const brand = getBrand(g)
-                if (!groups[brand]) groups[brand] = { factory: null, mine: null }
-                groups[brand].mine = g
-              })
-              const brandList = Object.keys(groups).sort()
-              if (brandList.length === 0) return null
+              if (myGoals.length === 0) return null
 
               const brandColors: Record<string, { from: string; to: string }> = {
                 OUZZARE: { from: '#312e81', to: '#1e1b4b' },
                 TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
               }
 
-              const RepGoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
+              const RepGoalBar = ({ g }: { g: Goal }) => {
                 const raw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
                 const isOver = raw > 100
                 const barPct = Math.min(100, raw)
@@ -885,12 +872,12 @@ export function Dashboard() {
                 return (
                   <div className="space-y-1">
                     <div className="flex items-end justify-between gap-2">
-                      <span className={`font-bold leading-none ${large ? 'text-[32px]' : 'text-[22px]'}`} style={{ color }}>
+                      <span className="text-[28px] font-bold leading-none" style={{ color }}>
                         {g.achieved_pieces.toLocaleString('pt-BR')}
                       </span>
                       <span className="text-[11px] text-white/50 pb-1">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
                     </div>
-                    <div className={`w-full bg-black/20 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
+                    <div className="w-full bg-black/20 rounded-full overflow-hidden h-3">
                       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${barPct}%`, backgroundColor: color }} />
                     </div>
                     <div className="flex items-center justify-between">
@@ -907,29 +894,16 @@ export function Dashboard() {
 
               return (
                 <section>
-                  <SectionTitle>🎯 Metas por Marca</SectionTitle>
-                  <div className="space-y-5">
-                    {brandList.map(brand => {
-                      const { factory, mine } = groups[brand]
+                  <SectionTitle>🎯 Meu Desempenho</SectionTitle>
+                  <div className="space-y-4">
+                    {myGoals.map(g => {
+                      const brand = getBrand(g)
                       const bc = brandColors[brand] || { from: '#1f2937', to: '#111827' }
                       return (
-                        <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
-                          <div className="px-4 pt-4 pb-3">
-                            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">{factory?.period_label || mine?.period_label || ''}</p>
-                            <h3 className="text-white text-[22px] font-black tracking-tight">{brand}</h3>
-                          </div>
-                          {factory && (
-                            <div className="px-4 pb-4">
-                              <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
-                              <RepGoalBar g={factory} large />
-                            </div>
-                          )}
-                          {mine && (
-                            <div className="bg-black/20 px-4 py-3">
-                              <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🎯 Minha Meta</p>
-                              <RepGoalBar g={mine} />
-                            </div>
-                          )}
+                        <div key={g.id} className="rounded-3xl overflow-hidden shadow-xl px-5 py-4" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
+                          <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-0.5">{g.period_label || ''}</p>
+                          <h3 className="text-white text-[18px] font-black tracking-tight mb-3">{g.label}</h3>
+                          <RepGoalBar g={g} />
                         </div>
                       )
                     })}
