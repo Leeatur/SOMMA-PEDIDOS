@@ -6,6 +6,12 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     window.location.reload()
   })
+  // Force check for new SW every time the app gains focus or becomes visible
+  const checkUpdate = () =>
+    navigator.serviceWorker.getRegistration().then(reg => reg?.update()).catch(() => {})
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate() })
+  window.addEventListener('focus', checkUpdate)
+  checkUpdate()
 }
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
