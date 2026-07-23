@@ -599,6 +599,8 @@ function FechamentoTab({
 }) {
   const [search, setSearch]           = useState('')
   const [statusFilt, setStatusFilt]   = useState<FatStatus>('todos')
+  const [repFilt, setRepFilt]         = useState('')
+  const [factFilt, setFactFilt]       = useState('')
   const [sort, setSort]               = useState<[SortKey, SortDir]>(['data_venda', 'desc'])
   const [expandedId, setExpandedId]   = useState<string | null>(null)
   const [editValor, setEditValor]     = useState('')
@@ -661,8 +663,13 @@ function FechamentoTab({
 
   const allRows = commissionsQ.data as CommissionRow[]
 
+  const uniqueReps = [...new Set(allRows.map(r => r.vendedor).filter(Boolean))].sort()
+  const uniqueFacts = [...new Set(allRows.map(r => r.industria).filter(Boolean))].sort()
+
   const filtered = allRows.filter(r => {
     if (statusFilt !== 'todos' && (r.faturamento_status ?? 'pendente') !== statusFilt) return false
+    if (repFilt && r.vendedor !== repFilt) return false
+    if (factFilt && r.industria !== factFilt) return false
     if (search) {
       const q = search.toLowerCase()
       const hit = [r.razao_social, r.cliente, r.nr_ped_fabrica, r.industria, r.vendedor]
@@ -714,6 +721,26 @@ function FechamentoTab({
             className="w-full pl-8 pr-3 h-8 text-[12px] border border-gray-200 rounded-lg bg-white outline-none focus:border-blue-400"
           />
         </div>
+        {uniqueReps.length > 1 && (
+          <select
+            value={repFilt}
+            onChange={e => setRepFilt(e.target.value)}
+            className="h-8 px-2 text-[12px] border border-gray-200 rounded-lg bg-white outline-none focus:border-blue-400 max-w-[180px]"
+          >
+            <option value="">Todos os vendedores</option>
+            {uniqueReps.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        )}
+        {uniqueFacts.length > 1 && (
+          <select
+            value={factFilt}
+            onChange={e => setFactFilt(e.target.value)}
+            className="h-8 px-2 text-[12px] border border-gray-200 rounded-lg bg-white outline-none focus:border-blue-400 max-w-[160px]"
+          >
+            <option value="">Todas as indústrias</option>
+            {uniqueFacts.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+        )}
         <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden text-[12px]">
           {(['todos', 'pendente', 'parcial', 'liquidado'] as FatStatus[]).map(s => (
             <button
