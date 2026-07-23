@@ -39,7 +39,7 @@ interface DaySaleRow {
 }
 
 interface Goal {
-  id: string; type: 'factory'|'rep'; factory_id: string|null; rep_id: string|null
+  id: string; type: 'factory'|'rep'|'office'; factory_id: string|null; rep_id: string|null
   label: string; target_pieces: number; period_label: string|null
   factory_name: string|null; rep_name: string|null; achieved_pieces: number
 }
