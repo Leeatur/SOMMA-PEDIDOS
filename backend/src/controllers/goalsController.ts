@@ -12,19 +12,25 @@ export async function listGoals(req: AuthRequest, res: Response) {
     : `WHERE g.active = true AND (g.type = 'factory' OR g.rep_id = $1)`
   const params = isAdmin ? [] : [repId]
 
-  const achievedRepFilter = isAdmin ? '' : `AND o.rep_id = '${repId}'`
+  // Para rep, o achieved_pieces é filtrado pelo rep atual
+  const achievedFilter = isAdmin
+    ? `AND (g.factory_id IS NULL OR pt.factory_id = g.factory_id)
+       AND (g.rep_id IS NULL OR o.rep_id = g.rep_id)`
+    : `AND (g.factory_id IS NULL OR pt.factory_id = g.factory_id)
+       AND o.rep_id = '${repId}'`
 
   const { rows } = await query(`
     SELECT g.*,
       f.name as factory_name,
       u.name as rep_name,
       COALESCE((
-        SELECT SUM(o.total_pieces)
-        FROM orders o
+        SELECT SUM(oi.total_pieces)
+        FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        JOIN products p ON p.id = oi.product_id
+        JOIN price_tables pt ON pt.id = p.price_table_id
         WHERE o.deleted_at IS NULL
-          AND (g.factory_id IS NULL OR o.factory_id = g.factory_id)
-          AND (g.rep_id IS NULL OR o.rep_id = g.rep_id)
-          ${achievedRepFilter}
+          ${achievedFilter}
           AND (g.period_start IS NULL OR DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= g.period_start)
           AND (g.period_end   IS NULL OR DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= g.period_end)
       ), 0)::int AS achieved_pieces
