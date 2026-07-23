@@ -3,6 +3,8 @@ import * as XLSX from 'xlsx'
 export interface StockResult {
   // referência → { cor → { tamanho → quantidade } }
   byRef: Record<string, Record<string, Record<string, number>>>
+  // referência → { cor → { tamanho → código ERP do cliente } }
+  byRefSkus: Record<string, Record<string, Record<string, string>>>
   totalRefs: number
   totalRows: number
 }
@@ -24,7 +26,7 @@ export function parseStock(input: string | Buffer): StockResult {
 
   // Detecta a linha de cabeçalho (procura "REFERÊNCIA") e os índices das colunas
   let headerRow = 0
-  let cRef = 0, cCor = 3, cTam = 4, cEst = 5
+  let cRef = 0, cCor = 3, cTam = 4, cEst = 5, cCod = -1
   for (let r = 0; r < Math.min(8, rows.length); r++) {
     const up = (rows[r] || []).map(c => clean(c).toUpperCase())
     const refIdx = up.findIndex(c => c.includes('REFER'))
@@ -34,6 +36,7 @@ export function parseStock(input: string | Buffer): StockResult {
       cCor = up.findIndex(c => c.startsWith('COR'))
       cTam = up.findIndex(c => c.includes('TAMANHO'))
       cEst = up.findIndex(c => c.includes('ESTOQUE') || c.includes('SALDO') || c.includes('QUANT'))
+      cCod = up.findIndex(c => c.includes('CÓDIGO') || c.includes('CODIGO') || c === 'CÓD' || c === 'COD')
       if (cCor < 0) cCor = refIdx + 3
       if (cTam < 0) cTam = refIdx + 4
       if (cEst < 0) cEst = refIdx + 5
@@ -42,6 +45,7 @@ export function parseStock(input: string | Buffer): StockResult {
   }
 
   const byRef: Record<string, Record<string, Record<string, number>>> = {}
+  const byRefSkus: Record<string, Record<string, Record<string, string>>> = {}
   let totalRows = 0
   for (let r = headerRow + 1; r < rows.length; r++) {
     const row = rows[r] as unknown[]
@@ -56,7 +60,16 @@ export function parseStock(input: string | Buffer): StockResult {
     byRef[ref][cor] ??= {}
     // soma caso a mesma combinação apareça em linhas repetidas
     byRef[ref][cor][tam] = (byRef[ref][cor][tam] || 0) + qtd
+    // captura código ERP do cliente (não sobrescreve se já existe)
+    if (cCod >= 0) {
+      const cod = clean(row[cCod])
+      if (cod) {
+        byRefSkus[ref] ??= {}
+        byRefSkus[ref][cor] ??= {}
+        byRefSkus[ref][cor][tam] ??= cod
+      }
+    }
   }
 
-  return { byRef, totalRefs: Object.keys(byRef).length, totalRows }
+  return { byRef, byRefSkus, totalRefs: Object.keys(byRef).length, totalRows }
 }

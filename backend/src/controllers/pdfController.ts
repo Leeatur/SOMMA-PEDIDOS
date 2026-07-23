@@ -60,13 +60,13 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
 
     const o = rows[0]
     const { rows: items } = await query(
-      `SELECT oi.*, p.product_name, p.model, p.type, p.size_range,
+      `SELECT oi.*, p.product_name, p.model, p.type, p.size_range, p.customer_skus,
          json_agg(gc ORDER BY gc.sort_order) FILTER (WHERE gc.id IS NOT NULL) as grade_configs
        FROM order_items oi
        JOIN products p ON p.id = oi.product_id
        LEFT JOIN grade_configs gc ON gc.product_id = oi.product_id
        WHERE oi.order_id = $1
-       GROUP BY oi.id, p.product_name, p.model, p.type, p.size_range
+       GROUP BY oi.id, p.product_name, p.model, p.type, p.size_range, p.customer_skus
        ORDER BY oi.created_at`,
       [req.params.id]
     )
@@ -74,6 +74,34 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
     // Gera HTML do pedido para converter em PDF no browser
     const companyName = o.company_name || 'SOMMA Força de Vendas'
     const num = padNum(o.order_number)
+
+    // Verifica se algum item tem customer_skus para exibir coluna de código cliente
+    const hasClientSkus = items.some(i => i.customer_skus && Object.keys(i.customer_skus).length > 0)
+
+    function getClientSku(item: Record<string, unknown>): string {
+      const skus = item.customer_skus as Record<string, Record<string, string>> | null
+      if (!skus) return ''
+      // Tenta encontrar o SKU pela grade pedida
+      const cg = Array.isArray(item.custom_grade)
+        ? (item.custom_grade as Array<{ color: string; sizes: Record<string, number> }>)
+        : null
+      if (cg) {
+        for (const g of cg) {
+          const corSkus = skus[g.color]
+          if (!corSkus) continue
+          for (const [tam, qty] of Object.entries(g.sizes || {})) {
+            if (Number(qty) > 0 && corSkus[tam]) return corSkus[tam]
+          }
+        }
+      }
+      // Fallback: primeiro valor disponível
+      for (const corSkus of Object.values(skus)) {
+        for (const sku of Object.values(corSkus)) {
+          if (sku) return sku
+        }
+      }
+      return ''
+    }
 
     let itemsHtml = ''
     for (const item of items) {
@@ -84,10 +112,11 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
       const discountedPrice = unitPrice * (1 - Number(o.discount_pct || 0) / 100)
       const subtotal = Number(item.subtotal || 0)
       const pieces = Number(item.total_pieces || 0)
+      const clientSku = getClientSku(item)
 
       const obsHtml = item.item_obs ? `<br><span style="color:#dc2626;font-style:italic;font-size:10px">${item.item_obs}</span>` : ''
       itemsHtml += `<tr class="item-row">
-        <td class="ref">${item.reference}</td>
+        <td class="ref">${item.reference}${clientSku ? `<br><span class="client-sku">Cód: ${clientSku}</span>` : ''}</td>
         <td>${descName}${obsHtml}</td>
         <td class="center">${isPack ? `${item.boxes_count}cx · ${pieces}pç` : `${pieces}pç`}</td>
         <td class="right">R$ ${fmt(discountedPrice)}/pç</td>
@@ -149,6 +178,7 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
   tr.item-row:nth-child(even) { background: #f9fafb; }
   tr.item-row td { padding: 6px 8px; }
   td.ref { font-weight: bold; color: #4f46e5; font-family: monospace; }
+  .client-sku { font-size: 9px; color: #6b7280; font-weight: normal; font-family: monospace; }
   td.center { text-align: center; }
   td.right { text-align: right; }
   td.total { font-weight: bold; }
@@ -238,6 +268,7 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
     </thead>
     <tbody>${itemsHtml}</tbody>
   </table>
+  ${hasClientSkus ? '<p style="font-size:9px;color:#9ca3af;margin-top:-8px;margin-bottom:8px;">* Cód. = código do produto no sistema do cliente</p>' : ''}
 
   <div class="totals">
     <div class="totals-box">

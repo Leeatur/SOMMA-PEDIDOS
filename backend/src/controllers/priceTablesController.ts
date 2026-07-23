@@ -1196,16 +1196,17 @@ export async function downloadSemFotos(req: AuthRequest, res: Response) {
 export async function importStock(req: AuthRequest, res: Response) {
   if (!req.file) { res.status(400).json({ error: 'Arquivo não enviado' }); return }
   try {
-    const { byRef, totalRefs, totalRows } = parseStock(req.file.buffer)
+    const { byRef, byRefSkus, totalRefs, totalRows } = parseStock(req.file.buffer)
     let matched = 0
     const notFound: string[] = []
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
       for (const ref of Object.keys(byRef)) {
+        const skus = byRefSkus[ref]
         const { rowCount } = await client.query(
-          `UPDATE products SET stock=$1, stock_updated_at=NOW() WHERE reference=$2`,
-          [JSON.stringify(byRef[ref]), ref]
+          `UPDATE products SET stock=$1, stock_updated_at=NOW()${skus ? ', customer_skus=$3' : ''} WHERE reference=$2`,
+          skus ? [JSON.stringify(byRef[ref]), ref, JSON.stringify(skus)] : [JSON.stringify(byRef[ref]), ref]
         )
         if (rowCount && rowCount > 0) matched++; else notFound.push(ref)
       }
