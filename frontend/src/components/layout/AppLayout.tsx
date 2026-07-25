@@ -122,15 +122,32 @@ export function AppLayout() {
     navigate('/login')
   }
 
-  const [swState, setSwState] = useState<'idle' | 'checking' | 'done'>('idle')
+  const [updating, setUpdating] = useState(false)
   async function handleUpdateSW() {
-    setSwState('checking')
+    setUpdating(true)
     try {
+      if (!('serviceWorker' in navigator)) { window.location.reload(); return }
       const reg = await navigator.serviceWorker.getRegistration()
-      if (reg) await reg.update()
-    } catch { /* ignore */ }
-    setSwState('done')
-    setTimeout(() => setSwState('idle'), 4000)
+      if (!reg) { window.location.reload(); return }
+      if (reg.waiting) { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); return }
+      await reg.update()
+      const nw = reg.installing || reg.waiting
+      if (nw) {
+        nw.addEventListener('statechange', () => {
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+        })
+        setTimeout(() => {
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+          else window.location.reload()
+        }, 3500)
+        return
+      }
+      window.location.reload()
+    } catch {
+      window.location.reload()
+    } finally {
+      setTimeout(() => setUpdating(false), 6000)
+    }
   }
 
   if (!accessToken) { navigate('/login'); return null }
@@ -263,10 +280,10 @@ export function AppLayout() {
                   className="flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors">
                   <Settings className="h-4 w-4 text-outline" /> Ajustes
                 </NavLink>
-                <button onClick={handleUpdateSW}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors">
-                  <RefreshCw className={`h-4 w-4 text-outline ${swState === 'checking' ? 'animate-spin' : ''}`} />
-                  {swState === 'checking' ? 'Verificando...' : swState === 'done' ? 'Atualizado ✓' : 'Verificar atualização'}
+                <button onClick={handleUpdateSW} disabled={updating}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-on-surface hover:bg-surface-container-low transition-colors disabled:opacity-60">
+                  <RefreshCw className={`h-4 w-4 text-outline ${updating ? 'animate-spin' : ''}`} />
+                  {updating ? 'Atualizando…' : 'Verificar atualização'}
                 </button>
                 <div className="mx-4 my-1 border-t border-outline-variant/20" />
                 <button onClick={handleLogout}
@@ -351,10 +368,10 @@ export function AppLayout() {
                 className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-white/60 hover:bg-white/10 rounded-lg transition-colors mb-1">
                 <Settings className="h-4 w-4" /> Ajustes
               </NavLink>
-              <button onClick={handleUpdateSW}
-                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-white/60 hover:bg-white/10 rounded-lg transition-colors mb-1">
-                <RefreshCw className={`h-4 w-4 ${swState === 'checking' ? 'animate-spin' : ''}`} />
-                {swState === 'checking' ? 'Verificando...' : swState === 'done' ? 'Atualizado ✓' : 'Atualizar app'}
+              <button onClick={handleUpdateSW} disabled={updating}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-white/60 hover:bg-white/10 rounded-lg transition-colors mb-1 disabled:opacity-60">
+                <RefreshCw className={`h-4 w-4 ${updating ? 'animate-spin' : ''}`} />
+                {updating ? 'Atualizando…' : 'Atualizar app'}
               </button>
               <button onClick={handleLogout}
                 className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-white/10 rounded-lg transition-colors">
