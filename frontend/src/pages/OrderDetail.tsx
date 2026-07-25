@@ -31,7 +31,7 @@ import {
   Phone,
   X,
 } from 'lucide-react'
-import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi, usersApi } from '../api/client'
+import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi, usersApi, apiClient } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { StatusBadge } from '../components/ui/Badge'
 import { Card } from '../components/ui/Card'
@@ -1548,6 +1548,34 @@ export function OrderDetail() {
               <a href={`/clients`} className="text-primary underline">Edite o cadastro do cliente</a> para adicionar.
             </p>
           )}
+
+          <div className="flex items-center gap-2 text-outline">
+            <div className="flex-1 h-px bg-outline-variant/30" />
+            <span className="text-[11px]">exportar</span>
+            <div className="flex-1 h-px bg-outline-variant/30" />
+          </div>
+
+          {/* ERP — por pedido */}
+          <button
+            onClick={async () => {
+              try {
+                const r = await apiClient.get(`/orders/${id}/erp-xlsx`, { responseType: 'blob' })
+                const url = URL.createObjectURL(new Blob([r.data]))
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `pedido-${String(order.order_number).padStart(4,'0')}-erp.xlsx`
+                a.click()
+                URL.revokeObjectURL(url)
+              } catch { /* ignore */ }
+            }}
+            className="flex items-center gap-3 w-full bg-violet-600 hover:bg-violet-700 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors active:scale-[0.98]"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current flex-shrink-0"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h3v1H8v-1zm0 3h8v1H8v-1zm0-6h8v1H8v-1z"/></svg>
+            <div className="text-left">
+              <div>Exportar p/ ERP (este pedido)</div>
+              <div className="text-xs text-violet-200">XLSX com todos os itens e Cód. ERP</div>
+            </div>
+          </button>
         </div>
       </div>
     )}

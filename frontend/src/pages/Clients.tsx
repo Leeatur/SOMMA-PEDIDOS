@@ -25,6 +25,8 @@ interface Client {
   whatsapp: string | null
   email: string | null
   address: string | null
+  address_number: string | null
+  complement: string | null
   neighborhood: string | null
   zip: string | null
   notes: string | null
@@ -42,6 +44,8 @@ interface FormState {
   cpf: string
   state_registration: string
   address: string
+  address_number: string
+  complement: string
   neighborhood: string
   city: string
   state: string
@@ -56,7 +60,7 @@ interface FormState {
 
 const emptyForm: FormState = {
   name: '', trade_name: '', cnpj: '', cpf: '', state_registration: '',
-  address: '', neighborhood: '', city: '', state: '', zip: '',
+  address: '', address_number: '', complement: '', neighborhood: '', city: '', state: '', zip: '',
   phone: '', whatsapp: '', email: '', rep_id: '', notes: '', buyer_name: '',
 }
 
@@ -162,7 +166,9 @@ export function Clients() {
       name: c.name, trade_name: c.trade_name || '',
       cnpj: maskCnpj(c.cnpj || ''), cpf: maskCpf(c.cpf || ''),
       state_registration: c.state_registration || '',
-      address: c.address || '', neighborhood: c.neighborhood || '', city: c.city || '',
+      address: c.address || '', address_number: c.address_number || '',
+      complement: c.complement || '',
+      neighborhood: c.neighborhood || '', city: c.city || '',
       state: c.state || '', zip: maskCep(c.zip || ''),
       phone: maskPhone(c.phone || ''), whatsapp: maskPhone(c.whatsapp || ''),
       email: c.email || '', rep_id: c.rep_id || '', notes: c.notes || '', buyer_name: c.buyer_name || '',
@@ -617,16 +623,22 @@ export function Clients() {
 
           <div>
             <p className="text-[12px] font-medium text-on-surface-variant mb-2">Endereço</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <Input label="Endereço" {...f('address')} />
+            <div className="grid grid-cols-4 gap-3">
+              <div className="col-span-3">
+                <Input label="Logradouro" {...f('address')} />
               </div>
-              <div className="col-span-2">
+              <Input label="Número" {...f('address_number')} />
+              <div className="col-span-4">
+                <Input label="Complemento" {...f('complement')} placeholder="Apto, sala, bloco..." />
+              </div>
+              <div className="col-span-4">
                 <Input label="Bairro" {...f('neighborhood')} />
               </div>
               <MaskedInput label="CEP" mask="cep" value={form.zip} onChangeValue={v => setForm(p => ({ ...p, zip: v }))} />
-              <Input label="Cidade" {...f('city')} />
-              <Input label="Estado" {...f('state')} placeholder="SP" maxLength={2} onChange={e => setForm(p => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }))} />
+              <div className="col-span-2">
+                <Input label="Cidade" {...f('city')} />
+              </div>
+              <Input label="UF" {...f('state')} placeholder="SP" maxLength={2} onChange={e => setForm(p => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }))} />
             </div>
           </div>
 

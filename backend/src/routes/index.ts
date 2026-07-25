@@ -21,6 +21,7 @@ import * as paymentConds from '../controllers/paymentConditionsController'
 import * as integration from '../controllers/integrationController'
 import * as suasVendasImport from '../controllers/suasVendasImportController'
 import * as importOrder from '../controllers/importOrderController'
+import * as erpExport from '../controllers/erpExportController'
 
 const router = Router()
 
@@ -105,6 +106,8 @@ router.post('/clients/import/confirm', authenticate, upload.single('file'), clie
 
 // Pedidos
 router.get('/orders/:id/pdf', authenticate, pdf.getOrderPdf)
+router.get('/orders/:id/erp-xlsx', authenticate, erpExport.exportOrderErp)
+router.get('/orders/erp-daily', authenticate, requireAdmin, erpExport.exportDailyErp)
 router.get('/orders/summary', authenticate, orders.ordersSummary)
 router.get('/orders/meta-fabricas', authenticate, orders.metaFabricas)
 router.get('/orders/alerts', authenticate, orders.listOrderAlerts)

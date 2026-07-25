@@ -45,13 +45,13 @@ export async function getClient(req: AuthRequest, res: Response) {
 }
 
 export async function createClient(req: AuthRequest, res: Response) {
-  const { name, trade_name, cnpj, cpf, state_registration, address, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name } = req.body
+  const { name, trade_name, cnpj, cpf, state_registration, address, address_number, complement, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name } = req.body
   if (!name) { res.status(400).json({ error: 'Nome é obrigatório' }); return }
   const assignedRep = req.user!.role === 'admin' ? (rep_id || req.user!.id) : req.user!.id
   const { rows } = await query(
-    `INSERT INTO clients (name, trade_name, cnpj, cpf, state_registration, address, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
-    [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, neighborhood||null, city||null,
+    `INSERT INTO clients (name, trade_name, cnpj, cpf, state_registration, address, address_number, complement, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+    [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, address_number||null, complement||null, neighborhood||null, city||null,
      state||null, zip||null, phone||null, whatsapp||null, email||null, assignedRep, notes||null, buyer_name||null]
   )
   const created = rows[0]
@@ -76,7 +76,7 @@ export async function exportClients(req: AuthRequest, res: Response) {
 
   let sql = `
     SELECT c.name, c.trade_name, c.cnpj, c.cpf, c.state_registration,
-           c.address, c.city, c.state, c.zip, c.phone, c.whatsapp,
+           c.address, c.address_number, c.complement, c.neighborhood, c.city, c.state, c.zip, c.phone, c.whatsapp,
            c.email, c.notes, u.name AS rep_name,
            COUNT(DISTINCT o.id)::int AS total_pedidos,
            COALESCE(SUM(o.total_value), 0)::numeric AS total_comprado
@@ -113,6 +113,9 @@ export async function exportClients(req: AuthRequest, res: Response) {
     'CPF':                 r.cpf               || '',
     'Insc. Estadual':      r.state_registration|| '',
     'Endereço':            r.address           || '',
+    'Número':              r.address_number    || '',
+    'Complemento':         r.complement        || '',
+    'Bairro':              r.neighborhood      || '',
     'Cidade':              r.city              || '',
     'UF':                  r.state             || '',
     'CEP':                 r.zip               || '',
@@ -161,17 +164,17 @@ export async function exportClients(req: AuthRequest, res: Response) {
 }
 
 export async function updateClient(req: AuthRequest, res: Response) {
-  const { name, trade_name, cnpj, cpf, state_registration, address, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, active, buyer_name } = req.body
+  const { name, trade_name, cnpj, cpf, state_registration, address, address_number, complement, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, active, buyer_name } = req.body
   const { rows: [existing] } = await query('SELECT rep_id FROM clients WHERE id=$1', [req.params.id])
   if (!existing) { res.status(404).json({ error: 'Cliente não encontrado' }); return }
   const isAdmin = req.user!.role === 'admin'
   const assignedRep = isAdmin ? (rep_id || existing.rep_id) : existing.rep_id
   const { rows } = await query(
-    `UPDATE clients SET name=$1, trade_name=$2, cnpj=$3, cpf=$4, state_registration=$5, address=$6, neighborhood=$7, city=$8,
-     state=$9, zip=$10, phone=$11, whatsapp=$12, email=$13, rep_id=$14, notes=$15, active=$16, buyer_name=$17, updated_at=NOW()
-     WHERE id=$18 RETURNING *`,
-    [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, neighborhood||null, city||null,
-     state||null, zip||null, phone||null, whatsapp||null, email||null, assignedRep, notes||null, active??true, buyer_name||null, req.params.id]
+    `UPDATE clients SET name=$1, trade_name=$2, cnpj=$3, cpf=$4, state_registration=$5, address=$6, address_number=$7, complement=$8,
+     neighborhood=$9, city=$10, state=$11, zip=$12, phone=$13, whatsapp=$14, email=$15, rep_id=$16, notes=$17, active=$18, buyer_name=$19, updated_at=NOW()
+     WHERE id=$20 RETURNING *`,
+    [name, trade_name||null, cnpj||null, cpf||null, state_registration||null, address||null, address_number||null, complement||null,
+     neighborhood||null, city||null, state||null, zip||null, phone||null, whatsapp||null, email||null, assignedRep, notes||null, active??true, buyer_name||null, req.params.id]
   )
   const updated = rows[0]
   res.json(updated)

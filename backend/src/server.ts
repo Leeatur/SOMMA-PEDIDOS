@@ -119,6 +119,9 @@ async function runStartupMigrations() {
   await safe(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_clients_cnpj ON clients(cnpj)`)
   // Código ERP do cliente por variante (cor/tamanho) — ex: Cusco
   await safe('ALTER TABLE products ADD COLUMN IF NOT EXISTS customer_skus JSONB DEFAULT NULL')
+  // Campos separados de endereço para exportação ERP
+  await safe('ALTER TABLE clients ADD COLUMN IF NOT EXISTS address_number VARCHAR(20) DEFAULT NULL')
+  await safe('ALTER TABLE clients ADD COLUMN IF NOT EXISTS complement VARCHAR(100) DEFAULT NULL')
   // order_number pode ser NULL para pedidos importados (não consomem a sequência nativa)
   await safe(`ALTER TABLE orders ALTER COLUMN order_number DROP NOT NULL`)
   await safe(`UPDATE orders SET order_number = NULL WHERE notes LIKE 'Importado SuasVendas%' AND order_number IS NOT NULL`)
