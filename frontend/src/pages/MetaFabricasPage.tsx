@@ -82,32 +82,6 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
   )
 }
 
-// ─── Card do escritório (vendas de admin) ────────────────────────────────────
-
-function EscritorioCard({ totalPeriodo, totalMes }: { totalPeriodo: number; totalMes: number }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-on-surface text-[15px]">Escritório</h3>
-        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
-          vendas diretas
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-2 text-center">
-        <div className="bg-gray-50 rounded-xl p-2">
-          <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Jul–Set</p>
-          <p className="text-[14px] font-bold text-on-surface">{fmtN(totalPeriodo)} pç</p>
-        </div>
-        <div className="bg-gray-50 rounded-xl p-2">
-          <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Este mês</p>
-          <p className="text-[14px] font-bold text-on-surface">{fmtN(totalMes)} pç</p>
-        </div>
-      </div>
-      <p className="text-[10px] text-gray-400 text-center">Pedidos feitos pelo escritório / admin</p>
-    </div>
-  )
-}
-
 // ─── Card do rep ─────────────────────────────────────────────────────────────
 
 interface RepData {
@@ -330,21 +304,6 @@ export default function MetaFabricasPage() {
 
         const pctFab = pct(totalVendidoPeriodo, fab.totalGeral)
 
-        // Orders not matched to any listed rep → office/admin sales
-        const escritorioPeriodoTotal = d.periodo
-          .filter(r =>
-            r.factory_name.toUpperCase().includes(fab.fabrica.toUpperCase()) &&
-            !fab.reps.some(rep => match(r.rep_name, rep.nome))
-          )
-          .reduce((s, r) => s + r.total_pieces, 0)
-        const escritorioMesTotal = d.mesAtual
-          .filter(r =>
-            r.factory_name.toUpperCase().includes(fab.fabrica.toUpperCase()) &&
-            !fab.reps.some(rep => match(r.rep_name, rep.nome))
-          )
-          .reduce((s, r) => s + r.total_pieces, 0)
-        const showEscritorio = escritorioPeriodoTotal > 0 || escritorioMesTotal > 0
-
         // Factory-level bar: same dynamic scale as ProgressBar when over 100%
         const fabIsOver = pctFab > 100
         const fabScale  = fabIsOver ? Math.max(120, pctFab + 15) : 100
@@ -392,12 +351,6 @@ export default function MetaFabricasPage() {
                   mesTo={d.mesAtualRange.to}
                 />
               ))}
-              {showEscritorio && (
-                <EscritorioCard
-                  totalPeriodo={escritorioPeriodoTotal}
-                  totalMes={escritorioMesTotal}
-                />
-              )}
             </div>
           </section>
         )

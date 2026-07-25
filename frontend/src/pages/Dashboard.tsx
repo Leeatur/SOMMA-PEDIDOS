@@ -112,7 +112,7 @@ export function Dashboard() {
     queryFn: () => usersApi.list().then(r => r.data),
     enabled: isAdmin,
   })
-  const reps = repUsers.filter(u => u.role !== 'admin')
+  const reps = repUsers
 
   const createGoalMut = useMutation({
     mutationFn: (data: object) => editingGoal ? goalsApi.update(editingGoal.id, data) : goalsApi.create(data),
@@ -565,16 +565,11 @@ export function Dashboard() {
                           )}
                         </div>
 
-                        {/* Meta geral da fábrica — achieved = soma dos reps com meta */}
+                        {/* Meta geral da fábrica — achieved direto do goal da fábrica (inclui escritório) */}
                         {factory && (
                           <div className="px-4 lg:px-5 pb-4">
                             <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
-                            <GoalBar g={{
-                              ...factory,
-                              achieved_pieces: reps.length > 0
-                                ? reps.reduce((s, g) => s + g.achieved_pieces, 0)
-                                : factory.achieved_pieces,
-                            }} large />
+                            <GoalBar g={factory} large />
                           </div>
                         )}
 
@@ -621,83 +616,6 @@ export function Dashboard() {
         })()}
 
 
-        {/* ─── Admin: Escritório de Vendas ────────────── */}
-        {isAdmin && (() => {
-          const officeGoals = goals.filter(g => g.type === 'office')
-          if (officeGoals.length === 0) return null
-
-          const getBrand = (g: Goal) => g.factory_name || g.label.split(' ')[0]
-          const groups: Record<string, Goal[]> = {}
-          officeGoals.forEach(g => {
-            const brand = getBrand(g)
-            if (!groups[brand]) groups[brand] = []
-            groups[brand].push(g)
-          })
-
-          const brandColors: Record<string, { from: string; to: string }> = {
-            OUZZARE: { from: '#312e81', to: '#1e1b4b' },
-            TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
-          }
-
-          return (
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <SectionTitle className="mb-0">🏢 Escritório de Vendas</SectionTitle>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([brand, brandGoals]) => {
-                  const bc = brandColors[brand.toUpperCase()] || { from: '#1f2937', to: '#111827' }
-                  const totalAchieved = brandGoals.reduce((s, g) => s + g.achieved_pieces, 0)
-                  const totalTarget   = brandGoals.reduce((s, g) => s + g.target_pieces, 0)
-                  const raw    = totalTarget > 0 ? (totalAchieved / totalTarget) * 100 : 0
-                  const isOver = raw > 100
-                  const barPct = Math.min(100, raw)
-                  const color  = isOver ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
-
-                  return (
-                    <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
-                      <div className="px-5 pt-4 pb-5">
-                        <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest mb-0.5">
-                          {brandGoals[0]?.period_label || ''}
-                        </p>
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-white text-[20px] font-black tracking-tight">{brand}</h3>
-                          <div className="flex gap-1">
-                            {brandGoals.map(g => (
-                              <button key={g.id} onClick={() => openEditGoal(g)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors">
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex items-end justify-between gap-2 mb-1.5">
-                          <span className="text-[32px] font-black leading-none" style={{ color }}>
-                            {totalAchieved.toLocaleString('pt-BR')}
-                          </span>
-                          <span className="text-[12px] text-white/50 pb-1">/ {totalTarget.toLocaleString('pt-BR')} pç</span>
-                        </div>
-                        <div className="w-full bg-black/20 rounded-full overflow-hidden h-3 mb-1.5">
-                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${barPct}%`, backgroundColor: color }} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-white/60">
-                            {isOver
-                              ? `+${(totalAchieved - totalTarget).toLocaleString('pt-BR')} pç da meta`
-                              : raw >= 100 ? '✅ Meta atingida!' : `Faltam ${(totalTarget - totalAchieved).toLocaleString('pt-BR')} pç`}
-                          </span>
-                          <span className="text-[16px] font-black" style={{ color }}>
-                            {isOver ? `🏆 ${raw.toFixed(1)}%` : `${raw.toFixed(1)}%`}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
-          )
-        })()}
 
         {/* ─── Admin: Status e Ranking por Fábrica ──────── */}
         {isAdmin && (
@@ -1267,7 +1185,7 @@ export function Dashboard() {
 
           {/* Tipo */}
           <div className="grid grid-cols-3 gap-2">
-            {([['factory','🏭 Fábrica'],['office','🏢 Escritório'],['rep','👤 Rep']] as const).map(([t, label]) => (
+            {([['factory','🏭 Fábrica'],['rep','👤 Rep']] as const).map(([t, label]) => (
               <button key={t} type="button" onClick={() => setGoalForm(f => ({...f, type: t}))}
                 className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${goalForm.type === t ? 'border-primary bg-primary/10 text-primary' : 'border-outline-variant text-outline hover:bg-surface-container'}`}>
                 {label}
@@ -1276,7 +1194,7 @@ export function Dashboard() {
           </div>
 
           {/* Entidade */}
-          {goalForm.type === 'factory' || goalForm.type === 'office' ? (
+          {goalForm.type === 'factory' ? (
             <div>
               <label className="block text-[12px] font-medium text-outline mb-1">Fábrica / Marca</label>
               <select value={goalForm.factory_id} onChange={e => setGoalForm(f => ({...f, factory_id: e.target.value}))}
