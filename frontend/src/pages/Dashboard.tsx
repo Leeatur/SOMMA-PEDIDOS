@@ -504,10 +504,10 @@ export function Dashboard() {
             return (
               <div className="space-y-1">
                 <div className="flex items-end justify-between gap-2">
-                  <span className={`font-bold leading-none ${large ? 'text-[32px]' : 'text-[20px]'}`} style={{ color }}>
+                  <span className={`font-bold leading-none min-w-0 ${large ? 'text-[32px]' : 'text-[20px]'}`} style={{ color }}>
                     {g.achieved_pieces.toLocaleString('pt-BR')}
                   </span>
-                  <span className="text-[11px] text-outline pb-1">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+                  <span className="text-[11px] text-outline pb-1 flex-shrink-0 whitespace-nowrap">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
                 </div>
                 <div className={`w-full bg-black/10 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
                   <div className="h-full rounded-full transition-all duration-500" style={{ width: `${barPct}%`, backgroundColor: color }} />
@@ -630,8 +630,8 @@ export function Dashboard() {
                     <div key={name} className="flex items-center gap-3 cursor-pointer hover:bg-surface-container-low rounded-lg px-1 py-0.5 transition-colors" onClick={() => setCardModal('status_' + name)}>
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                       <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="w-16 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${(count/filteredOrders.length*100)}%`, backgroundColor: color }} />
                         </div>
                         <span className="text-[12px] font-bold text-on-surface w-6 text-right">{count}</span>
@@ -649,15 +649,15 @@ export function Dashboard() {
                 <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4 space-y-2">
                   {repRanking.map(([name, value], i) => (
                     <div key={name} className="flex items-center gap-3">
-                      <span className="text-[12px] font-bold w-5 text-center">
+                      <span className="text-[12px] font-bold w-5 text-center flex-shrink-0">
                         {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}º`}
                       </span>
-                      <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+                      <span className="flex-1 min-w-0 text-[12px] text-on-surface font-medium truncate">{name}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="w-16 lg:w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
                           <div className="h-full rounded-full bg-primary" style={{ width: `${(value/repRanking[0][1]*100)}%` }} />
                         </div>
-                        <span className="text-[12px] font-bold text-primary">{formatCurrency(value)}</span>
+                        <span className="text-[12px] font-bold text-primary whitespace-nowrap">{formatCurrency(value)}</span>
                       </div>
                     </div>
                   ))}
@@ -699,9 +699,9 @@ export function Dashboard() {
                     <SectionTitle>🏭 {factory}</SectionTitle>
                     <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
                       {/* Header fábrica */}
-                      <div className="px-4 py-2 flex items-center justify-between" style={{ backgroundColor: color }}>
-                        <span className="text-white text-[11px] font-bold uppercase tracking-wider">{factoryOrders.length} pedidos · {totalPiecesFactory.toLocaleString('pt-BR')} pç</span>
-                        <span className="text-white text-[13px] font-black">{formatCurrency(totalFactory)}</span>
+                      <div className="px-4 py-2 flex items-center justify-between gap-2" style={{ backgroundColor: color }}>
+                        <span className="text-white text-[11px] font-bold uppercase tracking-wider flex-1 min-w-0 truncate">{factoryOrders.length} pedidos · {totalPiecesFactory.toLocaleString('pt-BR')} pç</span>
+                        <span className="text-white text-[13px] font-black flex-shrink-0 whitespace-nowrap">{formatCurrency(totalFactory)}</span>
                       </div>
                       <div className="p-4 space-y-2">
                         {rankingByFactory.map(([name, data], i) => (
@@ -711,11 +711,11 @@ export function Dashboard() {
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-[12px] font-semibold text-on-surface truncate">{name}</p>
-                              <p className="text-[10px] text-outline">{data.orders} pedido{data.orders !== 1 ? 's' : ''} · {data.pieces.toLocaleString('pt-BR')} pç</p>
+                              <p className="text-[10px] text-outline truncate">{data.orders} pedido{data.orders !== 1 ? 's' : ''} · {data.pieces.toLocaleString('pt-BR')} pç</p>
                             </div>
                             <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-                              <span className="text-[12px] font-bold" style={{ color }}>{formatCurrency(data.value)}</span>
-                              <div className="w-20 bg-surface-container-low rounded-full h-1 overflow-hidden">
+                              <span className="text-[12px] font-bold whitespace-nowrap" style={{ color }}>{formatCurrency(data.value)}</span>
+                              <div className="w-16 bg-surface-container-low rounded-full h-1 overflow-hidden">
                                 <div className="h-full rounded-full" style={{ width: `${(data.value / rankingByFactory[0][1].value) * 100}%`, backgroundColor: color }} />
                               </div>
                             </div>
@@ -795,10 +795,10 @@ export function Dashboard() {
                 return (
                   <div className="space-y-1">
                     <div className="flex items-end justify-between gap-2">
-                      <span className="text-[28px] font-bold leading-none" style={{ color }}>
+                      <span className="text-[28px] font-bold leading-none min-w-0" style={{ color }}>
                         {g.achieved_pieces.toLocaleString('pt-BR')}
                       </span>
-                      <span className="text-[11px] text-white/50 pb-1">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+                      <span className="text-[11px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
                     </div>
                     <div className="w-full bg-black/20 rounded-full overflow-hidden h-3">
                       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${barPct}%`, backgroundColor: color }} />

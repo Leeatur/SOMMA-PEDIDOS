@@ -175,17 +175,17 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
 
       <div className="p-3">
         {/* Row 1: number + status pill */}
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[12px] font-bold text-primary font-mono">{formatOrderNumber(o.order_number)}</span>
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <span className="text-[12px] font-bold text-primary font-mono flex-shrink-0">{formatOrderNumber(o.order_number)}</span>
           {o.status_name ? (
-            <span className="text-[12px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+            <span className="text-[12px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 min-w-0 max-w-[60%]"
               style={{ backgroundColor: accent + '22', color: accent }}>
               {o.status_icon && o.status_icon.split(' ').filter(Boolean).map((part, i) =>
                 part.startsWith('_')
                   ? <img key={i} src={svgIconSrc(part)} alt="" className="w-3.5 h-3.5 flex-shrink-0" />
-                  : <span key={i} className="text-[13px] leading-none">{part}</span>
+                  : <span key={i} className="text-[13px] leading-none flex-shrink-0">{part}</span>
               )}
-              {o.status_name}
+              <span className="truncate">{o.status_name}</span>
             </span>
           ) : null}
         </div>
@@ -214,13 +214,13 @@ function MobileOrderCard({ o, onClick }: { o: Order; onClick: () => void }) {
 
         {/* Row 4: bottom — date + pieces + value */}
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
-          <div>
-            <p className="text-[12px] text-outline">{formatDate(o.created_at)}</p>
+          <div className="min-w-0">
+            <p className="text-[12px] text-outline truncate">{formatDate(o.created_at)}</p>
             {o.total_pieces > 0 && (
               <p className="text-[12px] text-outline/70">{o.total_pieces} peças</p>
             )}
           </div>
-          <p className="text-[14px] font-bold text-on-surface">{formatCurrency(o.total_value)}</p>
+          <p className="text-[14px] font-bold text-on-surface whitespace-nowrap flex-shrink-0 pl-2">{formatCurrency(o.total_value)}</p>
         </div>
       </div>
     </div>
