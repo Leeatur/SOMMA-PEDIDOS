@@ -51,7 +51,7 @@ export function Dashboard() {
   const isAdmin = user?.role === 'admin'
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
-  const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '' })
+  const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '', period_start: '', period_end: '' })
   const [cardModal, setCardModal] = useState<string | null>(null)
 
   // Filtro de período
@@ -125,12 +125,12 @@ export function Dashboard() {
 
   function openNewGoal() {
     setEditingGoal(null)
-    setGoalForm({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '' })
+    setGoalForm({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '', period_start: '', period_end: '' })
     setShowGoalModal(true)
   }
   function openEditGoal(g: Goal) {
     setEditingGoal(g)
-    setGoalForm({ type: g.type, factory_id: g.factory_id||'', rep_id: g.rep_id||'', label: g.label, target_pieces: String(g.target_pieces), period_label: g.period_label||'' })
+    setGoalForm({ type: g.type, factory_id: g.factory_id||'', rep_id: g.rep_id||'', label: g.label, target_pieces: String(g.target_pieces), period_label: g.period_label||'', period_start: (g as any).period_start||'', period_end: (g as any).period_end||'' })
     setShowGoalModal(true)
   }
 
@@ -1310,9 +1310,22 @@ export function Dashboard() {
                 placeholder="Ex: 5000" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-outline mb-1">Período</label>
+              <label className="block text-[12px] font-medium text-outline mb-1">Período (exibição)</label>
               <input value={goalForm.period_label} onChange={e => setGoalForm(f => ({...f, period_label: e.target.value}))}
-                placeholder="Ex: Inverno 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                placeholder="Ex: Verão 27" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">Data início</label>
+              <input type="date" value={goalForm.period_start} onChange={e => setGoalForm(f => ({...f, period_start: e.target.value}))}
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">Data fim</label>
+              <input type="date" value={goalForm.period_end} onChange={e => setGoalForm(f => ({...f, period_end: e.target.value}))}
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
           </div>
 
@@ -1326,6 +1339,8 @@ export function Dashboard() {
                 label: goalForm.label,
                 target_pieces: parseInt(goalForm.target_pieces) || 0,
                 period_label: goalForm.period_label || null,
+                period_start: goalForm.period_start || null,
+                period_end: goalForm.period_end || null,
               })}
               disabled={!goalForm.label || !goalForm.target_pieces || createGoalMut.isPending}
               className="px-5 py-2 bg-primary text-white rounded-xl text-[12px] font-semibold disabled:opacity-50 hover:bg-primary/90 active:scale-95"

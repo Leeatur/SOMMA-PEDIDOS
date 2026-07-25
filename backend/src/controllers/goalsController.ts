@@ -32,7 +32,7 @@ export async function listGoals(req: AuthRequest, res: Response) {
         WHERE o.deleted_at IS NULL
           ${achievedFilter}
           AND (g.period_start IS NULL OR DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= g.period_start)
-          AND (g.period_end   IS NULL OR DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= g.period_end)
+          AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= LEAST(COALESCE(g.period_end, CURRENT_DATE), CURRENT_DATE)
       ), 0)::int AS achieved_pieces
     FROM goals g
     LEFT JOIN factories f ON f.id = g.factory_id
