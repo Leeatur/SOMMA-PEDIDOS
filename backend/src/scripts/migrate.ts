@@ -444,6 +444,9 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS valor_faturado_fabrica DECIMAL(12,2)
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS faturamento_status VARCHAR(20) NOT NULL DEFAULT 'pendente' CHECK (faturamento_status IN ('pendente','parcial','liquidado'));
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS sem_comissao_fabrica BOOLEAN NOT NULL DEFAULT FALSE;
 
+-- Meta em valor (R$) por coleção
+ALTER TABLE goals ADD COLUMN IF NOT EXISTS target_value NUMERIC(12,2) DEFAULT 0;
+
 -- Múltiplos faturamentos parciais por pedido
 CREATE TABLE IF NOT EXISTS order_faturamentos (
   id               SERIAL PRIMARY KEY,

@@ -40,8 +40,10 @@ interface DaySaleRow {
 
 interface Goal {
   id: string; type: 'factory'|'rep'|'office'; factory_id: string|null; rep_id: string|null
-  label: string; target_pieces: number; period_label: string|null
-  factory_name: string|null; rep_name: string|null; achieved_pieces: number
+  label: string; target_pieces: number; target_value: number
+  period_label: string|null; period_start: string|null; period_end: string|null
+  factory_name: string|null; rep_name: string|null
+  achieved_pieces: number; achieved_value: number
 }
 
 export function Dashboard() {
@@ -51,7 +53,7 @@ export function Dashboard() {
   const isAdmin = user?.role === 'admin'
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
-  const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '', period_start: '', period_end: '' })
+  const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', target_value: '', period_label: '', period_start: '', period_end: '' })
   const [cardModal, setCardModal] = useState<string | null>(null)
 
   // Filtro de período
@@ -125,12 +127,12 @@ export function Dashboard() {
 
   function openNewGoal() {
     setEditingGoal(null)
-    setGoalForm({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', period_label: '', period_start: '', period_end: '' })
+    setGoalForm({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', target_value: '', period_label: '', period_start: '', period_end: '' })
     setShowGoalModal(true)
   }
   function openEditGoal(g: Goal) {
     setEditingGoal(g)
-    setGoalForm({ type: g.type, factory_id: g.factory_id||'', rep_id: g.rep_id||'', label: g.label, target_pieces: String(g.target_pieces), period_label: g.period_label||'', period_start: (g as any).period_start||'', period_end: (g as any).period_end||'' })
+    setGoalForm({ type: g.type, factory_id: g.factory_id||'', rep_id: g.rep_id||'', label: g.label, target_pieces: String(g.target_pieces), target_value: g.target_value ? String(g.target_value) : '', period_label: g.period_label||'', period_start: g.period_start||'', period_end: g.period_end||'' })
     setShowGoalModal(true)
   }
 
@@ -483,43 +485,74 @@ export function Dashboard() {
 
       <div className="px-4 lg:px-8 mt-3 space-y-3">
 
-        {/* ─── Admin: Metas agrupadas por marca ────────── */}
+        {/* ─── Admin: Metas por Fábrica ────────────────── */}
         {isAdmin && (() => {
-          // Agrupa por marca (1ª palavra do label)
-          const getBrand = (g: Goal) => g.label.split(' ')[0]
-          const groups: Record<string, { factory: Goal | null; reps: Goal[] }> = {}
+          // Agrupa por factory_id; fallback para 1ª palavra do label (retrocompatibilidade)
+          const groups: Record<string, { factory: Goal|null; reps: Goal[]; factoryName: string }> = {}
           goals.forEach(g => {
-            const brand = getBrand(g)
-            if (!groups[brand]) groups[brand] = { factory: null, reps: [] }
-            if (g.type === 'factory') groups[brand].factory = g
-            else groups[brand].reps.push(g)
+            const key = g.factory_id || g.label.split(' ')[0]
+            const fname = g.factory_name || g.label.split(' ')[0]
+            if (!groups[key]) groups[key] = { factory: null, reps: [], factoryName: fname }
+            if (g.type === 'factory') groups[key].factory = g
+            else if (g.type === 'rep') groups[key].reps.push(g)
           })
-          const brandList = Object.keys(groups).sort()
+          const groupKeys = Object.keys(groups).sort((a, b) => groups[a].factoryName.localeCompare(groups[b].factoryName))
 
-          const GoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
-            const raw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
-            const isOver = raw > 100
-            const barPct = Math.min(100, raw)
-            const color = isOver ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
+          const brandGradients: Record<string, { from: string; to: string }> = {
+            OUZZARE: { from: '#312e81', to: '#1e1b4b' },
+            TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
+          }
+
+          function goalColor(raw: number): string {
+            return raw > 100 ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
+          }
+
+          function GoalBar({ g, large = false }: { g: Goal; large?: boolean }) {
+            const pRaw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
+            const vRaw = g.target_value > 0 ? (g.achieved_value / g.target_value) * 100 : 0
+            const pColor = goalColor(pRaw)
+            const vColor = goalColor(vRaw)
             return (
-              <div className="space-y-1">
-                <div className="flex items-end justify-between gap-2">
-                  <span className={`font-bold leading-none min-w-0 ${large ? 'text-[32px]' : 'text-[20px]'}`} style={{ color }}>
-                    {g.achieved_pieces.toLocaleString('pt-BR')}
-                  </span>
-                  <span className="text-[11px] text-outline pb-1 flex-shrink-0 whitespace-nowrap">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+              <div className="space-y-3">
+                {/* Peças */}
+                <div className="space-y-1">
+                  <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Peças</p>
+                  <div className="flex items-end justify-between gap-2">
+                    <span className={`font-black leading-none min-w-0 ${large ? 'text-[36px]' : 'text-[22px]'}`} style={{ color: pColor }}>
+                      {g.achieved_pieces.toLocaleString('pt-BR')}
+                    </span>
+                    <span className="text-[11px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+                  </div>
+                  <div className={`w-full bg-black/20 rounded-full overflow-hidden ${large ? 'h-2.5' : 'h-2'}`}>
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, pRaw)}%`, backgroundColor: pColor }} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-white/60">
+                      {pRaw > 100
+                        ? `+${(g.achieved_pieces - g.target_pieces).toLocaleString('pt-BR')} pç da meta`
+                        : pRaw >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
+                    </span>
+                    <span className="text-[12px] font-bold" style={{ color: pColor }}>{pRaw > 100 ? `🏆 ${pRaw.toFixed(1)}%` : `${pRaw.toFixed(1)}%`}</span>
+                  </div>
                 </div>
-                <div className={`w-full bg-black/10 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${barPct}%`, backgroundColor: color }} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-white/70">
-                    {isOver
-                      ? `+${(g.achieved_pieces - g.target_pieces).toLocaleString('pt-BR')} pç da meta`
-                      : raw >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
-                  </span>
-                  <span className="text-[13px] font-bold" style={{ color }}>{isOver ? `🏆 ${raw.toFixed(1)}%` : `${raw.toFixed(1)}%`}</span>
-                </div>
+                {/* Valor */}
+                {g.target_value > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Valor</p>
+                    <div className="flex items-end justify-between gap-2">
+                      <span className={`font-black leading-none min-w-0 ${large ? 'text-[28px]' : 'text-[18px]'}`} style={{ color: vColor }}>
+                        {formatCurrency(g.achieved_value)}
+                      </span>
+                      <span className="text-[11px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {formatCurrency(g.target_value)}</span>
+                    </div>
+                    <div className="w-full bg-black/20 rounded-full overflow-hidden h-2">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, vRaw)}%`, backgroundColor: vColor }} />
+                    </div>
+                    <div className="flex justify-end">
+                      <span className="text-[12px] font-bold" style={{ color: vColor }}>{vRaw > 100 ? `🏆 ${vRaw.toFixed(1)}%` : `${vRaw.toFixed(1)}%`}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           }
@@ -540,66 +573,77 @@ export function Dashboard() {
                 </button>
               ) : (
                 <div className="space-y-5">
-                  {brandList.map(brand => {
-                    const { factory, reps } = groups[brand]
-                    const brandColors: Record<string, { from: string; to: string }> = {
-                      OUZZARE: { from: '#312e81', to: '#1e1b4b' },
-                      TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
-                    }
-                    const bc = brandColors[brand] || { from: '#1f2937', to: '#111827' }
+                  {groupKeys.map(key => {
+                    const { factory, reps, factoryName } = groups[key]
+                    const bc = brandGradients[factoryName] || { from: '#1f2937', to: '#111827' }
+                    const colecao = factory?.label || reps[0]?.label || ''
+                    const periodo = factory?.period_label || reps[0]?.period_label || ''
 
                     return (
-                      <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
+                      <div key={key} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
 
-                        {/* Header da marca */}
-                        <div className="px-4 lg:px-5 pt-4 pb-3 flex items-center justify-between">
-                          <div>
-                            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">{factory?.period_label || reps[0]?.period_label || ''}</p>
-                            <h3 className="text-white text-[22px] font-black tracking-tight">{brand}</h3>
+                        {/* ── Header Fábrica ── */}
+                        <div className="px-4 lg:px-5 pt-4 pb-3 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-0.5">{factoryName}</p>
+                            {colecao && <h3 className="text-white text-[20px] font-black tracking-tight leading-tight">{colecao}</h3>}
+                            {periodo && <p className="text-white/60 text-[12px] mt-0.5">{periodo}</p>}
                           </div>
                           {factory && (
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 flex-shrink-0">
                               <button onClick={() => openEditGoal(factory)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
                               <button onClick={() => window.confirm('Excluir meta geral?') && deleteGoalMut.mutate(factory.id)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
                             </div>
                           )}
                         </div>
 
-                        {/* Meta geral da fábrica — achieved direto do goal da fábrica (inclui escritório) */}
+                        {/* ── Meta Geral da Fábrica ── */}
                         {factory && (
                           <div className="px-4 lg:px-5 pb-4">
-                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
                             <GoalBar g={factory} large />
                           </div>
                         )}
 
-                        {/* Grid de reps */}
+                        {/* ── Representantes ── */}
                         {reps.length > 0 && (
                           <div className="bg-black/20 px-4 lg:px-5 py-3">
-                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-3">👥 Por Representante</p>
+                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-3">👥 Representantes</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                               {reps.sort((a, b) => b.achieved_pieces - a.achieved_pieces).map(g => {
-                                const raw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
-                                const isOver = raw > 100
-                                const barPct = Math.min(100, raw)
-                                const color = isOver ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#60A5FA' : '#FCA5A5'
+                                const pRaw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
+                                const vRaw = g.target_value > 0 ? (g.achieved_value / g.target_value) * 100 : 0
+                                const pColor = goalColor(pRaw)
+                                const vColor = goalColor(vRaw)
                                 return (
                                   <div key={g.id} className="bg-white/10 hover:bg-white/15 rounded-2xl p-3 transition-colors group">
-                                    <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-start justify-between mb-1.5">
                                       <p className="text-white text-[12px] font-bold truncate flex-1">{g.rep_name}</p>
                                       <div className="hidden group-hover:flex gap-0.5 flex-shrink-0 ml-1">
                                         <button onClick={() => openEditGoal(g)} className="p-1 rounded text-white/50 hover:text-white"><Pencil className="h-3 w-3" /></button>
                                         <button onClick={() => window.confirm('Excluir?') && deleteGoalMut.mutate(g.id)} className="p-1 rounded text-white/50 hover:text-white"><Trash2 className="h-3 w-3" /></button>
                                       </div>
                                     </div>
-                                    <div className="flex items-baseline gap-1 mb-1.5">
-                                      <span className="text-[18px] font-black" style={{ color }}>{g.achieved_pieces.toLocaleString('pt-BR')}</span>
-                                      <span className="text-[10px] text-white/40">/ {(g.target_pieces/1000).toFixed(0)}k</span>
+                                    {/* Peças */}
+                                    <div className="flex items-baseline gap-1 mb-1">
+                                      <span className="text-[18px] font-black" style={{ color: pColor }}>{g.achieved_pieces.toLocaleString('pt-BR')}</span>
+                                      <span className="text-[10px] text-white/40 flex-shrink-0">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
                                     </div>
                                     <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
-                                      <div className="h-full rounded-full" style={{ width: `${barPct}%`, backgroundColor: color }} />
+                                      <div className="h-full rounded-full" style={{ width: `${Math.min(100, pRaw)}%`, backgroundColor: pColor }} />
                                     </div>
-                                    <p className="text-[10px] mt-1 font-bold text-right" style={{ color }}>{isOver ? `🏆 ${raw.toFixed(0)}%` : `${raw.toFixed(0)}%`}</p>
+                                    {/* Valor */}
+                                    {g.target_value > 0 && (
+                                      <div className="mt-2 pt-1.5 border-t border-white/10">
+                                        <div className="flex items-baseline gap-1 mb-1">
+                                          <span className="text-[13px] font-black whitespace-nowrap" style={{ color: vColor }}>{formatCurrency(g.achieved_value)}</span>
+                                          <span className="text-[10px] text-white/40 flex-shrink-0 whitespace-nowrap">/ {formatCurrency(g.target_value)}</span>
+                                        </div>
+                                        <div className="w-full bg-black/20 rounded-full h-1 overflow-hidden">
+                                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, vRaw)}%`, backgroundColor: vColor }} />
+                                        </div>
+                                      </div>
+                                    )}
+                                    <p className="text-[10px] mt-1 font-bold text-right" style={{ color: pColor }}>{pRaw > 100 ? `🏆 ${pRaw.toFixed(0)}%` : `${pRaw.toFixed(0)}%`}</p>
                                   </div>
                                 )
                               })}
@@ -778,39 +822,64 @@ export function Dashboard() {
 
             {/* Minha régua de desempenho por marca */}
             {goals.length > 0 && (() => {
-              const getBrand = (g: Goal) => g.label.split(' ')[0]
               const myGoals = goals.filter(g => g.type === 'rep' && g.rep_id === user?.id)
               if (myGoals.length === 0) return null
 
-              const brandColors: Record<string, { from: string; to: string }> = {
+              const brandGradients: Record<string, { from: string; to: string }> = {
                 OUZZARE: { from: '#312e81', to: '#1e1b4b' },
                 TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
               }
 
+              function repGoalColor(raw: number): string {
+                return raw > 100 ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
+              }
+
               const RepGoalBar = ({ g }: { g: Goal }) => {
-                const raw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
-                const isOver = raw > 100
-                const barPct = Math.min(100, raw)
-                const color = isOver ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
+                const pRaw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
+                const vRaw = g.target_value > 0 ? (g.achieved_value / g.target_value) * 100 : 0
+                const pColor = repGoalColor(pRaw)
+                const vColor = repGoalColor(vRaw)
                 return (
-                  <div className="space-y-1">
-                    <div className="flex items-end justify-between gap-2">
-                      <span className="text-[28px] font-bold leading-none min-w-0" style={{ color }}>
-                        {g.achieved_pieces.toLocaleString('pt-BR')}
-                      </span>
-                      <span className="text-[11px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+                  <div className="space-y-4">
+                    {/* Peças */}
+                    <div className="space-y-1">
+                      <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Peças</p>
+                      <div className="flex items-end justify-between gap-2">
+                        <span className="text-[32px] font-black leading-none min-w-0" style={{ color: pColor }}>
+                          {g.achieved_pieces.toLocaleString('pt-BR')}
+                        </span>
+                        <span className="text-[12px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+                      </div>
+                      <div className="w-full bg-black/20 rounded-full overflow-hidden h-3">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, pRaw)}%`, backgroundColor: pColor }} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-white/60">
+                          {pRaw > 100
+                            ? `+${(g.achieved_pieces - g.target_pieces).toLocaleString('pt-BR')} pç da meta`
+                            : pRaw >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
+                        </span>
+                        <span className="text-[13px] font-bold" style={{ color: pColor }}>{pRaw > 100 ? `🏆 ${pRaw.toFixed(1)}%` : `${pRaw.toFixed(1)}%`}</span>
+                      </div>
                     </div>
-                    <div className="w-full bg-black/20 rounded-full overflow-hidden h-3">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${barPct}%`, backgroundColor: color }} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-white/60">
-                        {isOver
-                          ? `+${(g.achieved_pieces - g.target_pieces).toLocaleString('pt-BR')} pç da meta`
-                          : raw >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
-                      </span>
-                      <span className="text-[13px] font-bold" style={{ color }}>{isOver ? `🏆 ${raw.toFixed(1)}%` : `${raw.toFixed(1)}%`}</span>
-                    </div>
+                    {/* Valor */}
+                    {g.target_value > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Valor</p>
+                        <div className="flex items-end justify-between gap-2">
+                          <span className="text-[24px] font-black leading-none min-w-0" style={{ color: vColor }}>
+                            {formatCurrency(g.achieved_value)}
+                          </span>
+                          <span className="text-[12px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {formatCurrency(g.target_value)}</span>
+                        </div>
+                        <div className="w-full bg-black/20 rounded-full overflow-hidden h-2">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, vRaw)}%`, backgroundColor: vColor }} />
+                        </div>
+                        <div className="flex justify-end">
+                          <span className="text-[12px] font-bold" style={{ color: vColor }}>{vRaw > 100 ? `🏆 ${vRaw.toFixed(1)}%` : `${vRaw.toFixed(1)}%`}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               }
@@ -820,12 +889,14 @@ export function Dashboard() {
                   <SectionTitle>🎯 Meu Desempenho</SectionTitle>
                   <div className="space-y-4">
                     {myGoals.map(g => {
-                      const brand = getBrand(g)
-                      const bc = brandColors[brand] || { from: '#1f2937', to: '#111827' }
+                      const brand = g.factory_name || g.label.split(' ')[0]
+                      const bc = brandGradients[brand] || { from: '#1f2937', to: '#111827' }
                       return (
-                        <div key={g.id} className="rounded-3xl overflow-hidden shadow-xl px-5 py-4" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
-                          <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-0.5">{g.period_label || ''}</p>
-                          <h3 className="text-white text-[18px] font-black tracking-tight mb-3">{g.label}</h3>
+                        <div key={g.id} className="rounded-3xl overflow-hidden shadow-xl px-5 py-5" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
+                          <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-0.5">{brand}</p>
+                          <h3 className="text-white text-[18px] font-black tracking-tight mb-0.5">{g.label}</h3>
+                          {g.period_label && <p className="text-white/50 text-[12px] mb-4">{g.period_label}</p>}
+                          {!g.period_label && <div className="mb-3" />}
                           <RepGoalBar g={g} />
                         </div>
                       )
@@ -1171,11 +1242,10 @@ export function Dashboard() {
     })()}
 
     {/* ── Modal Nova/Editar Meta ── */}
-    {/* ── Modal Nova/Editar Meta ── */}
     {showGoalModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowGoalModal(false)} />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-on-surface text-base">{editingGoal ? 'Editar Meta' : 'Nova Meta'}</h3>
             <button onClick={() => setShowGoalModal(false)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container">
@@ -1184,26 +1254,27 @@ export function Dashboard() {
           </div>
 
           {/* Tipo */}
-          <div className="grid grid-cols-3 gap-2">
-            {([['factory','🏭 Fábrica'],['rep','👤 Rep']] as const).map(([t, label]) => (
+          <div className="grid grid-cols-2 gap-2">
+            {([['factory','🏭 Fábrica'],['rep','👤 Representante']] as const).map(([t, lbl]) => (
               <button key={t} type="button" onClick={() => setGoalForm(f => ({...f, type: t}))}
                 className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${goalForm.type === t ? 'border-primary bg-primary/10 text-primary' : 'border-outline-variant text-outline hover:bg-surface-container'}`}>
-                {label}
+                {lbl}
               </button>
             ))}
           </div>
 
-          {/* Entidade */}
-          {goalForm.type === 'factory' ? (
-            <div>
-              <label className="block text-[12px] font-medium text-outline mb-1">Fábrica / Marca</label>
-              <select value={goalForm.factory_id} onChange={e => setGoalForm(f => ({...f, factory_id: e.target.value}))}
-                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30">
-                <option value="">Selecione...</option>
-                {(factories as {id:string;name:string}[]).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
-            </div>
-          ) : (
+          {/* Fábrica — sempre presente */}
+          <div>
+            <label className="block text-[12px] font-medium text-outline mb-1">Fábrica / Marca</label>
+            <select value={goalForm.factory_id} onChange={e => setGoalForm(f => ({...f, factory_id: e.target.value}))}
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30">
+              <option value="">{goalForm.type === 'rep' ? 'Sem fábrica (meta independente)' : 'Selecione a fábrica...'}</option>
+              {(factories as {id:string;name:string}[]).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          </div>
+
+          {/* Representante — só para tipo rep */}
+          {goalForm.type === 'rep' && (
             <div>
               <label className="block text-[12px] font-medium text-outline mb-1">Representante</label>
               <select value={goalForm.rep_id} onChange={e => setGoalForm(f => ({...f, rep_id: e.target.value}))}
@@ -1214,26 +1285,21 @@ export function Dashboard() {
             </div>
           )}
 
-          {/* Label e coleção */}
+          {/* Nome da Coleção */}
           <div>
-            <label className="block text-[12px] font-medium text-outline mb-1">Descrição / Coleção</label>
+            <label className="block text-[12px] font-medium text-outline mb-1">Nome da Coleção</label>
             <input value={goalForm.label} onChange={e => setGoalForm(f => ({...f, label: e.target.value}))}
-              placeholder="Ex: OUZZARE VE27 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              placeholder="Ex: Verão 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[12px] font-medium text-outline mb-1">Meta (peças)</label>
-              <input type="number" value={goalForm.target_pieces} onChange={e => setGoalForm(f => ({...f, target_pieces: e.target.value}))}
-                placeholder="Ex: 5000" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-            <div>
-              <label className="block text-[12px] font-medium text-outline mb-1">Período (exibição)</label>
-              <input value={goalForm.period_label} onChange={e => setGoalForm(f => ({...f, period_label: e.target.value}))}
-                placeholder="Ex: Verão 27" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
+          {/* Período de exibição */}
+          <div>
+            <label className="block text-[12px] font-medium text-outline mb-1">Período (exibição)</label>
+            <input value={goalForm.period_label} onChange={e => setGoalForm(f => ({...f, period_label: e.target.value}))}
+              placeholder="Ex: Jul-Dez 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
 
+          {/* Datas */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[12px] font-medium text-outline mb-1">Data início</label>
@@ -1247,6 +1313,20 @@ export function Dashboard() {
             </div>
           </div>
 
+          {/* Metas numéricas */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">Meta em Peças</label>
+              <input type="number" value={goalForm.target_pieces} onChange={e => setGoalForm(f => ({...f, target_pieces: e.target.value}))}
+                placeholder="Ex: 5000" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">Meta em R$</label>
+              <input type="number" value={goalForm.target_value} onChange={e => setGoalForm(f => ({...f, target_value: e.target.value}))}
+                placeholder="Ex: 100000" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
+
           <div className="flex gap-2 justify-end pt-2">
             <button onClick={() => setShowGoalModal(false)} className="px-4 py-2 text-[12px] text-outline hover:text-on-surface">Cancelar</button>
             <button
@@ -1256,6 +1336,7 @@ export function Dashboard() {
                 rep_id: goalForm.rep_id || null,
                 label: goalForm.label,
                 target_pieces: parseInt(goalForm.target_pieces) || 0,
+                target_value: parseFloat(goalForm.target_value) || 0,
                 period_label: goalForm.period_label || null,
                 period_start: goalForm.period_start || null,
                 period_end: goalForm.period_end || null,
