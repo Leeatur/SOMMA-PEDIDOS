@@ -122,6 +122,25 @@ export function AppLayout() {
     navigate('/login')
   }
 
+  // Auto-detecção e aplicação de atualizações do SW
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    // Recarrega quando o novo SW tomar controle
+    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload())
+    async function checkUpdate() {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration()
+        if (!reg) return
+        await reg.update()
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+      } catch { /* ignore */ }
+    }
+    checkUpdate()
+    const onVisible = () => { if (document.visibilityState === 'visible') checkUpdate() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
+
   const [updating, setUpdating] = useState(false)
   async function handleUpdateSW() {
     setUpdating(true)
