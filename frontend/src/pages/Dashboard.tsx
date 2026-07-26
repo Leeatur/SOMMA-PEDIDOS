@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award, Target, Pencil, Trash2, X } from 'lucide-react'
+import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award, Target, Pencil, Trash2, X, UserPlus } from 'lucide-react'
 import { ordersApi, reportsApi, goalsApi, factoriesApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -133,6 +133,11 @@ export function Dashboard() {
   function openEditGoal(g: Goal) {
     setEditingGoal(g)
     setGoalForm({ type: g.type, factory_id: g.factory_id||'', rep_id: g.rep_id||'', label: g.label, target_pieces: String(g.target_pieces), target_value: g.target_value ? String(g.target_value) : '', period_label: g.period_label||'', period_start: g.period_start||'', period_end: g.period_end||'' })
+    setShowGoalModal(true)
+  }
+  function openNewRepGoal(factory: Goal) {
+    setEditingGoal(null)
+    setGoalForm({ type: 'rep', factory_id: factory.factory_id||'', rep_id: '', label: factory.label, target_pieces: '', target_value: '', period_label: factory.period_label||'', period_start: factory.period_start||'', period_end: factory.period_end||'' })
     setShowGoalModal(true)
   }
 
@@ -612,6 +617,7 @@ export function Dashboard() {
                           </div>
                           {factory ? (
                             <div className="flex gap-1 flex-shrink-0">
+                              <button onClick={() => openNewRepGoal(factory)} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white/80 hover:text-white transition-colors" title="Adicionar vendedor"><UserPlus className="h-3.5 w-3.5" /></button>
                               <button onClick={() => openEditGoal(factory)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
                               <button onClick={() => window.confirm('Excluir meta geral?') && deleteGoalMut.mutate(factory.id)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
                             </div>
