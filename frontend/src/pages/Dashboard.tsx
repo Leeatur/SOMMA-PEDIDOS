@@ -487,15 +487,36 @@ export function Dashboard() {
 
         {/* ─── Admin: Metas por Fábrica ────────────────── */}
         {isAdmin && (() => {
-          // Agrupa por factory_id; fallback para 1ª palavra do label (retrocompatibilidade)
+          // Agrupa de forma inteligente:
+          // 1ª passagem: cria grupos para metas de fábrica
           const groups: Record<string, { factory: Goal|null; reps: Goal[]; factoryName: string }> = {}
-          goals.forEach(g => {
+          const factoryIdToKey: Record<string, string> = {}
+          const factoryNameToKey: Record<string, string> = {}
+
+          goals.filter(g => g.type === 'factory').forEach(g => {
             const key = g.factory_id || g.label.split(' ')[0]
             const fname = g.factory_name || g.label.split(' ')[0]
-            if (!groups[key]) groups[key] = { factory: null, reps: [], factoryName: fname }
-            if (g.type === 'factory') groups[key].factory = g
-            else if (g.type === 'rep') groups[key].reps.push(g)
+            groups[key] = { factory: g, reps: [], factoryName: fname }
+            if (g.factory_id) factoryIdToKey[g.factory_id] = key
+            if (fname) factoryNameToKey[fname.toUpperCase()] = key
           })
+
+          // 2ª passagem: distribui metas de rep nos grupos corretos
+          goals.filter(g => g.type === 'rep').forEach(g => {
+            let key: string | undefined
+            // Tenta por factory_id primeiro
+            if (g.factory_id && factoryIdToKey[g.factory_id]) key = factoryIdToKey[g.factory_id]
+            // Tenta por factory_name
+            else if (g.factory_name && factoryNameToKey[g.factory_name.toUpperCase()]) key = factoryNameToKey[g.factory_name.toUpperCase()]
+            // Retrocompatibilidade: primeira palavra do label
+            else {
+              const prefix = g.label.split(' ')[0]
+              key = factoryNameToKey[prefix.toUpperCase()] || prefix
+              if (!groups[key]) groups[key] = { factory: null, reps: [], factoryName: g.factory_name || prefix }
+            }
+            groups[key!].reps.push(g)
+          })
+
           const groupKeys = Object.keys(groups).sort((a, b) => groups[a].factoryName.localeCompare(groups[b].factoryName))
 
           const brandGradients: Record<string, { from: string; to: string }> = {
@@ -589,12 +610,17 @@ export function Dashboard() {
                             {colecao && <h3 className="text-white text-[20px] font-black tracking-tight leading-tight">{colecao}</h3>}
                             {periodo && <p className="text-white/60 text-[12px] mt-0.5">{periodo}</p>}
                           </div>
-                          {factory && (
+                          {factory ? (
                             <div className="flex gap-1 flex-shrink-0">
                               <button onClick={() => openEditGoal(factory)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
                               <button onClick={() => window.confirm('Excluir meta geral?') && deleteGoalMut.mutate(factory.id)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
                             </div>
-                          )}
+                          ) : reps.length === 1 ? (
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button onClick={() => openEditGoal(reps[0])} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => window.confirm('Excluir esta meta?') && deleteGoalMut.mutate(reps[0].id)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
+                          ) : null}
                         </div>
 
                         {/* ── Meta Geral da Fábrica ── */}
@@ -618,7 +644,7 @@ export function Dashboard() {
                                   <div key={g.id} className="bg-white/10 hover:bg-white/15 rounded-2xl p-3 transition-colors group">
                                     <div className="flex items-start justify-between mb-1.5">
                                       <p className="text-white text-[12px] font-bold truncate flex-1">{g.rep_name}</p>
-                                      <div className="hidden group-hover:flex gap-0.5 flex-shrink-0 ml-1">
+                                      <div className="flex gap-0.5 flex-shrink-0 ml-1">
                                         <button onClick={() => openEditGoal(g)} className="p-1 rounded text-white/50 hover:text-white"><Pencil className="h-3 w-3" /></button>
                                         <button onClick={() => window.confirm('Excluir?') && deleteGoalMut.mutate(g.id)} className="p-1 rounded text-white/50 hover:text-white"><Trash2 className="h-3 w-3" /></button>
                                       </div>

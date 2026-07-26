@@ -40,7 +40,6 @@ const navPrimary: NavItem[] = [
 const navAdmin: NavItem[] = [
   { to: '/payment-conditions',  label: 'Cond. Pagam.',   icon: <CreditCard className="h-4 w-4" />, adminOnly: true },
   { to: '/integrations',        label: 'Integrações',    icon: <Plug className="h-4 w-4" />,       adminOnly: true },
-  { to: '/metas-fabricas',      label: 'Metas Fábricas', icon: <Target className="h-4 w-4" />,     adminOnly: true },
   { to: '/price-tables',        label: 'Tabelas',        icon: <Tags className="h-4 w-4" />,       adminOnly: true },
   { to: '/factories',           label: 'Fábricas',       icon: <Building2 className="h-4 w-4" />,  adminOnly: true },
   { to: '/statuses',            label: 'Status',         icon: <Package className="h-4 w-4" />,    adminOnly: true },
