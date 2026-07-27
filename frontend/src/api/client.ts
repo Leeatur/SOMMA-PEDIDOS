@@ -361,6 +361,8 @@ export const ordersApi = {
     apiClient.post(`/orders/${id}/faturamentos`, data),
   deleteFaturamento: (id: string, fatId: number) =>
     apiClient.delete(`/orders/${id}/faturamentos/${fatId}`),
+  encerrarFaturamento: (id: string) =>
+    apiClient.post(`/orders/${id}/encerrar-faturamento`),
 }
 
 export const reportsApi = {

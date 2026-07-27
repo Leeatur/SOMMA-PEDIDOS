@@ -1383,6 +1383,7 @@ async function recalcFaturamentos(orderId: string) {
     UPDATE orders o SET
       valor_faturado_fabrica = (SELECT SUM(valor) FROM order_faturamentos WHERE order_id = $1),
       faturamento_status = CASE
+        WHEN o.faturamento_status = 'encerrado' THEN 'encerrado'
         WHEN NOT EXISTS (SELECT 1 FROM order_faturamentos WHERE order_id = $1) THEN 'pendente'
         WHEN (SELECT SUM(valor) FROM order_faturamentos WHERE order_id = $1) >= o.total_value THEN 'liquidado'
         ELSE 'parcial'
@@ -1390,6 +1391,15 @@ async function recalcFaturamentos(orderId: string) {
       updated_at = NOW()
     WHERE id = $1
   `, [orderId])
+}
+
+export async function encerrarFaturamento(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  await query(
+    `UPDATE orders SET faturamento_status = 'encerrado', updated_at = NOW() WHERE id = $1`,
+    [id]
+  )
+  res.json({ ok: true })
 }
 
 export async function listFaturamentos(req: AuthRequest, res: Response) {

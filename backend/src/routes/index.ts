@@ -124,6 +124,7 @@ router.patch('/orders/:id/sem-comissao', authenticate, requireAdmin, orders.upda
 router.get('/orders/:id/faturamentos', authenticate, requireAdmin, orders.listFaturamentos)
 router.post('/orders/:id/faturamentos', authenticate, requireAdmin, orders.addFaturamento)
 router.delete('/orders/:id/faturamentos/:fatId', authenticate, requireAdmin, orders.deleteFaturamento)
+router.post('/orders/:id/encerrar-faturamento', authenticate, requireAdmin, orders.encerrarFaturamento)
 router.delete('/orders/:id/commission', authenticate, requireAdmin, orders.resetOrderCommission)
 router.put('/orders/:id/price-table', authenticate, orders.changeOrderPriceTable)
 router.patch('/orders/:id/restore', authenticate, requireAdmin, orders.restoreOrder)

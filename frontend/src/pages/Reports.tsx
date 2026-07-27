@@ -72,7 +72,7 @@ interface CommissionRow {
   guide_commission_pct?: number
   commission_manual_override: boolean
   valor_faturado_fabrica: number | null
-  faturamento_status: 'pendente' | 'parcial' | 'liquidado'
+  faturamento_status: 'pendente' | 'parcial' | 'liquidado' | 'encerrado'
   sem_comissao_fabrica: boolean
   valor_faturado: number
   falta_faturar: number
@@ -559,12 +559,13 @@ const GROUPS = [
 
 type SortKey = 'data_venda' | 'razao_social' | 'nr_ped_fabrica' | 'industria' | 'total_value' | 'valor_faturado_fabrica' | 'rep_commission_value'
 type SortDir = 'asc' | 'desc'
-type FatStatus = 'todos' | 'pendente' | 'parcial' | 'liquidado'
+type FatStatus = 'todos' | 'pendente' | 'parcial' | 'liquidado' | 'encerrado'
 
 function FatBadge({ status, sem }: { status: string; sem: boolean }) {
   if (sem) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-600 border border-red-100">sem com.</span>
   if (status === 'liquidado') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">✓ liquidado</span>
   if (status === 'parcial')   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-100">parcial</span>
+  if (status === 'encerrado') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">⊘ encerrado</span>
   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">pendente</span>
 }
 
@@ -638,6 +639,14 @@ function FechamentoTab({
     mutationFn: ({ id, sem_comissao }: { id: string; sem_comissao: boolean }) =>
       ordersApi.updateSemComissao(id, { sem_comissao }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rpt-commissions'] }),
+  })
+
+  const encerrarMut = useMutation({
+    mutationFn: (id: string) => ordersApi.encerrarFaturamento(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
+      setExpandedId(null)
+    },
   })
 
   function openEdit(r: CommissionRow) {
@@ -721,6 +730,7 @@ function FechamentoTab({
   const pendRows = allRows.filter(r => (r.faturamento_status ?? 'pendente') === 'pendente')
   const parcRows = allRows.filter(r => r.faturamento_status === 'parcial')
   const liqRows  = allRows.filter(r => r.faturamento_status === 'liquidado')
+  const encRows  = allRows.filter(r => r.faturamento_status === 'encerrado')
   const totalComEfetiva = allRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
 
   // Grupos por rep
@@ -767,7 +777,7 @@ function FechamentoTab({
           </select>
         )}
         <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden text-[12px]">
-          {(['todos', 'pendente', 'parcial', 'liquidado'] as FatStatus[]).map(s => (
+          {(['todos', 'pendente', 'parcial', 'liquidado', 'encerrado'] as FatStatus[]).map(s => (
             <button
               key={s}
               onClick={() => setStatusFilt(s)}
@@ -776,7 +786,7 @@ function FechamentoTab({
               {s === 'todos' ? 'todos' : s}
               {s !== 'todos' && (
                 <span className="ml-1 opacity-60">
-                  ({s === 'pendente' ? pendRows.length : s === 'parcial' ? parcRows.length : liqRows.length})
+                  ({s === 'pendente' ? pendRows.length : s === 'parcial' ? parcRows.length : s === 'liquidado' ? liqRows.length : encRows.length})
                 </span>
               )}
             </button>
@@ -908,10 +918,14 @@ function FechamentoTab({
                                           </div>
                                         ))}
                                       </div>
-                                      <div className="flex gap-4 mt-2 px-1 text-[11px]">
+                                      <div className="flex gap-4 mt-2 px-1 text-[11px] flex-wrap">
                                         <span className="text-gray-500">Total faturado: <span className="font-semibold text-blue-700">{fmtR(totalFat)}</span></span>
-                                        <span className={saldo > 0.01 ? 'text-amber-600 font-semibold' : 'text-emerald-600 font-semibold'}>
-                                          {saldo > 0.01 ? `Saldo a faturar: ${fmtR(saldo)}` : '✅ Totalmente faturado'}
+                                        <span className={saldo > 0.01 ? 'text-amber-600 font-semibold' : saldo < -0.01 ? 'text-blue-600 font-semibold' : 'text-emerald-600 font-semibold'}>
+                                          {saldo > 0.01
+                                            ? `Saldo a faturar: ${fmtR(saldo)}`
+                                            : saldo < -0.01
+                                              ? `Faturado acima do pedido: +${fmtR(Math.abs(saldo))}`
+                                              : '✅ Totalmente faturado'}
                                         </span>
                                       </div>
                                     </div>
@@ -941,7 +955,19 @@ function FechamentoTab({
                                         className="rounded" />
                                       Sem comissão do fornecedor
                                     </label>
-                                    <button onClick={() => setExpandedId(null)} className="h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50 ml-auto">
+                                    {r.faturamento_status === 'encerrado' ? (
+                                      <span className="text-[11px] text-slate-400 ml-auto italic">Faturamento encerrado</span>
+                                    ) : faturamentos.length > 0 && (
+                                      <button
+                                        onClick={() => { if (confirm('Encerrar o faturamento deste pedido? O saldo restante não será mais cobrado.')) encerrarMut.mutate(r.id) }}
+                                        disabled={encerrarMut.isPending}
+                                        className="h-8 px-3 text-[12px] border border-slate-300 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 ml-auto"
+                                        title="Encerrar faturamento — saldo restante não será cobrado"
+                                      >
+                                        ⊘ Encerrar faturamento
+                                      </button>
+                                    )}
+                                    <button onClick={() => setExpandedId(null)} className="h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50">
                                       Fechar
                                     </button>
                                   </div>
