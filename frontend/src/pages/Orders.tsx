@@ -631,25 +631,6 @@ export function Orders() {
                 <Download className="h-4 w-4" />
                 Exportar
               </button>
-              {isAdmin && (
-                <button
-                  onClick={async () => {
-                    const today = new Date().toISOString().split('T')[0]
-                    const r = await apiClient.get('/orders/erp-daily', { params: { date: today }, responseType: 'blob' })
-                    const url = URL.createObjectURL(new Blob([r.data]))
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `pedidos-erp-${today}.xlsx`
-                    a.click()
-                    URL.revokeObjectURL(url)
-                  }}
-                  className="flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors text-violet-700 border-violet-300 bg-violet-50 hover:bg-violet-100"
-                  title="Exportar todos os pedidos de hoje para o ERP (XLSX)"
-                >
-                  <Download className="h-4 w-4" />
-                  ERP Hoje
-                </button>
-              )}
               <button
                 onClick={() => setShowSummary(!showSummary)}
                 className={`flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors ${
