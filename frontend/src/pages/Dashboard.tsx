@@ -499,7 +499,10 @@ export function Dashboard() {
                       ? `+${s.fmt(s.achieved - s.target)}${s.unit} da meta`
                       : s.raw >= 100 ? '✅ Meta atingida!' : `Faltam ${s.fmt(Math.max(0, s.target - s.achieved))}${s.unit}`}
                   </span>
-                  <span className="text-[13px] font-bold" style={{ color }}>{isOver ? `🏆 ${s.raw.toFixed(1)}%` : `${s.raw.toFixed(1)}%`}</span>
+                  <span className="font-bold flex items-center gap-1" style={{ color }}>
+                    {isOver && <span className="text-[20px] leading-none">🏆</span>}
+                    <span className={isOver ? 'text-[15px]' : 'text-[13px]'}>{s.raw.toFixed(1)}%</span>
+                  </span>
                 </div>
               </div>
             )
@@ -584,7 +587,10 @@ export function Dashboard() {
                                     <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
                                       <div className="h-full rounded-full" style={{ width: `${s.pct}%`, backgroundColor: color }} />
                                     </div>
-                                    <p className="text-[10px] mt-1 font-bold text-right" style={{ color }}>{isOver ? `🏆 ${s.raw.toFixed(0)}%` : `${s.raw.toFixed(0)}%`}</p>
+                                    <div className="flex items-center justify-end gap-1 mt-1">
+                                      {isOver && <span className="text-[16px] leading-none">🏆</span>}
+                                      <span className={`font-bold ${isOver ? 'text-[13px]' : 'text-[10px]'}`} style={{ color }}>{s.raw.toFixed(0)}%</span>
+                                    </div>
                                   </div>
                                 )
                               })}
