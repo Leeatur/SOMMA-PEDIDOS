@@ -1,3 +1,7 @@
+Antes de gerar ou modificar qualquer componente de UI, leia DESIGN.md
+e siga rigorosamente todas as regras. Este documento é lei. Se um pedido
+conflitar com o DESIGN.md, aponte o conflito antes de implementar.
+
 # SOMMA PEDIDOS — Contexto para o Claude
 
 ## O que é o sistema
