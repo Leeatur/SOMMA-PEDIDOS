@@ -808,12 +808,12 @@ export function OrderDetail() {
                           <div className="overflow-x-auto scrollbar-hide">
                               <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
                                 <thead className="bg-surface-container-low sticky top-0 z-10">
-                                  <tr>{sortSizesDetail(Object.keys(item.sizes)).map(s => (
+                                  <tr>{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s] || 0) > 0)).map(s => (
                                     <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
                                   ))}<th className="px-2 py-1 text-center text-outline border-l border-outline-variant">Total</th></tr>
                                 </thead>
                                 <tbody>
-                                  <tr className="bg-white">{sortSizesDetail(Object.keys(item.sizes)).map(s => (
+                                  <tr className="bg-white">{sortSizesDetail(Object.keys(item.sizes).filter(s => (item.sizes![s] || 0) > 0)).map(s => (
                                     <td key={s} className="px-2 py-1 text-center text-on-surface">
                                       {item.sizes![s] || 0}
                                     </td>
