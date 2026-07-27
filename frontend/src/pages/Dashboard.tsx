@@ -9,7 +9,7 @@ import { formatCurrency, formatOrderNumber } from '../utils/format'
 
 interface Order {
   id: string; order_number: number; client_name: string; factory_name: string
-  client_city?: string; price_table_name?: string
+  client_city?: string
   total_value: number; total_pieces: number; status_name: string
   status_color: string; status_id: string; created_at: string; rep_name: string
   rep_commission_value: number
@@ -40,10 +40,26 @@ interface DaySaleRow {
 
 interface Goal {
   id: string; type: 'factory'|'rep'|'office'; factory_id: string|null; rep_id: string|null
-  label: string; target_pieces: number; target_value: number
-  period_label: string|null; period_start: string|null; period_end: string|null
-  factory_name: string|null; rep_name: string|null
-  achieved_pieces: number; achieved_value: number
+  label: string; target_pieces: number; period_label: string|null
+  factory_name: string|null; rep_name: string|null; achieved_pieces: number
+  metric: string; target_value: number; achieved_value: number
+  // Janela de apuração: só os pedidos entre essas datas entram no realizado.
+  period_from: string|null; period_to: string|null
+  // Meta de vendedor: a qual meta geral (fábrica/coleção) ela pertence.
+  parent_goal_id: string|null
+}
+
+// Estatística da meta na unidade certa (peças ou R$)
+function goalStats(g: Goal) {
+  const isVal = g.metric === 'valor'
+  const target = isVal ? Number(g.target_value) || 0 : g.target_pieces
+  const achieved = isVal ? Number(g.achieved_value) || 0 : g.achieved_pieces
+  const raw = target > 0 ? (achieved / target) * 100 : 0
+  const pct = Math.min(100, raw)
+  const fmt = (v: number) => isVal ? 'R$ ' + Math.round(v).toLocaleString('pt-BR') : v.toLocaleString('pt-BR')
+  const short = (v: number) => isVal ? 'R$ ' + Math.round(v / 1000) + 'k' : Math.round(v / 1000) + 'k'
+  const unit = isVal ? '' : ' pç'
+  return { isVal, target, achieved, pct, raw, fmt, short, unit }
 }
 
 export function Dashboard() {
@@ -53,42 +69,23 @@ export function Dashboard() {
   const isAdmin = user?.role === 'admin'
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
-  const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', target_value: '', period_label: '', period_start: '', period_end: '' })
+  const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', target_value: '', metric: 'pecas', period_label: '', period_from: '', period_to: '', parent_goal_id: '' })
   const [cardModal, setCardModal] = useState<string | null>(null)
 
   // Filtro de período
   const spDate = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
-  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); d.setDate(1); return spDate(d) }) // início do mês
+  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 29); return spDate(d) }) // últimos 30 dias
   const [dateTo,   setDateTo]   = useState(() => spDate(new Date()))
-  const [pendingFrom, setPendingFrom] = useState(() => { const d = new Date(); d.setDate(1); return spDate(d) })
-  const [pendingTo,   setPendingTo]   = useState(() => spDate(new Date()))
-  const [activePeriod, setActivePeriod] = useState('month')
-  const [collectionFilter, setCollectionFilter] = useState<string | null>(null)
-  const [filterYear, setFilterYear] = useState(() => new Date().getFullYear())
-
-  const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+  const [activePeriod, setActivePeriod] = useState('30d')
 
   function setPeriod(p: string) {
     setActivePeriod(p)
     const now = new Date()
-    if (p === 'today')   { setDateFrom(spDate(now)); setDateTo(spDate(now)) }
-    if (p === '7d')      { const d=new Date(now); d.setDate(d.getDate()-6); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
-    if (p === '30d')     { const d=new Date(now); d.setDate(d.getDate()-29); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
-    if (p === 'month')   { const d=new Date(now); d.setDate(1); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
-    if (p === 'prevmonth') {
-      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const last  = new Date(now.getFullYear(), now.getMonth(), 0)
-      setDateFrom(spDate(first)); setDateTo(spDate(last))
-    }
-    if (p === 'custom')  { setPendingFrom(dateFrom); setPendingTo(dateTo) }
-  }
-
-  function setMonth(month: number) {
-    const from = new Date(filterYear, month - 1, 1)
-    const to   = new Date(filterYear, month, 0)
-    setDateFrom(spDate(from))
-    setDateTo(spDate(to))
-    setActivePeriod(`${filterYear}-${String(month).padStart(2,'0')}`)
+    if (p === 'today')  { setDateFrom(spDate(now)); setDateTo(spDate(now)) }
+    if (p === '7d')     { const d=new Date(now); d.setDate(d.getDate()-6); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === '30d')    { const d=new Date(now); d.setDate(d.getDate()-29); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === 'month')  { const d=new Date(now); d.setDate(1); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === 'custom') { /* usuário digita nas caixas */ }
   }
 
   // Usa horário de Brasília (America/Sao_Paulo) para evitar bug de timezone UTC vs UTC-3
@@ -114,11 +111,13 @@ export function Dashboard() {
     queryFn: () => usersApi.list().then(r => r.data),
     enabled: isAdmin,
   })
+  // Todos os usuários (admins que vendem + vendedores) podem ter meta com régua.
   const reps = repUsers
 
   const createGoalMut = useMutation({
     mutationFn: (data: object) => editingGoal ? goalsApi.update(editingGoal.id, data) : goalsApi.create(data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['goals'] }); setShowGoalModal(false); setEditingGoal(null) },
+    onError: (err: unknown) => { alert(`Erro ao salvar meta: ${err instanceof Error ? err.message : 'Tente novamente'}`) },
   })
   const deleteGoalMut = useMutation({
     mutationFn: (id: string) => goalsApi.delete(id),
@@ -127,12 +126,29 @@ export function Dashboard() {
 
   function openNewGoal() {
     setEditingGoal(null)
-    setGoalForm({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', target_value: '', period_label: '', period_start: '', period_end: '' })
+    setGoalForm({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', target_value: '', metric: 'pecas', period_label: '', period_from: '', period_to: '', parent_goal_id: '' })
+    setShowGoalModal(true)
+  }
+  // "+ Vendedor" dentro do card de uma meta geral: já abre com a fábrica/coleção
+  // travada nela — o usuário só escolhe o vendedor e o alvo. Herda fábrica, unidade
+  // e período da meta geral para o realizado do vendedor fechar com ela.
+  function openNewRepGoal(factoryId: string, factoryGoal: Goal | null) {
+    setEditingGoal(null)
+    setGoalForm({
+      type: 'rep', factory_id: factoryId, rep_id: '',
+      label: factoryGoal?.label || '',
+      target_pieces: '', target_value: '',
+      metric: factoryGoal?.metric || 'pecas',
+      period_label: factoryGoal?.period_label || '',
+      period_from: (factoryGoal?.period_from || '').slice(0, 10),
+      period_to: (factoryGoal?.period_to || '').slice(0, 10),
+      parent_goal_id: factoryGoal?.id || '',
+    })
     setShowGoalModal(true)
   }
   function openEditGoal(g: Goal) {
     setEditingGoal(g)
-    setGoalForm({ type: g.type, factory_id: g.factory_id||'', rep_id: g.rep_id||'', label: g.label, target_pieces: String(g.target_pieces), target_value: g.target_value ? String(g.target_value) : '', period_label: g.period_label||'', period_start: g.period_start||'', period_end: g.period_end||'' })
+    setGoalForm({ type: g.type, factory_id: g.factory_id||'', rep_id: g.rep_id||'', label: g.label, target_pieces: String(g.target_pieces||''), target_value: String(g.target_value||''), metric: g.metric||'pecas', period_label: g.period_label||'', period_from: (g.period_from||'').slice(0,10), period_to: (g.period_to||'').slice(0,10), parent_goal_id: g.parent_goal_id||'' })
     setShowGoalModal(true)
   }
 
@@ -150,14 +166,10 @@ export function Dashboard() {
     return d === today
   })
 
-  const collections = [...new Set(allOrders.map(o => o.price_table_name).filter((n): n is string => !!n))].sort()
-
-  // Pedidos filtrados pelo período e coleção selecionados
+  // Pedidos filtrados pelo período selecionado
   const filteredOrders = allOrders.filter(o => {
     const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
-    const inPeriod = d >= dateFrom && d <= dateTo
-    const inCollection = !collectionFilter || o.price_table_name === collectionFilter
-    return inPeriod && inCollection
+    return d >= dateFrom && d <= dateTo
   })
 
   const totalValue  = filteredOrders.reduce((s, o) => s + Number(o.total_value), 0)
@@ -230,15 +242,15 @@ export function Dashboard() {
     <div className="pb-24 lg:pb-8 min-h-full">
 
       {/* ─── Hero header ─────────────────────────────────── */}
-      <div className="relative px-5 pt-3 pb-3 lg:px-8 lg:pt-4 lg:pb-4"
-        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}>
+      <div className="relative px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10"
+        style={{ background: 'linear-gradient(135deg, #0F1923 0%, #16242f 40%, #1c2c38 100%)' }}>
         {/* Linha decorativa sutil na base */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
 
-        <p className="text-white/60 text-[11px] font-medium tracking-wide uppercase">{greeting()}</p>
-        <h1 className="font-display text-[24px] lg:text-[28px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
-        <p className="text-white/50 text-[11px] mt-0.5">
-          {isAdmin ? 'Administrador' : 'Representante'} &bull;{' '}
+        <p className="text-white/60 text-[12px] font-medium tracking-wide uppercase">{greeting()}</p>
+        <h1 className="font-display text-[34px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
+        <p className="text-white/50 text-[12px] mt-1.5">
+          {isAdmin ? 'Usuário/Admin' : 'Vendedor'} &bull;{' '}
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
 
@@ -251,16 +263,15 @@ export function Dashboard() {
       </div>
 
       {/* ─── Filtro de período ───────────────────────────── */}
-      <div className="pt-3 pb-4 lg:pb-3" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}>
+      <div className="pt-3 pb-1">
         {/* Filtros — scroll horizontal no mobile */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pb-1">
           {[
-            { id: 'today',     label: 'Hoje' },
-            { id: '7d',        label: '7 dias' },
-            { id: '30d',       label: '30 dias' },
-            { id: 'month',     label: 'Este mês' },
-            { id: 'prevmonth', label: 'Mês ant.' },
-            { id: 'custom',    label: 'Personalizado' },
+            { id: 'today', label: 'Hoje' },
+            { id: '7d',    label: '7 dias' },
+            { id: '30d',   label: '30 dias' },
+            { id: 'month', label: 'Este mês' },
+            { id: 'custom',label: 'Personalizado' },
           ].map(p => (
             <button key={p.id} onClick={() => setPeriod(p.id)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-xl text-[13px] font-semibold border transition-colors active:scale-95 ${
@@ -272,61 +283,13 @@ export function Dashboard() {
             </button>
           ))}
         </div>
-        {/* Meses */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide px-4 lg:px-8 pb-1 mt-1.5">
-          <button onClick={() => setFilterYear(y => y - 1)} className="flex-shrink-0 px-1.5 py-1 text-white/50 hover:text-white text-[12px] leading-none">‹</button>
-          <span className="flex-shrink-0 text-white/50 text-[11px] font-semibold w-[3ch] text-center">{filterYear}</span>
-          <button onClick={() => setFilterYear(y => y + 1)} className="flex-shrink-0 px-1.5 py-1 text-white/50 hover:text-white text-[12px] leading-none">›</button>
-          <div className="w-px h-3.5 bg-white/20 flex-shrink-0 mx-0.5" />
-          {MONTHS_PT.map((m, i) => {
-            const key = `${filterYear}-${String(i + 1).padStart(2,'0')}`
-            return (
-              <button key={m} onClick={() => setMonth(i + 1)}
-                className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors active:scale-95 ${
-                  activePeriod === key
-                    ? 'bg-white text-primary border-white shadow-sm'
-                    : 'bg-white/10 text-white/70 border-white/15 hover:bg-white/20'
-                }`}>
-                {m}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Coleção */}
-        {collections.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide px-4 lg:px-8 pb-1 mt-1">
-            <span className="flex-shrink-0 text-white/40 text-[10px] font-semibold uppercase tracking-wide pr-1">Coleção</span>
-            <button onClick={() => setCollectionFilter(null)}
-              className={`flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold border transition-colors active:scale-95 ${
-                !collectionFilter ? 'bg-white text-primary border-white shadow-sm' : 'bg-white/10 text-white/70 border-white/15 hover:bg-white/20'
-              }`}>
-              Todos
-            </button>
-            {collections.map(col => (
-              <button key={col} onClick={() => setCollectionFilter(col === collectionFilter ? null : col)}
-                className={`flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold border transition-colors active:scale-95 ${
-                  collectionFilter === col ? 'bg-white text-primary border-white shadow-sm' : 'bg-white/10 text-white/70 border-white/15 hover:bg-white/20'
-                }`}>
-                {col}
-              </button>
-            ))}
-          </div>
-        )}
-
         {activePeriod === 'custom' && (
           <div className="flex items-center gap-2 px-4 lg:px-8 mt-2 flex-wrap">
-            <input type="date" value={pendingFrom} onChange={e => setPendingFrom(e.target.value)}
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
               className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
             <span className="text-white/60 text-[12px] flex-shrink-0">até</span>
-            <input type="date" value={pendingTo} onChange={e => setPendingTo(e.target.value)}
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
               className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            <button
-              onClick={() => { setDateFrom(pendingFrom); setDateTo(pendingTo) }}
-              className="flex-shrink-0 px-4 py-1.5 rounded-xl text-[12px] font-bold bg-white text-primary hover:bg-white/90 transition-colors"
-            >
-              Aplicar
-            </button>
           </div>
         )}
         {activePeriod !== 'today' && (
@@ -336,12 +299,12 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* ─── Stat cards ─────────────────────────────────── */}
-      <div className="px-4 lg:px-8 mt-3">
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      {/* ─── Stat cards — overlap hero ──────────────────── */}
+      <div className="px-4 lg:px-8 -mt-5">
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
 
           <StatCard
-            icon={<ShoppingCart className="h-3.5 w-3.5 text-blue-600" />}
+            icon={<ShoppingCart className="h-4.5 w-4.5 text-blue-600" />}
             iconBg="bg-blue-100"
             label="Total de pedidos"
             value={isAdmin ? filteredOrders.length.toString() : formatCurrency(totalValue)}
@@ -351,7 +314,7 @@ export function Dashboard() {
           />
 
           <StatCard
-            icon={<Clock className="h-3.5 w-3.5 text-emerald-600" />}
+            icon={<Clock className="h-4.5 w-4.5 text-emerald-600" />}
             iconBg="bg-emerald-100"
             label="Pedidos hoje"
             value={isAdmin ? todayOrders.length.toString() : formatCurrency(todayValue)}
@@ -364,7 +327,7 @@ export function Dashboard() {
 
           {isAdmin && (
             <StatCard
-              icon={<TrendingUp className="h-3.5 w-3.5 text-violet-600" />}
+              icon={<TrendingUp className="h-4.5 w-4.5 text-violet-600" />}
               iconBg="bg-violet-100"
               label="Total vendas"
               value={formatCurrency(totalValue)}
@@ -375,7 +338,7 @@ export function Dashboard() {
 
           {isAdmin && (
             <StatCard
-              icon={<CheckCircle className="h-3.5 w-3.5 text-amber-600" />}
+              icon={<CheckCircle className="h-4.5 w-4.5 text-amber-600" />}
               iconBg="bg-amber-100"
               label="Vendido hoje"
               value={formatCurrency(todayValue)}
@@ -390,13 +353,13 @@ export function Dashboard() {
 
       {/* ─── Cards extras Admin ──────────────────────────── */}
       {isAdmin && (
-        <div className="px-4 lg:px-8 mt-2 space-y-2">
+        <div className="px-4 lg:px-8 mt-2 space-y-2.5">
 
           {/* Row 1: cards de comissão — fábrica (Loja/Escritório/Guia), distribuidora (só rep) ou padrão SOMMA */}
           {factoryComm ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2.5">
               <StatCard
-                icon={<Award className="h-3.5 w-3.5 text-teal-600" />}
+                icon={<Award className="h-4.5 w-4.5 text-teal-600" />}
                 iconBg="bg-teal-100"
                 label="Comissão Loja"
                 value={formatCurrency(totalRepComm)}
@@ -404,7 +367,7 @@ export function Dashboard() {
                 onClick={() => setCardModal('comissao_rep')}
               />
               <StatCard
-                icon={<Award className="h-3.5 w-3.5 text-indigo-600" />}
+                icon={<Award className="h-4.5 w-4.5 text-indigo-600" />}
                 iconBg="bg-indigo-100"
                 label="Comissão Representante"
                 value={formatCurrency(totalOfficeComm)}
@@ -412,7 +375,7 @@ export function Dashboard() {
                 onClick={() => setCardModal('comissao')}
               />
               <StatCard
-                icon={<Award className="h-3.5 w-3.5 text-amber-600" />}
+                icon={<Award className="h-4.5 w-4.5 text-amber-600" />}
                 iconBg="bg-amber-100"
                 label="Comissão Guia"
                 value={formatCurrency(totalGuideComm)}
@@ -421,10 +384,10 @@ export function Dashboard() {
               />
             </div>
           ) : (
-          <div className={singleComm ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-2 lg:grid-cols-3 gap-2'}>
+          <div className={singleComm ? 'grid grid-cols-1 gap-2.5' : 'grid grid-cols-3 gap-2.5'}>
             {!singleComm && (
               <StatCard
-                icon={<Award className="h-3.5 w-3.5 text-emerald-600" />}
+                icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
                 iconBg="bg-emerald-100"
                 label="Com. Escritório s/ Repres."
                 value={formatCurrency(commEscritorioSobreRep)}
@@ -433,7 +396,7 @@ export function Dashboard() {
               />
             )}
             <StatCard
-              icon={<Award className="h-3.5 w-3.5 text-teal-600" />}
+              icon={<Award className="h-4.5 w-4.5 text-teal-600" />}
               iconBg="bg-teal-100"
               label={singleComm ? 'Comissão' : 'Comissão Representantes'}
               value={formatCurrency(totalRepComm)}
@@ -442,7 +405,7 @@ export function Dashboard() {
             />
             {!singleComm && (
               <StatCard
-                icon={<Award className="h-3.5 w-3.5 text-indigo-600" />}
+                icon={<Award className="h-4.5 w-4.5 text-indigo-600" />}
                 iconBg="bg-indigo-100"
                 label="Comissão Total Escritório"
                 value={formatCurrency(totalOfficeComm)}
@@ -454,9 +417,9 @@ export function Dashboard() {
           )}
 
           {/* Row 2: Peças, Ticket, Clientes */}
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
             <StatCard
-              icon={<Package className="h-3.5 w-3.5 text-violet-600" />}
+              icon={<Package className="h-4.5 w-4.5 text-violet-600" />}
               iconBg="bg-violet-100"
               label="Total de Peças"
               value={totalPieces.toLocaleString('pt-BR')}
@@ -464,7 +427,7 @@ export function Dashboard() {
               onClick={() => setCardModal('pecas')}
             />
             <StatCard
-              icon={<TrendingUp className="h-3.5 w-3.5 text-blue-600" />}
+              icon={<TrendingUp className="h-4.5 w-4.5 text-blue-600" />}
               iconBg="bg-blue-100"
               label="Ticket Médio"
               value={formatCurrency(ticketMedio)}
@@ -472,7 +435,7 @@ export function Dashboard() {
               onClick={() => setCardModal('ticket')}
             />
             <StatCard
-              icon={<Users className="h-3.5 w-3.5 text-amber-600" />}
+              icon={<Users className="h-4.5 w-4.5 text-amber-600" />}
               iconBg="bg-amber-100"
               label="Clientes Atendidos"
               value={uniqueClients.toString()}
@@ -485,97 +448,66 @@ export function Dashboard() {
 
       <div className="px-4 lg:px-8 mt-3 space-y-3">
 
-        {/* ─── Admin: Metas por Fábrica ────────────────── */}
+        {/* ─── Admin: Metas agrupadas por marca ────────── */}
         {isAdmin && (() => {
-          // Agrupa de forma inteligente:
-          // 1ª passagem: cria grupos para metas de fábrica
-          const groups: Record<string, { factory: Goal|null; reps: Goal[]; factoryName: string }> = {}
-          const factoryIdToKey: Record<string, string> = {}
-          const factoryNameToKey: Record<string, string> = {}
-
-          goals.filter(g => g.type === 'factory').forEach(g => {
-            const key = g.factory_id || g.label.split(' ')[0]
+          // Agrupar por factory_id — funciona mesmo sem meta de fábrica criada.
+          // factory goals aparecem como "Meta Geral"; rep goals como cards individuais.
+          type Group = { factory: Goal | null; reps: Goal[]; factoryId: string; factoryName: string }
+          const groups: Record<string, Group> = {}
+          goals.filter(g => g.type === 'factory' || g.type === 'rep').forEach(g => {
+            const fid = g.factory_id || `__${g.id}__`
             const fname = g.factory_name || g.label.split(' ')[0]
-            groups[key] = { factory: g, reps: [], factoryName: fname }
-            if (g.factory_id) factoryIdToKey[g.factory_id] = key
-            if (fname) factoryNameToKey[fname.toUpperCase()] = key
+            if (!groups[fid]) groups[fid] = { factory: null, reps: [], factoryId: g.factory_id || '', factoryName: fname }
+            if (g.type === 'factory') groups[fid].factory = g
+            else groups[fid].reps.push(g)
           })
+          const brandList = Object.keys(groups).sort((a, b) =>
+            groups[a].factoryName.localeCompare(groups[b].factoryName)
+          )
 
-          // 2ª passagem: distribui metas de rep nos grupos corretos
-          goals.filter(g => g.type === 'rep').forEach(g => {
-            let key: string | undefined
-            // Tenta por factory_id primeiro
-            if (g.factory_id && factoryIdToKey[g.factory_id]) key = factoryIdToKey[g.factory_id]
-            // Tenta por factory_name
-            else if (g.factory_name && factoryNameToKey[g.factory_name.toUpperCase()]) key = factoryNameToKey[g.factory_name.toUpperCase()]
-            // Retrocompatibilidade: primeira palavra do label
-            else {
-              const prefix = g.label.split(' ')[0]
-              key = factoryNameToKey[prefix.toUpperCase()] || prefix
-              if (!groups[key]) groups[key] = { factory: null, reps: [], factoryName: g.factory_name || prefix }
-            }
-            groups[key!].reps.push(g)
-          })
-
-          const groupKeys = Object.keys(groups).sort((a, b) => groups[a].factoryName.localeCompare(groups[b].factoryName))
-
-          const brandGradients: Record<string, { from: string; to: string }> = {
-            OUZZARE: { from: '#312e81', to: '#1e1b4b' },
-            TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
-          }
-
-          function goalColor(raw: number): string {
-            return raw > 100 ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
-          }
-
-          function GoalBar({ g, large = false }: { g: Goal; large?: boolean }) {
-            const pRaw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
-            const vRaw = g.target_value > 0 ? (g.achieved_value / g.target_value) * 100 : 0
-            const pColor = goalColor(pRaw)
-            const vColor = goalColor(vRaw)
+          const GoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
+            const s = goalStats(g)
+            const isOver = s.raw > 100
+            const color = isOver ? '#F59E0B' : s.raw >= 100 ? '#10B981' : s.raw >= 70 ? '#F59E0B' : s.raw >= 40 ? '#3B82F6' : '#EF4444'
             return (
-              <div className="space-y-3">
-                {/* Peças */}
-                <div className="space-y-1">
-                  <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Peças</p>
-                  <div className="flex items-end justify-between gap-2">
-                    <span className={`font-black leading-none min-w-0 ${large ? 'text-[36px]' : 'text-[22px]'}`} style={{ color: pColor }}>
-                      {g.achieved_pieces.toLocaleString('pt-BR')}
-                    </span>
-                    <span className="text-[11px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
-                  </div>
-                  <div className={`w-full bg-black/20 rounded-full overflow-hidden ${large ? 'h-2.5' : 'h-2'}`}>
-                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, pRaw)}%`, backgroundColor: pColor }} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-white/60">
-                      {pRaw > 100
-                        ? `+${(g.achieved_pieces - g.target_pieces).toLocaleString('pt-BR')} pç da meta`
-                        : pRaw >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
-                    </span>
-                    <span className="text-[12px] font-bold" style={{ color: pColor }}>{pRaw > 100 ? `🏆 ${pRaw.toFixed(1)}%` : `${pRaw.toFixed(1)}%`}</span>
-                  </div>
+              <div className="space-y-1">
+                <div className="flex items-end justify-between gap-2">
+                  <span className={`font-bold leading-none ${large ? 'text-[32px]' : 'text-[20px]'}`} style={{ color }}>
+                    {s.fmt(s.achieved)}
+                  </span>
+                  <span className="text-[11px] text-outline pb-1">/ {s.fmt(s.target)}{s.unit}</span>
                 </div>
-                {/* Valor */}
-                {g.target_value > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Valor</p>
-                    <div className="flex items-end justify-between gap-2">
-                      <span className={`font-black leading-none min-w-0 ${large ? 'text-[28px]' : 'text-[18px]'}`} style={{ color: vColor }}>
-                        {formatCurrency(g.achieved_value)}
-                      </span>
-                      <span className="text-[11px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {formatCurrency(g.target_value)}</span>
+                {/* Passando de 100%, a régua ganha escala: a barra avança além da meta
+                    e um tracinho branco marca onde ficava o 100%. Antes ela travava
+                    cheia e não dava pra ver o quanto passou. */}
+                {(() => {
+                  const escala   = isOver ? Math.max(120, s.raw + 15) : 100
+                  const largura  = Math.min(100, (s.raw / escala) * 100)
+                  const posMeta  = (100 / escala) * 100
+                  return (
+                    <div className={`relative w-full bg-black/10 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${largura}%`, backgroundColor: color }} />
+                      {isOver && (
+                        <div className="absolute top-0 h-full w-0.5 bg-white/80" style={{ left: `${posMeta}%` }} />
+                      )}
                     </div>
-                    <div className="w-full bg-black/20 rounded-full overflow-hidden h-2">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, vRaw)}%`, backgroundColor: vColor }} />
-                    </div>
-                    <div className="flex justify-end">
-                      <span className="text-[12px] font-bold" style={{ color: vColor }}>{vRaw > 100 ? `🏆 ${vRaw.toFixed(1)}%` : `${vRaw.toFixed(1)}%`}</span>
-                    </div>
-                  </div>
-                )}
+                  )
+                })()}
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-white/70">
+                    {isOver
+                      ? `+${s.fmt(s.achieved - s.target)}${s.unit} da meta`
+                      : s.raw >= 100 ? '✅ Meta atingida!' : `Faltam ${s.fmt(Math.max(0, s.target - s.achieved))}${s.unit}`}
+                  </span>
+                  <span className="text-[13px] font-bold" style={{ color }}>{isOver ? `🏆 ${s.raw.toFixed(1)}%` : `${s.raw.toFixed(1)}%`}</span>
+                </div>
               </div>
             )
+          }
+
+          const brandColors: Record<string, { from: string; to: string }> = {
+            OUZZARE: { from: '#312e81', to: '#1e1b4b' },
+            TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
           }
 
           return (
@@ -587,89 +519,72 @@ export function Dashboard() {
                 </button>
               </div>
 
-              {goals.length === 0 ? (
+              {brandList.length === 0 ? (
                 <button onClick={openNewGoal} className="w-full bg-white rounded-2xl border border-dashed border-outline-variant/60 p-6 text-center hover:border-primary/40 hover:bg-primary/5 transition-colors">
                   <Target className="h-7 w-7 text-outline/40 mx-auto mb-1" />
                   <p className="text-[12px] text-outline/70">Nenhuma meta cadastrada. Clique para adicionar.</p>
                 </button>
               ) : (
                 <div className="space-y-5">
-                  {groupKeys.map(key => {
-                    const { factory, reps, factoryName } = groups[key]
-                    const bc = brandGradients[factoryName] || { from: '#1f2937', to: '#111827' }
-                    const colecao = factory?.label || reps[0]?.label || ''
-                    const periodo = factory?.period_label || reps[0]?.period_label || ''
+                  {brandList.map(fid => {
+                    const { factory, reps, factoryId, factoryName } = groups[fid]
+                    const titulo = factory?.label || factoryName
+                    const bc = brandColors[factoryName.toUpperCase()] || { from: '#1f2937', to: '#111827' }
 
                     return (
-                      <div key={key} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
+                      <div key={fid} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
 
-                        {/* ── Header Fábrica ── */}
-                        <div className="px-4 lg:px-5 pt-4 pb-3 flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-0.5">{factoryName}</p>
-                            {colecao && <h3 className="text-white text-[20px] font-black tracking-tight leading-tight">{colecao}</h3>}
-                            {periodo && <p className="text-white/60 text-[12px] mt-0.5">{periodo}</p>}
+                        {/* Header da marca */}
+                        <div className="px-4 lg:px-5 pt-4 pb-3 flex items-center justify-between">
+                          <div>
+                            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">{factoryName}</p>
+                            <h3 className="text-white text-[22px] font-black tracking-tight">{titulo}</h3>
                           </div>
-                          {factory ? (
-                            <div className="flex gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => openNewRepGoal(factoryId, factory)} className="flex items-center gap-1 text-[11px] font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg px-2 py-1.5 transition-colors" title="Adicionar meta de vendedor">
+                              <Plus className="h-3.5 w-3.5" /> Vendedor
+                            </button>
+                            {factory && <>
                               <button onClick={() => openEditGoal(factory)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
                               <button onClick={() => window.confirm('Excluir meta geral?') && deleteGoalMut.mutate(factory.id)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
-                            </div>
-                          ) : reps.length === 1 ? (
-                            <div className="flex gap-1 flex-shrink-0">
-                              <button onClick={() => openEditGoal(reps[0])} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
-                              <button onClick={() => window.confirm('Excluir esta meta?') && deleteGoalMut.mutate(reps[0].id)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
-                            </div>
-                          ) : null}
+                            </>}
+                          </div>
                         </div>
 
-                        {/* ── Meta Geral da Fábrica ── */}
+                        {/* Meta geral da fábrica */}
                         {factory && (
                           <div className="px-4 lg:px-5 pb-4">
+                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
                             <GoalBar g={factory} large />
                           </div>
                         )}
 
-                        {/* ── Representantes ── */}
+                        {/* Grid de reps */}
                         {reps.length > 0 && (
                           <div className="bg-black/20 px-4 lg:px-5 py-3">
-                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-3">👥 Representantes</p>
+                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-3">👥 Por Representante</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                              {reps.sort((a, b) => b.achieved_pieces - a.achieved_pieces).map(g => {
-                                const pRaw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
-                                const vRaw = g.target_value > 0 ? (g.achieved_value / g.target_value) * 100 : 0
-                                const pColor = goalColor(pRaw)
-                                const vColor = goalColor(vRaw)
+                              {reps.slice().sort((a, b) => goalStats(b).raw - goalStats(a).raw).map(g => {
+                                const s = goalStats(g)
+                                const isOver = s.raw > 100
+                                const color = isOver ? '#F59E0B' : s.raw >= 100 ? '#10B981' : s.raw >= 70 ? '#F59E0B' : s.raw >= 40 ? '#60A5FA' : '#FCA5A5'
                                 return (
                                   <div key={g.id} className="bg-white/10 hover:bg-white/15 rounded-2xl p-3 transition-colors group">
-                                    <div className="flex items-start justify-between mb-1.5">
-                                      <p className="text-white text-[12px] font-bold truncate flex-1">{g.rep_name}</p>
-                                      <div className="flex gap-0.5 flex-shrink-0 ml-1">
+                                    <div className="flex items-start justify-between mb-2">
+                                      <p className="text-white text-[12px] font-bold truncate flex-1">{g.rep_name || g.label}</p>
+                                      <div className="hidden group-hover:flex gap-0.5 flex-shrink-0 ml-1">
                                         <button onClick={() => openEditGoal(g)} className="p-1 rounded text-white/50 hover:text-white"><Pencil className="h-3 w-3" /></button>
                                         <button onClick={() => window.confirm('Excluir?') && deleteGoalMut.mutate(g.id)} className="p-1 rounded text-white/50 hover:text-white"><Trash2 className="h-3 w-3" /></button>
                                       </div>
                                     </div>
-                                    {/* Peças */}
-                                    <div className="flex items-baseline gap-1 mb-1">
-                                      <span className="text-[18px] font-black" style={{ color: pColor }}>{g.achieved_pieces.toLocaleString('pt-BR')}</span>
-                                      <span className="text-[10px] text-white/40 flex-shrink-0">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
+                                    <div className="flex items-baseline gap-1 mb-1.5">
+                                      <span className="text-[18px] font-black" style={{ color }}>{s.fmt(s.achieved)}</span>
+                                      <span className="text-[10px] text-white/40">/ {s.short(s.target)}</span>
                                     </div>
                                     <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
-                                      <div className="h-full rounded-full" style={{ width: `${Math.min(100, pRaw)}%`, backgroundColor: pColor }} />
+                                      <div className="h-full rounded-full" style={{ width: `${s.pct}%`, backgroundColor: color }} />
                                     </div>
-                                    {/* Valor */}
-                                    {g.target_value > 0 && (
-                                      <div className="mt-2 pt-1.5 border-t border-white/10">
-                                        <div className="flex items-baseline gap-1 mb-1">
-                                          <span className="text-[13px] font-black whitespace-nowrap" style={{ color: vColor }}>{formatCurrency(g.achieved_value)}</span>
-                                          <span className="text-[10px] text-white/40 flex-shrink-0 whitespace-nowrap">/ {formatCurrency(g.target_value)}</span>
-                                        </div>
-                                        <div className="w-full bg-black/20 rounded-full h-1 overflow-hidden">
-                                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, vRaw)}%`, backgroundColor: vColor }} />
-                                        </div>
-                                      </div>
-                                    )}
-                                    <p className="text-[10px] mt-1 font-bold text-right" style={{ color: pColor }}>{pRaw > 100 ? `🏆 ${pRaw.toFixed(0)}%` : `${pRaw.toFixed(0)}%`}</p>
+                                    <p className="text-[10px] mt-1 font-bold text-right" style={{ color }}>{isOver ? `🏆 ${s.raw.toFixed(0)}%` : `${s.raw.toFixed(0)}%`}</p>
                                   </div>
                                 )
                               })}
@@ -686,7 +601,6 @@ export function Dashboard() {
         })()}
 
 
-
         {/* ─── Admin: Status e Ranking por Fábrica ──────── */}
         {isAdmin && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -700,8 +614,8 @@ export function Dashboard() {
                     <div key={name} className="flex items-center gap-3 cursor-pointer hover:bg-surface-container-low rounded-lg px-1 py-0.5 transition-colors" onClick={() => setCardModal('status_' + name)}>
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                       <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="w-16 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${(count/filteredOrders.length*100)}%`, backgroundColor: color }} />
                         </div>
                         <span className="text-[12px] font-bold text-on-surface w-6 text-right">{count}</span>
@@ -719,15 +633,15 @@ export function Dashboard() {
                 <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4 space-y-2">
                   {repRanking.map(([name, value], i) => (
                     <div key={name} className="flex items-center gap-3">
-                      <span className="text-[12px] font-bold w-5 text-center flex-shrink-0">
+                      <span className="text-[12px] font-bold w-5 text-center">
                         {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}º`}
                       </span>
-                      <span className="flex-1 min-w-0 text-[12px] text-on-surface font-medium truncate">{name}</span>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="w-16 lg:w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+                      <span className="flex-1 text-[12px] text-on-surface font-medium truncate">{name}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-surface-container-low rounded-full h-1.5 overflow-hidden">
                           <div className="h-full rounded-full bg-primary" style={{ width: `${(value/repRanking[0][1]*100)}%` }} />
                         </div>
-                        <span className="text-[12px] font-bold text-primary whitespace-nowrap">{formatCurrency(value)}</span>
+                        <span className="text-[12px] font-bold text-primary">{formatCurrency(value)}</span>
                       </div>
                     </div>
                   ))}
@@ -769,9 +683,9 @@ export function Dashboard() {
                     <SectionTitle>🏭 {factory}</SectionTitle>
                     <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
                       {/* Header fábrica */}
-                      <div className="px-4 py-2 flex items-center justify-between gap-2" style={{ backgroundColor: color }}>
-                        <span className="text-white text-[11px] font-bold uppercase tracking-wider flex-1 min-w-0 truncate">{factoryOrders.length} pedidos · {totalPiecesFactory.toLocaleString('pt-BR')} pç</span>
-                        <span className="text-white text-[13px] font-black flex-shrink-0 whitespace-nowrap">{formatCurrency(totalFactory)}</span>
+                      <div className="px-4 py-2 flex items-center justify-between" style={{ backgroundColor: color }}>
+                        <span className="text-white text-[11px] font-bold uppercase tracking-wider">{factoryOrders.length} pedidos · {totalPiecesFactory.toLocaleString('pt-BR')} pç</span>
+                        <span className="text-white text-[13px] font-black">{formatCurrency(totalFactory)}</span>
                       </div>
                       <div className="p-4 space-y-2">
                         {rankingByFactory.map(([name, data], i) => (
@@ -781,11 +695,11 @@ export function Dashboard() {
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-[12px] font-semibold text-on-surface truncate">{name}</p>
-                              <p className="text-[10px] text-outline truncate">{data.orders} pedido{data.orders !== 1 ? 's' : ''} · {data.pieces.toLocaleString('pt-BR')} pç</p>
+                              <p className="text-[10px] text-outline">{data.orders} pedido{data.orders !== 1 ? 's' : ''} · {data.pieces.toLocaleString('pt-BR')} pç</p>
                             </div>
                             <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-                              <span className="text-[12px] font-bold whitespace-nowrap" style={{ color }}>{formatCurrency(data.value)}</span>
-                              <div className="w-16 bg-surface-container-low rounded-full h-1 overflow-hidden">
+                              <span className="text-[12px] font-bold" style={{ color }}>{formatCurrency(data.value)}</span>
+                              <div className="w-20 bg-surface-container-low rounded-full h-1 overflow-hidden">
                                 <div className="h-full rounded-full" style={{ width: `${(data.value / rankingByFactory[0][1].value) * 100}%`, backgroundColor: color }} />
                               </div>
                             </div>
@@ -805,38 +719,37 @@ export function Dashboard() {
           <div className="space-y-3">
 
             {/* Cards adicionais: Peças, Comissão, Clientes, Pendentes */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <StatCard
-                icon={<Package className="h-3.5 w-3.5 text-violet-600" />}
+                icon={<Package className="h-4.5 w-4.5 text-violet-600" />}
                 iconBg="bg-violet-100"
                 label="Total de peças"
                 value={totalPieces.toLocaleString('pt-BR')}
                 accentColor="#7C3AED"
               />
               <StatCard
-                icon={<Award className="h-3.5 w-3.5 text-emerald-600" />}
+                icon={<Award className="h-4.5 w-4.5 text-emerald-600" />}
                 iconBg="bg-emerald-100"
                 label="Minha comissão"
                 value={formatCurrency(totalCommission)}
                 accentColor="#10B981"
               />
               <StatCard
-                icon={<Users className="h-3.5 w-3.5 text-blue-600" />}
+                icon={<Users className="h-4.5 w-4.5 text-blue-600" />}
                 iconBg="bg-blue-100"
                 label="Clientes atendidos"
                 value={uniqueClients.toString()}
                 accentColor="#3B82F6"
               />
               {(() => {
-                // Somente a meta pessoal do representante (type='rep')
+                // Somente a meta pessoal do representante (type='rep') — média das metas (peças e/ou R$)
                 const repGoals = goals.filter(g => g.type === 'rep')
-                const totalTarget = repGoals.reduce((s, g) => s + g.target_pieces, 0)
-                const totalDone   = repGoals.reduce((s, g) => s + g.achieved_pieces, 0)
-                const pct = totalTarget > 0 ? Math.min(100, Math.round((totalDone / totalTarget) * 100)) : 0
+                const pcts = repGoals.map(g => goalStats(g).pct)
+                const pct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0
                 const metaColor = pct >= 100 ? '#10B981' : pct >= 70 ? '#F59E0B' : '#7C3AED'
                 return (
                   <StatCard
-                    icon={<Target className="h-3.5 w-3.5" style={{ color: metaColor }} />}
+                    icon={<Target className="h-4.5 w-4.5" style={{ color: metaColor }} />}
                     iconBg={pct >= 100 ? 'bg-emerald-100' : pct >= 70 ? 'bg-amber-100' : 'bg-violet-100'}
                     label="Minha meta"
                     value={repGoals.length === 0 ? '—' : `${pct}%`}
@@ -846,84 +759,84 @@ export function Dashboard() {
               })()}
             </div>
 
-            {/* Minha régua de desempenho por marca */}
+            {/* Metas por Marca — versão do rep */}
             {goals.length > 0 && (() => {
+              const firstWord = (g: Goal) => (g.label || '').split(' ')[0].toUpperCase()
+              const factoryGoals = goals.filter(g => g.type === 'factory')
               const myGoals = goals.filter(g => g.type === 'rep' && g.rep_id === user?.id)
-              if (myGoals.length === 0) return null
+              const groups: Record<string, { factory: Goal | null; mine: Goal | null }> = {}
+              factoryGoals.forEach(f => { groups[f.id] = { factory: f, mine: null } })
+              myGoals.forEach(g => {
+                let key = g.parent_goal_id && groups[g.parent_goal_id] ? g.parent_goal_id : ''
+                if (!key) {
+                  const f = factoryGoals.find(f => firstWord(f) === firstWord(g))
+                  key = f ? f.id : `orfao:${firstWord(g)}`
+                }
+                if (!groups[key]) groups[key] = { factory: null, mine: null }
+                groups[key].mine = g
+              })
+              const labelOf = (k: string) => groups[k].factory?.label || groups[k].mine?.label || ''
+              const brandList = Object.keys(groups).sort((a, b) => labelOf(a).localeCompare(labelOf(b)))
+              if (brandList.length === 0) return null
 
-              const brandGradients: Record<string, { from: string; to: string }> = {
+              const brandColors: Record<string, { from: string; to: string }> = {
                 OUZZARE: { from: '#312e81', to: '#1e1b4b' },
                 TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
               }
 
-              function repGoalColor(raw: number): string {
-                return raw > 100 ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
-              }
-
-              const RepGoalBar = ({ g }: { g: Goal }) => {
-                const pRaw = g.target_pieces > 0 ? (g.achieved_pieces / g.target_pieces) * 100 : 0
-                const vRaw = g.target_value > 0 ? (g.achieved_value / g.target_value) * 100 : 0
-                const pColor = repGoalColor(pRaw)
-                const vColor = repGoalColor(vRaw)
+              const RepGoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
+                const { raw, pct, fmt, target, achieved, unit } = goalStats(g)
+                const isOver = raw > 100
+                const color = isOver ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
                 return (
-                  <div className="space-y-4">
-                    {/* Peças */}
-                    <div className="space-y-1">
-                      <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Peças</p>
-                      <div className="flex items-end justify-between gap-2">
-                        <span className="text-[32px] font-black leading-none min-w-0" style={{ color: pColor }}>
-                          {g.achieved_pieces.toLocaleString('pt-BR')}
-                        </span>
-                        <span className="text-[12px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {g.target_pieces.toLocaleString('pt-BR')} pç</span>
-                      </div>
-                      <div className="w-full bg-black/20 rounded-full overflow-hidden h-3">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, pRaw)}%`, backgroundColor: pColor }} />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-white/60">
-                          {pRaw > 100
-                            ? `+${(g.achieved_pieces - g.target_pieces).toLocaleString('pt-BR')} pç da meta`
-                            : pRaw >= 100 ? '✅ Meta atingida!' : `Faltam ${(g.target_pieces - g.achieved_pieces).toLocaleString('pt-BR')} pç`}
-                        </span>
-                        <span className="text-[13px] font-bold" style={{ color: pColor }}>{pRaw > 100 ? `🏆 ${pRaw.toFixed(1)}%` : `${pRaw.toFixed(1)}%`}</span>
-                      </div>
+                  <div className="space-y-1">
+                    <div className="flex items-end justify-between gap-2">
+                      <span className={`font-bold leading-none ${large ? 'text-[32px]' : 'text-[22px]'}`} style={{ color }}>
+                        {fmt(achieved)}
+                      </span>
+                      <span className="text-[11px] text-white/50 pb-1">/ {fmt(target)}{unit}</span>
                     </div>
-                    {/* Valor */}
-                    {g.target_value > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Valor</p>
-                        <div className="flex items-end justify-between gap-2">
-                          <span className="text-[24px] font-black leading-none min-w-0" style={{ color: vColor }}>
-                            {formatCurrency(g.achieved_value)}
-                          </span>
-                          <span className="text-[12px] text-white/50 pb-1 flex-shrink-0 whitespace-nowrap">/ {formatCurrency(g.target_value)}</span>
-                        </div>
-                        <div className="w-full bg-black/20 rounded-full overflow-hidden h-2">
-                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, vRaw)}%`, backgroundColor: vColor }} />
-                        </div>
-                        <div className="flex justify-end">
-                          <span className="text-[12px] font-bold" style={{ color: vColor }}>{vRaw > 100 ? `🏆 ${vRaw.toFixed(1)}%` : `${vRaw.toFixed(1)}%`}</span>
-                        </div>
-                      </div>
-                    )}
+                    <div className={`w-full bg-black/20 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-white/60">
+                        {isOver
+                          ? `+${fmt(achieved - target)}${unit} da meta`
+                          : raw >= 100 ? '✅ Meta atingida!' : `Faltam ${fmt(target - achieved)}${unit}`}
+                      </span>
+                      <span className="text-[13px] font-bold" style={{ color }}>{isOver ? `🏆 ${raw.toFixed(1)}%` : `${raw.toFixed(1)}%`}</span>
+                    </div>
                   </div>
                 )
               }
 
               return (
                 <section>
-                  <SectionTitle>🎯 Meu Desempenho</SectionTitle>
-                  <div className="space-y-4">
-                    {myGoals.map(g => {
-                      const brand = g.factory_name || g.label.split(' ')[0]
-                      const bc = brandGradients[brand] || { from: '#1f2937', to: '#111827' }
+                  <SectionTitle>🎯 Metas por Marca</SectionTitle>
+                  <div className="space-y-5">
+                    {brandList.map(brand => {
+                      const { factory, mine } = groups[brand]
+                      const titulo = factory?.label || mine?.label || ''
+                      const bc = brandColors[titulo.split(' ')[0].toUpperCase()] || { from: '#1f2937', to: '#111827' }
                       return (
-                        <div key={g.id} className="rounded-3xl overflow-hidden shadow-xl px-5 py-5" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
-                          <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-0.5">{brand}</p>
-                          <h3 className="text-white text-[18px] font-black tracking-tight mb-0.5">{g.label}</h3>
-                          {g.period_label && <p className="text-white/50 text-[12px] mb-4">{g.period_label}</p>}
-                          {!g.period_label && <div className="mb-3" />}
-                          <RepGoalBar g={g} />
+                        <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
+                          <div className="px-4 pt-4 pb-3">
+                            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">{factory?.period_label || mine?.period_label || ''}</p>
+                            <h3 className="text-white text-[22px] font-black tracking-tight">{titulo}</h3>
+                          </div>
+                          {factory && (
+                            <div className="px-4 pb-4">
+                              <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
+                              <RepGoalBar g={factory} large />
+                            </div>
+                          )}
+                          {mine && (
+                            <div className="bg-black/20 px-4 py-3">
+                              <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🎯 Minha Meta</p>
+                              <RepGoalBar g={mine} />
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -1268,10 +1181,11 @@ export function Dashboard() {
     })()}
 
     {/* ── Modal Nova/Editar Meta ── */}
+    {/* ── Modal Nova/Editar Meta ── */}
     {showGoalModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowGoalModal(false)} />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-on-surface text-base">{editingGoal ? 'Editar Meta' : 'Nova Meta'}</h3>
             <button onClick={() => setShowGoalModal(false)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container">
@@ -1279,22 +1193,25 @@ export function Dashboard() {
             </button>
           </div>
 
-          {/* Tipo */}
-          <div className="grid grid-cols-2 gap-2">
-            {([['factory','🏭 Fábrica'],['rep','👤 Representante']] as const).map(([t, lbl]) => (
-              <button key={t} type="button" onClick={() => setGoalForm(f => ({...f, type: t}))}
-                className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${goalForm.type === t ? 'border-primary bg-primary/10 text-primary' : 'border-outline-variant text-outline hover:bg-surface-container'}`}>
-                {lbl}
-              </button>
-            ))}
-          </div>
+          {/* Tipo — oculto quando aberto via "+ Vendedor" (factory_id já fixo) */}
+          {!goalForm.factory_id && (
+            <div className="grid grid-cols-2 gap-2">
+              {([['factory','🏭 Meta Geral da Fábrica'],['rep','👤 Meta por Vendedor']] as const).map(([t, label]) => (
+                <button key={t} type="button" onClick={() => setGoalForm(f => ({...f, type: t}))}
+                  className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${goalForm.type === t ? 'border-primary bg-primary/10 text-primary' : 'border-outline-variant text-outline hover:bg-surface-container'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* Fábrica — sempre presente */}
+          {/* Fábrica — obrigatória para todos os tipos */}
           <div>
             <label className="block text-[12px] font-medium text-outline mb-1">Fábrica / Marca</label>
             <select value={goalForm.factory_id} onChange={e => setGoalForm(f => ({...f, factory_id: e.target.value}))}
-              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30">
-              <option value="">{goalForm.type === 'rep' ? 'Sem fábrica (meta independente)' : 'Selecione a fábrica...'}</option>
+              disabled={!!goalForm.factory_id && goalForm.type === 'rep'}
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-surface-container disabled:text-outline">
+              <option value="">Selecione a fábrica...</option>
               {(factories as {id:string;name:string}[]).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
           </div>
@@ -1311,47 +1228,63 @@ export function Dashboard() {
             </div>
           )}
 
-          {/* Nome da Coleção */}
+          {/* Label e coleção */}
           <div>
-            <label className="block text-[12px] font-medium text-outline mb-1">Nome da Coleção</label>
+            <label className="block text-[12px] font-medium text-outline mb-1">Descrição / Coleção</label>
             <input value={goalForm.label} onChange={e => setGoalForm(f => ({...f, label: e.target.value}))}
-              placeholder="Ex: Verão 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              placeholder="Ex: Coleção Verão 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
 
-          {/* Período de exibição */}
+          {/* Unidade da meta: peças ou R$ */}
           <div>
-            <label className="block text-[12px] font-medium text-outline mb-1">Período (exibição)</label>
-            <input value={goalForm.period_label} onChange={e => setGoalForm(f => ({...f, period_label: e.target.value}))}
-              placeholder="Ex: Jul-Dez 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          </div>
-
-          {/* Datas */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[12px] font-medium text-outline mb-1">Data início</label>
-              <input type="date" value={goalForm.period_start} onChange={e => setGoalForm(f => ({...f, period_start: e.target.value}))}
-                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-            <div>
-              <label className="block text-[12px] font-medium text-outline mb-1">Data fim</label>
-              <input type="date" value={goalForm.period_end} onChange={e => setGoalForm(f => ({...f, period_end: e.target.value}))}
-                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <label className="block text-[12px] font-medium text-outline mb-1">Medir a meta em</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[{k:'pecas',t:'📦 Peças'},{k:'valor',t:'💰 R$ (faturamento)'}].map(m => (
+                <button key={m.k} type="button" onClick={() => setGoalForm(f => ({...f, metric: m.k}))}
+                  className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${goalForm.metric === m.k ? 'border-primary bg-primary/10 text-primary' : 'border-outline-variant text-outline hover:bg-surface-container'}`}>
+                  {m.t}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Metas numéricas */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[12px] font-medium text-outline mb-1">Meta em Peças</label>
-              <input type="number" value={goalForm.target_pieces} onChange={e => setGoalForm(f => ({...f, target_pieces: e.target.value}))}
-                placeholder="Ex: 5000" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <label className="block text-[12px] font-medium text-outline mb-1">{goalForm.metric === 'valor' ? 'Meta (R$)' : 'Meta (peças)'}</label>
+              {goalForm.metric === 'valor' ? (
+                <input type="number" value={goalForm.target_value} onChange={e => setGoalForm(f => ({...f, target_value: e.target.value}))}
+                  placeholder="Ex: 100000" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              ) : (
+                <input type="number" value={goalForm.target_pieces} onChange={e => setGoalForm(f => ({...f, target_pieces: e.target.value}))}
+                  placeholder="Ex: 5000" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              )}
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-outline mb-1">Meta em R$</label>
-              <input type="number" value={goalForm.target_value} onChange={e => setGoalForm(f => ({...f, target_value: e.target.value}))}
-                placeholder="Ex: 100000" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <label className="block text-[12px] font-medium text-outline mb-1">Período (nome)</label>
+              <input value={goalForm.period_label} onChange={e => setGoalForm(f => ({...f, period_label: e.target.value}))}
+                placeholder="Ex: Inverno 2026" className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
           </div>
+
+          {/* Janela de apuração: é ela que define quais pedidos entram no realizado.
+              Sem datas, a meta soma todos os pedidos desde sempre. */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">Contar pedidos de</label>
+              <input type="date" value={goalForm.period_from} onChange={e => setGoalForm(f => ({...f, period_from: e.target.value}))}
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-outline mb-1">até</label>
+              <input type="date" value={goalForm.period_to} onChange={e => setGoalForm(f => ({...f, period_to: e.target.value}))}
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
+          {(!goalForm.period_from || !goalForm.period_to) && (
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Sem as duas datas, a meta conta <strong>todos os pedidos desde sempre</strong> — o realizado não vai fechar com o período.
+            </p>
+          )}
 
           <div className="flex gap-2 justify-end pt-2">
             <button onClick={() => setShowGoalModal(false)} className="px-4 py-2 text-[12px] text-outline hover:text-on-surface">Cancelar</button>
@@ -1360,14 +1293,22 @@ export function Dashboard() {
                 type: goalForm.type,
                 factory_id: goalForm.factory_id || null,
                 rep_id: goalForm.rep_id || null,
-                label: goalForm.label,
+                label: goalForm.label || 'Meta do vendedor',
+                metric: goalForm.metric,
                 target_pieces: parseInt(goalForm.target_pieces) || 0,
                 target_value: parseFloat(goalForm.target_value) || 0,
                 period_label: goalForm.period_label || null,
-                period_start: goalForm.period_start || null,
-                period_end: goalForm.period_end || null,
+                period_from: goalForm.period_from || null,
+                period_to: goalForm.period_to || null,
+                parent_goal_id: goalForm.type === 'rep' ? (goalForm.parent_goal_id || null) : null,
               })}
-              disabled={!goalForm.label || !goalForm.target_pieces || createGoalMut.isPending}
+              disabled={
+                !goalForm.factory_id
+                || (goalForm.type === 'rep' && !goalForm.rep_id)
+                || (goalForm.type === 'factory' && !goalForm.label)
+                || (goalForm.metric === 'valor' ? !goalForm.target_value : !goalForm.target_pieces)
+                || createGoalMut.isPending
+              }
               className="px-5 py-2 bg-primary text-white rounded-xl text-[12px] font-semibold disabled:opacity-50 hover:bg-primary/90 active:scale-95"
             >
               {createGoalMut.isPending ? 'Salvando...' : editingGoal ? 'Salvar' : 'Criar Meta'}
@@ -1401,35 +1342,35 @@ function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-xl p-2 border-0 relative overflow-hidden ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform' : ''}`}
+      className={`bg-white rounded-2xl p-3 border-0 relative overflow-hidden ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform' : ''}`}
       style={{
         boxShadow: accentColor
-          ? `0 8px 20px -6px ${accentColor}35, 0 3px 8px -4px ${accentColor}20`
-          : '0 6px 18px -4px rgba(0,0,0,0.10)',
+          ? `0 10px 28px -6px ${accentColor}35, 0 4px 10px -4px ${accentColor}20`
+          : '0 8px 24px -4px rgba(0,0,0,0.10)',
       }}
     >
       {accentColor && (
-        <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ background: accentColor }} />
+        <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: accentColor }} />
       )}
       {onClick && (
-        <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-black/5 flex items-center justify-center">
-          <svg className="w-2 h-2 text-outline/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black/5 flex items-center justify-center">
+          <svg className="w-2.5 h-2.5 text-outline/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </div>
       )}
-      <div className="flex items-center justify-between mb-1.5 mt-0.5">
-        <div className={`w-7 h-7 ${iconBg} rounded-lg flex items-center justify-center`}>
+      <div className="flex items-center justify-between mb-2 mt-0.5">
+        <div className={`w-9 h-9 ${iconBg} rounded-xl flex items-center justify-center`}>
           {icon}
         </div>
         {badge && (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${badgeCls}`}>
+          <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${badgeCls}`}>
             {badge}
           </span>
         )}
       </div>
-      <p className="text-[10px] font-bold uppercase text-outline tracking-wide mb-1">{label}</p>
-      <p className={`font-display font-bold text-on-surface leading-none truncate ${large ? 'text-[16px] lg:text-[26px]' : 'text-[13px] lg:text-[20px]'}`}>
+      <p className="text-[12px] font-bold uppercase text-outline tracking-wide mb-1.5">{label}</p>
+      <p className={`font-display font-bold text-on-surface leading-none truncate ${large ? 'text-[22px] lg:text-[38px]' : 'text-[17px] lg:text-[28px]'}`}>
         {value}
       </p>
     </div>
