@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, CreditCard, MapPin, Target, History, Plug, RefreshCw,
+  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, CreditCard, MapPin, History, Plug, RefreshCw,
 } from 'lucide-react'
 
 // SOMMA Maps — produto integrado (abre em nova aba)
