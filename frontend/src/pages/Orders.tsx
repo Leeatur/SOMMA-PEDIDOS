@@ -15,7 +15,7 @@ import {
   Trash2,
   RefreshCw,
 } from 'lucide-react'
-import { ordersApi, statusesApi, factoriesApi, apiClient } from '../api/client'
+import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { svgIconSrc } from '../components/ui/Badge'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
