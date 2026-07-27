@@ -395,7 +395,7 @@ export function AppLayout() {
                 className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-white/10 rounded-lg transition-colors">
                 <LogOut className="h-4 w-4" /> Sair
               </button>
-              <p className="text-center text-[9px] text-white/25 mt-3">SFV - Somma Força de Vendas · SOMMA Technology · Erechim | RS</p>
+              <p className="text-center text-[9px] text-white/25 mt-3">SFV - Somma Força de Vendas · by Somma Technology · Erechim | RS</p>
             </div>
           </div>
         </div>

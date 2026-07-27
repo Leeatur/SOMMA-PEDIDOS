@@ -246,7 +246,7 @@ export function Login() {
             <BarChart3 className="h-3.5 w-3.5 text-orange-400" />
             <span className="font-semibold text-gray-500">SFV - Somma Força de Vendas</span>
             <span className="text-gray-300">·</span>
-            <span>SOMMA Technology · Erechim | RS · (54) 9.9162-5024</span>
+            <span>by Somma Technology · Erechim | RS · (54) 9.9162-5024</span>
           </p>
         </footer>
       </div>
