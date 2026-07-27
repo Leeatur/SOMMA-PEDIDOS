@@ -408,7 +408,7 @@ export function Settings() {
               </div>
               <div className="pt-3 border-t border-outline-variant/50 text-[12px] text-outline">
                 <p>Sistema de Gestão de Pedidos</p>
-                <p className="text-[12px] mt-1">SOMMA Força de Vendas &copy; {new Date().getFullYear()}</p>
+                <p className="text-[12px] mt-1">SFV - Somma Força de Vendas &copy; {new Date().getFullYear()}</p>
               </div>
             </div>
           </Card>
