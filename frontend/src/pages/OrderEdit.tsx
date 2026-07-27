@@ -142,18 +142,16 @@ function initSizes(product: Product | OrderItemRaw): Record<string, number> {
     product.grade_configs.forEach(gc => {
       if (gc.sizes) Object.keys(gc.sizes).forEach(s => all.add(s))
     })
-    allSizes = sortSizes([...all]).filter(s => !blocked.has(s))
+    allSizes = sortSizes([...all])
   }
   if (allSizes.length === 0 && product.size_range) {
-    allSizes = sortSizes(parseSizeRange(product.size_range)).filter(s => !blocked.has(s))
+    allSizes = sortSizes(parseSizeRange(product.size_range))
   }
 
-  // Inicia todos os tamanhos com 0
+  // Inicia todos os tamanhos com 0 (bloqueados ficam em 0 e não editáveis)
   const result: Record<string, number> = Object.fromEntries(allSizes.map(s => [s, 0]))
 
-  // Sobrepõe com valores já salvos (se item existente)
-  // Sem `s in result`: preserva tamanhos do pedido mesmo que não constem
-  // no grade_configs atual (ex: pedidos importados com grade diferente)
+  // Sobrepõe com valores já salvos (se item existente); bloqueados ficam em 0
   if ('sizes' in product && product.sizes) {
     for (const [s, v] of Object.entries(product.sizes)) {
       if (!blocked.has(s)) result[s] = v
@@ -1308,6 +1306,7 @@ export default function OrderEdit() {
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
                     draftGrade={it.draftGrade}
+                    blockedSizes={it.blocked_sizes || []}
                     onSizeChange={(size, val) => updateSize(it.id, size, val)}
                     onBoxesChange={val => updateBoxes(it.id, val)}
                     onGradeChange={(colorIdx, size, val) => updateGrade(it.id, colorIdx, size, val)}
@@ -1340,6 +1339,7 @@ export default function OrderEdit() {
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
                     draftGrade={it.draftGrade}
+                    blockedSizes={it.blocked_sizes || []}
                     onSizeChange={(size, val) => updateNewSize(it.tempId, size, val)}
                     onBoxesChange={val => updateNewBoxes(it.tempId, val)}
                     onGradeChange={(colorIdx, size, val) => updateNewGrade(it.tempId, colorIdx, size, val)}
@@ -1718,6 +1718,7 @@ interface ItemRowProps {
   itemObs?: string
   onObsChange?: (val: string) => void
   canEditPrice?: boolean             // só admin edita preço; vendedor apenas visualiza
+  blockedSizes?: string[]
 }
 
 function ItemRow({
@@ -1725,8 +1726,9 @@ function ItemRow({
   orderPolicyDiscPct, orderCashDiscPct,
   gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
   onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
-  productObservation, itemObs, onObsChange, canEditPrice,
+  productObservation, itemObs, onObsChange, canEditPrice, blockedSizes = [],
 }: ItemRowProps) {
+  const blocked = new Set(blockedSizes.map(s => s.toUpperCase()))
   const sizes = sortSizes(Object.keys(draftSizes))
 
   // Preço efetivo = tabela após desconto comercial e à vista (sequencial)
@@ -1880,25 +1882,34 @@ function ItemRow({
               <thead className="bg-surface-container-lowest sticky top-0 z-10">
                 <tr>
                   {sizes.map(s => (
-                    <th key={s} className="w-10 text-center pb-1 text-on-surface-variant font-medium px-0.5">{s}</th>
+                    <th key={s} className={`w-10 text-center pb-1 font-medium px-0.5 ${blocked.has(s.toUpperCase()) ? 'text-red-300 line-through' : 'text-on-surface-variant'}`}>{s}</th>
                   ))}
                   <th className="pl-3 pb-1 text-center text-on-surface-variant font-medium">Total</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  {sizes.map((size, sIdx) => (
+                  {sizes.map((size, sIdx) => {
+                    const isBlocked = blocked.has(size.toUpperCase())
+                    return (
                     <td key={size} className="px-0.5 py-0.5">
+                      {isBlocked ? (
+                        <div className="w-9 h-7 flex items-center justify-center bg-red-50 border border-red-200 rounded text-[11px] text-red-300 font-bold cursor-not-allowed" title={`Tamanho ${size} bloqueado`}>
+                          🔒
+                        </div>
+                      ) : (
                       <input
                         type="number" min={0} max={999}
                         className={inputNum}
                         value={draftSizes[size] || 0}
                         onChange={e => onSizeChange(size, parseInt(e.target.value) || 0)}
                         onFocus={e => e.target.select()}
-                        autoFocus={sIdx === 0}
+                        autoFocus={!isBlocked && sIdx === 0}
                       />
+                      )}
                     </td>
-                  ))}
+                    )
+                  })}
                   <td className="pl-3 py-0.5 text-center font-bold text-on-surface">
                     {pieces || '—'}
                   </td>
