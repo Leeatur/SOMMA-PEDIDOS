@@ -245,21 +245,17 @@ export function Dashboard() {
     <div className="pb-24 lg:pb-8 min-h-full">
 
       {/* ─── Hero header ─────────────────────────────────── */}
-      <div className="relative px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10"
-        style={{ background: 'linear-gradient(135deg, #0F1923 0%, #16242f 40%, #1c2c38 100%)' }}>
-        {/* Linha decorativa sutil na base */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
-
-        <p className="text-white/60 text-[12px] font-medium tracking-wide uppercase">{greeting()}</p>
-        <h1 className="font-display text-[34px] font-bold text-white leading-tight mt-0.5">{user?.name}</h1>
-        <p className="text-white/50 text-[12px] mt-1.5">
+      <div className="relative px-5 pt-6 pb-5 lg:px-8 lg:pt-8 lg:pb-6 border-b border-outline-variant/40">
+        <p className="text-outline text-[12px] font-medium tracking-wide uppercase">{greeting()}</p>
+        <h1 className="font-display text-[26px] font-bold text-on-surface leading-tight mt-0.5">{user?.name}</h1>
+        <p className="text-outline text-[12px] mt-1">
           {isAdmin ? 'Usuário/Admin' : 'Vendedor'} &bull;{' '}
           {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
 
         <button
           onClick={() => navigate('/orders/new')}
-          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-[12px] font-semibold px-5 py-2 rounded-xl border border-white/15 transition-all"
+          className="hidden lg:flex absolute top-8 right-8 items-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface text-[12px] font-semibold px-5 py-2 rounded-xl border border-outline-variant transition-all"
         >
           <Plus className="h-4 w-4" /> Novo pedido
         </button>
@@ -321,8 +317,8 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* ─── Stat cards — overlap hero ──────────────────── */}
-      <div className="px-4 lg:px-8 -mt-5">
+      {/* ─── Stat cards ──────────────────────────────────── */}
+      <div className="px-4 lg:px-8 mt-4">
         <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
 
           <StatCard
@@ -538,7 +534,7 @@ export function Dashboard() {
           return (
             <section>
               <div className="flex items-center justify-between mb-3">
-                <SectionTitle className="mb-0">🎯 Metas por Marca</SectionTitle>
+                <SectionTitle className="mb-0">Metas por Marca</SectionTitle>
                 <button onClick={openNewGoal} className="flex items-center gap-1 text-[12px] text-primary font-semibold hover:text-primary/80">
                   <Plus className="h-3.5 w-3.5" /> Nova meta
                 </button>
@@ -579,7 +575,7 @@ export function Dashboard() {
                         {/* Meta geral da fábrica */}
                         {factory && (
                           <div className="px-4 lg:px-5 pb-4">
-                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
+                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">Meta Geral</p>
                             <GoalBar g={factory} large />
                           </div>
                         )}
@@ -587,7 +583,7 @@ export function Dashboard() {
                         {/* Grid de reps */}
                         {reps.length > 0 && (
                           <div className="bg-black/20 px-4 lg:px-5 py-3">
-                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-3">👥 Por Representante</p>
+                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-3">Por Representante</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                               {reps.slice().sort((a, b) => goalStats(b).raw - goalStats(a).raw).map(g => {
                                 const s = goalStats(g)
@@ -657,7 +653,7 @@ export function Dashboard() {
             {/* Ranking geral */}
             {repRanking.length > 0 && (
               <section>
-                <SectionTitle>🏆 Ranking Geral</SectionTitle>
+                <SectionTitle>Ranking Geral</SectionTitle>
                 <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4 space-y-2">
                   {repRanking.map(([name, value], i) => (
                     <div key={name} className="flex items-center gap-3">
@@ -708,7 +704,7 @@ export function Dashboard() {
 
                 return (
                   <section key={factory}>
-                    <SectionTitle>🏭 {factory}</SectionTitle>
+                    <SectionTitle>{factory}</SectionTitle>
                     <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
                       {/* Header fábrica */}
                       <div className="px-4 py-2 flex items-center justify-between" style={{ backgroundColor: color }}>
@@ -843,7 +839,7 @@ export function Dashboard() {
 
               return (
                 <section>
-                  <SectionTitle>🎯 Metas por Marca</SectionTitle>
+                  <SectionTitle>Metas por Marca</SectionTitle>
                   <div className="space-y-5">
                     {brandList.map(brand => {
                       const { factory, mine } = groups[brand]
@@ -1219,7 +1215,7 @@ export function Dashboard() {
           {/* Tipo — oculto quando aberto via "+ Vendedor" (factory_id já fixo) */}
           {!goalForm.factory_id && (
             <div className="grid grid-cols-2 gap-2">
-              {([['factory','🏭 Meta Geral da Fábrica'],['rep','👤 Meta por Vendedor']] as const).map(([t, label]) => (
+              {([['factory','Meta Geral da Fábrica'],['rep','Meta por Vendedor']] as const).map(([t, label]) => (
                 <button key={t} type="button" onClick={() => setGoalForm(f => ({...f, type: t}))}
                   className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${goalForm.type === t ? 'border-primary bg-primary/10 text-primary' : 'border-outline-variant text-outline hover:bg-surface-container'}`}>
                   {label}
@@ -1365,16 +1361,8 @@ function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-2xl p-3 border-0 relative overflow-hidden ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform' : ''}`}
-      style={{
-        boxShadow: accentColor
-          ? `0 10px 28px -6px ${accentColor}35, 0 4px 10px -4px ${accentColor}20`
-          : '0 8px 24px -4px rgba(0,0,0,0.10)',
-      }}
+      className={`bg-white rounded-2xl p-3 border border-outline-variant/50 relative overflow-hidden shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md hover:border-outline-variant/80 active:scale-[0.99] transition-all' : ''}`}
     >
-      {accentColor && (
-        <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: accentColor }} />
-      )}
       {onClick && (
         <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black/5 flex items-center justify-center">
           <svg className="w-2.5 h-2.5 text-outline/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
