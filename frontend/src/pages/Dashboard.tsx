@@ -279,8 +279,8 @@ export function Dashboard() {
             <button key={p.id} onClick={() => setPeriod(p.id)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-xl text-[13px] font-semibold border transition-colors active:scale-95 ${
                 activePeriod === p.id
-                  ? 'bg-white text-primary border-white shadow-sm'
-                  : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
+                  ? 'bg-primary text-white border-primary shadow-sm'
+                  : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
               }`}>
               {p.label}
             </button>
@@ -290,7 +290,7 @@ export function Dashboard() {
           <div className="flex items-center gap-2 px-4 lg:px-8 mt-2 flex-wrap">
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
               className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            <span className="text-white/60 text-[12px] flex-shrink-0">até</span>
+            <span className="text-outline text-[12px] flex-shrink-0">até</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
               className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
@@ -315,7 +315,7 @@ export function Dashboard() {
           </div>
         )}
         {activePeriod !== 'today' && (
-          <p className="text-white/50 text-[11px] mt-1 px-4 lg:px-8">
+          <p className="text-outline text-[11px] mt-1 px-4 lg:px-8">
             {new Date(dateFrom+'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(dateTo+'T12:00:00').toLocaleDateString('pt-BR')} · {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}
           </p>
         )}
