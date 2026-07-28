@@ -782,7 +782,9 @@ export function Dashboard() {
                 groups[key].mine = g
               })
               const labelOf = (k: string) => groups[k].factory?.label || groups[k].mine?.label || ''
-              const brandList = Object.keys(groups).sort((a, b) => labelOf(a).localeCompare(labelOf(b)))
+              const brandList = Object.keys(groups)
+                .filter(k => groups[k].mine != null)
+                .sort((a, b) => labelOf(a).localeCompare(labelOf(b)))
               if (brandList.length === 0) return null
 
               const brandColors: Record<string, { from: string; to: string }> = {
@@ -827,20 +829,13 @@ export function Dashboard() {
                       const bc = brandColors[titulo.split(' ')[0].toUpperCase()] || { from: '#1f2937', to: '#111827' }
                       return (
                         <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
-                          <div className="px-4 pt-4 pb-3">
-                            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">{factory?.period_label || mine?.period_label || ''}</p>
+                          <div className="px-4 pt-4 pb-2">
+                            <p className="text-white/50 text-[11px] font-semibold uppercase tracking-widest">{mine?.period_label || ''}</p>
                             <h3 className="text-white text-[22px] font-black tracking-tight">{titulo}</h3>
                           </div>
-                          {factory && (
-                            <div className="px-4 pb-4">
-                              <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🏭 Meta Geral</p>
-                              <RepGoalBar g={factory} large />
-                            </div>
-                          )}
                           {mine && (
-                            <div className="bg-black/20 px-4 py-3">
-                              <p className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-2">🎯 Minha Meta</p>
-                              <RepGoalBar g={mine} />
+                            <div className="px-4 pb-4">
+                              <RepGoalBar g={mine} large />
                             </div>
                           )}
                         </div>
