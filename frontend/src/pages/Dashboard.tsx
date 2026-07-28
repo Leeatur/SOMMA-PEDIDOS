@@ -71,6 +71,7 @@ export function Dashboard() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', target_value: '', metric: 'pecas', period_label: '', period_from: '', period_to: '', parent_goal_id: '' })
   const [cardModal, setCardModal] = useState<string | null>(null)
+  const [factoryFilter, setFactoryFilter] = useState('')
 
   // Filtro de período
   const spDate = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
@@ -166,10 +167,12 @@ export function Dashboard() {
     return d === today
   })
 
+  const uniqueFactories = [...new Set(allOrders.map(o => o.factory_name).filter(Boolean))].sort()
+
   // Pedidos filtrados pelo período selecionado
   const filteredOrders = allOrders.filter(o => {
     const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
-    return d >= dateFrom && d <= dateTo
+    return d >= dateFrom && d <= dateTo && (!factoryFilter || o.factory_name === factoryFilter)
   })
 
   const totalValue  = filteredOrders.reduce((s, o) => s + Number(o.total_value), 0)
@@ -290,6 +293,25 @@ export function Dashboard() {
             <span className="text-white/60 text-[12px] flex-shrink-0">até</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
               className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-[12px] bg-white text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+        )}
+        {uniqueFactories.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pt-1 pb-1">
+            <span className="text-white/40 text-[11px] font-semibold flex-shrink-0 uppercase tracking-wide">Coleção</span>
+            <button onClick={() => setFactoryFilter('')}
+              className={`flex-shrink-0 px-3 py-1 rounded-lg text-[12px] font-semibold border transition-colors ${
+                !factoryFilter ? 'bg-white text-primary border-white shadow-sm' : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'
+              }`}>
+              Todas
+            </button>
+            {uniqueFactories.map(f => (
+              <button key={f} onClick={() => setFactoryFilter(factoryFilter === f ? '' : f)}
+                className={`flex-shrink-0 px-3 py-1 rounded-lg text-[12px] font-semibold border transition-colors ${
+                  factoryFilter === f ? 'bg-white text-primary border-white shadow-sm' : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'
+                }`}>
+                {f}
+              </button>
+            ))}
           </div>
         )}
         {activePeriod !== 'today' && (
