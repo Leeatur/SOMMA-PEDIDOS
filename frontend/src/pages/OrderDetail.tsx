@@ -159,6 +159,21 @@ function sortSizesDetail(sizes: string[]) {
     return ai - bi
   })
 }
+function parseSizeRangeDetail(sizeRange: string | null | undefined): string[] {
+  if (!sizeRange) return []
+  const m1 = sizeRange.match(/^(\d+)\s+ao\s+(\d+)$/i)
+  if (m1) {
+    const lo = parseInt(m1[1]), hi = parseInt(m1[2])
+    return SIZE_ORDER_DETAIL.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
+  }
+  const m2 = sizeRange.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/)
+  if (m2) {
+    const s = SIZE_ORDER_DETAIL.indexOf(m2[1].toUpperCase())
+    const e = SIZE_ORDER_DETAIL.indexOf(m2[2].toUpperCase())
+    if (s >= 0 && e >= s) return SIZE_ORDER_DETAIL.slice(s, e + 1)
+  }
+  return sizeRange.split(/[\s,]+/).filter(Boolean)
+}
 function initSizesDetail(product: Product): Record<string, number> {
   if (!product.grade_configs || product.grade_configs.length === 0) return {}
   const allSizes = new Set<string>()
@@ -806,13 +821,17 @@ export function OrderDetail() {
                       {/* Regular product sizes */}
                       {item.type === 'regular' && item.sizes ? (() => {
                           const blockedSet = new Set((item.blocked_sizes || []).map(s => s.toUpperCase()))
-                          // grade completa: tamanhos com qty > 0 + bloqueados
-                          const allFromGrade = item.grade_configs && item.grade_configs.length > 0
+                          const gradeFromConfigs = item.grade_configs && item.grade_configs.length > 0
                             ? [...new Set(item.grade_configs.flatMap(gc => Object.keys(gc.sizes)))]
-                            : Object.keys(item.sizes)
+                            : []
+                          const gradeFromRange = gradeFromConfigs.length === 0
+                            ? parseSizeRangeDetail(item.size_range)
+                            : []
+                          const hasGrade = gradeFromConfigs.length > 0 || gradeFromRange.length > 0
+                          const allFromGrade = hasGrade ? [...gradeFromConfigs, ...gradeFromRange] : Object.keys(item.sizes)
                           const displaySizes = sortSizesDetail([
                             ...new Set([...allFromGrade, ...Object.keys(item.sizes), ...(item.blocked_sizes || [])])
-                          ]).filter(s => blockedSet.has(s.toUpperCase()) || (item.sizes![s] || 0) > 0)
+                          ]).filter(s => hasGrade || blockedSet.has(s.toUpperCase()) || (item.sizes![s] || 0) > 0)
                           if (displaySizes.length === 0) return null
                           return (
                           <>
