@@ -297,17 +297,17 @@ export function Dashboard() {
         )}
         {uniqueFactories.length > 1 && (
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pt-1 pb-1">
-            <span className="text-white/40 text-[11px] font-semibold flex-shrink-0 uppercase tracking-wide">Coleção</span>
+            <span className="text-outline text-[11px] font-semibold flex-shrink-0 uppercase tracking-wide">Coleção</span>
             <button onClick={() => setFactoryFilter('')}
-              className={`flex-shrink-0 px-3 py-1 rounded-lg text-[12px] font-semibold border transition-colors ${
-                !factoryFilter ? 'bg-white text-primary border-white shadow-sm' : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'
+              className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-colors ${
+                !factoryFilter ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
               }`}>
               Todas
             </button>
             {uniqueFactories.map(f => (
               <button key={f} onClick={() => setFactoryFilter(factoryFilter === f ? '' : f)}
-                className={`flex-shrink-0 px-3 py-1 rounded-lg text-[12px] font-semibold border transition-colors ${
-                  factoryFilter === f ? 'bg-white text-primary border-white shadow-sm' : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20'
+                className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-colors ${
+                  factoryFilter === f ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
                 }`}>
                 {f}
               </button>
