@@ -1,10 +1,17 @@
 import { useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Archive, Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Archive, Upload, CheckCircle, AlertCircle, Loader2, FileText } from 'lucide-react'
 import JSZip from 'jszip'
+import * as pdfjsLib from 'pdfjs-dist'
 import { priceTablesApi } from '../../api/client'
 import { Modal } from './Modal'
 import { Button } from './Button'
+
+// Worker do pdf.js — processado localmente no browser, sem servidor
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.mjs',
+  import.meta.url,
+).href
 
 interface PriceTable {
   id: string
@@ -26,13 +33,10 @@ interface Props {
   onClose: () => void
   onDone?: () => void
 }
+
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp'])
 
-/**
- * Redimensiona e comprime uma imagem no browser usando Canvas.
- * Converte um JPEG de 25-44 MB para ~300 KB antes de enviar ao servidor.
- * Preserva a proporção; max 1400px no lado maior.
- */
+/** Redimensiona e comprime imagem no browser (evita uploads de 25-44 MB). */
 async function compressImage(blob: Blob, maxPx = 1400, quality = 0.82): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob)
@@ -45,8 +49,7 @@ async function compressImage(blob: Blob, maxPx = 1400, quality = 0.82): Promise<
       const canvas = document.createElement('canvas')
       canvas.width = w
       canvas.height = h
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, w, h)
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
       canvas.toBlob(
         b => (b ? resolve(b) : reject(new Error('Canvas toBlob failed'))),
         'image/jpeg',
@@ -58,7 +61,7 @@ async function compressImage(blob: Blob, maxPx = 1400, quality = 0.82): Promise<
   })
 }
 
-/** Limita quantas uploads rodam em paralelo */
+/** Limita quantas uploads rodam em paralelo. */
 async function pLimit<T>(
   tasks: (() => Promise<T>)[],
   concurrency: number,
@@ -77,6 +80,60 @@ async function pLimit<T>(
   return results
 }
 
+/**
+ * Processa um PDF de catálogo de fábrica:
+ * - Cada página = 1 produto (nome + grade + referência no texto)
+ * - Renderiza cada página como JPEG e extrai a referência do texto
+ * - Retorna array de { ref, blob } para upload
+ */
+async function extractPdfPages(
+  pdfData: ArrayBuffer,
+  onProgress: (done: number, total: number) => void,
+): Promise<Array<{ ref: string; blob: Blob }>> {
+  const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise
+  const total = pdf.numPages
+  const items: Array<{ ref: string; blob: Blob }> = []
+
+  for (let pageNum = 1; pageNum <= total; pageNum++) {
+    onProgress(pageNum - 1, total)
+    const page = await pdf.getPage(pageNum)
+
+    // 1. Extrai texto da página para obter a referência
+    const textContent = await page.getTextContent()
+    const rawText = (textContent.items as Array<{ str: string }>)
+      .map(item => item.str.trim())
+      .filter(Boolean)
+      .join('\n')
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean)
+
+    // Referência = última linha que contém dígito e tem até 14 chars
+    const ref = [...lines].reverse().find(l => /\d/.test(l) && l.length <= 14 && /^[A-Z0-9]/.test(l))
+    if (!ref) continue // página sem referência válida (capa, índice, etc.)
+
+    // 2. Renderiza a página em canvas (qualidade boa para catálogo)
+    const viewport = page.getViewport({ scale: 1.8 })
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(viewport.width)
+    canvas.height = Math.round(viewport.height)
+    const ctx = canvas.getContext('2d')!
+    await page.render({ canvasContext: ctx, viewport }).promise
+
+    // 3. Comprime para JPEG (~300 KB por página)
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(
+        b => (b ? resolve(b) : reject(new Error('toBlob failed'))),
+        'image/jpeg',
+        0.82,
+      ),
+    )
+
+    items.push({ ref, blob })
+  }
+
+  onProgress(total, total)
+  return items
+}
+
 export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [priceTableId, setPriceTableId] = useState('')
@@ -84,10 +141,11 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
   const [overwrite, setOverwrite] = useState(false)
   const [galleryMode, setGalleryMode] = useState(false)
   const [processing, setProcessing] = useState(false)
-  const [phase, setPhase] = useState<'idle' | 'reading' | 'uploading'>('idle')
+  const [phase, setPhase] = useState<'idle' | 'reading' | 'rendering' | 'uploading'>('idle')
   const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [result, setResult] = useState<ZipResult | null>(null)
   const [error, setError] = useState('')
+  const [detectedMode, setDetectedMode] = useState<'images' | 'pdf' | null>(null)
 
   const { data: tables } = useQuery<PriceTable[]>({
     queryKey: ['price-tables'],
@@ -105,6 +163,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
     setProgress({ done: 0, total: 0 })
     setResult(null)
     setError('')
+    setDetectedMode(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -114,6 +173,30 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
     onClose()
   }
 
+  async function handleFileSelect(f: File | null) {
+    setFile(f)
+    setDetectedMode(null)
+    setError('')
+    if (!f) return
+
+    // Pré-inspeciona o ZIP para detectar modo (imagens vs PDF catálogo)
+    try {
+      const zip = await JSZip.loadAsync(f)
+      let hasPdf = false
+      let hasImages = false
+      zip.forEach((_path, entry) => {
+        if (entry.dir) return
+        const ext = entry.name.split('.').pop()?.toLowerCase() || ''
+        if (ext === 'pdf') hasPdf = true
+        if (IMAGE_EXTS.has(ext)) hasImages = true
+      })
+      if (hasPdf && !hasImages) setDetectedMode('pdf')
+      else if (hasImages) setDetectedMode('images')
+    } catch {
+      // ignora — erro será capturado no submit
+    }
+  }
+
   async function handleSubmit() {
     if (!file || !priceTableId) return
     setProcessing(true)
@@ -121,15 +204,62 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
     setResult(null)
 
     try {
-      // 1. Lê o ZIP no browser (sem enviar para o servidor)
       setPhase('reading')
       const zip = await JSZip.loadAsync(file)
 
-      // 2. Coleta imagens; referência = trecho antes do 1º "-", espaço ou "(".
-      //    Ex.: "H90-CINZA (7).jpg" → H90 | "FC558 PRETO.jpg" → FC558 | "5315.jpg" → 5315
-      //    Mantém 1 foto por referência: prefere a sem número ou a de menor índice "(n)".
-      // Modo capa (padrão): 1 foto por referência (dedup pela menor "(n)").
-      // Modo galeria: TODAS as fotos de cada referência (várias por produto).
+      // ── Modo PDF: catálogo da fábrica ────────────────────────────────
+      if (detectedMode === 'pdf') {
+        // Encontra o primeiro PDF no ZIP
+        let pdfEntry: JSZip.JSZipObject | null = null
+        zip.forEach((_path, entry) => {
+          if (!entry.dir && entry.name.split('.').pop()?.toLowerCase() === 'pdf' && !pdfEntry) {
+            pdfEntry = entry
+          }
+        })
+        if (!pdfEntry) throw new Error('Nenhum arquivo PDF encontrado no ZIP.')
+
+        const pdfBuffer = await (pdfEntry as JSZip.JSZipObject).async('arraybuffer')
+
+        // Renderiza páginas do PDF
+        setPhase('rendering')
+        const pages = await extractPdfPages(pdfBuffer, (done, total) => {
+          setProgress({ done, total })
+        })
+
+        if (pages.length === 0) {
+          setError('Nenhuma página com referência válida encontrada no PDF. Verifique se o catálogo tem texto selecionável.')
+          setProcessing(false)
+          setPhase('idle')
+          return
+        }
+
+        // Faz upload de cada página renderizada
+        setPhase('uploading')
+        setProgress({ done: 0, total: pages.length })
+
+        let matched = 0, skipped = 0, notFound = 0
+        const errors: string[] = []
+
+        const tasks = pages.map(({ ref, blob }) => async () => {
+          try {
+            const res = await priceTablesApi.uploadPhotoByRef(priceTableId, ref, blob, overwrite)
+            const data = res.data as { matched?: boolean; skipped?: boolean; reason?: string }
+            if (data.matched) matched++
+            else if (data.skipped && data.reason === 'not_found') notFound++
+            else skipped++
+          } catch {
+            errors.push(ref)
+          }
+          setProgress(p => ({ ...p, done: p.done + 1 }))
+        })
+
+        await pLimit(tasks, 2)
+        setResult({ total: pages.length, matched, skipped, notFound, errors })
+        onDone?.()
+        return
+      }
+
+      // ── Modo padrão: fotos individuais no ZIP ────────────────────────
       const best = new Map<string, { n: number; zipFile: JSZip.JSZipObject }>()
       const all: Array<{ ref: string; n: number; zipFile: JSZip.JSZipObject }> = []
       zip.forEach((relativePath, zipFile) => {
@@ -139,14 +269,14 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
         if (!IMAGE_EXTS.has(ext)) return
         const noExt = base.replace(/\.[^.]+$/, '')
         const head = noExt.split(/[-–(\s]/)[0].trim().toUpperCase()
-        if (!head || !/\d/.test(head) || head.length > 14) return  // precisa ter dígito (é código)
+        if (!head || !/\d/.test(head) || head.length > 14) return
         const nm = noExt.match(/\((\d+)\)/)
-        const n = nm ? parseInt(nm[1], 10) : 0   // sem número = 0 (prioridade)
+        const n = nm ? parseInt(nm[1], 10) : 0
         const cur = best.get(head)
         if (!cur || n < cur.n) best.set(head, { n, zipFile })
         all.push({ ref: head, n, zipFile })
       })
-      const images: Array<{ ref: string; zipFile: JSZip.JSZipObject }> = galleryMode
+      const images = galleryMode
         ? all.sort((a, b) => a.ref.localeCompare(b.ref) || a.n - b.n).map(({ ref, zipFile }) => ({ ref, zipFile }))
         : [...best.entries()].map(([ref, { zipFile }]) => ({ ref, zipFile }))
 
@@ -157,20 +287,15 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
         return
       }
 
-      // 3. Faz upload de cada imagem individualmente (concorrência 2)
-      // Processa sequencialmente para não explodir a memória com ZIPs grandes
       setPhase('uploading')
       setProgress({ done: 0, total: images.length })
 
-      let matched = 0
-      let skipped = 0
-      let notFound = 0
+      let matched = 0, skipped = 0, notFound = 0
       const errors: string[] = []
 
       const tasks = images.map(({ ref, zipFile }) => async () => {
         try {
           const rawBlob = await zipFile.async('blob')
-          // Comprime no browser antes de enviar (25-44 MB → ~300 KB)
           const compressed = await compressImage(rawBlob)
           const res = galleryMode
             ? await priceTablesApi.galleryByRef(priceTableId, ref, compressed)
@@ -185,9 +310,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
         setProgress(p => ({ ...p, done: p.done + 1 }))
       })
 
-      // Concorrência 2 — ZIPs com fotos grandes precisam de menos paralelo
       await pLimit(tasks, 2)
-
       setResult({ total: images.length, matched, skipped, notFound, errors })
       onDone?.()
     } catch (err: unknown) {
@@ -200,6 +323,11 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
   }
 
   const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0
+
+  const phaseLabel =
+    phase === 'reading'   ? 'Lendo arquivo ZIP…' :
+    phase === 'rendering' ? `Renderizando páginas: ${progress.done} de ${progress.total} (${pct}%)` :
+    phase === 'uploading' ? `Enviando: ${progress.done} de ${progress.total} (${pct}%)` : ''
 
   return (
     <Modal
@@ -220,11 +348,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
               disabled={!file || !priceTableId || processing}
               loading={processing}
             >
-              {processing
-                ? phase === 'reading'
-                  ? 'Lendo ZIP…'
-                  : `Enviando ${progress.done}/${progress.total}`
-                : 'Importar Fotos'}
+              {processing ? phaseLabel : detectedMode === 'pdf' ? 'Importar Catálogo PDF' : 'Importar Fotos'}
             </Button>
           </div>
         )
@@ -232,13 +356,13 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
     >
       {result ? (
         /* ── Resultado ── */
-        <div className="space-y-1">
+        <div className="space-y-3">
           <div className="flex items-center gap-3">
             <CheckCircle className="h-8 w-8 text-emerald-500 flex-shrink-0" />
             <div>
               <p className="font-semibold text-on-surface">Importação concluída!</p>
               <p className="text-[12px] text-outline">
-                {result.total} foto{result.total !== 1 ? 's' : ''} encontrada{result.total !== 1 ? 's' : ''} no ZIP
+                {result.total} {detectedMode === 'pdf' ? 'página' : 'foto'}{result.total !== 1 ? 's' : ''} processada{result.total !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
@@ -248,7 +372,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
               <p className="text-2xl font-bold text-emerald-600">{result.matched}</p>
               <p className="text-[12px] text-emerald-700">Vinculadas</p>
             </div>
-            <div className={`rounded-xl p-3 text-center ${result.skipped > 0 ? 'bg-surface-container-low' : 'bg-surface-container-low'}`}>
+            <div className="rounded-xl p-3 text-center bg-surface-container-low">
               <p className="text-2xl font-bold text-outline/70">{result.skipped}</p>
               <p className="text-[12px] text-outline">Ignoradas*</p>
             </div>
@@ -257,7 +381,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
                 {result.notFound}
               </p>
               <p className={`text-[12px] ${result.notFound > 0 ? 'text-amber-700' : 'text-outline'}`}>
-                Ref. não encontrada
+                Não encontrada
               </p>
             </div>
           </div>
@@ -267,13 +391,11 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
               * Ignoradas = já tinham foto e "sobreescrever" estava desativado
             </p>
           )}
-
           {result.notFound > 0 && (
             <p className="text-[12px] text-amber-600 text-center">
-              ⚠ Verifique se a tabela de preços selecionada está correta
+              Verifique se a tabela de preços selecionada está correta
             </p>
           )}
-
           {result.errors.length > 0 && (
             <div className="bg-red-50 rounded-lg p-3">
               <p className="text-[12px] font-semibold text-red-700 mb-1">
@@ -285,20 +407,32 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
         </div>
       ) : (
         /* ── Formulário ── */
-        <div className="space-y-1">
-          <div className="bg-blue-50 rounded-xl p-3 text-[12px] text-blue-700">
-            <p className="font-semibold mb-1">Como funciona:</p>
-            <ol className="list-decimal list-inside space-y-0.5 text-[12px]">
-              <li>Abra a pasta de fotos no Google Drive</li>
-              <li>Clique em "Baixar tudo" → o Drive gera um <strong>.zip</strong></li>
-              <li>Selecione a tabela de preços correspondente</li>
-              <li>Faça upload do .zip aqui</li>
-            </ol>
-            <p className="text-[12px] mt-1.5 text-blue-600">
-              As fotos são identificadas pela referência no nome do arquivo<br/>
-              (ex: <code>001 TE10308-791.jpg</code> → vincula a <strong>TE10308</strong>)
-            </p>
-          </div>
+        <div className="space-y-3">
+
+          {/* Instrução contextual */}
+          {detectedMode === 'pdf' ? (
+            <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 text-[12px] text-violet-800">
+              <div className="flex items-center gap-2 mb-1">
+                <FileText className="h-4 w-4 text-violet-600 flex-shrink-0" />
+                <p className="font-semibold">Catálogo PDF detectado</p>
+              </div>
+              <p>Cada página do PDF será renderizada como foto e vinculada pela referência extraída do texto (ex: <code className="bg-violet-100 px-1 rounded">TE22185</code>).</p>
+            </div>
+          ) : (
+            <div className="bg-blue-50 rounded-xl p-3 text-[12px] text-blue-700">
+              <p className="font-semibold mb-1">Como funciona:</p>
+              <ol className="list-decimal list-inside space-y-0.5">
+                <li>Abra a pasta de fotos no Google Drive</li>
+                <li>Clique em "Baixar tudo" → o Drive gera um <strong>.zip</strong></li>
+                <li>Selecione a tabela de preços correspondente</li>
+                <li>Faça upload do .zip aqui</li>
+              </ol>
+              <p className="mt-1.5 text-blue-600">
+                As fotos são identificadas pela referência no nome do arquivo<br/>
+                (ex: <code>FC558 PRETO.jpg</code> → vincula a <strong>FC558</strong>)
+              </p>
+            </div>
+          )}
 
           {/* Tabela de preços */}
           <div>
@@ -325,12 +459,14 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
               Arquivo ZIP *
             </label>
             <div
-              className="border-2 border-dashed border-outline-variant rounded-xl p-6 text-center cursor-pointer hover:border-primary/30 hover:bg-primary/5/30 transition-colors"
+              className="border-2 border-dashed border-outline-variant rounded-xl p-5 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-colors"
               onClick={() => !processing && fileRef.current?.click()}
             >
               {file ? (
                 <div className="flex items-center justify-center gap-2 text-primary">
-                  <Archive className="h-5 w-5" />
+                  {detectedMode === 'pdf'
+                    ? <FileText className="h-5 w-5" />
+                    : <Archive className="h-5 w-5" />}
                   <span className="text-[12px] font-medium">{file.name}</span>
                   <span className="text-[12px] text-outline/70">({(file.size / 1024 / 1024).toFixed(0)} MB)</span>
                 </div>
@@ -338,7 +474,7 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
                 <div className="text-outline/70">
                   <Upload className="h-8 w-8 mx-auto mb-2" />
                   <p className="text-[12px]">Clique para selecionar o arquivo .zip</p>
-                  <p className="text-[12px] mt-0.5 text-outline/50">Qualquer tamanho — processado localmente</p>
+                  <p className="text-[12px] mt-0.5 text-outline/50">ZIP com fotos ou ZIP com catálogo PDF</p>
                 </div>
               )}
             </div>
@@ -347,25 +483,40 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
               type="file"
               accept=".zip"
               className="hidden"
-              onChange={e => setFile(e.target.files?.[0] || null)}
+              onChange={e => handleFileSelect(e.target.files?.[0] || null)}
             />
           </div>
 
-          {/* Modo galeria: várias fotos por produto */}
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={galleryMode}
-              onChange={e => setGalleryMode(e.target.checked)}
-              className="mt-0.5 rounded border-outline-variant text-primary focus:ring-primary"
-            />
-            <span className="text-[12px] text-on-surface-variant">
-              <span className="font-semibold">Importar como galeria</span> — guarda <b>todas</b> as fotos de cada código (várias por produto). Desmarcado = só 1 foto (capa) por código.
-            </span>
-          </label>
+          {/* Opções — só para modo imagens */}
+          {detectedMode !== 'pdf' && (
+            <>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={galleryMode}
+                  onChange={e => setGalleryMode(e.target.checked)}
+                  className="mt-0.5 rounded border-outline-variant text-primary focus:ring-primary"
+                />
+                <span className="text-[12px] text-on-surface-variant">
+                  <span className="font-semibold">Importar como galeria</span> — guarda <b>todas</b> as fotos de cada código. Desmarcado = só 1 foto (capa) por código.
+                </span>
+              </label>
+              {!galleryMode && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={overwrite}
+                    onChange={e => setOverwrite(e.target.checked)}
+                    className="rounded border-outline-variant text-primary focus:ring-primary"
+                  />
+                  <span className="text-[12px] text-on-surface-variant">Sobreescrever fotos já existentes</span>
+                </label>
+              )}
+            </>
+          )}
 
-          {/* Sobreescrever (só no modo capa) */}
-          {!galleryMode && (
+          {/* Sobreescrever para PDF */}
+          {detectedMode === 'pdf' && (
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -379,16 +530,12 @@ export function PhotosZipImportModal({ open, onClose, onDone }: Props) {
 
           {/* Progresso */}
           {processing && (
-            <div className="space-y-1">
+            <div className="space-y-2">
               <div className="flex items-center gap-2 text-[12px] text-primary">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>
-                  {phase === 'reading'
-                    ? 'Lendo arquivo ZIP…'
-                    : `Enviando fotos: ${progress.done} de ${progress.total} (${pct}%)`}
-                </span>
+                <span>{phaseLabel}</span>
               </div>
-              {phase === 'uploading' && (
+              {(phase === 'rendering' || phase === 'uploading') && (
                 <div className="w-full bg-surface-container rounded-full h-2">
                   <div
                     className="bg-primary h-2 rounded-full transition-all duration-300"
