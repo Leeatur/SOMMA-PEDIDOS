@@ -81,6 +81,8 @@ interface Order {
   client_cnpj: string | null
   client_state_registration: string | null
   client_address: string | null
+  client_address_number: string | null
+  client_complement: string | null
   client_neighborhood: string | null
   client_zip: string | null
   rep_name: string
@@ -330,14 +332,20 @@ export function OrderPrint() {
       : `${window.location.origin}${rawLogoUrl}`
     : null
 
-  const clientAddress  = [
+  const clientAddressStreet = [
     order.client_address,
+    order.client_address_number,
+    order.client_complement,
+  ].filter(Boolean).join(', ')
+
+  const clientAddress = [
+    clientAddressStreet || null,
     order.client_neighborhood,
     order.client_city && order.client_state
       ? `${order.client_city}-${order.client_state}`
       : (order.client_city || order.client_state || ''),
     order.client_zip ? `CEP ${order.client_zip}` : '',
-  ].filter(Boolean).join(', ')
+  ].filter(Boolean).join(' — ')
 
   return (
     <>
