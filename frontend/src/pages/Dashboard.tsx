@@ -1342,7 +1342,7 @@ export function Dashboard() {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function StatCard({
-  icon, iconBg, label, value, badge, badgeColor, large, accentColor, onClick,
+  icon, iconBg, label, value, badge, badgeColor, large, onClick,
 }: {
   icon: React.ReactNode
   iconBg: string

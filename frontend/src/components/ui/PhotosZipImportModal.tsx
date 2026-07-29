@@ -2,16 +2,9 @@ import { useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Archive, Upload, CheckCircle, AlertCircle, Loader2, FileText } from 'lucide-react'
 import JSZip from 'jszip'
-import * as pdfjsLib from 'pdfjs-dist'
 import { priceTablesApi } from '../../api/client'
 import { Modal } from './Modal'
 import { Button } from './Button'
-
-// Worker do pdf.js — processado localmente no browser, sem servidor
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.mjs',
-  import.meta.url,
-).href
 
 interface PriceTable {
   id: string
@@ -90,6 +83,11 @@ async function extractPdfPages(
   pdfData: ArrayBuffer,
   onProgress: (done: number, total: number) => void,
 ): Promise<Array<{ ref: string; blob: Blob }>> {
+  const pdfjsLib = await import('pdfjs-dist')
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.mjs',
+    import.meta.url,
+  ).href
   const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise
   const total = pdf.numPages
   const items: Array<{ ref: string; blob: Blob }> = []
@@ -116,7 +114,7 @@ async function extractPdfPages(
     canvas.width = Math.round(viewport.width)
     canvas.height = Math.round(viewport.height)
     const ctx = canvas.getContext('2d')!
-    await page.render({ canvasContext: ctx, viewport }).promise
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise
 
     // 3. Comprime para JPEG (~300 KB por página)
     const blob = await new Promise<Blob>((resolve, reject) =>
