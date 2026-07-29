@@ -846,18 +846,20 @@ export async function updatePriceTableRules(req: AuthRequest, res: Response) {
 
 export async function deletePriceTable(req: AuthRequest, res: Response) {
   const { id } = req.params
-  // Products/grade_configs/discount_rules cascade delete.
-  // orders.price_table_id and order_items.product_id are SET NULL automatically
-  // (see migration v4), so order history is fully preserved.
-  const { rows } = await query(
-    'DELETE FROM price_tables WHERE id = $1 RETURNING id',
-    [id]
-  )
-  if (!rows[0]) {
-    res.status(404).json({ error: 'Tabela não encontrada' })
-    return
+  try {
+    const { rows } = await query(
+      'DELETE FROM price_tables WHERE id = $1 RETURNING id',
+      [id]
+    )
+    if (!rows[0]) {
+      res.status(404).json({ error: 'Tabela não encontrada' })
+      return
+    }
+    res.json({ deleted: true })
+  } catch (err) {
+    console.error('Erro ao excluir tabela de preços:', err)
+    res.status(500).json({ error: 'Erro ao excluir tabela. Verifique se há pedidos vinculados.' })
   }
-  res.json({ deleted: true })
 }
 
 // Limpa todas as image_url de uma tabela (para re-importar após bugfix)

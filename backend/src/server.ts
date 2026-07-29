@@ -102,6 +102,13 @@ async function runStartupMigrations() {
   await safe('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_terms VARCHAR(200)')
   // price_table_id pode ser NOT NULL em instâncias antigas — importação histórica não tem tabela de preço
   await safe('ALTER TABLE orders ALTER COLUMN price_table_id DROP NOT NULL')
+  // Garante ON DELETE SET NULL para não bloquear exclusão de tabela de preços
+  // (instâncias antigas podem ter FK com RESTRICT padrão)
+  await safe('ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_price_table_id_fkey')
+  await safe('ALTER TABLE orders ADD CONSTRAINT orders_price_table_id_fkey FOREIGN KEY (price_table_id) REFERENCES price_tables(id) ON DELETE SET NULL')
+  await safe('ALTER TABLE order_items ALTER COLUMN product_id DROP NOT NULL')
+  await safe('ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_product_id_fkey')
+  await safe('ALTER TABLE order_items ADD CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL')
   // Admin principal
   await safe(`UPDATE users SET name = 'SOMMA - Uliano Spèrandio' WHERE email = 'somma.uliano@hotmail.com' AND name != 'SOMMA - Uliano Spèrandio'`)
   await safe(`DELETE FROM users WHERE email IN ('admin2@somma.com.br', 'admin3@somma.com.br')`)
