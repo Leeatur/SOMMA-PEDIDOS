@@ -11,6 +11,24 @@ const FINAL_GATE = COMMISSION_ON_FINAL_ONLY ? ' * (CASE WHEN COALESCE(s.is_final
 // Pedidos importados do "Suas Vendas" são apenas para pesquisa — não entram em relatórios.
 const NOT_SV = ` AND (o.notes IS NULL OR o.notes NOT LIKE 'Importado SuasVendas%')`
 
+// ── Confidencialidade de comissão ────────────────────────────────────────────
+// Vendedor NUNCA pode ver comissão de Escritório / Fábrica / Guia — só a dele.
+// Zera essas chaves na resposta quando o usuário não é admin (defesa no dado,
+// além de esconder na tela). Aplicar em todo res.json que devolva comissão.
+const NON_REP_COMMISSION_KEY = /(office_commission|comissao_escritorio|guide_commission|comissao_guia|total_commission)/i
+function hideOfficeCommission<T>(data: T, isAdmin: boolean): T {
+  if (isAdmin || data == null) return data
+  if (Array.isArray(data)) return data.map(d => hideOfficeCommission(d, false)) as unknown as T
+  if (typeof data === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+      out[k] = NON_REP_COMMISSION_KEY.test(k) ? 0 : hideOfficeCommission(v as unknown, false)
+    }
+    return out as unknown as T
+  }
+  return data
+}
+
 function dateRange(req: AuthRequest): [string, string] {
   // Usa horário de Brasília para comparação de datas
   const toSP = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
@@ -70,7 +88,7 @@ export async function ordersReport(req: AuthRequest, res: Response) {
     `, [...params]),
   ])
 
-  res.json({ summary: summaryRes.rows[0], byDay: byDayRes.rows })
+  res.json(hideOfficeCommission({ summary: summaryRes.rows[0], byDay: byDayRes.rows }, isAdmin))
 }
 
 export async function commissionsReport(req: AuthRequest, res: Response) {
@@ -134,7 +152,7 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
     ORDER BY o.created_at DESC
   `, params)
 
-  res.json(rows)
+  res.json(hideOfficeCommission(rows, isAdmin))
 }
 
 export async function clientsReport(req: AuthRequest, res: Response) {
@@ -407,7 +425,7 @@ export async function salesEvolutionReport(req: AuthRequest, res: Response) {
     ORDER BY 1
   `, params)
 
-  res.json(rows)
+  res.json(hideOfficeCommission(rows, isAdmin))
 }
 
 // ─── Clientes Inativos ────────────────────────────────────────────────────────
@@ -571,7 +589,7 @@ export async function periodComparisonReport(req: AuthRequest, res: Response) {
     makeQuery(prevFrom, prevTo),
   ])
 
-  res.json({ current, previous, period: { from, to }, prev_period: { from: prevFrom, to: prevTo } })
+  res.json(hideOfficeCommission({ current, previous, period: { from, to }, prev_period: { from: prevFrom, to: prevTo } }, isAdmin))
 }
 
 // ─── Análise por Região/UF ────────────────────────────────────────────────────
@@ -712,5 +730,5 @@ export async function commissionProjectionReport(req: AuthRequest, res: Response
     ORDER BY situacao, comissao_rep DESC
   `, params)
 
-  res.json(rows)
+  res.json(hideOfficeCommission(rows, isAdmin))
 }

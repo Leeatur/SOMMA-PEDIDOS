@@ -51,7 +51,11 @@ export async function getPriceTable(req: AuthRequest, res: Response) {
   const { rows: peRows } = await query(
     'SELECT id FROM pe_catalogs WHERE price_table_id=$1 LIMIT 1', [req.params.id]
   )
-  res.json({ ...rows[0], discount_rules: rules, is_pe: peRows.length > 0 })
+  const isAdmin = req.user?.role === 'admin'
+  const safeRules = isAdmin ? rules : rules.map((r: Record<string, unknown>) => ({
+    ...r, total_commission_pct: 0, office_commission_pct: 0, guide_commission_pct: 0,
+  }))
+  res.json({ ...rows[0], discount_rules: safeRules, is_pe: peRows.length > 0 })
 }
 
 // Preview do Excel antes de confirmar importação

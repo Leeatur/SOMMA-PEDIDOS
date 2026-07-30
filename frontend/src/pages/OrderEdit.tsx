@@ -954,10 +954,10 @@ export default function OrderEdit() {
                     <thead className="bg-surface-container-low border-b border-outline-variant/40 sticky top-0 z-10">
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-outline">Desconto de Prazo</th>
-                        <th className="px-3 py-2 text-center font-semibold text-outline">Comissão Total</th>
+                        {isAdmin && <th className="px-3 py-2 text-center font-semibold text-outline">Comissão Total</th>}
                         <th className="px-3 py-2 text-center font-semibold text-emerald-700">{FACTORY_COMM ? 'Com. Loja' : 'Com. Representante'}</th>
-                        <th className="px-3 py-2 text-center font-semibold text-blue-700">{FACTORY_COMM ? 'Com. Repres.' : 'Com. Escritório'}</th>
-                        {FACTORY_COMM && <th className="px-3 py-2 text-center font-semibold text-amber-700">Com. Guia</th>}
+                        {isAdmin && <th className="px-3 py-2 text-center font-semibold text-blue-700">{FACTORY_COMM ? 'Com. Repres.' : 'Com. Escritório'}</th>}
+                        {FACTORY_COMM && isAdmin && <th className="px-3 py-2 text-center font-semibold text-amber-700">Com. Guia</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/20">
@@ -977,10 +977,10 @@ export default function OrderEdit() {
                               <span className={zeroActive ? 'text-emerald-700' : 'text-outline/70'}>0,0% — Sem desconto</span>
                               {zeroActive && <span className="ml-2 text-[10px] text-emerald-700 font-bold">← SELECIONADO</span>}
                             </td>
+                            {isAdmin && <td className="px-3 py-2.5 text-center text-outline/60">—</td>}
                             <td className="px-3 py-2.5 text-center text-outline/60">—</td>
-                            <td className="px-3 py-2.5 text-center text-outline/60">—</td>
-                            <td className="px-3 py-2.5 text-center text-outline/60">—</td>
-                            {FACTORY_COMM && <td className="px-3 py-2.5 text-center text-outline/60">—</td>}
+                            {isAdmin && <td className="px-3 py-2.5 text-center text-outline/60">—</td>}
+                            {FACTORY_COMM && isAdmin && <td className="px-3 py-2.5 text-center text-outline/60">—</td>}
                           </tr>
                         )
                       })()}
@@ -1000,10 +1000,10 @@ export default function OrderEdit() {
                               <span className={isActive ? 'text-primary' : ''}>{Number(r.discount_pct).toFixed(1)}%</span>
                               {isActive && <span className="ml-2 text-[10px] text-primary font-bold">← SELECIONADO</span>}
                             </td>
-                            <td className="px-3 py-2.5 text-center">{Number(r.total_commission_pct).toFixed(1)}%</td>
+                            {isAdmin && <td className="px-3 py-2.5 text-center">{Number(r.total_commission_pct).toFixed(1)}%</td>}
                             <td className="px-3 py-2.5 text-center text-emerald-700 font-semibold">{Number(r.rep_commission_pct).toFixed(1)}%</td>
-                            <td className="px-3 py-2.5 text-center text-blue-700 font-semibold">{Number(r.office_commission_pct).toFixed(1)}%</td>
-                            {FACTORY_COMM && <td className="px-3 py-2.5 text-center text-amber-700 font-semibold">{Number(r.guide_commission_pct || 0).toFixed(1)}%</td>}
+                            {isAdmin && <td className="px-3 py-2.5 text-center text-blue-700 font-semibold">{Number(r.office_commission_pct).toFixed(1)}%</td>}
+                            {FACTORY_COMM && isAdmin && <td className="px-3 py-2.5 text-center text-amber-700 font-semibold">{Number(r.guide_commission_pct || 0).toFixed(1)}%</td>}
                           </tr>
                         )
                       })}

@@ -1975,7 +1975,7 @@ export function Reports() {
                     <table className="text-[12px] w-full">
                       <thead className="bg-surface-container-low sticky top-0 z-10">
                         <tr>
-                          {['Mês','Pedidos','Peças','Valor Total','Ticket Médio','Com. Rep','Com. Escr.','Clientes'].map(h => (
+                          {['Mês','Pedidos','Peças','Valor Total','Ticket Médio','Com. Rep',...(isAdmin ? ['Com. Escr.'] : []),'Clientes'].map(h => (
                             <th key={h} className="px-3 py-2 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
@@ -1989,7 +1989,7 @@ export function Reports() {
                             <td className="px-3 py-2 font-bold text-on-surface">{fmtR(r.total_value)}</td>
                             <td className="px-3 py-2 text-outline">{fmtR(r.ticket_medio)}</td>
                             <td className="px-3 py-2 text-emerald-700 font-semibold">{fmtR(r.rep_commission)}</td>
-                            <td className="px-3 py-2 text-blue-700 font-semibold">{fmtR(r.office_commission)}</td>
+                            {isAdmin && <td className="px-3 py-2 text-blue-700 font-semibold">{fmtR(r.office_commission)}</td>}
                             <td className="px-3 py-2 text-center">{r.clientes_atendidos}</td>
                           </tr>
                         ))}
@@ -2002,7 +2002,7 @@ export function Reports() {
                           <td className="px-3 py-2">{fmtR(evolutionQ.data.reduce((s:number,r:any)=>s+Number(r.total_value),0))}</td>
                           <td className="px-3 py-2">—</td>
                           <td className="px-3 py-2 text-emerald-700">{fmtR(evolutionQ.data.reduce((s:number,r:any)=>s+Number(r.rep_commission),0))}</td>
-                          <td className="px-3 py-2 text-blue-700">{fmtR(evolutionQ.data.reduce((s:number,r:any)=>s+Number(r.office_commission),0))}</td>
+                          {isAdmin && <td className="px-3 py-2 text-blue-700">{fmtR(evolutionQ.data.reduce((s:number,r:any)=>s+Number(r.office_commission),0))}</td>}
                           <td className="px-3 py-2 text-center">—</td>
                         </tr>
                       </tfoot>
@@ -2233,7 +2233,7 @@ export function Reports() {
                   {metric('Ticket Médio', Number(cur.ticket_medio), Number(prev.ticket_medio))}
                   {metric('Clientes Atendidos', Number(cur.clientes_atendidos), Number(prev.clientes_atendidos), false)}
                   {metric('Com. Representante', Number(cur.rep_commission), Number(prev.rep_commission))}
-                  {metric('Com. Escritório', Number(cur.office_commission), Number(prev.office_commission))}
+                  {isAdmin && metric('Com. Escritório', Number(cur.office_commission), Number(prev.office_commission))}
                 </div>
               </div>
             )
