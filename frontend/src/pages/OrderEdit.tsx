@@ -772,13 +772,13 @@ export default function OrderEdit() {
           </button>
           {/* Salvar e Voltar */}
           <button onClick={() => handleSave('list')} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60 shrink-0">
+            className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60 shrink-0 btn-save-glow">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             {saving ? 'Salvando...' : 'Salvar e Voltar'}
           </button>
           {/* Salvar (fica na tela) */}
           <button onClick={() => handleSave('detail')} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60 shrink-0">
+            className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60 shrink-0 btn-primary-glow">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             {saving ? '...' : 'Salvar'}
           </button>
@@ -1394,7 +1394,7 @@ export default function OrderEdit() {
             {saving ? '...' : 'Salvar'}
           </button>
           <button onClick={() => handleSave('list')} disabled={saving}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60">
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60 btn-save-glow">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {saving ? 'Salvando...' : 'Salvar e Voltar'}
           </button>

@@ -264,7 +264,7 @@ export function AppLayout() {
           {/* Novo pedido */}
           <button
             onClick={() => navigate('/orders/new')}
-            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-[14px] font-bold px-4 py-2 rounded-lg border border-white/20 transition-all mr-2"
+            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-[14px] font-bold px-4 py-2 rounded-lg border border-white/20 transition-all mr-2 btn-primary-glow"
           >
             <Plus className="h-4 w-4" /> Novo Pedido
           </button>

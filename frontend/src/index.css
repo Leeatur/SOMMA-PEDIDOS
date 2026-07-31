@@ -69,3 +69,27 @@
     zoom: 1;
   }
 }
+
+/* ── Animações de botão ──────────────────────────────────────────────────── */
+button:not(:disabled) {
+  transition: transform 0.13s ease-out, box-shadow 0.13s ease-out;
+}
+button:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+button:active:not(:disabled) {
+  transform: scale(0.96);
+  box-shadow: none;
+  transition-duration: 0.07s;
+}
+
+/* Glow violeta para botões primários */
+button.btn-primary-glow:hover:not(:disabled) {
+  box-shadow: 0 4px 18px rgba(109, 40, 217, 0.45);
+}
+
+/* Glow esmeralda para botões de salvar */
+button.btn-save-glow:hover:not(:disabled) {
+  box-shadow: 0 4px 18px rgba(5, 150, 105, 0.40);
+}
