@@ -207,7 +207,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="hidden lg:flex items-center sticky top-0 z-40 shadow-lg flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #075985 40%, #0369a1 100%)', height: 80 }}
+        style={{ background: 'linear-gradient(180deg, #0d1f3c 0%, #0b1c30 60%, #091629 100%)', height: 80 }}
       >
         {/* Logo */}
         <NavLink to="/dashboard" className="flex items-center px-4 pr-3 flex-shrink-0 self-stretch border-r border-white/10">
@@ -319,7 +319,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="lg:hidden sticky top-0 z-40 flex items-center px-4 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #0c4a6e, #0369a1)', height: 52 }}
+        style={{ background: 'linear-gradient(180deg, #0d1f3c, #0b1c30)', height: 52 }}
       >
         <button onClick={() => setMobileOpen(true)} className="p-1.5 text-white/70 hover:text-white mr-2">
           <Menu className="h-5 w-5" />
@@ -339,7 +339,7 @@ export function AppLayout() {
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <div className="relative w-72 flex flex-col"
-            style={{ background: 'linear-gradient(180deg, #0c4a6e, #075985)' }}>
+            style={{ background: 'linear-gradient(180deg, #0d1f3c, #0b1c30)' }}>
             <div className="flex items-center justify-between px-5 py-4">
               <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-10 w-auto" />
               <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white">

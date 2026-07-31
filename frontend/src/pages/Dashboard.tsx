@@ -527,8 +527,8 @@ export function Dashboard() {
           }
 
           const brandColors: Record<string, { from: string; to: string }> = {
-            OUZZARE: { from: '#0c4a6e', to: '#075985' },
-            TEEZZ:   { from: '#0369a1', to: '#0284c7' },
+            OUZZARE: { from: '#003ea8', to: '#004ac6' },
+            TEEZZ:   { from: '#0f2744', to: '#003ea8' },
           }
 
           return (

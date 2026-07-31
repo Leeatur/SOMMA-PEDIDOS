@@ -3,71 +3,70 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
-      // ── Paleta Oceano Azul ────────────────────────────────────────────────
+      // ── Material Design 3 — Blue (#004ac6) ───────────────────────────────
       colors: {
-        // Primary — Sky/Ocean Blue
-        'primary':                    '#0284c7',
-        'primary-container':          '#0ea5e9',
-        'primary-fixed':              '#e0f2fe',
-        'primary-fixed-dim':          '#bae6fd',
+        // Primary
+        'primary':                    '#004ac6',
+        'primary-container':          '#2563eb',
+        'primary-fixed':              '#dbe1ff',
+        'primary-fixed-dim':          '#b4c5ff',
         'on-primary':                 '#ffffff',
-        'on-primary-container':       '#f0f9ff',
-        'on-primary-fixed':           '#0c4a6e',
-        'on-primary-fixed-variant':   '#0369a1',
-        'inverse-primary':            '#7dd3fc',
-        // Secondary — Slate neutro
-        'secondary':                  '#64748B',
-        'secondary-container':        '#E2E8F0',
-        'secondary-fixed':            '#E2E8F0',
-        'secondary-fixed-dim':        '#CBD5E1',
+        'on-primary-container':       '#eeefff',
+        'on-primary-fixed':           '#00174b',
+        'on-primary-fixed-variant':   '#003ea8',
+        'inverse-primary':            '#b4c5ff',
+        // Secondary
+        'secondary':                  '#565e74',
+        'secondary-container':        '#dae2fd',
+        'secondary-fixed':            '#dae2fd',
+        'secondary-fixed-dim':        '#bec6e0',
         'on-secondary':               '#ffffff',
-        'on-secondary-container':     '#475569',
-        'on-secondary-fixed':         '#0c1e2e',
-        'on-secondary-fixed-variant': '#1e3a5f',
-        // Tertiary — neutro frio
-        'tertiary':                   '#52525B',
-        'tertiary-container':         '#71717A',
-        'tertiary-fixed':             '#E4E4E7',
-        'tertiary-fixed-dim':         '#D1D5DB',
+        'on-secondary-container':     '#5c647a',
+        'on-secondary-fixed':         '#131b2e',
+        'on-secondary-fixed-variant': '#3f465c',
+        // Tertiary
+        'tertiary':                   '#525657',
+        'tertiary-container':         '#6b6e70',
+        'tertiary-fixed':             '#e0e3e5',
+        'tertiary-fixed-dim':         '#c4c7c9',
         'on-tertiary':                '#ffffff',
-        'on-tertiary-container':      '#F4F4F5',
-        'on-tertiary-fixed':          '#18181B',
-        'on-tertiary-fixed-variant':  '#444449',
-        // Surface — toque azul suave
-        'surface':                    '#f0f9ff',
-        'surface-dim':                '#bae6fd',
-        'surface-bright':             '#f8fbff',
-        'surface-variant':            '#e0f2fe',
-        'surface-tint':               '#0284c7',
+        'on-tertiary-container':      '#eff1f3',
+        'on-tertiary-fixed':          '#191c1e',
+        'on-tertiary-fixed-variant':  '#444749',
+        // Surface
+        'surface':                    '#f8f9ff',
+        'surface-dim':                '#cbdbf5',
+        'surface-bright':             '#f8f9ff',
+        'surface-variant':            '#d3e4fe',
+        'surface-tint':               '#0053db',
         'surface-container-lowest':   '#ffffff',
-        'surface-container-low':      '#e8f5fe',
-        'surface-container':          '#e0f2fe',
-        'surface-container-high':     '#bae6fd',
-        'surface-container-highest':  '#93c5fd',
-        'on-surface':                 '#0c1a2e',
-        'on-surface-variant':         '#334155',
+        'surface-container-low':      '#eff4ff',
+        'surface-container':          '#e5eeff',
+        'surface-container-high':     '#dce9ff',
+        'surface-container-highest':  '#d3e4fe',
+        'on-surface':                 '#0b1c30',
+        'on-surface-variant':         '#434655',
         // Background
-        'background':                 '#f0f9ff',
-        'on-background':              '#0c1a2e',
+        'background':                 '#f8f9ff',
+        'on-background':              '#0b1c30',
         // Outline
-        'outline':                    '#64748b',
-        'outline-variant':            '#bae6fd',
+        'outline':                    '#737686',
+        'outline-variant':            '#c3c6d7',
         // Inverse
-        'inverse-surface':            '#0c4a6e',
-        'inverse-on-surface':         '#e0f2fe',
-        // Error (mantém)
+        'inverse-surface':            '#213145',
+        'inverse-on-surface':         '#eaf1ff',
+        // Error
         'error':                      '#ba1a1a',
         'error-container':            '#ffdad6',
         'on-error':                   '#ffffff',
         'on-error-container':         '#93000a',
-        // Legacy brand scale → sky/ocean
+        // Brand scale
         brand: {
-          50:  '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
-          400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
-          800: '#075985', 900: '#0c4a6e',
+          50:  '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+          400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+          800: '#1e40af', 900: '#1e3a8a',
         },
-        // Border util
-        'border-subtle': '#bae6fd',
+        'border-subtle': '#c3c6d7',
       },
       // ── Fonts ─────────────────────────────────────────────────────────────
       fontFamily: {
