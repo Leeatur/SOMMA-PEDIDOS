@@ -1361,7 +1361,7 @@ function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-2xl p-3 border border-outline-variant/50 relative overflow-hidden shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md hover:border-outline-variant/80 active:scale-[0.99] transition-all' : ''}`}
+      className={`bg-white rounded-2xl p-3 border border-outline-variant/50 relative overflow-hidden shadow-sm transition-all duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:border-outline-variant/80 ${onClick ? 'cursor-pointer active:scale-[0.98] active:translate-y-0' : ''}`}
     >
       {onClick && (
         <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black/5 flex items-center justify-center">
