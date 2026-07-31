@@ -207,7 +207,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="hidden lg:flex items-center sticky top-0 z-40 shadow-lg flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', height: 80 }}
+        style={{ background: 'linear-gradient(135deg, #1e0a3c 0%, #2d1160 40%, #3b1580 100%)', height: 80 }}
       >
         {/* Logo */}
         <NavLink to="/dashboard" className="flex items-center px-4 pr-3 flex-shrink-0 self-stretch border-r border-white/10">
@@ -319,7 +319,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="lg:hidden sticky top-0 z-40 flex items-center px-4 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1a1a2e, #0f3460)', height: 52 }}
+        style={{ background: 'linear-gradient(135deg, #1e0a3c, #3b1580)', height: 52 }}
       >
         <button onClick={() => setMobileOpen(true)} className="p-1.5 text-white/70 hover:text-white mr-2">
           <Menu className="h-5 w-5" />
