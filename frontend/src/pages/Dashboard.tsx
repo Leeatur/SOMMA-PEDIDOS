@@ -527,8 +527,8 @@ export function Dashboard() {
           }
 
           const brandColors: Record<string, { from: string; to: string }> = {
-            OUZZARE: { from: '#312e81', to: '#1e1b4b' },
-            TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
+            OUZZARE: { from: '#0c4a6e', to: '#075985' },
+            TEEZZ:   { from: '#0369a1', to: '#0284c7' },
           }
 
           return (
@@ -550,7 +550,7 @@ export function Dashboard() {
                   {brandList.map(fid => {
                     const { factory, reps, factoryId, factoryName } = groups[fid]
                     const titulo = factory?.label || factoryName
-                    const bc = brandColors[factoryName.toUpperCase()] || { from: '#1f2937', to: '#111827' }
+                    const bc = brandColors[factoryName.toUpperCase()] || { from: '#0369a1', to: '#0284c7' }
 
                     return (
                       <div key={fid} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
@@ -806,8 +806,8 @@ export function Dashboard() {
               if (brandList.length === 0) return null
 
               const brandColors: Record<string, { from: string; to: string }> = {
-                OUZZARE: { from: '#312e81', to: '#1e1b4b' },
-                TEEZZ:   { from: '#1e3a5f', to: '#0f2744' },
+                OUZZARE: { from: '#0c4a6e', to: '#075985' },
+                TEEZZ:   { from: '#0369a1', to: '#0284c7' },
               }
 
               const RepGoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
@@ -844,7 +844,7 @@ export function Dashboard() {
                     {brandList.map(brand => {
                       const { factory, mine } = groups[brand]
                       const titulo = factory?.label || mine?.label || ''
-                      const bc = brandColors[titulo.split(' ')[0].toUpperCase()] || { from: '#1f2937', to: '#111827' }
+                      const bc = brandColors[titulo.split(' ')[0].toUpperCase()] || { from: '#0369a1', to: '#0284c7' }
                       return (
                         <div key={brand} className="rounded-3xl overflow-hidden shadow-xl" style={{ background: `linear-gradient(135deg, ${bc.from}, ${bc.to})` }}>
                           <div className="px-4 pt-4 pb-2">

@@ -67,7 +67,7 @@ export function Login() {
       {/* ══ PAINEL ESQUERDO — marketing ══ */}
       <div
         className="hidden lg:flex lg:w-[58%] flex-col justify-between p-8 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}
+        style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #075985 40%, #0369a1 100%)' }}
       >
         {/* Padrão de pontos decorativos */}
         <div className="absolute inset-0 opacity-[0.04]"
@@ -135,7 +135,7 @@ export function Login() {
 
         {/* Mobile: logo topo */}
         <div className="lg:hidden flex flex-col items-center pt-10 pb-4"
-          style={{ background: 'linear-gradient(135deg,#1a1a2e,#0f3460)' }}>
+          style={{ background: 'linear-gradient(135deg,#0c4a6e,#0369a1)' }}>
           <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-16 w-auto" />
           {isDev && (
             <span className="mt-2 px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-black rounded-full tracking-widest">
