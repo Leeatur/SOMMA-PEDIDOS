@@ -1070,7 +1070,7 @@ function ProductCard({ product, cartItems, onOpenModal }: {
   const fmtCur = (v: number) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
   const inCart = cartItems.reduce((s, i) => s + i.total_pieces, 0)
   const inCartBoxes = cartItems.reduce((s, i) => s + i.boxes, 0)
-  const images = (product.images?.filter(Boolean) as string[]) || (product.image_url ? [product.image_url] : [])
+  const images: string[] = (product.images?.length ? product.images : product.image_url ? [product.image_url] : []).filter(Boolean) as string[]
   const primaryImg = images[1] ?? images[0] ?? null
   const initials = product.reference.replace(/[^A-Z0-9]/gi, '').slice(0, 2).toUpperCase()
 
