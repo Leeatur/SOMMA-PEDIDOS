@@ -167,7 +167,7 @@ export function CustomerPortal() {
         } else if (facs.length > 0) {
           setFactories(facs)
         }
-        setStep('cnpj')
+        setStep(prev => prev === 'loading' ? 'cnpj' : prev)
       })
       .catch(() => { setErrorMsg('Link inválido ou expirado.'); setStep('error') })
   }, [token])
