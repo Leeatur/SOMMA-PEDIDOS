@@ -1143,6 +1143,112 @@ export async function updateGradeConfig(req: AuthRequest, res: Response) {
   }
 }
 
+// ── Export Excel — produtos filtrados ────────────────────────────────────────
+export async function exportProducts(req: AuthRequest, res: Response) {
+  const XLSX = await import('xlsx')
+  const { price_table_id, search, type, include_inactive, sem_foto, com_foto } = req.query
+  const isAdmin = req.user?.role === 'admin'
+
+  let sql = `
+    SELECT p.reference, p.product_name, p.model, p.size_range, p.base_price, p.type,
+           p.category, p.observation, p.active,
+           pt.name AS price_table_name, f.name AS factory_name,
+           COALESCE((SELECT COUNT(*) FROM product_images pi WHERE pi.product_id = p.id), 0)::int AS qtd_fotos,
+           json_agg(gc ORDER BY gc.sort_order) FILTER (WHERE gc.id IS NOT NULL) AS grade_configs
+    FROM products p
+    LEFT JOIN price_tables pt ON pt.id = p.price_table_id
+    LEFT JOIN factories    f  ON f.id  = pt.factory_id
+    LEFT JOIN grade_configs gc ON gc.product_id = p.id
+    WHERE 1=1
+  `
+  const params: unknown[] = []
+  let idx = 1
+
+  if (!isAdmin || include_inactive !== 'true') sql += ` AND p.active = true`
+  if (price_table_id) { sql += ` AND p.price_table_id = $${idx++}`; params.push(price_table_id) }
+  if (type)           { sql += ` AND p.type = $${idx++}`; params.push(type) }
+  if (sem_foto === 'true') sql += ` AND (p.image_url IS NULL OR p.image_url = '')`
+  if (com_foto === 'true') sql += ` AND p.image_url IS NOT NULL AND p.image_url <> ''`
+  if (search) {
+    sql += ` AND (p.reference ILIKE $${idx} OR p.product_name ILIKE $${idx} OR p.model ILIKE $${idx} OR f.name ILIKE $${idx} OR pt.name ILIKE $${idx})`
+    params.push(`%${search}%`); idx++
+  }
+  if (!isAdmin) {
+    sql += ` AND (NOT EXISTS (SELECT 1 FROM user_factory_access WHERE user_id=$${idx}) OR pt.factory_id IN (SELECT factory_id FROM user_factory_access WHERE user_id=$${idx}))`
+    params.push(req.user!.id); idx++
+  }
+  sql += ' GROUP BY p.id, pt.name, f.name ORDER BY LOWER(p.reference)'
+
+  const { rows } = await query(sql, params)
+
+  const fmtBRL = (v: number) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+  const totalPcs = (gc: { total_pieces?: number }[] | null) =>
+    (gc || []).reduce((s, g) => s + (g.total_pieces || 0), 0) || null
+
+  const wb = XLSX.utils.book_new()
+
+  // Aba 1 — Produtos
+  const header = ['Referência', 'Nome / Modelo', 'Tamanhos', 'Tipo', 'Preço (R$)', 'Pç/cx', 'Fábrica', 'Tabela', 'Categoria', 'Observação', 'Fotos', 'Status']
+  const dataRows = rows.map(r => [
+    r.reference,
+    [r.product_name, r.model].filter(Boolean).join(' — ') || '',
+    r.size_range || '',
+    r.type === 'regular' ? 'Regular' : 'Pack',
+    fmtBRL(r.base_price),
+    totalPcs(r.grade_configs) ?? '',
+    r.factory_name || '',
+    r.price_table_name || '',
+    r.category || '',
+    r.observation || '',
+    r.qtd_fotos,
+    r.active ? 'Ativo' : 'Inativo',
+  ])
+
+  const ws = XLSX.utils.aoa_to_sheet([header, ...dataRows])
+
+  // Larguras de coluna
+  ws['!cols'] = [10, 30, 14, 8, 12, 7, 16, 22, 14, 22, 6, 8].map(wch => ({ wch }))
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Produtos')
+
+  // Aba 2 — Resumo
+  const totalAtivos  = rows.filter(r => r.active).length
+  const totalPacks   = rows.filter(r => r.type === 'pack').length
+  const totalRegular = rows.filter(r => r.type === 'regular').length
+  const comFoto      = rows.filter(r => r.qtd_fotos > 0).length
+  const semFoto      = rows.filter(r => r.qtd_fotos === 0).length
+
+  const tabelaName  = rows[0]?.price_table_name || ''
+  const fabricaName = rows[0]?.factory_name || ''
+  const filtrosLabel = [
+    tabelaName  && `Tabela: ${tabelaName}`,
+    search      && `Busca: ${search}`,
+    sem_foto === 'true' && 'Sem foto',
+    com_foto === 'true' && 'Com foto',
+  ].filter(Boolean).join(' | ') || 'Todos'
+
+  const resumo = [
+    ['Relatório de Produtos — Somma Força de Vendas', '', '', ''],
+    ['Filtros aplicados:', filtrosLabel, '', ''],
+    [],
+    ['Total de referências', rows.length],
+    ['Ativos', totalAtivos],
+    ['Regular', totalRegular],
+    ['Pack', totalPacks],
+    ['Com foto', comFoto],
+    ['Sem foto', semFoto],
+  ]
+  if (fabricaName) resumo.splice(2, 0, ['Fábrica:', fabricaName, '', ''])
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumo), 'Resumo')
+
+  const safeName = (tabelaName || 'produtos').replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 40)
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  res.setHeader('Content-Disposition', `attachment; filename="produtos_${safeName}.xlsx"`)
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  res.send(buf)
+}
+
 // ── Relatório de produtos sem foto ────────────────────────────────────────────
 export async function downloadSemFotos(req: AuthRequest, res: Response) {
   const XLSX = await import('xlsx')

@@ -243,6 +243,8 @@ export const productsApi = {
   }) => apiClient.post('/products', data),
   duplicate: (id: string, reference: string) =>
     apiClient.post(`/products/${id}/duplicate`, { reference }),
+  exportXlsx: (params: { price_table_id?: string; search?: string; type?: string; include_inactive?: boolean; sem_foto?: boolean; com_foto?: boolean }) =>
+    apiClient.get('/products/export/xlsx', { params, responseType: 'blob' }),
 }
 
 export const clientsApi = {

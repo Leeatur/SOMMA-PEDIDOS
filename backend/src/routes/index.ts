@@ -79,6 +79,7 @@ router.delete('/price-tables/:id', authenticate, requireAdmin, priceTables.delet
 // Produtos
 router.get('/products', authenticate, priceTables.listProducts)
 router.get('/products/sem-fotos', authenticate, priceTables.downloadSemFotos)
+router.get('/products/export/xlsx', authenticate, priceTables.exportProducts)
 router.post('/products', authenticate, requireAdmin, priceTables.createProduct)
 router.post('/products/:id/duplicate', authenticate, requireAdmin, priceTables.duplicateProduct)
 router.post('/products/:id/image', authenticate, requireAdmin, upload.single('file'), priceTables.uploadProductImage)

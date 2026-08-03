@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, Check, Package } from 'lucide-react'
+import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, Check, Package, FileDown } from 'lucide-react'
 import { productsApi, priceTablesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
@@ -1306,6 +1306,27 @@ export function Products() {
   const [showZipImport, setShowZipImport] = useState(false)
   const stockFileRef = useRef<HTMLInputElement>(null)
   const [stockBusy, setStockBusy] = useState(false)
+  const [exportBusy, setExportBusy] = useState(false)
+
+  async function handleExportXlsx() {
+    setExportBusy(true)
+    try {
+      const r = await productsApi.exportXlsx({
+        search: debouncedSearch || undefined,
+        type: typeFilter || undefined,
+        price_table_id: tableFilter || undefined,
+        include_inactive: isAdmin && activeFilter !== 'active' ? true : undefined,
+        sem_foto: fotoFilter === 'sem' ? true : undefined,
+        com_foto: fotoFilter === 'com' ? true : undefined,
+      })
+      const url = URL.createObjectURL(new Blob([r.data]))
+      const a = document.createElement('a')
+      const today = new Date().toISOString().slice(0, 10)
+      a.href = url; a.download = `produtos_${today}.xlsx`
+      a.click(); URL.revokeObjectURL(url)
+    } catch { alert('Erro ao gerar planilha.') }
+    finally { setExportBusy(false) }
+  }
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [duplicateSource, setDuplicateSource] = useState<Product | null>(null)
 
@@ -1582,6 +1603,15 @@ export function Products() {
             >
               <Archive className="h-4 w-4" />
               <span className="hidden sm:inline">Fotos ZIP</span>
+            </button>
+            <button
+              onClick={handleExportXlsx}
+              disabled={exportBusy || isLoading}
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-primary bg-primary/8 hover:bg-primary/15 border border-primary/30 rounded-lg px-3 py-1 transition-colors disabled:opacity-50"
+              title="Exportar lista filtrada para Excel"
+            >
+              <FileDown className="h-4 w-4" />
+              <span className="hidden sm:inline">{exportBusy ? 'Gerando…' : 'Exportar Excel'}</span>
             </button>
             <input ref={stockFileRef} type="file" accept=".xlsx,.xls" className="hidden"
               onChange={async e => {
