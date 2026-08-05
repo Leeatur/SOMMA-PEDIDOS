@@ -951,19 +951,21 @@ function ProductRow({
       case 'reference':
         return (
           <td key={id} className="px-2 py-1">
-            <div className="flex items-center gap-1.5">
-              <span className={`font-bold text-[12px] whitespace-nowrap ${p.active ? 'text-primary' : 'text-outline line-through'}`}>
-                {p.reference}
-              </span>
-              <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[12px] px-1.5 py-0">
-                {p.type === 'pack' ? 'PK' : 'REG'}
-              </Badge>
-              {!p.active && (
-                <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white tracking-wide">INATIVA</span>
-              )}
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className={`font-bold text-[12px] whitespace-nowrap ${p.active ? 'text-primary' : 'text-outline line-through'}`}>
+                  {p.reference}
+                </span>
+                <Badge variant={p.type === 'pack' ? 'purple' : 'info'} className="text-[12px] px-1.5 py-0">
+                  {p.type === 'pack' ? 'PK' : 'REG'}
+                </Badge>
+                {!p.active && (
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white tracking-wide">INATIVA</span>
+                )}
+              </div>
               {blockedCount > 0 && p.active && (
-                <span className="text-[12px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-medium">
-                  {blockedCount} tam. bloq.
+                <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0 rounded font-semibold w-fit whitespace-nowrap">
+                  🔒 {blockedCount} bloq.
                 </span>
               )}
             </div>

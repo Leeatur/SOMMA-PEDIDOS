@@ -177,11 +177,11 @@ export function Dashboard() {
   )].sort() as string[]
 
   // Pedidos filtrados pelo período selecionado
+  // Quando uma tabela específica está selecionada, ignora o filtro de data e mostra todos os pedidos dela
   const filteredOrders = allOrders.filter(o => {
+    if (priceTableFilter) return o.price_table_name === priceTableFilter
     const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
-    return d >= dateFrom && d <= dateTo
-      && (!factoryFilter || o.factory_name === factoryFilter)
-      && (!priceTableFilter || o.price_table_name === priceTableFilter)
+    return d >= dateFrom && d <= dateTo && (!factoryFilter || o.factory_name === factoryFilter)
   })
 
   const totalValue  = filteredOrders.reduce((s, o) => s + Number(o.total_value), 0)
@@ -319,29 +319,33 @@ export function Dashboard() {
             ))}
           </div>
         )}
-        {uniquePriceTables.length > 1 && (
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pt-1 pb-1">
+        {uniquePriceTables.length > 0 && (
+          <div className="flex items-center gap-2 px-4 lg:px-8 pt-1 pb-1">
             <span className="text-outline text-[11px] font-semibold flex-shrink-0 uppercase tracking-wide">Tabela</span>
-            <button onClick={() => setPriceTableFilter('')}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-colors ${
-                !priceTableFilter ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
-              }`}>
-              Todas
-            </button>
-            {uniquePriceTables.map(t => (
-              <button key={t} onClick={() => setPriceTableFilter(priceTableFilter === t ? '' : t)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-colors ${
-                  priceTableFilter === t ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
-                }`}>
-                {t}
+            <select
+              value={priceTableFilter}
+              onChange={e => setPriceTableFilter(e.target.value)}
+              className="flex-1 max-w-xs border border-outline-variant rounded-xl px-3 py-1.5 text-[12px] bg-surface-container text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+            >
+              <option value="">Todas ({new Date(dateFrom+'T12:00:00').toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'})} – {new Date(dateTo+'T12:00:00').toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'})})</option>
+              {uniquePriceTables.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            {priceTableFilter && (
+              <button onClick={() => setPriceTableFilter('')} className="text-[11px] text-outline hover:text-on-surface flex-shrink-0">
+                ✕ limpar
               </button>
-            ))}
+            )}
           </div>
         )}
         {activePeriod !== 'today' && (
           <div className="flex items-center justify-between px-4 lg:px-8 mt-1">
             <p className="text-outline text-[11px]">
-              {new Date(dateFrom+'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(dateTo+'T12:00:00').toLocaleDateString('pt-BR')} · {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}
+              {priceTableFilter
+                ? <>Todos os períodos · <span className="font-semibold text-primary">{priceTableFilter}</span> · {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}</>
+                : <>{new Date(dateFrom+'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(dateTo+'T12:00:00').toLocaleDateString('pt-BR')} · {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}</>
+              }
             </p>
             {isAdmin && (
               <button
