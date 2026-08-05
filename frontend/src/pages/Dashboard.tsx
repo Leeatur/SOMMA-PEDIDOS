@@ -1,15 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award, Target, Pencil, Trash2, X } from 'lucide-react'
+import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award, Target, Pencil, Trash2, X, Download } from 'lucide-react'
 import { ordersApi, reportsApi, goalsApi, factoriesApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { PageSpinner } from '../components/ui/Spinner'
 import { formatCurrency, formatOrderNumber } from '../utils/format'
 
 interface Order {
-  id: string; order_number: number; client_name: string; factory_name: string
+  id: string; order_number: number; client_name: string; factory_name: string; factory_id?: string
   client_city?: string
+  price_table_name?: string; price_table_id?: string
   total_value: number; total_pieces: number; status_name: string
   status_color: string; status_id: string; created_at: string; rep_name: string
   rep_commission_value: number
@@ -72,6 +73,8 @@ export function Dashboard() {
   const [goalForm, setGoalForm] = useState({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', target_value: '', metric: 'pecas', period_label: '', period_from: '', period_to: '', parent_goal_id: '' })
   const [cardModal, setCardModal] = useState<string | null>(null)
   const [factoryFilter, setFactoryFilter] = useState('')
+  const [priceTableFilter, setPriceTableFilter] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   // Filtro de período
   const spDate = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
@@ -168,11 +171,17 @@ export function Dashboard() {
   })
 
   const uniqueFactories = [...new Set(allOrders.map(o => o.factory_name).filter(Boolean))].sort()
+  const uniquePriceTables = [...new Set(
+    allOrders.filter(o => !factoryFilter || o.factory_name === factoryFilter)
+      .map(o => o.price_table_name).filter(Boolean)
+  )].sort() as string[]
 
   // Pedidos filtrados pelo período selecionado
   const filteredOrders = allOrders.filter(o => {
     const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
-    return d >= dateFrom && d <= dateTo && (!factoryFilter || o.factory_name === factoryFilter)
+    return d >= dateFrom && d <= dateTo
+      && (!factoryFilter || o.factory_name === factoryFilter)
+      && (!priceTableFilter || o.price_table_name === priceTableFilter)
   })
 
   const totalValue  = filteredOrders.reduce((s, o) => s + Number(o.total_value), 0)
@@ -294,14 +303,14 @@ export function Dashboard() {
         {uniqueFactories.length > 1 && (
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pt-1 pb-1">
             <span className="text-outline text-[11px] font-semibold flex-shrink-0 uppercase tracking-wide">Coleção</span>
-            <button onClick={() => setFactoryFilter('')}
+            <button onClick={() => { setFactoryFilter(''); setPriceTableFilter('') }}
               className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-colors ${
                 !factoryFilter ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
               }`}>
               Todas
             </button>
             {uniqueFactories.map(f => (
-              <button key={f} onClick={() => setFactoryFilter(factoryFilter === f ? '' : f)}
+              <button key={f} onClick={() => { setFactoryFilter(factoryFilter === f ? '' : f); setPriceTableFilter('') }}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-colors ${
                   factoryFilter === f ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
                 }`}>
@@ -310,10 +319,59 @@ export function Dashboard() {
             ))}
           </div>
         )}
+        {uniquePriceTables.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pt-1 pb-1">
+            <span className="text-outline text-[11px] font-semibold flex-shrink-0 uppercase tracking-wide">Tabela</span>
+            <button onClick={() => setPriceTableFilter('')}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-colors ${
+                !priceTableFilter ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
+              }`}>
+              Todas
+            </button>
+            {uniquePriceTables.map(t => (
+              <button key={t} onClick={() => setPriceTableFilter(priceTableFilter === t ? '' : t)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-colors ${
+                  priceTableFilter === t ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
+                }`}>
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
         {activePeriod !== 'today' && (
-          <p className="text-outline text-[11px] mt-1 px-4 lg:px-8">
-            {new Date(dateFrom+'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(dateTo+'T12:00:00').toLocaleDateString('pt-BR')} · {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}
-          </p>
+          <div className="flex items-center justify-between px-4 lg:px-8 mt-1">
+            <p className="text-outline text-[11px]">
+              {new Date(dateFrom+'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(dateTo+'T12:00:00').toLocaleDateString('pt-BR')} · {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}
+            </p>
+            {isAdmin && (
+              <button
+                onClick={async () => {
+                  setExporting(true)
+                  try {
+                    const res = await reportsApi.exportOrdersXlsx({
+                      date_from: dateFrom,
+                      date_to: dateTo,
+                      ...(factoryFilter ? { factory_id: allOrders.find(o => o.factory_name === factoryFilter)?.factory_id } : {}),
+                      ...(priceTableFilter ? { price_table_id: allOrders.find(o => o.price_table_name === priceTableFilter)?.price_table_id } : {}),
+                    })
+                    const url = URL.createObjectURL(new Blob([res.data]))
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `pedidos_${dateFrom}_${dateTo}.xlsx`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  } finally {
+                    setExporting(false)
+                  }
+                }}
+                disabled={exporting}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:text-primary/80 disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {exporting ? 'Exportando...' : 'Excel'}
+              </button>
+            )}
+          </div>
         )}
       </div>
 

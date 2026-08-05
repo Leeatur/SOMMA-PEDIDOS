@@ -398,6 +398,8 @@ export const reportsApi = {
     apiClient.get('/reports/penetracao', { params }),
   commissionProjection: (params: { factory_id?: string; rep_id?: string }) =>
     apiClient.get('/reports/commission-projection', { params }),
+  exportOrdersXlsx: (params: { date_from?: string; date_to?: string; factory_id?: string; price_table_id?: string; rep_id?: string }) =>
+    apiClient.get('/reports/orders-export', { params, responseType: 'blob' }),
 }
 
 export const companyApi = {
