@@ -326,6 +326,131 @@ function csvTotalCell(id: string, t: OrderTotals): string | number {
   }
 }
 
+// ─── Relatório Modal ─────────────────────────────────────────────────────────
+
+function ReportModal({ orders, onClose, onExport }: {
+  orders: Order[]
+  onClose: () => void
+  onExport: () => void
+}) {
+  const total = { pieces: 0, value: 0 }
+  orders.forEach(o => {
+    total.pieces += Number(o.total_pieces) || 0
+    total.value  += Number(o.total_value)  || 0
+  })
+
+  function groupBy(keyFn: (o: Order) => string, colorFn?: (o: Order) => string) {
+    const map = new Map<string, { pedidos: number; value: number; color?: string }>()
+    orders.forEach(o => {
+      const k = keyFn(o) || '—'
+      const entry = map.get(k) || { pedidos: 0, value: 0, color: colorFn?.(o) || undefined }
+      entry.pedidos++
+      entry.value += Number(o.total_value) || 0
+      map.set(k, entry)
+    })
+    return [...map.entries()].sort((a, b) => b[1].value - a[1].value)
+  }
+
+  function groupByDay(orders: Order[]) {
+    const map = new Map<string, { pedidos: number; value: number }>()
+    orders.forEach(o => {
+      const d = String(o.created_at).substring(0, 10)
+      const entry = map.get(d) || { pedidos: 0, value: 0 }
+      entry.pedidos++
+      entry.value += Number(o.total_value) || 0
+      map.set(d, entry)
+    })
+    return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]))
+  }
+
+  const byRep     = groupBy(o => o.rep_name || '')
+  const byFactory = groupBy(o => o.factory_name || '')
+  const byTable   = groupBy(o => o.price_table_name || '')
+  const byStatus  = groupBy(o => o.status_name || '', o => o.status_color || '')
+  const byDay     = groupByDay(orders)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/50 flex-shrink-0">
+          <div>
+            <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              Relatório de Pedidos
+            </h2>
+            <p className="text-[12px] text-outline">{orders.length} pedido{orders.length !== 1 ? 's' : ''}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onExport}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Exportar Excel
+            </button>
+            <button
+              onClick={onClose}
+              className="text-outline hover:text-on-surface transition-colors p-1.5 rounded-lg hover:bg-surface-container"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Totals strip */}
+        <div className="grid grid-cols-4 divide-x divide-outline-variant/30 border-b border-outline-variant/30 flex-shrink-0">
+          {[
+            { label: 'Pedidos',     value: String(orders.length),                                                    hi: false },
+            { label: 'Total Peças', value: total.pieces.toLocaleString('pt-BR'),                                     hi: false },
+            { label: 'Valor Total', value: formatCurrency(total.value),                                              hi: false },
+            { label: 'Ticket Médio', value: orders.length > 0 ? formatCurrency(total.value / orders.length) : '—', hi: true  },
+          ].map(({ label, value, hi }) => (
+            <div key={label} className={`px-6 py-3 ${hi ? 'bg-primary/5' : ''}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-wide ${hi ? 'text-primary/70' : 'text-outline'}`}>{label}</p>
+              <p className={`text-xl font-bold tabular-nums ${hi ? 'text-primary' : 'text-on-surface'}`}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Breakdowns */}
+        <div className="overflow-auto flex-1 p-6">
+          <div className="grid grid-cols-2 gap-4">
+            <SummaryCard
+              title="Por Vendedor"
+              rows={byRep.map(([k, v]) => ({ label: k, pedidos: v.pedidos, total: v.value }))}
+            />
+            <SummaryCard
+              title="Por Fábrica"
+              rows={byFactory.map(([k, v]) => ({ label: k, pedidos: v.pedidos, total: v.value }))}
+            />
+            <SummaryCard
+              title="Por Tabela"
+              rows={byTable.map(([k, v]) => ({ label: k, pedidos: v.pedidos, total: v.value }))}
+            />
+            <SummaryCard
+              title="Por Status"
+              rows={byStatus.map(([k, v]) => ({ label: k, pedidos: v.pedidos, total: v.value, color: v.color }))}
+            />
+            <div className="col-span-2">
+              <SummaryCard
+                title="Por Dia"
+                rows={byDay.map(([d, v]) => ({ label: formatDiaBR(d), pedidos: v.pedidos, total: v.value }))}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function Orders() {
@@ -343,6 +468,7 @@ export function Orders() {
   const [showFilters, setShowFilters] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [showReport, setShowReport] = useState(false)
   const handleImportCreated = useCallback(() => { setShowImport(false) }, [])
 
   // ── seleção múltipla ─────────────────────────────────────────────────────────
@@ -482,12 +608,27 @@ export function Orders() {
   // Coluna onde fica o rótulo "TOTAL" (na Razão Social, que é larga; senão a 1ª)
   const labelColIdx = Math.max(0, visibleCols.findIndex(c => c.id === 'razao_social'))
 
+  // Pedidos efetivos para relatório/export: selecionados (se houver) ou todos exibidos
+  const ordersToReport = useMemo(
+    () => selectedOrderIds.size > 0
+      ? displayedOrders.filter(o => selectedOrderIds.has(o.id))
+      : displayedOrders,
+    [selectedOrderIds, displayedOrders]
+  )
+
   function exportarCSV() {
     const cols = visibleCols
+    const t: OrderTotals = { pieces: 0, value: 0, comRep: 0, comEscr: 0 }
+    ordersToReport.forEach(o => {
+      t.pieces  += Number(o.total_pieces) || 0
+      t.value   += Number(o.total_value)  || 0
+      t.comRep  += Number(o.total_value) * Number(o.rep_commission_pct)    / 100
+      t.comEscr += Number(o.total_value) * Number(o.office_commission_pct) / 100
+    })
     const linhas: (string | number)[][] = [
       cols.map(c => c.label),
-      ...displayedOrders.map(o => cols.map(c => csvCell(c.id, o))),
-      cols.map((c, i) => i === labelColIdx ? `TOTAL (${displayedOrders.length} pedidos)` : csvTotalCell(c.id, totals)),
+      ...ordersToReport.map(o => cols.map(c => csvCell(c.id, o))),
+      cols.map((c, i) => i === labelColIdx ? `TOTAL (${ordersToReport.length} pedidos)` : csvTotalCell(c.id, t)),
     ]
     const csv = '﻿' + linhas.map(r => r.map(cell => {
       const sv = String(cell ?? '')
@@ -626,10 +767,23 @@ export function Orders() {
                 onClick={exportarCSV}
                 disabled={total === 0}
                 className="flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors text-outline border-outline-variant bg-white hover:text-on-surface-variant disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Exportar a lista atual (com filtros) para Excel/CSV"
+                title={selectedOrderIds.size > 0 ? `Exportar ${selectedOrderIds.size} pedidos selecionados` : 'Exportar a lista atual (com filtros) para Excel/CSV'}
               >
                 <Download className="h-4 w-4" />
-                Exportar
+                Exportar{selectedOrderIds.size > 0 ? ` (${selectedOrderIds.size})` : ''}
+              </button>
+              <button
+                onClick={() => setShowReport(true)}
+                disabled={total === 0}
+                className={`flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  selectedOrderIds.size > 0
+                    ? 'text-primary border-primary/40 bg-primary/10 font-medium'
+                    : 'text-outline border-outline-variant bg-white hover:text-on-surface-variant'
+                }`}
+                title={selectedOrderIds.size > 0 ? `Relatório dos ${selectedOrderIds.size} pedidos selecionados` : 'Relatório dos pedidos filtrados'}
+              >
+                <BarChart3 className="h-4 w-4" />
+                {selectedOrderIds.size > 0 ? `Relatório (${selectedOrderIds.size})` : 'Relatório'}
               </button>
               <button
                 onClick={() => setShowSummary(!showSummary)}
@@ -638,7 +792,7 @@ export function Orders() {
                     ? 'text-primary border-primary/40 bg-primary/10'
                     : 'text-outline border-outline-variant bg-white hover:text-on-surface-variant'
                 }`}
-                title="Resumo de vendas"
+                title="Resumo de vendas por período"
               >
                 <BarChart3 className="h-4 w-4" />
                 Resumo
@@ -781,13 +935,29 @@ export function Orders() {
             <div className="flex items-center gap-3 px-4 py-2 bg-primary/8 border-b border-primary/20 text-[12px]">
               <span className="font-medium text-primary">{selectedOrderIds.size} selecionado{selectedOrderIds.size !== 1 ? 's' : ''}</span>
               <button
-                onClick={handleDeleteSelected}
-                disabled={deleteMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-error text-white font-medium hover:bg-error/90 transition-colors disabled:opacity-50"
+                onClick={() => setShowReport(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-primary/40 bg-white text-primary font-medium hover:bg-primary/10 transition-colors"
               >
-                <Trash2 size={13} />
-                Excluir selecionados
+                <BarChart3 size={13} />
+                Relatório
               </button>
+              <button
+                onClick={exportarCSV}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-outline-variant bg-white text-on-surface-variant font-medium hover:bg-surface-container transition-colors"
+              >
+                <Download size={13} />
+                Exportar Excel
+              </button>
+              {isAdmin && (
+                <button
+                  onClick={handleDeleteSelected}
+                  disabled={deleteMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-error text-white font-medium hover:bg-error/90 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 size={13} />
+                  Excluir selecionados
+                </button>
+              )}
               <button
                 onClick={() => setSelectedOrderIds(new Set())}
                 className="ml-auto text-on-surface-variant hover:text-on-surface transition-colors"
@@ -931,6 +1101,14 @@ export function Orders() {
       <ImportOrderModal
         onClose={() => setShowImport(false)}
         onCreated={handleImportCreated}
+      />
+    )}
+
+    {showReport && (
+      <ReportModal
+        orders={ordersToReport}
+        onClose={() => setShowReport(false)}
+        onExport={() => { exportarCSV(); setShowReport(false) }}
       />
     )}
   </>
