@@ -545,6 +545,14 @@ export default function OrderEdit() {
     setQuickEditProduct(prod)
   }
 
+  // Enter no campo de busca: seleciona o 1º resultado e abre a grade
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && prodResults.length > 0 && !searching) {
+      e.preventDefault()
+      addProduct(prodResults[0])
+    }
+  }
+
   const confirmAddProduct = (prod: Product, sizes: Record<string, number>, boxes: number, customGrade?: DraftGradeEntry[], obs?: string) => {
     const newItem: NewItem = {
       tempId: `new-${Date.now()}`,
@@ -1166,11 +1174,13 @@ export default function OrderEdit() {
               <div className="relative hidden sm:block flex-1 max-w-sm ml-4">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
                 <input
+                  ref={prodSearchRef}
                   className="w-full border border-outline-variant rounded-lg pl-8 pr-3 py-1 text-[12px] bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                   value={prodSearch}
                   onChange={e => searchProducts(e.target.value)}
                   onBlur={() => setTimeout(() => setShowProdDropdown(false), 150)}
-                  placeholder="Adicionar produto..."
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Adicionar produto... (Enter para selecionar)"
                 />
                 {showProdDropdown && (
                   <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-outline-variant rounded-lg shadow-lg max-h-64 overflow-y-auto">
@@ -1200,11 +1210,11 @@ export default function OrderEdit() {
             <div className="relative sm:hidden">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
               <input
-                ref={prodSearchRef}
                 className="w-full border-2 border-outline-variant rounded-xl pl-9 pr-4 py-2.5 text-[14px] bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                 value={prodSearch}
                 onChange={e => searchProducts(e.target.value)}
                 onBlur={() => setTimeout(() => setShowProdDropdown(false), 150)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Buscar produto para adicionar..."
               />
               {showProdDropdown && (
