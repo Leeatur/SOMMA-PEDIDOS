@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -14,6 +14,8 @@ import {
   FileUp,
   Trash2,
   RefreshCw,
+  AlertTriangle,
+  Pencil,
 } from 'lucide-react'
 import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { svgIconSrc } from '../components/ui/Badge'
@@ -471,6 +473,41 @@ export function Orders() {
   const [showReport, setShowReport] = useState(false)
   const handleImportCreated = useCallback(() => { setShowImport(false) }, [])
 
+  // ── rascunhos locais ─────────────────────────────────────────────────────────
+  const DRAFT_TTL = 7 * 24 * 60 * 60 * 1000
+
+  const [newOrderDraft, setNewOrderDraft] = useState<{ clientName?: string } | null>(null)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`somma_neworder_draft_${user?.id || 'anon'}`)
+      if (!raw) { setNewOrderDraft(null); return }
+      const d = JSON.parse(raw)
+      if (!d || Date.now() - d.savedAt > DRAFT_TTL) { setNewOrderDraft(null); return }
+      const clientName = d.selectedClient?.name || d.selectedClient?.trade_name || ''
+      setNewOrderDraft({ clientName })
+    } catch { setNewOrderDraft(null) }
+  }, [user?.id])
+
+  const discardNewOrderDraft = () => {
+    try { localStorage.removeItem(`somma_neworder_draft_${user?.id || 'anon'}`) } catch { /* noop */ }
+    setNewOrderDraft(null)
+  }
+
+  // IDs de pedidos que têm edições locais não salvas
+  const ordersWithEditDraft = useMemo(() => {
+    const set = new Set<string>()
+    displayedOrders.forEach(o => {
+      try {
+        const raw = localStorage.getItem(`somma_orderedit_draft_${user?.id || 'anon'}_${o.id}`)
+        if (!raw) return
+        const d = JSON.parse(raw)
+        if (d && Date.now() - d.savedAt < DRAFT_TTL) set.add(o.id)
+      } catch { /* noop */ }
+    })
+    return set
+  }, [displayedOrders, user?.id])
+
   // ── seleção múltipla ─────────────────────────────────────────────────────────
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set())
   const qc = useQueryClient()
@@ -885,6 +922,30 @@ export function Orders() {
           </div>
         )}
 
+        {/* Banner: novo pedido em rascunho não finalizado */}
+        {newOrderDraft && (
+          <div className="flex items-center gap-3 px-6 py-2.5 bg-amber-50 border-b border-amber-200 text-[12px]">
+            <AlertTriangle size={14} className="text-amber-600 flex-shrink-0" />
+            <span className="text-amber-800 font-medium">
+              Rascunho de novo pedido não finalizado
+              {newOrderDraft.clientName ? ` — ${newOrderDraft.clientName}` : ''}
+            </span>
+            <button
+              onClick={() => navigate('/orders/new')}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors ml-2"
+            >
+              Continuar rascunho →
+            </button>
+            <button
+              onClick={discardNewOrderDraft}
+              className="ml-auto text-amber-500 hover:text-amber-800 transition-colors p-1 rounded"
+              title="Descartar rascunho"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         {/* Desktop Table */}
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center"><PageSpinner /></div>
@@ -1047,27 +1108,42 @@ export function Orders() {
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {displayedOrders.map(o => (
+                {displayedOrders.map(o => {
+                  const hasDraft = ordersWithEditDraft.has(o.id)
+                  return (
                   <tr
                     key={o.id}
-                    className={`border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : ''}`}
+                    className={`border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : hasDraft ? 'bg-amber-50/60' : ''}`}
                     onDoubleClick={() => navigate(`/orders/${o.id}`)}
                   >
-                    <td style={{ width: 36, minWidth: 36 }} className="pl-3 pr-1 py-2 align-middle">
+                    <td style={{ width: 36, minWidth: 36 }} className="pl-3 pr-1 py-2 align-middle relative">
                       <input type="checkbox"
                         checked={selectedOrderIds.has(o.id)}
                         onChange={e => toggleOrderSelected(o.id, e as unknown as React.MouseEvent)}
                         onClick={e => e.stopPropagation()}
                         className="cursor-pointer accent-primary w-3.5 h-3.5"
                       />
+                      {hasDraft && (
+                        <span
+                          className="absolute top-1 right-0.5 w-2 h-2 rounded-full bg-amber-500"
+                          title="Edições não salvas"
+                        />
+                      )}
                     </td>
                     {visibleCols.map(col => (
                       <td key={col.id} style={{ width: widths[col.id] ?? DEFAULT_WIDTHS[col.id], overflow: 'hidden' }}>
-                        <OrderCell id={col.id} o={o} />
+                        {col.id === 'number' && hasDraft
+                          ? <div className="flex items-center gap-1 px-2 py-1">
+                              <span className="text-[12px] font-bold text-primary whitespace-nowrap">{formatOrderNumber(o.order_number)}</span>
+                              <Pencil size={10} className="text-amber-500 flex-shrink-0" title="Edições não salvas" />
+                            </div>
+                          : <OrderCell id={col.id} o={o} />
+                        }
                       </td>
                     ))}
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
               {/* Linha de totais — soma das colunas (reflete os filtros) */}
               <tfoot className="sticky bottom-0 z-10">
