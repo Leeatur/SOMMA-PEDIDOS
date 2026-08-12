@@ -282,7 +282,7 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
 
   <div class="footer">
     ${companyName}${o.company_phone ? ' · ' + o.company_phone : ''}${o.company_email ? ' · ' + o.company_email : ''}
-    <div style="margin-top:4px;font-size:9px;color:#d1d5db;">SOMMA Technology · Erechim | RS · (54) 9.9162-5024</div>
+    <div style="margin-top:4px;font-size:9px;color:#d1d5db;">Somma Negócios e Tecnologia · Erechim | RS · (54) 9.9162-5024</div>
   </div>
 </div>
 </body>
