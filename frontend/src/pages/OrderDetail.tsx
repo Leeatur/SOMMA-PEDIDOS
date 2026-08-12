@@ -265,12 +265,12 @@ export function OrderDetail() {
   async function handleDownloadPdf() {
     if (!id || !order) return
     const num = String(order.order_number).padStart(4, '0')
-    // Endpoint que gera HTML rico do pedido, com botão "Salvar como PDF"
     const pdfUrl = `/api/orders/${id}/pdf`
     const fullPdfUrl = `${window.location.origin}${pdfUrl}`
 
-    // Mobile: usa Web Share API para compartilhar o link direto do PDF
-    if (navigator.share) {
+    // Só usa Web Share API em dispositivos móveis de verdade (touch + tela pequena)
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    if (isMobileDevice && navigator.share) {
       try {
         await navigator.share({
           title: `Pedido #${num} — ${order.factory_name}`,
@@ -281,7 +281,7 @@ export function OrderDetail() {
       } catch { /* usuario cancelou */ }
     }
 
-    // Desktop: abre página do pedido em nova aba — botão "Salvar como PDF" bem visível no topo
+    // Desktop (Mac, Windows, Linux): abre em nova aba para salvar/imprimir como PDF
     window.open(fullPdfUrl, '_blank')
   }
 
