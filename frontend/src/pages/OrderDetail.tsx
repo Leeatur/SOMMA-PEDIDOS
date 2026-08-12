@@ -262,26 +262,11 @@ export function OrderDetail() {
     enabled: !!id,
   })
 
-  async function handleDownloadPdf() {
+  function handleDownloadPdf() {
     if (!id || !order) return
-    const num = String(order.order_number).padStart(4, '0')
     const pdfUrl = `/api/orders/${id}/pdf`
     const fullPdfUrl = `${window.location.origin}${pdfUrl}`
-
-    // Só usa Web Share API em dispositivos móveis de verdade (touch + tela pequena)
-    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    if (isMobileDevice && navigator.share) {
-      try {
-        await navigator.share({
-          title: `Pedido #${num} — ${order.factory_name}`,
-          text: `Pedido #${num} de ${order.client_name} — R$ ${Number(order.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-          url: fullPdfUrl,
-        })
-        return
-      } catch { /* usuario cancelou */ }
-    }
-
-    // Desktop (Mac, Windows, Linux): abre em nova aba para salvar/imprimir como PDF
+    // Abre em nova aba em qualquer dispositivo — o usuário imprime/salva como PDF ou compartilha
     window.open(fullPdfUrl, '_blank')
   }
 
