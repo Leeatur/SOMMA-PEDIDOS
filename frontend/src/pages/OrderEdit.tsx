@@ -434,10 +434,20 @@ export default function OrderEdit() {
     ))
   }
 
-  const updateBoxes = (itemId: string, val: number) => {
-    setItems(prev => prev.map(it =>
-      it.id === itemId ? { ...it, draftBoxes: val } : it
-    ))
+  const updateBoxes = (itemId: string, newBoxes: number) => {
+    setItems(prev => prev.map(it => {
+      if (it.id !== itemId) return it
+      const oldBoxes = it.draftBoxes || 1
+      const newGrade = it.draftGrade.map(gc => {
+        const newSizes: Record<string, number> = {}
+        for (const [size, qty] of Object.entries(gc.sizes)) {
+          newSizes[size] = Math.round((qty / oldBoxes) * newBoxes)
+        }
+        const total_pieces = Object.values(newSizes).reduce((s, v) => s + v, 0)
+        return { ...gc, sizes: newSizes, total_pieces }
+      })
+      return { ...it, draftBoxes: newBoxes, draftGrade: newGrade }
+    }))
   }
 
   const removeItem = (itemId: string) => {
@@ -479,10 +489,20 @@ export default function OrderEdit() {
     ))
   }
 
-  const updateNewBoxes = (tempId: string, val: number) => {
-    setNewItems(prev => prev.map(it =>
-      it.tempId === tempId ? { ...it, draftBoxes: val } : it
-    ))
+  const updateNewBoxes = (tempId: string, newBoxes: number) => {
+    setNewItems(prev => prev.map(it => {
+      if (it.tempId !== tempId) return it
+      const oldBoxes = it.draftBoxes || 1
+      const newGrade = it.draftGrade.map(gc => {
+        const newSizes: Record<string, number> = {}
+        for (const [size, qty] of Object.entries(gc.sizes)) {
+          newSizes[size] = Math.round((qty / oldBoxes) * newBoxes)
+        }
+        const total_pieces = Object.values(newSizes).reduce((s, v) => s + v, 0)
+        return { ...gc, sizes: newSizes, total_pieces }
+      })
+      return { ...it, draftBoxes: newBoxes, draftGrade: newGrade }
+    }))
   }
 
   const removeNewItem = (tempId: string) => {
@@ -1734,8 +1754,8 @@ interface ItemRowProps {
 function ItemRow({
   index, checked, onToggle, reference, productName, imageUrl, type, unitPrice, originalUnitPrice,
   orderPolicyDiscPct, orderCashDiscPct,
-  gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
-  onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
+  gradeConfigs: _gradeConfigs, draftSizes, draftBoxes, draftGrade,
+  onSizeChange, onBoxesChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
   productObservation, itemObs, onObsChange, canEditPrice, blockedSizes = [],
 }: ItemRowProps) {
   const blocked = new Set(blockedSizes.map(s => s.toUpperCase()))
@@ -1983,9 +2003,28 @@ function ItemRow({
 
       {/* Total peças */}
       <td className="px-3 py-2 text-right align-middle">
-        <span className="inline-block bg-surface-container text-on-surface font-semibold text-[12px] px-2 py-0.5 rounded-lg min-w-[40px] text-center">
-          {pieces}
-        </span>
+        {type === 'pack' ? (
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onBoxesChange(Math.max(1, draftBoxes - 1))}
+                className="w-6 h-6 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 text-[13px] font-bold leading-none"
+              >−</button>
+              <span className="text-[12px] font-semibold text-on-surface min-w-[32px] text-center">{draftBoxes}cx</span>
+              <button
+                type="button"
+                onClick={() => onBoxesChange(draftBoxes + 1)}
+                className="w-6 h-6 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 text-[13px] font-bold leading-none"
+              >+</button>
+            </div>
+            <span className="text-[11px] text-outline">{pieces} pç</span>
+          </div>
+        ) : (
+          <span className="inline-block bg-surface-container text-on-surface font-semibold text-[12px] px-2 py-0.5 rounded-lg min-w-[40px] text-center">
+            {pieces}
+          </span>
+        )}
       </td>
 
       {/* Total R$ */}

@@ -263,11 +263,10 @@ export function OrderDetail() {
   })
 
   function handleDownloadPdf() {
-    if (!id || !order) return
-    const pdfUrl = `/api/orders/${id}/pdf`
-    const fullPdfUrl = `${window.location.origin}${pdfUrl}`
-    // Abre em nova aba em qualquer dispositivo — o usuário imprime/salva como PDF ou compartilha
-    window.open(fullPdfUrl, '_blank')
+    if (!order) return
+    import('../utils/orderPdf').then(({ generateOrderPdf }) => {
+      generateOrderPdf(order as Parameters<typeof generateOrderPdf>[0])
+    })
   }
 
   const { data: statuses } = useQuery<Status[]>({
