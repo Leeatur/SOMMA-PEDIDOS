@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf'
-import { autoTable } from 'jspdf-autotable'
+import { autoTable, type RowInput, type CellInput } from 'jspdf-autotable'
 
 const SIZE_ORDER = [
   'RN','PP','XP','P','M','G','GG','XG','EXG','XGG','2XG','3XG','4XG',
@@ -181,7 +181,7 @@ export function generateOrderPdf(order: Order): void {
   y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6
 
   // ── ITEMS TABLE ────────────────────────────────────────────────────
-  const tableBody: Array<Array<unknown>> = []
+  const tableBody: RowInput[] = []
 
   for (const item of order.items) {
     const isPack = item.type === 'pack'
@@ -192,11 +192,11 @@ export function generateOrderPdf(order: Order): void {
       : `${item.total_pieces}pç`
 
     tableBody.push([
-      { content: item.reference, styles: { textColor: PURPLE, fontStyle: 'bold', font: 'courier' } },
-      descName,
-      { content: piecesStr, styles: { halign: 'center' } },
-      { content: fmtBRL(discountedPrice), styles: { halign: 'right' } },
-      { content: fmtBRL(item.subtotal), styles: { halign: 'right', fontStyle: 'bold' } },
+      { content: item.reference, styles: { textColor: PURPLE, fontStyle: 'bold', font: 'courier' } } as CellInput,
+      descName as CellInput,
+      { content: piecesStr, styles: { halign: 'center' } } as CellInput,
+      { content: fmtBRL(discountedPrice), styles: { halign: 'right' } } as CellInput,
+      { content: fmtBRL(item.subtotal), styles: { halign: 'right', fontStyle: 'bold' } } as CellInput,
     ])
 
     // Grade breakdown

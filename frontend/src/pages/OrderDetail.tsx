@@ -265,7 +265,7 @@ export function OrderDetail() {
   function handleDownloadPdf() {
     if (!order) return
     import('../utils/orderPdf').then(({ generateOrderPdf }) => {
-      generateOrderPdf(order as Parameters<typeof generateOrderPdf>[0])
+      generateOrderPdf(order as unknown as Parameters<typeof generateOrderPdf>[0])
     })
   }
 

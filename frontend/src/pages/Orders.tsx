@@ -328,131 +328,6 @@ function csvTotalCell(id: string, t: OrderTotals): string | number {
   }
 }
 
-// ─── Relatório Modal ─────────────────────────────────────────────────────────
-
-function ReportModal({ orders, onClose, onExport }: {
-  orders: Order[]
-  onClose: () => void
-  onExport: () => void
-}) {
-  const total = { pieces: 0, value: 0 }
-  orders.forEach(o => {
-    total.pieces += Number(o.total_pieces) || 0
-    total.value  += Number(o.total_value)  || 0
-  })
-
-  function groupBy(keyFn: (o: Order) => string, colorFn?: (o: Order) => string) {
-    const map = new Map<string, { pedidos: number; value: number; color?: string }>()
-    orders.forEach(o => {
-      const k = keyFn(o) || '—'
-      const entry = map.get(k) || { pedidos: 0, value: 0, color: colorFn?.(o) || undefined }
-      entry.pedidos++
-      entry.value += Number(o.total_value) || 0
-      map.set(k, entry)
-    })
-    return [...map.entries()].sort((a, b) => b[1].value - a[1].value)
-  }
-
-  function groupByDay(orders: Order[]) {
-    const map = new Map<string, { pedidos: number; value: number }>()
-    orders.forEach(o => {
-      const d = String(o.created_at).substring(0, 10)
-      const entry = map.get(d) || { pedidos: 0, value: 0 }
-      entry.pedidos++
-      entry.value += Number(o.total_value) || 0
-      map.set(d, entry)
-    })
-    return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]))
-  }
-
-  const byRep     = groupBy(o => o.rep_name || '')
-  const byFactory = groupBy(o => o.factory_name || '')
-  const byTable   = groupBy(o => o.price_table_name || '')
-  const byStatus  = groupBy(o => o.status_name || '', o => o.status_color || '')
-  const byDay     = groupByDay(orders)
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/50 flex-shrink-0">
-          <div>
-            <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              Relatório de Pedidos
-            </h2>
-            <p className="text-[12px] text-outline">{orders.length} pedido{orders.length !== 1 ? 's' : ''}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onExport}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Exportar Excel
-            </button>
-            <button
-              onClick={onClose}
-              className="text-outline hover:text-on-surface transition-colors p-1.5 rounded-lg hover:bg-surface-container"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Totals strip */}
-        <div className="grid grid-cols-4 divide-x divide-outline-variant/30 border-b border-outline-variant/30 flex-shrink-0">
-          {[
-            { label: 'Pedidos',     value: String(orders.length),                                                    hi: false },
-            { label: 'Total Peças', value: total.pieces.toLocaleString('pt-BR'),                                     hi: false },
-            { label: 'Valor Total', value: formatCurrency(total.value),                                              hi: false },
-            { label: 'Ticket Médio', value: orders.length > 0 ? formatCurrency(total.value / orders.length) : '—', hi: true  },
-          ].map(({ label, value, hi }) => (
-            <div key={label} className={`px-6 py-3 ${hi ? 'bg-primary/5' : ''}`}>
-              <p className={`text-[10px] font-bold uppercase tracking-wide ${hi ? 'text-primary/70' : 'text-outline'}`}>{label}</p>
-              <p className={`text-xl font-bold tabular-nums ${hi ? 'text-primary' : 'text-on-surface'}`}>{value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Breakdowns */}
-        <div className="overflow-auto flex-1 p-6">
-          <div className="grid grid-cols-2 gap-4">
-            <SummaryCard
-              title="Por Vendedor"
-              rows={byRep.map(([k, v]) => ({ label: k, pedidos: v.pedidos, total: v.value }))}
-            />
-            <SummaryCard
-              title="Por Fábrica"
-              rows={byFactory.map(([k, v]) => ({ label: k, pedidos: v.pedidos, total: v.value }))}
-            />
-            <SummaryCard
-              title="Por Tabela"
-              rows={byTable.map(([k, v]) => ({ label: k, pedidos: v.pedidos, total: v.value }))}
-            />
-            <SummaryCard
-              title="Por Status"
-              rows={byStatus.map(([k, v]) => ({ label: k, pedidos: v.pedidos, total: v.value, color: v.color }))}
-            />
-            <div className="col-span-2">
-              <SummaryCard
-                title="Por Dia"
-                rows={byDay.map(([d, v]) => ({ label: formatDiaBR(d), pedidos: v.pedidos, total: v.value }))}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function Orders() {
@@ -493,20 +368,6 @@ export function Orders() {
     try { localStorage.removeItem(`somma_neworder_draft_${user?.id || 'anon'}`) } catch { /* noop */ }
     setNewOrderDraft(null)
   }
-
-  // IDs de pedidos que têm edições locais não salvas
-  const ordersWithEditDraft = useMemo(() => {
-    const set = new Set<string>()
-    displayedOrders.forEach(o => {
-      try {
-        const raw = localStorage.getItem(`somma_orderedit_draft_${user?.id || 'anon'}_${o.id}`)
-        if (!raw) return
-        const d = JSON.parse(raw)
-        if (d && Date.now() - d.savedAt < DRAFT_TTL) set.add(o.id)
-      } catch { /* noop */ }
-    })
-    return set
-  }, [displayedOrders, user?.id])
 
   // ── seleção múltipla ─────────────────────────────────────────────────────────
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set())
@@ -633,6 +494,20 @@ export function Orders() {
     ? baseDisplayed.filter(o => selectedOrderIds.has(o.id))
     : baseDisplayed
   const total = displayedOrders.length
+
+  // IDs de pedidos que têm edições locais não salvas
+  const ordersWithEditDraft = useMemo(() => {
+    const set = new Set<string>()
+    displayedOrders.forEach(o => {
+      try {
+        const raw = localStorage.getItem(`somma_orderedit_draft_${user?.id || 'anon'}_${o.id}`)
+        if (!raw) return
+        const d = JSON.parse(raw)
+        if (d && Date.now() - d.savedAt < DRAFT_TTL) set.add(o.id)
+      } catch { /* noop */ }
+    })
+    return set
+  }, [displayedOrders, user?.id])
 
   // Somatório das colunas numéricas (reflete os filtros aplicados)
   const totals = useMemo<OrderTotals>(() => {
@@ -1135,7 +1010,7 @@ export function Orders() {
                         {col.id === 'number' && hasDraft
                           ? <div className="flex items-center gap-1 px-2 py-1">
                               <span className="text-[12px] font-bold text-primary whitespace-nowrap">{formatOrderNumber(o.order_number)}</span>
-                              <Pencil size={10} className="text-amber-500 flex-shrink-0" title="Edições não salvas" />
+                              <Pencil size={10} className="text-amber-500 flex-shrink-0" aria-label="Edições não salvas" />
                             </div>
                           : <OrderCell id={col.id} o={o} />
                         }
