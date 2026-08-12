@@ -264,9 +264,15 @@ export function OrderDetail() {
 
   function handleDownloadPdf() {
     if (!order) return
-    import('../utils/orderPdf').then(({ generateOrderPdf }) => {
-      generateOrderPdf(order as unknown as Parameters<typeof generateOrderPdf>[0])
-    })
+    import('../utils/orderPdf')
+      .then(({ generateOrderPdf }) => {
+        generateOrderPdf(order as unknown as Parameters<typeof generateOrderPdf>[0])
+      })
+      .catch(err => {
+        console.error('PDF error:', err)
+        // Fallback: abre a versão HTML para impressão manual
+        window.open(`${window.location.origin}/api/orders/${id}/pdf`, '_blank')
+      })
   }
 
   const { data: statuses } = useQuery<Status[]>({

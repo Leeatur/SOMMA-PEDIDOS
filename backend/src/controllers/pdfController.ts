@@ -155,7 +155,7 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pedido #${num}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -196,25 +196,46 @@ export async function getOrderPdf(req: AuthRequest, res: Response) {
   .obs { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin-top: 12px; }
   .obs label { font-size: 9px; font-weight: bold; color: #E07B27; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; }
   .footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10px; color: #9ca3af; }
-  .print-bar { position: fixed; top: 0; left: 0; right: 0; background: #1B2337; padding: 10px 20px; display: flex; gap: 12px; align-items: center; z-index: 999; }
-  .print-bar h2 { color: #fff; font-size: 14px; flex: 1; }
-  .btn { padding: 8px 18px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; border: none; }
+  .print-bar { position: fixed; top: 0; left: 0; right: 0; background: #1B2337; padding: 10px 20px; padding-top: max(10px, env(safe-area-inset-top)); display: flex; gap: 12px; align-items: center; z-index: 999; }
+  .print-bar h2 { color: #fff; font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btn { padding: 8px 18px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; border: none; white-space: nowrap; }
   .btn-orange { background: #E07B27; color: #fff; }
-  .btn-gray { background: #6b7280; color: #fff; }
+  .btn-green  { background: #16a34a; color: #fff; }
+  .btn-gray   { background: #6b7280; color: #fff; }
+  .btn-share  { display: none; }
+  @media (max-width: 640px) {
+    .print-bar { flex-wrap: wrap; gap: 8px; }
+    .print-bar h2 { font-size: 12px; width: 100%; }
+    .btn-save  { display: none; }
+    .btn-share { display: block; }
+    .btn { padding: 10px 16px; font-size: 14px; flex: 1; text-align: center; }
+  }
   @media print {
     .print-bar { display: none; }
     .page { padding: 10mm; }
     @page { size: A4; margin: 0; }
   }
-  @media screen { .page { margin-top: 56px; } }
+  @media screen { .page { margin-top: calc(56px + env(safe-area-inset-top, 0px)); } }
+  @media screen and (max-width: 640px) { .page { margin-top: calc(100px + env(safe-area-inset-top, 0px)); } }
 </style>
 </head>
 <body>
 <div class="print-bar">
   <h2>Pedido #${num} — ${o.client_name}</h2>
-  <button class="btn btn-orange" onclick="window.print()">⬇️ Salvar como PDF</button>
-  <button class="btn btn-gray" onclick="window.close()">✕ Fechar</button>
+  <button class="btn btn-orange btn-save" onclick="window.print()">⬇️ Salvar como PDF</button>
+  <button class="btn btn-green btn-share" onclick="compartilhar()">📤 Compartilhar</button>
+  <button class="btn btn-gray" onclick="history.back()">✕ Fechar</button>
 </div>
+<script>
+function compartilhar() {
+  if (navigator.share) {
+    navigator.share({ title: document.title, url: window.location.href })
+      .catch(function() { window.print(); });
+  } else {
+    window.print();
+  }
+}
+</script>
 <div class="page">
   <div class="header">
     <div>
