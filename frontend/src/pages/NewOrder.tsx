@@ -8,6 +8,7 @@ import {
   ClipboardList,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Search,
   Plus,
   Minus,
@@ -442,6 +443,7 @@ export function NewOrder() {
 
   // Step 4: Review
   const [discountPct, setDiscountPct] = useState<string>(() => d?.discountPct ?? '0')
+  const [discountOpen, setDiscountOpen] = useState(() => parseDecimal(d?.discountPct ?? '0') > 0)
   const [customDiscount, setCustomDiscount] = useState<boolean>(() => d?.customDiscount ?? false)
   const [cashDiscountPct, setCashDiscountPct] = useState<string>(() => d?.cashDiscountPct ?? '0') // desconto à vista
   const [notes, setNotes] = useState<string>(() => d?.notes ?? '')
@@ -1444,8 +1446,20 @@ export function NewOrder() {
 
               {/* Desconto */}
               {!PAYMENT_DRIVEN_DISCOUNT && (
-              <div className="p-3 border-b border-outline-variant/50">
-                <h3 className="text-[12px] font-semibold text-on-surface-variant mb-2">Desconto Comercial</h3>
+              <div className="border-b border-outline-variant/50">
+                <button
+                  type="button"
+                  onClick={() => setDiscountOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-surface-container-low transition-colors"
+                >
+                  <span className="text-[12px] font-semibold text-on-surface-variant">
+                    Desconto Comercial
+                    {discountNum > 0 && <span className="ml-1.5 text-primary font-bold">{formatPct(discountNum)}</span>}
+                  </span>
+                  <ChevronDown className={`h-3.5 w-3.5 text-outline transition-transform ${discountOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {discountOpen && (
+                <div className="px-3 pb-3">
                 {discountRules.length > 0 && !customDiscount ? (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
@@ -1530,6 +1544,8 @@ export function NewOrder() {
                       </button>
                     )}
                   </div>
+                )}
+                </div>
                 )}
               </div>
               )}
