@@ -669,26 +669,36 @@ function FechamentoTab({
   }
 
   function exportarRep(repNome: string, repRows: CommissionRow[]) {
-    const headers = ['Data', 'Razão Social', 'Nome Fantasia', 'Doc. Fábrica', 'Indústria', 'Vlr. Pedido', 'Vlr. Faturado', '% Com.', 'Comissão (R$)', 'Status']
-    const dataRows = repRows.map(r => [
-      fmtDatePtBR(r.data_venda),
-      r.razao_social || '',
-      r.cliente || '',
-      r.nr_ped_fabrica || '',
-      r.industria || '',
-      Number(r.total_value),
-      r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : '',
-      Number(r.rep_commission_pct),
-      Number(r.rep_commission_value),
-      r.sem_comissao_fabrica ? 'Sem comissão' : (r.faturamento_status ?? 'pendente'),
-    ])
+    const headers = ['Data', 'Razão Social', 'Nome Fantasia', 'Doc. Fábrica', 'Indústria', 'Vlr. Pedido', 'Vlr. Faturado', 'Saldo a Faturar', '% Com.', 'Comissão (R$)', 'Status']
+    const dataRows = repRows.map(r => {
+      const pedido = Number(r.total_value)
+      const faturado = r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0
+      const saldo = r.sem_comissao_fabrica || r.faturamento_status === 'encerrado' ? '' : Math.max(0, pedido - faturado) || ''
+      return [
+        fmtDatePtBR(r.data_venda),
+        r.razao_social || '',
+        r.cliente || '',
+        r.nr_ped_fabrica || '',
+        r.industria || '',
+        pedido,
+        r.valor_faturado_fabrica != null ? faturado : '',
+        saldo,
+        Number(r.rep_commission_pct),
+        Number(r.rep_commission_value),
+        r.sem_comissao_fabrica ? 'Sem comissão' : (r.faturamento_status ?? 'pendente'),
+      ]
+    })
     const sumPedido  = repRows.reduce((s, r) => s + Number(r.total_value), 0)
     const sumFat     = repRows.reduce((s, r) => s + Number(r.valor_faturado_fabrica ?? r.total_value), 0)
+    const sumSaldo   = repRows.reduce((s, r) => {
+      if (r.sem_comissao_fabrica || r.faturamento_status === 'encerrado') return s
+      return s + Math.max(0, Number(r.total_value) - (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0))
+    }, 0)
     const sumCom     = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
     exportXlsx(
       `Fechamento_${repNome.replace(/\s+/g, '_')}_${dateFrom}_${dateTo}`,
       headers,
-      [...dataRows, [], ['TOTAL', '', '', '', '', sumPedido, sumFat, '', sumCom, '']],
+      [...dataRows, [], ['TOTAL', '', '', '', '', sumPedido, sumFat, sumSaldo, '', sumCom, '']],
     )
   }
 
@@ -852,6 +862,7 @@ function FechamentoTab({
                     <SortTh label="Indústria"     k="industria"             sort={sort} onSort={toggleSort} className="text-left w-[72px]" />
                     <SortTh label="Vlr. pedido"   k="total_value"           sort={sort} onSort={toggleSort} className="text-right w-[88px]" />
                     <SortTh label="Vlr. faturado" k="valor_faturado_fabrica" sort={sort} onSort={toggleSort} className="text-right w-[96px]" />
+                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[88px]">Saldo fat.</th>
                     <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[44px]">%</th>
                     <SortTh label="Comissão"      k="rep_commission_value"  sort={sort} onSort={toggleSort} className="text-right w-[80px]" />
                     <th className="px-3 py-2 w-[70px]"></th>
@@ -882,6 +893,14 @@ function FechamentoTab({
                           <td className="px-3 py-1.5 text-right tabular-nums font-medium text-blue-600">
                             {fatVal != null ? fmtR(fatVal) : <span className="text-gray-300">—</span>}
                           </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">
+                            {(() => {
+                              if (r.sem_comissao_fabrica || r.faturamento_status === 'encerrado') return <span className="text-gray-300">—</span>
+                              const saldo = Number(r.total_value) - (fatVal ?? 0)
+                              if (saldo <= 0.01) return <span className="text-gray-300">—</span>
+                              return <span className="text-amber-600 font-medium">{fmtR(saldo)}</span>
+                            })()}
+                          </td>
                           <td className="px-3 py-1.5 text-right text-gray-400">{Number(r.rep_commission_pct).toFixed(1)}%</td>
                           <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-emerald-600">
                             {r.sem_comissao_fabrica ? <span className="text-gray-300">—</span> : fmtR(r.rep_commission_value)}
@@ -900,7 +919,7 @@ function FechamentoTab({
                           const saldo = Number(r.total_value) - totalFat
                           return (
                             <tr key={`exp-${r.id}`} className="bg-blue-50/60 border-b border-blue-100">
-                              <td colSpan={10} className="px-4 py-3">
+                              <td colSpan={11} className="px-4 py-3">
                                 <div className="space-y-3">
                                   {fatLoading ? (
                                     <p className="text-[12px] text-gray-400">Carregando…</p>
