@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, Check, Package, FileDown } from 'lucide-react'
+import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, Check, Package, FileDown, Maximize2 } from 'lucide-react'
 import { productsApi, priceTablesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
@@ -113,6 +114,8 @@ function ProductDetailModal({
     queryFn: () => priceTablesApi.list().then(r => r.data),
     enabled: isAdmin,
   })
+
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   // ── Image upload state ───────────────────────────────────────────────────
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -599,6 +602,7 @@ function ProductDetailModal({
 
   // ── View mode ────────────────────────────────────────────────────────────
   return (
+    <>
     <Modal open onClose={onClose} title={p.reference} size="md">
       <div className="space-y-1">
         {isAdmin && (
@@ -628,6 +632,16 @@ function ProductDetailModal({
             <div className={`w-full h-40 rounded-xl flex items-center justify-center text-outline/50 transition-colors ${isDragging ? 'bg-primary/10 text-primary' : 'bg-surface-container'}`}>
               <ImageIcon className="h-12 w-12" />
             </div>
+          )}
+          {currentImageUrl && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); setLightboxUrl(currentImageUrl) }}
+              className="absolute top-2 left-2 z-20 p-1.5 bg-black/50 hover:bg-black/80 rounded-lg text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Ver foto em tamanho completo"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
           )}
           {isAdmin && (
             <label className={`absolute inset-0 flex flex-col items-center justify-center rounded-xl cursor-pointer transition-all
@@ -899,6 +913,27 @@ function ProductDetailModal({
         )}
       </div>
     </Modal>
+    {lightboxUrl && createPortal(
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+        onClick={() => setLightboxUrl(null)}
+      >
+        <button
+          className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/25 rounded-full text-white transition-colors"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <img
+          src={lightboxUrl}
+          alt=""
+          className="max-w-[92vw] max-h-[92vh] object-contain rounded-xl shadow-2xl"
+          onClick={e => e.stopPropagation()}
+        />
+      </div>,
+      document.body
+    )}
+  </>
   )
 }
 
@@ -941,7 +976,10 @@ function ProductRow({
       case 'image':
         return (
           <td key={id} className="pl-3 pr-2 py-1 w-14">
-            <div className="w-10 h-10 rounded-lg bg-surface-container overflow-hidden flex-shrink-0 flex items-center justify-center">
+            <div
+              className={`w-10 h-10 rounded-lg bg-surface-container overflow-hidden flex-shrink-0 flex items-center justify-center ${p.image_url ? 'cursor-zoom-in hover:ring-2 hover:ring-primary/50 transition-shadow' : ''}`}
+              onClick={p.image_url ? e => { e.stopPropagation(); setLightboxUrl(p.image_url) } : undefined}
+            >
               {p.image_url
                 ? <img src={p.image_url} alt={p.reference} className="w-full h-full object-cover" />
                 : <ImageIcon className="h-4 w-4 text-outline/50" />}
