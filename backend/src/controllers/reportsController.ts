@@ -155,6 +155,57 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
   res.json(hideOfficeCommission(rows, isAdmin))
 }
 
+export async function commissionsByFaturamento(req: AuthRequest, res: Response) {
+  const [from, to] = dateRange(req)
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+
+  const params: unknown[] = [from, to]
+  let cond = ''
+  let idx = 3
+  if (repId)     { cond += ` AND o.rep_id = $${idx++}`;      params.push(repId) }
+  if (factoryId) { cond += ` AND o.factory_id = $${idx++}`;  params.push(factoryId) }
+  cond += ` AND (o.notes IS NULL OR o.notes NOT LIKE 'Importado SuasVendas%')`
+
+  const { rows } = await query(`
+    SELECT
+      fat.id                                                           AS fat_id,
+      fat.data_faturamento,
+      fat.valor::numeric                                               AS valor_faturamento,
+      o.id,
+      o.order_number,
+      o.industry_order_number                                          AS nr_ped_fabrica,
+      fac.name                                                         AS industria,
+      u.name                                                           AS vendedor,
+      c.name                                                           AS razao_social,
+      c.trade_name                                                     AS cliente,
+      o.total_value::numeric,
+      o.rep_commission_pct::numeric,
+      o.office_commission_pct::numeric,
+      o.guide_commission_pct::numeric,
+      o.sem_comissao_fabrica,
+      CASE WHEN o.sem_comissao_fabrica THEN 0
+           ELSE (fat.valor * COALESCE(o.rep_commission_pct, 0) / 100)
+      END::numeric                                                     AS rep_commission_value,
+      CASE WHEN o.sem_comissao_fabrica THEN 0
+           ELSE (fat.valor * COALESCE(o.office_commission_pct, 0) / 100)
+      END::numeric                                                     AS office_commission_value,
+      CASE WHEN o.sem_comissao_fabrica THEN 0
+           ELSE (fat.valor * COALESCE(o.guide_commission_pct, 0) / 100)
+      END::numeric                                                     AS guide_commission_value
+    FROM order_faturamentos fat
+    JOIN orders o   ON o.id = fat.order_id AND o.deleted_at IS NULL
+    JOIN clients c  ON c.id = o.client_id
+    JOIN users u    ON u.id = o.rep_id
+    JOIN factories fac ON fac.id = o.factory_id
+    WHERE fat.data_faturamento BETWEEN $1::date AND $2::date ${cond}
+    ORDER BY fat.data_faturamento DESC, u.name
+  `, params)
+
+  res.json(hideOfficeCommission(rows, isAdmin))
+}
+
 export async function clientsReport(req: AuthRequest, res: Response) {
   const [from, to] = dateRange(req)
   const isAdmin = req.user?.role === 'admin'

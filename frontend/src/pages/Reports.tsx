@@ -598,11 +598,26 @@ function FechamentoTab({
   dateTo: string
   qc: ReturnType<typeof useQueryClient>
 }) {
+  const [modo, setModo]               = useState<'pedido' | 'faturamento'>('pedido')
   const [search, setSearch]           = useState('')
   const [statusFilt, setStatusFilt]   = useState<FatStatus>('todos')
   const [repFilt, setRepFilt]         = useState('')
   const [factFilt, setFactFilt]       = useState('')
   const [sort, setSort]               = useState<[SortKey, SortDir]>(['data_venda', 'desc'])
+
+  type FatReportRow = {
+    fat_id: number; data_faturamento: string; valor_faturamento: string
+    id: string; order_number: number; nr_ped_fabrica: string | null
+    industria: string; vendedor: string; razao_social: string; cliente: string
+    total_value: string; rep_commission_pct: string; rep_commission_value: string
+    office_commission_value: string; sem_comissao_fabrica: boolean
+  }
+
+  const fatQ = useQuery<FatReportRow[]>({
+    queryKey: ['rpt-commissions-fat', dateFrom, dateTo],
+    queryFn: () => reportsApi.commissionsByFaturamento({ date_from: dateFrom, date_to: dateTo }).then(r => r.data),
+    enabled: modo === 'faturamento',
+  })
   const [expandedId, setExpandedId]   = useState<string | null>(null)
   const [expandedSem, setExpandedSem] = useState(false)
   const [newFatData, setNewFatData]   = useState(() => new Date().toISOString().slice(0, 10))
@@ -755,6 +770,21 @@ function FechamentoTab({
 
   return (
     <div className="space-y-4">
+      {/* Toggle Por Pedido / Por Faturamento */}
+      <div className="flex rounded-xl border border-gray-200 bg-white overflow-hidden text-[12px] w-fit">
+        {([['pedido', 'Por data do pedido'], ['faturamento', 'Por data de faturamento']] as const).map(([v, label]) => (
+          <button key={v} onClick={() => setModo(v)}
+            className={`px-4 h-8 font-medium transition-colors ${modo === v ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {modo === 'faturamento' && (
+        <PagamentoMensalView rows={fatQ.data ?? []} loading={fatQ.isLoading} dateFrom={dateFrom} dateTo={dateTo} />
+      )}
+
+      {modo === 'pedido' && (<>
       {/* Barra de filtros */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[180px]">
@@ -1028,6 +1058,111 @@ function FechamentoTab({
           <div className="text-right">
             <p className="text-[10px] text-gray-400 uppercase tracking-wide">comissão efetiva total</p>
             <p className="text-[20px] font-bold text-emerald-600">{fmtR(totalComEfetiva)}</p>
+          </div>
+        </div>
+      )}
+      </>)}
+    </div>
+  )
+}
+
+// ─── PagamentoMensalView ──────────────────────────────────────────────────────
+type FatReportRow = {
+  fat_id: number; data_faturamento: string; valor_faturamento: string
+  id: string; order_number: number; nr_ped_fabrica: string | null
+  industria: string; vendedor: string; razao_social: string; cliente: string
+  total_value: string; rep_commission_pct: string; rep_commission_value: string
+  office_commission_value: string; sem_comissao_fabrica: boolean
+}
+
+function PagamentoMensalView({ rows, loading, dateFrom, dateTo }: {
+  rows: FatReportRow[]; loading: boolean; dateFrom: string; dateTo: string
+}) {
+  if (loading) return <PageSpinner />
+  if (!rows.length) return <EmptyState label="Nenhum faturamento registrado no período" />
+
+  const fmtPeriod = `${fmtDatePtBR(dateFrom)} a ${fmtDatePtBR(dateTo)}`
+
+  const grupos = new Map<string, FatReportRow[]>()
+  for (const r of rows) {
+    const rep = r.vendedor || 'Sem vendedor'
+    if (!grupos.has(rep)) grupos.set(rep, [])
+    grupos.get(rep)!.push(r)
+  }
+
+  return (
+    <div className="space-y-4">
+      {[...grupos.entries()].map(([repNome, repRows]) => {
+        const totalFat = repRows.reduce((s, r) => s + Number(r.valor_faturamento), 0)
+        const totalCom = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+
+        return (
+          <div key={repNome} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50/80 border-b border-gray-100">
+              <div>
+                <p className="text-[13px] font-semibold text-gray-800">{repNome}</p>
+                <p className="text-[11px] text-gray-400">{repRows.length} faturamento{repRows.length !== 1 ? 's' : ''} · {fmtPeriod}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-gray-400">comissão a pagar</p>
+                <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalCom)}</p>
+                <p className="text-[10px] text-gray-400">s/ {fmtR(totalFat)} faturado</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead className="bg-gray-50/50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[80px]">Data fat.</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400">Razão social</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[80px]">Pedido</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[90px]">Doc. fábrica</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[72px]">Indústria</th>
+                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[96px]">Vlr. faturado</th>
+                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[44px]">%</th>
+                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[88px]">Comissão</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {repRows.map(r => (
+                    <tr key={r.fat_id} className="border-b border-gray-50 hover:bg-gray-50/60">
+                      <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{fmtDatePtBR(r.data_faturamento)}</td>
+                      <td className="px-3 py-1.5 font-medium text-gray-800 max-w-[180px] truncate">{r.razao_social}</td>
+                      <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">#{r.order_number}</td>
+                      <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.nr_ped_fabrica || '—'}</td>
+                      <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.industria}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums font-medium text-blue-600">{fmtR(r.valor_faturamento)}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-400">{Number(r.rep_commission_pct).toFixed(1)}%</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-emerald-600">
+                        {r.sem_comissao_fabrica ? <span className="text-gray-300">—</span> : fmtR(r.rep_commission_value)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50 border-t border-gray-200">
+                    <td colSpan={5} className="px-3 py-2 text-[11px] text-gray-400">
+                      {repRows.length} faturamento{repRows.length !== 1 ? 's' : ''}
+                    </td>
+                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-blue-600">{fmtR(totalFat)}</td>
+                    <td></td>
+                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-bold text-emerald-600">{fmtR(totalCom)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )
+      })}
+
+      {grupos.size > 1 && (
+        <div className="bg-white rounded-xl border border-gray-100 px-5 py-4 flex items-center justify-between">
+          <p className="text-[13px] text-gray-600">{rows.length} faturamento{rows.length !== 1 ? 's' : ''} no período</p>
+          <div className="text-right">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide">comissão total a pagar</p>
+            <p className="text-[20px] font-bold text-emerald-600">
+              {fmtR(rows.reduce((s, r) => s + Number(r.rep_commission_value), 0))}
+            </p>
           </div>
         </div>
       )}
