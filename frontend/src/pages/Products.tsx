@@ -622,59 +622,53 @@ function ProductDetailModal({
           onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          className={`relative group outline-none rounded-xl transition-all ${isDragging ? 'ring-2 ring-primary ring-offset-1' : 'focus:ring-2 focus:ring-primary/30'}`}
+          className="outline-none rounded-xl"
         >
           {currentImageUrl ? (
-            <div className="w-full aspect-square max-h-64 overflow-hidden rounded-xl bg-surface-container">
+            <div
+              className={`relative w-full aspect-square max-h-64 overflow-hidden rounded-xl bg-surface-container cursor-zoom-in transition-all ${isDragging ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+              onClick={() => setLightboxUrl(currentImageUrl)}
+              title="Clique para ver a foto"
+            >
               <img src={currentImageUrl} alt={p.reference} className="w-full h-full object-contain" />
+              {isDragging && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-primary/30 text-primary rounded-xl">
+                  <ImageIcon className="h-7 w-7 mb-1" />
+                  <span className="text-[12px] font-bold">Solte para substituir</span>
+                </div>
+              )}
             </div>
           ) : (
-            <div className={`w-full h-40 rounded-xl flex items-center justify-center text-outline/50 transition-colors ${isDragging ? 'bg-primary/10 text-primary' : 'bg-surface-container'}`}>
-              <ImageIcon className="h-12 w-12" />
-            </div>
-          )}
-          {currentImageUrl && (
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); setLightboxUrl(currentImageUrl) }}
-              className="absolute top-2 left-2 z-20 p-1.5 bg-black/50 hover:bg-black/80 rounded-lg text-white opacity-0 group-hover:opacity-100 transition-opacity"
-              title="Ver foto em tamanho completo"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {isAdmin && (
-            <label className={`absolute inset-0 flex flex-col items-center justify-center rounded-xl cursor-pointer transition-all
-              ${isDragging
-                ? 'bg-primary/20 text-primary'
-                : currentImageUrl
-                  ? 'bg-black/0 group-hover:bg-black/40 text-transparent group-hover:text-white'
-                  : 'bg-primary/10 hover:bg-primary/20 text-primary'}`}>
-              {uploadingImage ? (
-                <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                </svg>
-              ) : isDragging ? (
-                <>
-                  <ImageIcon className="h-7 w-7 mb-1" />
-                  <span className="text-[12px] font-bold">Solte para enviar</span>
-                </>
-              ) : (
-                <>
-                  <ImageIcon className="h-6 w-6 mb-1" />
-                  <span className="text-[12px] font-semibold text-center leading-tight">
-                    {currentImageUrl ? 'Substituir foto' : 'Adicionar foto'}
-                  </span>
-                  <span className="text-[10px] opacity-80 mt-0.5">
-                    clique · cole (Ctrl+V) · arraste
-                  </span>
-                </>
-              )}
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-            </label>
+            isAdmin ? (
+              <label className={`w-full h-40 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'bg-primary/10 text-primary' : 'bg-surface-container text-outline/50 hover:bg-primary/10 hover:text-primary'}`}>
+                {uploadingImage ? (
+                  <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                ) : (
+                  <>
+                    <ImageIcon className="h-10 w-10 mb-1" />
+                    <span className="text-[12px] font-semibold">{isDragging ? 'Solte para enviar' : 'Adicionar foto'}</span>
+                    <span className="text-[10px] opacity-70 mt-0.5">clique · cole (Ctrl+V) · arraste</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+              </label>
+            ) : (
+              <div className="w-full h-40 rounded-xl flex items-center justify-center text-outline/50 bg-surface-container">
+                <ImageIcon className="h-12 w-12" />
+              </div>
+            )
           )}
         </div>
+        {isAdmin && currentImageUrl && (
+          <label className={`flex items-center justify-center gap-1.5 text-[11px] cursor-pointer transition-colors mt-1 ${uploadingImage ? 'text-outline' : 'text-outline hover:text-primary'}`}>
+            <ImageIcon className="h-3 w-3" />
+            {uploadingImage ? 'Enviando…' : 'Substituir foto'}
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+          </label>
+        )}
         {imageUploadError && (
           <p className="text-[11px] text-red-600 font-medium mt-1">{imageUploadError}</p>
         )}
