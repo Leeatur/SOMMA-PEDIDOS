@@ -206,7 +206,7 @@ export async function portalLookupCnpj(req: Request, res: Response) {
 
     // Verifica se já é cliente cadastrado
     const { rows: [existing] } = await query(
-      `SELECT id, name, trade_name, city, state, phone, whatsapp, email, address, zip FROM clients
+      `SELECT id, name, trade_name, city, state, phone, whatsapp, email, address, address_number, complement, neighborhood, zip FROM clients
        WHERE cnpj ILIKE $1 AND active=true LIMIT 1`,
       [`%${cnpj}%`]
     )
@@ -218,7 +218,10 @@ export async function portalLookupCnpj(req: Request, res: Response) {
       cnpj,
       razao_social: rf.razao_social,
       nome_fantasia: rf.nome_fantasia || null,
-      address: [rf.logradouro, rf.numero, rf.complemento].filter(Boolean).join(', '),
+      address: rf.logradouro || null,
+      address_number: rf.numero || null,
+      complement: rf.complemento || null,
+      neighborhood: rf.bairro || null,
       city: rf.municipio,
       state: rf.uf,
       zip: rf.cep,
@@ -292,7 +295,7 @@ export async function submitPortalOrder(req: Request, res: Response) {
   const portal = await getPortal(req.params.token)
   if (!portal) { res.status(404).json({ error: 'Link inválido ou expirado' }); return }
 
-  const { cnpj, client_name, trade_name, address, city, state, zip, phone, whatsapp, email,
+  const { cnpj, client_name, trade_name, address, address_number, complement, neighborhood, city, state, zip, phone, whatsapp, email,
           price_table_id, factory_id, discount_pct, notes, items, payment_terms } = req.body
 
   if (!cnpj || !client_name || !price_table_id || !factory_id || !items?.length) {
@@ -332,17 +335,20 @@ export async function submitPortalOrder(req: Request, res: Response) {
   if (existingClient) {
     // Cliente já existe — atualiza dados e usa o ID existente
     await query(
-      `UPDATE clients SET name=$1, trade_name=$2, address=$3, city=$4, state=$5, zip=$6,
-       phone=COALESCE($7, phone), whatsapp=COALESCE($8, whatsapp), email=COALESCE($9, email), updated_at=NOW() WHERE id=$10`,
-      [client_name, trade_name||null, address||null, city||null, state||null, zip||null, phone||null, whatsapp||null, email||null, existingClient.id]
+      `UPDATE clients SET name=$1, trade_name=$2, address=$3, address_number=$4, complement=$5, neighborhood=$6,
+       city=$7, state=$8, zip=$9,
+       phone=COALESCE($10, phone), whatsapp=COALESCE($11, whatsapp), email=COALESCE($12, email), updated_at=NOW() WHERE id=$13`,
+      [client_name, trade_name||null, address||null, address_number||null, complement||null, neighborhood||null,
+       city||null, state||null, zip||null, phone||null, whatsapp||null, email||null, existingClient.id]
     )
     clientId = existingClient.id
   } else {
     // Cliente novo — insere
     const { rows: [newClient] } = await query(
-      `INSERT INTO clients (name, trade_name, cnpj, address, city, state, zip, phone, whatsapp, email, rep_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-      [client_name, trade_name||null, cnpjClean, address||null, city||null, state||null, zip||null, phone||null, whatsapp||null, email||null, portal.rep_id]
+      `INSERT INTO clients (name, trade_name, cnpj, address, address_number, complement, neighborhood, city, state, zip, phone, whatsapp, email, rep_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+      [client_name, trade_name||null, cnpjClean, address||null, address_number||null, complement||null, neighborhood||null,
+       city||null, state||null, zip||null, phone||null, whatsapp||null, email||null, portal.rep_id]
     )
     if (!newClient) { res.status(500).json({ error: 'Erro ao criar cliente' }); return }
     clientId = newClient.id

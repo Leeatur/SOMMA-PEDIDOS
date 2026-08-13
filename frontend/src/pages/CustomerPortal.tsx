@@ -77,7 +77,8 @@ function parseSizeRange(range: string): string[] {
 }
 interface ClientData {
   cnpj: string; razao_social: string; nome_fantasia: string | null
-  address: string; city: string; state: string; zip: string
+  address: string | null; address_number: string | null; complement: string | null; neighborhood: string | null
+  city: string; state: string; zip: string
   phone: string | null; whatsapp?: string | null; email: string | null; situacao: string
   existing_client: { id: string; name: string; email?: string | null; whatsapp?: string | null } | null
 }
@@ -292,6 +293,9 @@ export function CustomerPortal() {
         client_name: clientData.razao_social,
         trade_name: clientData.nome_fantasia,
         address: clientData.address,
+        address_number: clientData.address_number,
+        complement: clientData.complement,
+        neighborhood: clientData.neighborhood,
         city: clientData.city,
         state: clientData.state,
         zip: clientData.zip,
