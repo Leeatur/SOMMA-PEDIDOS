@@ -705,9 +705,13 @@ export default function OrderEdit() {
         } else {
           const origGrade = initDraftGrade(origItem)
           const gradeChanged = JSON.stringify(it.draftGrade) !== JSON.stringify(origGrade)
-          if (gradeChanged || priceChanged || obsChanged) {
+          const boxesChanged = it.draftBoxes !== (origItem.boxes_count || 1)
+          const draftTotal = (it.draftGrade || []).reduce((s, gc) => s + gc.total_pieces, 0)
+          const piecesInconsistent = Math.abs(draftTotal - Number(origItem.total_pieces || 0)) > 0
+          if (gradeChanged || priceChanged || obsChanged || boxesChanged || piecesInconsistent) {
             await ordersApi.updateItem(id!, it.id, {
               custom_grade: it.draftGrade,
+              boxes_count: it.draftBoxes,
               ...(priceChanged ? { unit_price: it.unit_price } : {}),
               item_obs: it.draftItemObs || null,
             })

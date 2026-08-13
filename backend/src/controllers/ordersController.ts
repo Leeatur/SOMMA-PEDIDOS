@@ -862,7 +862,7 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
 // Atualiza quantidades de um item (tamanhos para regular, caixas para pack) e recalcula totais
 export async function updateOrderItem(req: AuthRequest, res: Response) {
   const { id, item_id } = req.params
-  const { sizes, boxes_count, custom_grade, unit_price: newUnitPrice, item_obs } = req.body
+  const { sizes, boxes_count, custom_grade, unit_price: newUnitPrice, item_obs, grade_is_per_box } = req.body
 
   const { rows: [order] } = await query(
     'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
@@ -919,15 +919,17 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     if (custom_grade && Array.isArray(custom_grade) && custom_grade.length > 0) {
       // Grade personalizada por cor
       const customArr = custom_grade as CustomGradeEntry[]
-      newTotalPieces = customArr.reduce((s, gc) =>
+      const piecesPerBox = customArr.reduce((s, gc) =>
         s + Object.values(gc.sizes || {}).reduce((ss, v) => ss + Number(v || 0), 0), 0
       )
+      const effectiveBoxes = grade_is_per_box ? (parseInt(boxes_count) || 1) : 1
+      newTotalPieces = piecesPerBox * effectiveBoxes
       if (newTotalPieces <= 0) {
         res.status(400).json({ error: 'Total de peças não pode ser zero' }); return
       }
-      // preço por PEÇA × total de peças
       newSubtotal = Math.round(discountedPrice * newTotalPieces * 100) / 100
-      newBoxesCount = 1
+      // sempre salva o boxes_count enviado pelo frontend (se ausente, usa o calculado)
+      newBoxesCount = boxes_count !== undefined ? (parseInt(boxes_count) || effectiveBoxes) : effectiveBoxes
       newCustomGrade = JSON.stringify(customArr.map(gc => ({
         color: gc.color,
         sizes: gc.sizes,
