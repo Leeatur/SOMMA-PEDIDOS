@@ -855,7 +855,7 @@ export function OrderDetail() {
                       })() : item.custom_grade && item.custom_grade.length > 0 ? (
                         <>
                           <p className="text-[12px] font-medium text-on-surface-variant mb-1.5">Composição da grade (escolhida pelo cliente):</p>
-                          <GradeDisplay configs={item.custom_grade} boxCount={item.boxes_count} />
+                          <GradeDisplay configs={item.custom_grade} boxCount={1} />
                         </>
                       ) : item.grade_configs && item.grade_configs.length > 0 ? (
                         <>
