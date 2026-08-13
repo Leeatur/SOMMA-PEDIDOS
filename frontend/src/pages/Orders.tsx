@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -14,8 +14,10 @@ import {
   FileUp,
   Trash2,
   RefreshCw,
+  AlertTriangle,
+  Pencil,
 } from 'lucide-react'
-import { ordersApi, statusesApi, factoriesApi, apiClient } from '../api/client'
+import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { svgIconSrc } from '../components/ui/Badge'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
@@ -343,7 +345,29 @@ export function Orders() {
   const [showFilters, setShowFilters] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [showReport, setShowReport] = useState(false)
   const handleImportCreated = useCallback(() => { setShowImport(false) }, [])
+
+  // ── rascunhos locais ─────────────────────────────────────────────────────────
+  const DRAFT_TTL = 7 * 24 * 60 * 60 * 1000
+
+  const [newOrderDraft, setNewOrderDraft] = useState<{ clientName?: string } | null>(null)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`somma_neworder_draft_${user?.id || 'anon'}`)
+      if (!raw) { setNewOrderDraft(null); return }
+      const d = JSON.parse(raw)
+      if (!d || Date.now() - d.savedAt > DRAFT_TTL) { setNewOrderDraft(null); return }
+      const clientName = d.selectedClient?.name || d.selectedClient?.trade_name || ''
+      setNewOrderDraft({ clientName })
+    } catch { setNewOrderDraft(null) }
+  }, [user?.id])
+
+  const discardNewOrderDraft = () => {
+    try { localStorage.removeItem(`somma_neworder_draft_${user?.id || 'anon'}`) } catch { /* noop */ }
+    setNewOrderDraft(null)
+  }
 
   // ── seleção múltipla ─────────────────────────────────────────────────────────
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set())
@@ -464,8 +488,26 @@ export function Orders() {
   }, [orders])
 
   // Filtro por vendedor (cliente-side, sobre a lista já ordenada)
-  const displayedOrders = repFilter ? sortedOrders.filter(o => o.rep_name === repFilter) : sortedOrders
+  const baseDisplayed = repFilter ? sortedOrders.filter(o => o.rep_name === repFilter) : sortedOrders
+  // Em modo relatório: exibe apenas os pedidos selecionados
+  const displayedOrders = showReport && selectedOrderIds.size > 0
+    ? baseDisplayed.filter(o => selectedOrderIds.has(o.id))
+    : baseDisplayed
   const total = displayedOrders.length
+
+  // IDs de pedidos que têm edições locais não salvas
+  const ordersWithEditDraft = useMemo(() => {
+    const set = new Set<string>()
+    displayedOrders.forEach(o => {
+      try {
+        const raw = localStorage.getItem(`somma_orderedit_draft_${user?.id || 'anon'}_${o.id}`)
+        if (!raw) return
+        const d = JSON.parse(raw)
+        if (d && Date.now() - d.savedAt < DRAFT_TTL) set.add(o.id)
+      } catch { /* noop */ }
+    })
+    return set
+  }, [displayedOrders, user?.id])
 
   // Somatório das colunas numéricas (reflete os filtros aplicados)
   const totals = useMemo<OrderTotals>(() => {
@@ -626,30 +668,11 @@ export function Orders() {
                 onClick={exportarCSV}
                 disabled={total === 0}
                 className="flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors text-outline border-outline-variant bg-white hover:text-on-surface-variant disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Exportar a lista atual (com filtros) para Excel/CSV"
+                title="Exportar pedidos exibidos para Excel/CSV"
               >
                 <Download className="h-4 w-4" />
                 Exportar
               </button>
-              {isAdmin && (
-                <button
-                  onClick={async () => {
-                    const today = new Date().toISOString().split('T')[0]
-                    const r = await apiClient.get('/orders/erp-daily', { params: { date: today }, responseType: 'blob' })
-                    const url = URL.createObjectURL(new Blob([r.data]))
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `pedidos-erp-${today}.xlsx`
-                    a.click()
-                    URL.revokeObjectURL(url)
-                  }}
-                  className="flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors text-violet-700 border-violet-300 bg-violet-50 hover:bg-violet-100"
-                  title="Exportar todos os pedidos de hoje para o ERP (XLSX)"
-                >
-                  <Download className="h-4 w-4" />
-                  ERP Hoje
-                </button>
-              )}
               <button
                 onClick={() => setShowSummary(!showSummary)}
                 className={`flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors ${
@@ -657,7 +680,7 @@ export function Orders() {
                     ? 'text-primary border-primary/40 bg-primary/10'
                     : 'text-outline border-outline-variant bg-white hover:text-on-surface-variant'
                 }`}
-                title="Resumo de vendas"
+                title="Resumo de vendas por período"
               >
                 <BarChart3 className="h-4 w-4" />
                 Resumo
@@ -774,6 +797,30 @@ export function Orders() {
           </div>
         )}
 
+        {/* Banner: novo pedido em rascunho não finalizado */}
+        {newOrderDraft && (
+          <div className="flex items-center gap-3 px-6 py-2.5 bg-amber-50 border-b border-amber-200 text-[12px]">
+            <AlertTriangle size={14} className="text-amber-600 flex-shrink-0" />
+            <span className="text-amber-800 font-medium">
+              Rascunho de novo pedido não finalizado
+              {newOrderDraft.clientName ? ` — ${newOrderDraft.clientName}` : ''}
+            </span>
+            <button
+              onClick={() => navigate('/orders/new')}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors ml-2"
+            >
+              Continuar rascunho →
+            </button>
+            <button
+              onClick={discardNewOrderDraft}
+              className="ml-auto text-amber-500 hover:text-amber-800 transition-colors p-1 rounded"
+              title="Descartar rascunho"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         {/* Desktop Table */}
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center"><PageSpinner /></div>
@@ -795,24 +842,65 @@ export function Orders() {
           </div>
         ) : (
           <>
-          {/* Barra de seleção */}
+          {/* Barra de seleção / relatório */}
           {selectedOrderIds.size > 0 && (
-            <div className="flex items-center gap-3 px-4 py-2 bg-primary/8 border-b border-primary/20 text-[12px]">
-              <span className="font-medium text-primary">{selectedOrderIds.size} selecionado{selectedOrderIds.size !== 1 ? 's' : ''}</span>
-              <button
-                onClick={handleDeleteSelected}
-                disabled={deleteMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-error text-white font-medium hover:bg-error/90 transition-colors disabled:opacity-50"
-              >
-                <Trash2 size={13} />
-                Excluir selecionados
-              </button>
-              <button
-                onClick={() => setSelectedOrderIds(new Set())}
-                className="ml-auto text-on-surface-variant hover:text-on-surface transition-colors"
-              >
-                <X size={15} />
-              </button>
+            <div className={`flex items-center gap-3 px-4 py-2 border-b text-[12px] ${showReport ? 'bg-primary/10 border-primary/30' : 'bg-primary/5 border-primary/20'}`}>
+              {showReport ? (
+                <>
+                  <BarChart3 size={14} className="text-primary flex-shrink-0" />
+                  <span className="font-semibold text-primary">
+                    Relatório · {selectedOrderIds.size} pedido{selectedOrderIds.size !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={exportarCSV}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    <Download size={13} />
+                    Exportar Excel
+                  </button>
+                  <button
+                    onClick={() => setShowReport(false)}
+                    className="ml-auto flex items-center gap-1.5 text-[12px] text-on-surface-variant hover:text-on-surface transition-colors px-2 py-1 rounded-lg hover:bg-surface-container"
+                  >
+                    <X size={13} />
+                    Fechar relatório
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="font-medium text-primary">{selectedOrderIds.size} selecionado{selectedOrderIds.size !== 1 ? 's' : ''}</span>
+                  <button
+                    onClick={() => setShowReport(true)}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-primary/40 bg-white text-primary font-medium hover:bg-primary/10 transition-colors"
+                  >
+                    <BarChart3 size={13} />
+                    Ver Relatório
+                  </button>
+                  <button
+                    onClick={exportarCSV}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-outline-variant bg-white text-on-surface-variant font-medium hover:bg-surface-container transition-colors"
+                  >
+                    <Download size={13} />
+                    Exportar Excel
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={handleDeleteSelected}
+                      disabled={deleteMutation.isPending}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-error text-white font-medium hover:bg-error/90 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                      Excluir selecionados
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setSelectedOrderIds(new Set())}
+                    className="ml-auto text-on-surface-variant hover:text-on-surface transition-colors"
+                  >
+                    <X size={15} />
+                  </button>
+                </>
+              )}
             </div>
           )}
           <div className="flex-1 overflow-auto">
@@ -895,27 +983,42 @@ export function Orders() {
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {displayedOrders.map(o => (
+                {displayedOrders.map(o => {
+                  const hasDraft = ordersWithEditDraft.has(o.id)
+                  return (
                   <tr
                     key={o.id}
-                    className={`border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : ''}`}
+                    className={`border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : hasDraft ? 'bg-amber-50/60' : ''}`}
                     onDoubleClick={() => navigate(`/orders/${o.id}`)}
                   >
-                    <td style={{ width: 36, minWidth: 36 }} className="pl-3 pr-1 py-2 align-middle">
+                    <td style={{ width: 36, minWidth: 36 }} className="pl-3 pr-1 py-2 align-middle relative">
                       <input type="checkbox"
                         checked={selectedOrderIds.has(o.id)}
                         onChange={e => toggleOrderSelected(o.id, e as unknown as React.MouseEvent)}
                         onClick={e => e.stopPropagation()}
                         className="cursor-pointer accent-primary w-3.5 h-3.5"
                       />
+                      {hasDraft && (
+                        <span
+                          className="absolute top-1 right-0.5 w-2 h-2 rounded-full bg-amber-500"
+                          title="Edições não salvas"
+                        />
+                      )}
                     </td>
                     {visibleCols.map(col => (
                       <td key={col.id} style={{ width: widths[col.id] ?? DEFAULT_WIDTHS[col.id], overflow: 'hidden' }}>
-                        <OrderCell id={col.id} o={o} />
+                        {col.id === 'number' && hasDraft
+                          ? <div className="flex items-center gap-1 px-2 py-1">
+                              <span className="text-[12px] font-bold text-primary whitespace-nowrap">{formatOrderNumber(o.order_number)}</span>
+                              <Pencil size={10} className="text-amber-500 flex-shrink-0" aria-label="Edições não salvas" />
+                            </div>
+                          : <OrderCell id={col.id} o={o} />
+                        }
                       </td>
                     ))}
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
               {/* Linha de totais — soma das colunas (reflete os filtros) */}
               <tfoot className="sticky bottom-0 z-10">
@@ -952,6 +1055,7 @@ export function Orders() {
         onCreated={handleImportCreated}
       />
     )}
+
   </>
   )
 }

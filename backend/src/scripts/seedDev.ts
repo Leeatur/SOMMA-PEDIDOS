@@ -2,7 +2,7 @@
  * seedDev.ts
  *
  * Seed completo para o ambiente de desenvolvimento / homologação.
- * Configura a SOMMA Technology como empresa, cria usuários admin e
+ * Configura a Somma Negócios e Tecnologia como empresa, cria usuários admin e
  * popula dados mínimos para testes.
  *
  * Uso:
@@ -24,10 +24,10 @@ async function seedDev() {
     console.log('🌱 [DEV] Iniciando seed do ambiente de desenvolvimento...\n')
 
     // ── 1. Configurações da empresa ──────────────────────────────────────
-    console.log('📋 Configurando empresa SOMMA Technology...')
+    console.log('📋 Configurando empresa Somma Negócios e Tecnologia...')
     const companySettings: Record<string, string> = {
-      name:         'SOMMA Technology',
-      trade_name:   'SOMMA Technology',
+      name:         'Somma Negócios e Tecnologia',
+      trade_name:   'Somma Negócios e Tecnologia',
       cnpj:         '00.000.000/0001-00',
       address:      'Rua Exemplo, 100',
       city:         'Erechim',
@@ -37,7 +37,7 @@ async function seedDev() {
       whatsapp:     '5454991625024',
       email:        'contato@sommatechnology.com.br',
       website:      'https://sommatechnology.com.br',
-      order_footer: 'Obrigado pela preferência! SOMMA Technology — Erechim | RS',
+      order_footer: 'Obrigado pela preferência! Somma Negócios e Tecnologia — Erechim | RS',
     }
 
     for (const [key, value] of Object.entries(companySettings)) {
@@ -48,7 +48,7 @@ async function seedDev() {
         [key, value]
       )
     }
-    console.log('   ✅ Empresa configurada: SOMMA Technology — Erechim | RS\n')
+    console.log('   ✅ Empresa configurada: Somma Negócios e Tecnologia — Erechim | RS\n')
 
     // ── 2. Usuários admin ─────────────────────────────────────────────────
     console.log('👤 Criando usuários admin...')
@@ -103,8 +103,8 @@ async function seedDev() {
       console.log('   ✅ Status criados\n')
     }
 
-    // ── 5. Cliente SOMMA Technology (para testes de pedidos) ──────────────
-    console.log('🏢 Criando cliente SOMMA Technology...')
+    // ── 5. Cliente Somma Negócios e Tecnologia (para testes de pedidos) ──────────────
+    console.log('🏢 Criando cliente Somma Negócios e Tecnologia...')
     const adminUser = await client.query(
       `SELECT id FROM users WHERE email = 'uliano@sommatechnology.com.br' LIMIT 1`
     )
@@ -114,13 +114,13 @@ async function seedDev() {
       await client.query(`
         INSERT INTO clients (name, trade_name, cnpj, city, state, phone, whatsapp, email, rep_id, active)
         VALUES (
-          'SOMMA Technology', 'SOMMA TECH', '00.000.000/0001-00',
+          'Somma Negócios e Tecnologia', 'SOMMA TECH', '00.000.000/0001-00',
           'Erechim', 'RS', '(54) 9.9162-5024', '5454991625024',
           'contato@sommatechnology.com.br', $1, true
         )
         ON CONFLICT DO NOTHING
       `, [adminId])
-      console.log('   ✅ Cliente SOMMA Technology criado\n')
+      console.log('   ✅ Cliente Somma Negócios e Tecnologia criado\n')
     }
 
     // ── 6. Condição de pagamento padrão ───────────────────────────────────

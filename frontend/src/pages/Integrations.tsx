@@ -65,7 +65,7 @@ export function Integrations() {
       {/* Cabeçalho */}
       <div className="flex items-start gap-3">
         <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#1a1a2e,#0f3460)' }}>
+          style={{ background: 'linear-gradient(180deg, #0d1f3c, #0b1c30)' }}>
           <Plug className="h-5 w-5 text-white" />
         </div>
         <div>
@@ -101,7 +101,7 @@ export function Integrations() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all disabled:opacity-50"
                   style={ativo
                     ? { borderColor: '#d1d5db', background: 'white', color: '#374151' }
-                    : { borderColor: 'transparent', background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', color: 'white' }}
+                    : { borderColor: 'transparent', background: 'linear-gradient(180deg, #0d1f3c, #0b1c30)', color: 'white' }}
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${generate.isPending ? 'animate-spin' : ''}`} />
                   {ativo ? 'Gerar novo' : 'Gerar token'}

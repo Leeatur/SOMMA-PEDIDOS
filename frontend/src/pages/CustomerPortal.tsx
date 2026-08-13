@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { publicPortalApi } from '../api/client'
 import {
   ShoppingCart, Package, ChevronDown, ChevronUp,
-  CheckCircle, ArrowLeft, X, Search, RefreshCw,
+  CheckCircle, ArrowLeft, X, Search, RefreshCw, Check,
 } from 'lucide-react'
 import { ProductPhotos } from '../components/ui/ProductPhotos'
 
@@ -167,7 +167,7 @@ export function CustomerPortal() {
         } else if (facs.length > 0) {
           setFactories(facs)
         }
-        setStep('cnpj')
+        setStep(prev => prev === 'loading' ? 'cnpj' : prev)
       })
       .catch(() => { setErrorMsg('Link inválido ou expirado.'); setStep('error') })
   }, [token])
@@ -352,7 +352,7 @@ export function CustomerPortal() {
         <p className="text-[11px] text-gray-400 mt-4">
           Guarde o número do pedido para referência
         </p>
-        <p className="text-[10px] text-gray-300 mt-6">SOMMA Technology · Erechim | RS · (54) 9.9162-5024</p>
+        <p className="text-[10px] text-gray-300 mt-6">SFV - Somma Força de Vendas · by Somma Negócios e Tecnologia · Erechim | RS · (54) 9.9162-5024</p>
       </div>
     </div>
   )
@@ -410,7 +410,7 @@ export function CustomerPortal() {
                 {cnpjLoading ? 'Verificando...' : 'Acessar Catálogo'}
               </button>
             </div>
-            <p className="text-center text-[10px] text-gray-300 mt-8">SOMMA Technology · Erechim | RS · (54) 9.9162-5024</p>
+            <p className="text-center text-[10px] text-gray-300 mt-8">SFV - Somma Força de Vendas · by Somma Negócios e Tecnologia · Erechim | RS · (54) 9.9162-5024</p>
           </div>
         )}
 
@@ -543,7 +543,7 @@ export function CustomerPortal() {
                                         <span className="text-[10px] text-gray-400">{prods.length} refs</span>
                                       </div>
                                     )}
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                                       {prods.map(p => (
                                         <ProductCard key={p.id} product={p}
                                           cartItems={cart.filter(i => i.product.id === p.id)}
@@ -1059,7 +1059,7 @@ function ProductModal({ product, onAdd, cartItems, onClose }: {
   )
 }
 
-// ─── ProductCard — card com duas imagens (produto + modelo) ──────────────────
+// ─── ProductCard — estilo e-commerce ─────────────────────────────────────────
 
 function ProductCard({ product, cartItems, onOpenModal }: {
   product: Product
@@ -1070,51 +1070,81 @@ function ProductCard({ product, cartItems, onOpenModal }: {
   const fmtCur = (v: number) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
   const inCart = cartItems.reduce((s, i) => s + i.total_pieces, 0)
   const inCartBoxes = cartItems.reduce((s, i) => s + i.boxes, 0)
-  const images = (product.images?.filter(Boolean) as string[]) || (product.image_url ? [product.image_url] : [])
-  const frontImg = images[0] ?? null
-  const modelImg = images[1] ?? null
+  const images: string[] = (product.images?.length ? product.images : product.image_url ? [product.image_url] : []).filter(Boolean) as string[]
+  const primaryImg = images[1] ?? images[0] ?? null
+  const initials = product.reference.replace(/[^A-Z0-9]/gi, '').slice(0, 2).toUpperCase()
 
   return (
     <div
-      className={`rounded-xl overflow-hidden active:scale-[0.98] transition-transform cursor-pointer ${
-        inCart > 0
-          ? 'border-2 border-green-500 shadow-md shadow-green-100'
-          : 'border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-200'
-      }`}
       onClick={() => onOpenModal(product)}
+      className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 active:scale-[0.98] bg-white ${
+        inCart > 0
+          ? 'ring-2 ring-green-500 shadow-xl shadow-green-100/60'
+          : 'border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1'
+      }`}
     >
-      {/* Duas imagens lado a lado */}
-      <div className="flex">
-        {/* Esquerda: foto do produto */}
-        <div className="w-1/2 aspect-[3/4] bg-gray-100 overflow-hidden relative flex items-center justify-center">
-          {frontImg
-            ? <img src={frontImg} alt={product.reference} className="w-full h-full object-contain" loading="lazy" />
-            : <Package className="h-10 w-10 text-gray-300" />
-          }
-          {inCart > 0 && (
-            <div className="absolute top-1.5 left-1.5 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow">
-              {isPack ? `${inCartBoxes}cx` : `${inCart}pç`}
-            </div>
-          )}
+      {/* Foto */}
+      <div className="aspect-[3/4] overflow-hidden relative bg-gray-50">
+        {primaryImg ? (
+          <img
+            src={primaryImg}
+            alt={product.reference}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 via-purple-50 to-indigo-100/60 select-none">
+            <span className="text-5xl font-black tracking-tight text-purple-200">{initials}</span>
+            <Package className="h-5 w-5 mt-3 text-purple-200/60" />
+          </div>
+        )}
+
+        {/* Badge tipo — top left */}
+        <div className="absolute top-2.5 left-2.5">
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm ${
+            isPack ? 'bg-violet-600 text-white' : 'bg-purple-600 text-white'
+          }`}>
+            {isPack ? 'PACK' : 'REG'}
+          </span>
         </div>
-        {/* Direita: foto do modelo/lookbook */}
-        <div className="w-1/2 aspect-[3/4] bg-gray-50 border-l border-gray-100 overflow-hidden relative flex items-center justify-center">
-          {modelImg
-            ? <img src={modelImg} alt={`${product.reference} modelo`} className="w-full h-full object-cover" loading="lazy" />
-            : <Package className="h-10 w-10 text-gray-200" />
-          }
+
+        {/* Badge carrinho — top right */}
+        {inCart > 0 && (
+          <div className="absolute top-2.5 right-2.5">
+            <span className="flex items-center gap-1 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
+              <Check className="h-3 w-3" strokeWidth={3} />
+              {isPack ? `${inCartBoxes}cx` : `${inCart}pç`}
+            </span>
+          </div>
+        )}
+
+        {/* Hover CTA */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/40 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-end justify-center pb-3">
+          <span className="bg-white text-gray-900 text-[11px] font-semibold px-4 py-1.5 rounded-full shadow-lg">
+            Ver detalhes
+          </span>
         </div>
       </div>
 
-      {/* Info do produto */}
-      <div className={`px-3 py-2 ${inCart > 0 ? 'bg-green-50' : 'bg-white'}`}>
-        <div className="flex items-center justify-between gap-2">
-          <p className="font-bold text-sm text-gray-900 truncate">{product.reference}</p>
-          <p className="font-bold text-purple-700 text-sm whitespace-nowrap">{fmtCur(product.base_price)}<span className="text-[10px] font-normal text-gray-400">/pç</span></p>
+      {/* Info */}
+      <div className="p-3.5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">
+          {product.reference}
+        </p>
+        {product.product_name && (
+          <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[2.5rem]">
+            {product.product_name}
+          </p>
+        )}
+        <div className="mt-2 flex items-baseline gap-1">
+          <p className="text-base font-black text-purple-700">{fmtCur(product.base_price)}</p>
+          <span className="text-xs text-gray-400">/pç</span>
         </div>
-        {product.product_name && <p className="text-xs text-gray-500 truncate">{product.product_name}</p>}
         {inCart > 0 && (
-          <p className="text-[10px] text-green-700 font-bold mt-0.5">✓ No carrinho</p>
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-green-700 bg-green-50 rounded-lg px-2.5 py-1.5">
+            <CheckCircle className="h-3.5 w-3.5 flex-shrink-0" />
+            Adicionado ao pedido
+          </div>
         )}
       </div>
     </div>

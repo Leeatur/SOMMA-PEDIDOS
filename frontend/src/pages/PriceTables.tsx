@@ -174,6 +174,10 @@ export function PriceTables() {
       qc.invalidateQueries({ queryKey: ['price-tables'] })
       setDeleteTable(null)
     },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Erro ao excluir tabela'
+      alert(msg)
+    },
   })
 
   const updateRulesMut = useMutation({

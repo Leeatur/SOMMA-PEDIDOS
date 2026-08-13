@@ -457,6 +457,11 @@ CREATE TABLE IF NOT EXISTS order_faturamentos (
 );
 CREATE INDEX IF NOT EXISTS idx_order_faturamentos_order_id ON order_faturamentos(order_id);
 
+-- Adiciona status 'encerrado' ao CHECK de faturamento_status
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_faturamento_status_check;
+ALTER TABLE orders ADD CONSTRAINT orders_faturamento_status_check
+  CHECK (faturamento_status IN ('pendente','parcial','liquidado','encerrado'));
+
 `
 
 async function migrate() {

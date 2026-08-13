@@ -142,18 +142,16 @@ function initSizes(product: Product | OrderItemRaw): Record<string, number> {
     product.grade_configs.forEach(gc => {
       if (gc.sizes) Object.keys(gc.sizes).forEach(s => all.add(s))
     })
-    allSizes = sortSizes([...all]).filter(s => !blocked.has(s))
+    allSizes = sortSizes([...all])
   }
   if (allSizes.length === 0 && product.size_range) {
-    allSizes = sortSizes(parseSizeRange(product.size_range)).filter(s => !blocked.has(s))
+    allSizes = sortSizes(parseSizeRange(product.size_range))
   }
 
-  // Inicia todos os tamanhos com 0
+  // Inicia todos os tamanhos com 0 (bloqueados ficam em 0 e não editáveis)
   const result: Record<string, number> = Object.fromEntries(allSizes.map(s => [s, 0]))
 
-  // Sobrepõe com valores já salvos (se item existente)
-  // Sem `s in result`: preserva tamanhos do pedido mesmo que não constem
-  // no grade_configs atual (ex: pedidos importados com grade diferente)
+  // Sobrepõe com valores já salvos (se item existente); bloqueados ficam em 0
   if ('sizes' in product && product.sizes) {
     for (const [s, v] of Object.entries(product.sizes)) {
       if (!blocked.has(s)) result[s] = v
@@ -436,10 +434,20 @@ export default function OrderEdit() {
     ))
   }
 
-  const updateBoxes = (itemId: string, val: number) => {
-    setItems(prev => prev.map(it =>
-      it.id === itemId ? { ...it, draftBoxes: val } : it
-    ))
+  const updateBoxes = (itemId: string, newBoxes: number) => {
+    setItems(prev => prev.map(it => {
+      if (it.id !== itemId) return it
+      const oldBoxes = it.draftBoxes || 1
+      const newGrade = it.draftGrade.map(gc => {
+        const newSizes: Record<string, number> = {}
+        for (const [size, qty] of Object.entries(gc.sizes)) {
+          newSizes[size] = Math.round((qty / oldBoxes) * newBoxes)
+        }
+        const total_pieces = Object.values(newSizes).reduce((s, v) => s + v, 0)
+        return { ...gc, sizes: newSizes, total_pieces }
+      })
+      return { ...it, draftBoxes: newBoxes, draftGrade: newGrade }
+    }))
   }
 
   const removeItem = (itemId: string) => {
@@ -481,10 +489,20 @@ export default function OrderEdit() {
     ))
   }
 
-  const updateNewBoxes = (tempId: string, val: number) => {
-    setNewItems(prev => prev.map(it =>
-      it.tempId === tempId ? { ...it, draftBoxes: val } : it
-    ))
+  const updateNewBoxes = (tempId: string, newBoxes: number) => {
+    setNewItems(prev => prev.map(it => {
+      if (it.tempId !== tempId) return it
+      const oldBoxes = it.draftBoxes || 1
+      const newGrade = it.draftGrade.map(gc => {
+        const newSizes: Record<string, number> = {}
+        for (const [size, qty] of Object.entries(gc.sizes)) {
+          newSizes[size] = Math.round((qty / oldBoxes) * newBoxes)
+        }
+        const total_pieces = Object.values(newSizes).reduce((s, v) => s + v, 0)
+        return { ...gc, sizes: newSizes, total_pieces }
+      })
+      return { ...it, draftBoxes: newBoxes, draftGrade: newGrade }
+    }))
   }
 
   const removeNewItem = (tempId: string) => {
@@ -545,6 +563,14 @@ export default function OrderEdit() {
     setShowProdDropdown(false); setProdSearch('')
     // Abre modal para preencher grade/tamanhos antes de adicionar
     setQuickEditProduct(prod)
+  }
+
+  // Enter no campo de busca: seleciona o 1º resultado e abre a grade
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && prodResults.length > 0 && !searching) {
+      e.preventDefault()
+      addProduct(prodResults[0])
+    }
   }
 
   const confirmAddProduct = (prod: Product, sizes: Record<string, number>, boxes: number, customGrade?: DraftGradeEntry[], obs?: string) => {
@@ -679,9 +705,13 @@ export default function OrderEdit() {
         } else {
           const origGrade = initDraftGrade(origItem)
           const gradeChanged = JSON.stringify(it.draftGrade) !== JSON.stringify(origGrade)
-          if (gradeChanged || priceChanged || obsChanged) {
+          const boxesChanged = it.draftBoxes !== (origItem.boxes_count || 1)
+          const draftTotal = (it.draftGrade || []).reduce((s, gc) => s + gc.total_pieces, 0)
+          const piecesInconsistent = Math.abs(draftTotal - Number(origItem.total_pieces || 0)) > 0
+          if (gradeChanged || priceChanged || obsChanged || boxesChanged || piecesInconsistent) {
             await ordersApi.updateItem(id!, it.id, {
               custom_grade: it.draftGrade,
+              boxes_count: it.draftBoxes,
               ...(priceChanged ? { unit_price: it.unit_price } : {}),
               item_obs: it.draftItemObs || null,
             })
@@ -774,13 +804,13 @@ export default function OrderEdit() {
           </button>
           {/* Salvar e Voltar */}
           <button onClick={() => handleSave('list')} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60 shrink-0">
+            className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60 shrink-0 btn-save-glow">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             {saving ? 'Salvando...' : 'Salvar e Voltar'}
           </button>
           {/* Salvar (fica na tela) */}
           <button onClick={() => handleSave('detail')} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60 shrink-0">
+            className="flex items-center gap-1.5 px-4 py-1 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-60 shrink-0 btn-primary-glow">
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             {saving ? '...' : 'Salvar'}
           </button>
@@ -956,10 +986,10 @@ export default function OrderEdit() {
                     <thead className="bg-surface-container-low border-b border-outline-variant/40 sticky top-0 z-10">
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold text-outline">Desconto de Prazo</th>
-                        <th className="px-3 py-2 text-center font-semibold text-outline">Comissão Total</th>
+                        {isAdmin && <th className="px-3 py-2 text-center font-semibold text-outline">Comissão Total</th>}
                         <th className="px-3 py-2 text-center font-semibold text-emerald-700">{FACTORY_COMM ? 'Com. Loja' : 'Com. Representante'}</th>
-                        <th className="px-3 py-2 text-center font-semibold text-blue-700">{FACTORY_COMM ? 'Com. Repres.' : 'Com. Escritório'}</th>
-                        {FACTORY_COMM && <th className="px-3 py-2 text-center font-semibold text-amber-700">Com. Guia</th>}
+                        {isAdmin && <th className="px-3 py-2 text-center font-semibold text-blue-700">{FACTORY_COMM ? 'Com. Repres.' : 'Com. Escritório'}</th>}
+                        {FACTORY_COMM && isAdmin && <th className="px-3 py-2 text-center font-semibold text-amber-700">Com. Guia</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/20">
@@ -979,10 +1009,10 @@ export default function OrderEdit() {
                               <span className={zeroActive ? 'text-emerald-700' : 'text-outline/70'}>0,0% — Sem desconto</span>
                               {zeroActive && <span className="ml-2 text-[10px] text-emerald-700 font-bold">← SELECIONADO</span>}
                             </td>
+                            {isAdmin && <td className="px-3 py-2.5 text-center text-outline/60">—</td>}
                             <td className="px-3 py-2.5 text-center text-outline/60">—</td>
-                            <td className="px-3 py-2.5 text-center text-outline/60">—</td>
-                            <td className="px-3 py-2.5 text-center text-outline/60">—</td>
-                            {FACTORY_COMM && <td className="px-3 py-2.5 text-center text-outline/60">—</td>}
+                            {isAdmin && <td className="px-3 py-2.5 text-center text-outline/60">—</td>}
+                            {FACTORY_COMM && isAdmin && <td className="px-3 py-2.5 text-center text-outline/60">—</td>}
                           </tr>
                         )
                       })()}
@@ -1002,10 +1032,10 @@ export default function OrderEdit() {
                               <span className={isActive ? 'text-primary' : ''}>{Number(r.discount_pct).toFixed(1)}%</span>
                               {isActive && <span className="ml-2 text-[10px] text-primary font-bold">← SELECIONADO</span>}
                             </td>
-                            <td className="px-3 py-2.5 text-center">{Number(r.total_commission_pct).toFixed(1)}%</td>
+                            {isAdmin && <td className="px-3 py-2.5 text-center">{Number(r.total_commission_pct).toFixed(1)}%</td>}
                             <td className="px-3 py-2.5 text-center text-emerald-700 font-semibold">{Number(r.rep_commission_pct).toFixed(1)}%</td>
-                            <td className="px-3 py-2.5 text-center text-blue-700 font-semibold">{Number(r.office_commission_pct).toFixed(1)}%</td>
-                            {FACTORY_COMM && <td className="px-3 py-2.5 text-center text-amber-700 font-semibold">{Number(r.guide_commission_pct || 0).toFixed(1)}%</td>}
+                            {isAdmin && <td className="px-3 py-2.5 text-center text-blue-700 font-semibold">{Number(r.office_commission_pct).toFixed(1)}%</td>}
+                            {FACTORY_COMM && isAdmin && <td className="px-3 py-2.5 text-center text-amber-700 font-semibold">{Number(r.guide_commission_pct || 0).toFixed(1)}%</td>}
                           </tr>
                         )
                       })}
@@ -1168,11 +1198,13 @@ export default function OrderEdit() {
               <div className="relative hidden sm:block flex-1 max-w-sm ml-4">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
                 <input
+                  ref={prodSearchRef}
                   className="w-full border border-outline-variant rounded-lg pl-8 pr-3 py-1 text-[12px] bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                   value={prodSearch}
                   onChange={e => searchProducts(e.target.value)}
                   onBlur={() => setTimeout(() => setShowProdDropdown(false), 150)}
-                  placeholder="Adicionar produto..."
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Adicionar produto... (Enter para selecionar)"
                 />
                 {showProdDropdown && (
                   <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-outline-variant rounded-lg shadow-lg max-h-64 overflow-y-auto">
@@ -1202,11 +1234,11 @@ export default function OrderEdit() {
             <div className="relative sm:hidden">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
               <input
-                ref={prodSearchRef}
                 className="w-full border-2 border-outline-variant rounded-xl pl-9 pr-4 py-2.5 text-[14px] bg-surface focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                 value={prodSearch}
                 onChange={e => searchProducts(e.target.value)}
                 onBlur={() => setTimeout(() => setShowProdDropdown(false), 150)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Buscar produto para adicionar..."
               />
               {showProdDropdown && (
@@ -1308,6 +1340,7 @@ export default function OrderEdit() {
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
                     draftGrade={it.draftGrade}
+                    blockedSizes={it.blocked_sizes || []}
                     onSizeChange={(size, val) => updateSize(it.id, size, val)}
                     onBoxesChange={val => updateBoxes(it.id, val)}
                     onGradeChange={(colorIdx, size, val) => updateGrade(it.id, colorIdx, size, val)}
@@ -1340,6 +1373,7 @@ export default function OrderEdit() {
                     draftSizes={it.draftSizes}
                     draftBoxes={it.draftBoxes}
                     draftGrade={it.draftGrade}
+                    blockedSizes={it.blocked_sizes || []}
                     onSizeChange={(size, val) => updateNewSize(it.tempId, size, val)}
                     onBoxesChange={val => updateNewBoxes(it.tempId, val)}
                     onGradeChange={(colorIdx, size, val) => updateNewGrade(it.tempId, colorIdx, size, val)}
@@ -1394,7 +1428,7 @@ export default function OrderEdit() {
             {saving ? '...' : 'Salvar'}
           </button>
           <button onClick={() => handleSave('list')} disabled={saving}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60">
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 disabled:opacity-60 btn-save-glow">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {saving ? 'Salvando...' : 'Salvar e Voltar'}
           </button>
@@ -1718,15 +1752,17 @@ interface ItemRowProps {
   itemObs?: string
   onObsChange?: (val: string) => void
   canEditPrice?: boolean             // só admin edita preço; vendedor apenas visualiza
+  blockedSizes?: string[]
 }
 
 function ItemRow({
   index, checked, onToggle, reference, productName, imageUrl, type, unitPrice, originalUnitPrice,
   orderPolicyDiscPct, orderCashDiscPct,
-  gradeConfigs: _gradeConfigs, draftSizes, draftGrade,
-  onSizeChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
-  productObservation, itemObs, onObsChange, canEditPrice,
+  gradeConfigs: _gradeConfigs, draftSizes, draftBoxes, draftGrade,
+  onSizeChange, onBoxesChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
+  productObservation, itemObs, onObsChange, canEditPrice, blockedSizes = [],
 }: ItemRowProps) {
+  const blocked = new Set(blockedSizes.map(s => s.toUpperCase()))
   const sizes = sortSizes(Object.keys(draftSizes))
 
   // Preço efetivo = tabela após desconto comercial e à vista (sequencial)
@@ -1880,25 +1916,34 @@ function ItemRow({
               <thead className="bg-surface-container-lowest sticky top-0 z-10">
                 <tr>
                   {sizes.map(s => (
-                    <th key={s} className="w-10 text-center pb-1 text-on-surface-variant font-medium px-0.5">{s}</th>
+                    <th key={s} className={`w-10 text-center pb-1 font-medium px-0.5 ${blocked.has(s.toUpperCase()) ? 'text-red-300 line-through' : 'text-on-surface-variant'}`}>{s}</th>
                   ))}
                   <th className="pl-3 pb-1 text-center text-on-surface-variant font-medium">Total</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  {sizes.map((size, sIdx) => (
+                  {sizes.map((size, sIdx) => {
+                    const isBlocked = blocked.has(size.toUpperCase())
+                    return (
                     <td key={size} className="px-0.5 py-0.5">
+                      {isBlocked ? (
+                        <div className="w-9 h-7 flex items-center justify-center bg-red-50 border border-red-200 rounded text-[11px] text-red-300 font-bold cursor-not-allowed" title={`Tamanho ${size} bloqueado`}>
+                          🔒
+                        </div>
+                      ) : (
                       <input
                         type="number" min={0} max={999}
                         className={inputNum}
                         value={draftSizes[size] || 0}
                         onChange={e => onSizeChange(size, parseInt(e.target.value) || 0)}
                         onFocus={e => e.target.select()}
-                        autoFocus={sIdx === 0}
+                        autoFocus={!isBlocked && sIdx === 0}
                       />
+                      )}
                     </td>
-                  ))}
+                    )
+                  })}
                   <td className="pl-3 py-0.5 text-center font-bold text-on-surface">
                     {pieces || '—'}
                   </td>
@@ -1962,9 +2007,28 @@ function ItemRow({
 
       {/* Total peças */}
       <td className="px-3 py-2 text-right align-middle">
-        <span className="inline-block bg-surface-container text-on-surface font-semibold text-[12px] px-2 py-0.5 rounded-lg min-w-[40px] text-center">
-          {pieces}
-        </span>
+        {type === 'pack' ? (
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onBoxesChange(Math.max(1, draftBoxes - 1))}
+                className="w-6 h-6 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 text-[13px] font-bold leading-none"
+              >−</button>
+              <span className="text-[12px] font-semibold text-on-surface min-w-[32px] text-center">{draftBoxes}cx</span>
+              <button
+                type="button"
+                onClick={() => onBoxesChange(draftBoxes + 1)}
+                className="w-6 h-6 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 text-[13px] font-bold leading-none"
+              >+</button>
+            </div>
+            <span className="text-[11px] text-outline">{pieces} pç</span>
+          </div>
+        ) : (
+          <span className="inline-block bg-surface-container text-on-surface font-semibold text-[12px] px-2 py-0.5 rounded-lg min-w-[40px] text-center">
+            {pieces}
+          </span>
+        )}
       </td>
 
       {/* Total R$ */}

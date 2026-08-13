@@ -4,7 +4,10 @@ import ReactDOM from 'react-dom/client'
 // Auto-reload when new service worker takes control (ensures updates apply immediately)
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload()
+    // Don't reload mid-session on the public portal — customers may be actively typing
+    if (!window.location.pathname.startsWith('/portal/')) {
+      window.location.reload()
+    }
   })
   // Force check for new SW every time the app gains focus or becomes visible
   const checkUpdate = () =>

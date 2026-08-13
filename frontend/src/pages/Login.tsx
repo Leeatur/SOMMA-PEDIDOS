@@ -67,7 +67,7 @@ export function Login() {
       {/* ══ PAINEL ESQUERDO — marketing ══ */}
       <div
         className="hidden lg:flex lg:w-[58%] flex-col justify-between p-8 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)' }}
+        style={{ background: 'linear-gradient(180deg, #0d1f3c 0%, #0b1c30 60%, #091629 100%)' }}
       >
         {/* Padrão de pontos decorativos */}
         <div className="absolute inset-0 opacity-[0.04]"
@@ -135,7 +135,7 @@ export function Login() {
 
         {/* Mobile: logo topo */}
         <div className="lg:hidden flex flex-col items-center pt-10 pb-4"
-          style={{ background: 'linear-gradient(135deg,#1a1a2e,#0f3460)' }}>
+          style={{ background: 'linear-gradient(180deg, #0d1f3c, #0b1c30)' }}>
           <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-16 w-auto" />
           {isDev && (
             <span className="mt-2 px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-black rounded-full tracking-widest">
@@ -244,9 +244,9 @@ export function Login() {
         <footer className="text-center py-3 border-t border-gray-100">
           <p className="text-[11px] text-gray-400 font-medium flex items-center justify-center gap-2">
             <BarChart3 className="h-3.5 w-3.5 text-orange-400" />
-            <span className="font-semibold text-gray-500">Força de Vendas</span>
-            <span className="text-gray-300">|</span>
-            <span>SOMMA Technology — Erechim | RS — (54) 9.9162-5024</span>
+            <span className="font-semibold text-gray-500">SFV - Somma Força de Vendas</span>
+            <span className="text-gray-300">·</span>
+            <span>by Somma Negócios e Tecnologia · Erechim | RS · (54) 9.9162-5024</span>
           </p>
         </footer>
       </div>

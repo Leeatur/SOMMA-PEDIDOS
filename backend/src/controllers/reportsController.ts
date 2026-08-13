@@ -11,6 +11,24 @@ const FINAL_GATE = COMMISSION_ON_FINAL_ONLY ? ' * (CASE WHEN COALESCE(s.is_final
 // Pedidos importados do "Suas Vendas" são apenas para pesquisa — não entram em relatórios.
 const NOT_SV = ` AND (o.notes IS NULL OR o.notes NOT LIKE 'Importado SuasVendas%')`
 
+// ── Confidencialidade de comissão ────────────────────────────────────────────
+// Vendedor NUNCA pode ver comissão de Escritório / Fábrica / Guia — só a dele.
+// Zera essas chaves na resposta quando o usuário não é admin (defesa no dado,
+// além de esconder na tela). Aplicar em todo res.json que devolva comissão.
+const NON_REP_COMMISSION_KEY = /(office_commission|comissao_escritorio|guide_commission|comissao_guia|total_commission)/i
+function hideOfficeCommission<T>(data: T, isAdmin: boolean): T {
+  if (isAdmin || data == null) return data
+  if (Array.isArray(data)) return data.map(d => hideOfficeCommission(d, false)) as unknown as T
+  if (typeof data === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+      out[k] = NON_REP_COMMISSION_KEY.test(k) ? 0 : hideOfficeCommission(v as unknown, false)
+    }
+    return out as unknown as T
+  }
+  return data
+}
+
 function dateRange(req: AuthRequest): [string, string] {
   // Usa horário de Brasília para comparação de datas
   const toSP = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
@@ -70,7 +88,7 @@ export async function ordersReport(req: AuthRequest, res: Response) {
     `, [...params]),
   ])
 
-  res.json({ summary: summaryRes.rows[0], byDay: byDayRes.rows })
+  res.json(hideOfficeCommission({ summary: summaryRes.rows[0], byDay: byDayRes.rows }, isAdmin))
 }
 
 export async function commissionsReport(req: AuthRequest, res: Response) {
@@ -134,7 +152,7 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
     ORDER BY o.created_at DESC
   `, params)
 
-  res.json(rows)
+  res.json(hideOfficeCommission(rows, isAdmin))
 }
 
 export async function clientsReport(req: AuthRequest, res: Response) {
@@ -407,7 +425,7 @@ export async function salesEvolutionReport(req: AuthRequest, res: Response) {
     ORDER BY 1
   `, params)
 
-  res.json(rows)
+  res.json(hideOfficeCommission(rows, isAdmin))
 }
 
 // ─── Clientes Inativos ────────────────────────────────────────────────────────
@@ -571,7 +589,7 @@ export async function periodComparisonReport(req: AuthRequest, res: Response) {
     makeQuery(prevFrom, prevTo),
   ])
 
-  res.json({ current, previous, period: { from, to }, prev_period: { from: prevFrom, to: prevTo } })
+  res.json(hideOfficeCommission({ current, previous, period: { from, to }, prev_period: { from: prevFrom, to: prevTo } }, isAdmin))
 }
 
 // ─── Análise por Região/UF ────────────────────────────────────────────────────
@@ -678,6 +696,82 @@ export async function penetracaoReport(req: AuthRequest, res: Response) {
   res.json(rows)
 }
 
+// ─── Export Pedidos XLSX ──────────────────────────────────────────────────────
+export async function exportOrdersXlsx(req: AuthRequest, res: Response) {
+  const [from, to] = dateRange(req)
+  const isAdmin = req.user?.role === 'admin'
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
+  const factoryId = req.query.factory_id as string | undefined
+  const priceTableId = req.query.price_table_id as string | undefined
+
+  const params: unknown[] = [from, to]
+  const { cond, idx } = buildCond(params, repId || undefined, factoryId || undefined, 3)
+  let filterCond = cond
+  if (priceTableId) { filterCond += ` AND o.price_table_id = $${idx}`; params.push(priceTableId) }
+
+  const { rows } = await query(`
+    SELECT
+      o.order_number,
+      DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') AS data_venda,
+      f.name    AS industria,
+      pt.name   AS tabela,
+      u.name    AS vendedor,
+      c.name    AS razao_social,
+      c.trade_name AS cliente,
+      c.city    AS cidade,
+      c.state   AS uf,
+      o.total_pieces::int  AS total_pieces,
+      o.total_value::numeric AS total_value,
+      s.name    AS status_nome
+    FROM orders o
+    JOIN clients c   ON c.id = o.client_id
+    JOIN users u     ON u.id = o.rep_id
+    JOIN factories f ON f.id = o.factory_id
+    LEFT JOIN price_tables pt ON pt.id = o.price_table_id
+    LEFT JOIN order_statuses s ON s.id = o.status_id
+    WHERE o.deleted_at IS NULL
+      AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date
+      ${filterCond}
+    ORDER BY f.name, pt.name, o.created_at DESC
+  `, params)
+
+  const XLSX = await import('xlsx')
+  const wb = XLSX.utils.book_new()
+
+  const header = ['Pedido', 'Data', 'Coleção', 'Tabela', 'Vendedor', 'Razão Social', 'Fantasia', 'Cidade', 'UF', 'Peças', 'Valor (R$)', 'Status']
+  const dataRows = rows.map(r => {
+    const d = String(r.data_venda).substring(0, 10)
+    const [y, m, day] = d.split('-')
+    return [r.order_number, `${day}/${m}/${y}`, r.industria, r.tabela || '-', r.vendedor, r.razao_social, r.cliente || '', r.cidade || '', r.uf || '', Number(r.total_pieces), Number(r.total_value), r.status_nome || '']
+  })
+  const ws = XLSX.utils.aoa_to_sheet([header, ...dataRows])
+  ws['!cols'] = [8, 11, 12, 22, 16, 28, 20, 16, 5, 8, 14, 12].map(wch => ({ wch }))
+  XLSX.utils.book_append_sheet(wb, ws, 'Pedidos')
+
+  const tableMap = new Map<string, { industria: string; tabela: string; pedidos: number; pecas: number; valor: number }>()
+  for (const r of rows) {
+    const key = `${r.industria}__${r.tabela || '-'}`
+    if (!tableMap.has(key)) tableMap.set(key, { industria: r.industria, tabela: r.tabela || '-', pedidos: 0, pecas: 0, valor: 0 })
+    const t = tableMap.get(key)!
+    t.pedidos++; t.pecas += Number(r.total_pieces); t.valor += Number(r.total_value)
+  }
+  const totalPcs = rows.reduce((s, r) => s + Number(r.total_pieces), 0)
+  const totalVal = rows.reduce((s, r) => s + Number(r.total_value), 0)
+  const resumo = [
+    ['Coleção', 'Tabela', 'Pedidos', 'Peças', 'Valor Total (R$)'],
+    ...Array.from(tableMap.values()).map(t => [t.industria, t.tabela, t.pedidos, t.pecas, t.valor]),
+    ['', 'TOTAL', rows.length, totalPcs, totalVal],
+  ]
+  const ws2 = XLSX.utils.aoa_to_sheet(resumo)
+  ws2['!cols'] = [14, 24, 9, 10, 16].map(wch => ({ wch }))
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumo por Tabela')
+
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  res.setHeader('Content-Disposition', `attachment; filename="pedidos_${from}_${to}.xlsx"`)
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  res.send(buf)
+}
+
 // ─── Projeção de Comissão ─────────────────────────────────────────────────────
 export async function commissionProjectionReport(req: AuthRequest, res: Response) {
   const isAdmin = req.user?.role === 'admin'
@@ -712,5 +806,5 @@ export async function commissionProjectionReport(req: AuthRequest, res: Response
     ORDER BY situacao, comissao_rep DESC
   `, params)
 
-  res.json(rows)
+  res.json(hideOfficeCommission(rows, isAdmin))
 }

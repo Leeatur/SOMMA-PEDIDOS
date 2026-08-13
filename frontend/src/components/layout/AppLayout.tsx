@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
-  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, CreditCard, MapPin, Target, History, Plug, RefreshCw,
+  BarChart2, Trash2, Link2, ChevronDown, PackageCheck, CreditCard, MapPin, History, Plug, RefreshCw,
 } from 'lucide-react'
 
 // SOMMA Maps — produto integrado (abre em nova aba)
@@ -207,7 +207,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="hidden lg:flex items-center sticky top-0 z-40 shadow-lg flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)', height: 80 }}
+        style={{ background: 'linear-gradient(180deg, #0d1f3c 0%, #0b1c30 60%, #091629 100%)', height: 80 }}
       >
         {/* Logo */}
         <NavLink to="/dashboard" className="flex items-center px-4 pr-3 flex-shrink-0 self-stretch border-r border-white/10">
@@ -264,7 +264,7 @@ export function AppLayout() {
           {/* Novo pedido */}
           <button
             onClick={() => navigate('/orders/new')}
-            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-[14px] font-bold px-4 py-2 rounded-lg border border-white/20 transition-all mr-2"
+            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-[14px] font-bold px-4 py-2 rounded-lg border border-white/20 transition-all mr-2 btn-primary-glow"
           >
             <Plus className="h-4 w-4" /> Novo Pedido
           </button>
@@ -319,7 +319,7 @@ export function AppLayout() {
       ════════════════════════════ */}
       <header
         className="lg:hidden sticky top-0 z-40 flex items-center px-4 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1a1a2e, #0f3460)', height: 52 }}
+        style={{ background: 'linear-gradient(180deg, #0d1f3c, #0b1c30)', height: 52 }}
       >
         <button onClick={() => setMobileOpen(true)} className="p-1.5 text-white/70 hover:text-white mr-2">
           <Menu className="h-5 w-5" />
@@ -339,7 +339,7 @@ export function AppLayout() {
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <div className="relative w-72 flex flex-col"
-            style={{ background: 'linear-gradient(180deg, #1a1a2e, #0f3460)' }}>
+            style={{ background: 'linear-gradient(180deg, #0d1f3c, #0b1c30)' }}>
             <div className="flex items-center justify-between px-5 py-4">
               <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-10 w-auto" />
               <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white">
@@ -395,7 +395,7 @@ export function AppLayout() {
                 className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-white/10 rounded-lg transition-colors">
                 <LogOut className="h-4 w-4" /> Sair
               </button>
-              <p className="text-center text-[9px] text-white/25 mt-3">SOMMA Technology · Erechim | RS</p>
+              <p className="text-center text-[9px] text-white/25 mt-3">SFV - Somma Força de Vendas · by Somma Negócios e Tecnologia · Erechim | RS</p>
             </div>
           </div>
         </div>

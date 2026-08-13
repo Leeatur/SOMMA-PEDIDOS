@@ -81,6 +81,8 @@ interface Order {
   client_cnpj: string | null
   client_state_registration: string | null
   client_address: string | null
+  client_address_number: string | null
+  client_complement: string | null
   client_neighborhood: string | null
   client_zip: string | null
   rep_name: string
@@ -330,14 +332,20 @@ export function OrderPrint() {
       : `${window.location.origin}${rawLogoUrl}`
     : null
 
-  const clientAddress  = [
+  const clientAddressStreet = [
     order.client_address,
+    order.client_address_number,
+    order.client_complement,
+  ].filter(Boolean).join(', ')
+
+  const clientAddress = [
+    clientAddressStreet || null,
     order.client_neighborhood,
     order.client_city && order.client_state
       ? `${order.client_city}-${order.client_state}`
       : (order.client_city || order.client_state || ''),
     order.client_zip ? `CEP ${order.client_zip}` : '',
-  ].filter(Boolean).join(', ')
+  ].filter(Boolean).join(' — ')
 
   return (
     <>
@@ -557,7 +565,7 @@ export function OrderPrint() {
 
         {/* ── ASSINATURA SOMMA ── */}
         <div style={{ marginTop: 16, paddingTop: 8, borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: 10, color: '#9ca3af' }}>
-          SOMMA Technology · Erechim | RS · (54) 9.9162-5024
+          SFV - Somma Força de Vendas · by Somma Negócios e Tecnologia · Erechim | RS · (54) 9.9162-5024
         </div>
       </div>
     </>

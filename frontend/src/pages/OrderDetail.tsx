@@ -63,6 +63,8 @@ interface OrderItem {
   sizes: Record<string, number> | null
   custom_grade: GradeConfig[] | null
   grade_configs: GradeConfig[] | null
+  blocked_sizes: string[] | null
+  size_range: string | null
 }
 
 interface StatusHistory {
@@ -157,6 +159,21 @@ function sortSizesDetail(sizes: string[]) {
     return ai - bi
   })
 }
+function parseSizeRangeDetail(sizeRange: string | null | undefined): string[] {
+  if (!sizeRange) return []
+  const m1 = sizeRange.match(/^(\d+)\s+ao\s+(\d+)$/i)
+  if (m1) {
+    const lo = parseInt(m1[1]), hi = parseInt(m1[2])
+    return SIZE_ORDER_DETAIL.filter(s => { const n = parseInt(s); return !isNaN(n) && n >= lo && n <= hi })
+  }
+  const m2 = sizeRange.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/)
+  if (m2) {
+    const s = SIZE_ORDER_DETAIL.indexOf(m2[1].toUpperCase())
+    const e = SIZE_ORDER_DETAIL.indexOf(m2[2].toUpperCase())
+    if (s >= 0 && e >= s) return SIZE_ORDER_DETAIL.slice(s, e + 1)
+  }
+  return sizeRange.split(/[\s,]+/).filter(Boolean)
+}
 function initSizesDetail(product: Product): Record<string, number> {
   if (!product.grade_configs || product.grade_configs.length === 0) return {}
   const allSizes = new Set<string>()
@@ -245,27 +262,17 @@ export function OrderDetail() {
     enabled: !!id,
   })
 
-  async function handleDownloadPdf() {
-    if (!id || !order) return
-    const num = String(order.order_number).padStart(4, '0')
-    // Endpoint que gera HTML rico do pedido, com botão "Salvar como PDF"
-    const pdfUrl = `/api/orders/${id}/pdf`
-    const fullPdfUrl = `${window.location.origin}${pdfUrl}`
-
-    // Mobile: usa Web Share API para compartilhar o link direto do PDF
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Pedido #${num} — ${order.factory_name}`,
-          text: `Pedido #${num} de ${order.client_name} — R$ ${Number(order.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-          url: fullPdfUrl,
-        })
-        return
-      } catch { /* usuario cancelou */ }
-    }
-
-    // Desktop: abre página do pedido em nova aba — botão "Salvar como PDF" bem visível no topo
-    window.open(fullPdfUrl, '_blank')
+  function handleDownloadPdf() {
+    if (!order) return
+    import('../utils/orderPdf')
+      .then(({ generateOrderPdf }) => {
+        generateOrderPdf(order as unknown as Parameters<typeof generateOrderPdf>[0])
+      })
+      .catch(err => {
+        console.error('PDF error:', err)
+        // Fallback: abre a versão HTML para impressão manual
+        window.open(`${window.location.origin}/api/orders/${id}/pdf`, '_blank')
+      })
   }
 
   const { data: statuses } = useQuery<Status[]>({
@@ -802,30 +809,53 @@ export function OrderDetail() {
                       </div>
 
                       {/* Regular product sizes */}
-                      {item.type === 'regular' && item.sizes && Object.values(item.sizes).some(v => v > 0) ? (
-                        <>
-                          <p className="text-[12px] font-medium text-on-surface-variant mb-1.5">Quantidades por tamanho:</p>
-                          <div className="overflow-x-auto scrollbar-hide">
+                      {item.type === 'regular' && item.sizes ? (() => {
+                          const blockedSet = new Set((item.blocked_sizes || []).map(s => s.toUpperCase()))
+                          const gradeFromConfigs = item.grade_configs && item.grade_configs.length > 0
+                            ? [...new Set(item.grade_configs.flatMap(gc => Object.keys(gc.sizes)))]
+                            : []
+                          const gradeFromRange = gradeFromConfigs.length === 0
+                            ? parseSizeRangeDetail(item.size_range)
+                            : []
+                          const hasGrade = gradeFromConfigs.length > 0 || gradeFromRange.length > 0
+                          const allFromGrade = hasGrade ? [...gradeFromConfigs, ...gradeFromRange] : Object.keys(item.sizes)
+                          const displaySizes = sortSizesDetail([
+                            ...new Set([...allFromGrade, ...Object.keys(item.sizes), ...(item.blocked_sizes || [])])
+                          ]).filter(s => hasGrade || blockedSet.has(s.toUpperCase()) || (item.sizes![s] || 0) > 0)
+                          if (displaySizes.length === 0) return null
+                          return (
+                          <>
+                            <p className="text-[12px] font-medium text-on-surface-variant mb-1.5">Quantidades por tamanho:</p>
+                            <div className="overflow-x-auto scrollbar-hide">
                               <table className="min-w-max text-[12px] border border-outline-variant rounded-lg overflow-hidden">
                                 <thead className="bg-surface-container-low sticky top-0 z-10">
-                                  <tr>{sortSizesDetail(Object.keys(item.sizes)).map(s => (
-                                    <th key={s} className="px-2 py-1 text-center text-on-surface-variant font-medium min-w-[28px]">{s}</th>
-                                  ))}<th className="px-2 py-1 text-center text-outline border-l border-outline-variant">Total</th></tr>
+                                  <tr>
+                                    {displaySizes.map(s => (
+                                      <th key={s} className={`px-2 py-1 text-center font-medium min-w-[28px] ${blockedSet.has(s.toUpperCase()) ? 'text-red-300 line-through' : 'text-on-surface-variant'}`}>{s}</th>
+                                    ))}
+                                    <th className="px-2 py-1 text-center text-outline border-l border-outline-variant">Total</th>
+                                  </tr>
                                 </thead>
                                 <tbody>
-                                  <tr className="bg-white">{sortSizesDetail(Object.keys(item.sizes)).map(s => (
-                                    <td key={s} className="px-2 py-1 text-center text-on-surface">
-                                      {item.sizes![s] || 0}
-                                    </td>
-                                  ))}<td className="px-2 py-1 text-center font-bold border-l border-outline-variant">{item.total_pieces}</td></tr>
+                                  <tr className="bg-white">
+                                    {displaySizes.map(s => (
+                                      <td key={s} className="px-2 py-1 text-center text-on-surface">
+                                        {blockedSet.has(s.toUpperCase())
+                                          ? <span className="text-red-300 text-[11px]">🔒</span>
+                                          : item.sizes![s] || 0}
+                                      </td>
+                                    ))}
+                                    <td className="px-2 py-1 text-center font-bold border-l border-outline-variant">{item.total_pieces}</td>
+                                  </tr>
                                 </tbody>
                               </table>
-                          </div>
-                        </>
-                      ) : item.custom_grade && item.custom_grade.length > 0 ? (
+                            </div>
+                          </>
+                          )
+                      })() : item.custom_grade && item.custom_grade.length > 0 ? (
                         <>
                           <p className="text-[12px] font-medium text-on-surface-variant mb-1.5">Composição da grade (escolhida pelo cliente):</p>
-                          <GradeDisplay configs={item.custom_grade} boxCount={item.boxes_count} />
+                          <GradeDisplay configs={item.custom_grade} boxCount={1} />
                         </>
                       ) : item.grade_configs && item.grade_configs.length > 0 ? (
                         <>

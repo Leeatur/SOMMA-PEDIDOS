@@ -183,7 +183,9 @@ export async function getOrder(req: AuthRequest, res: Response) {
       c.city as client_city, c.state as client_state,
       c.phone as client_phone, c.whatsapp as client_whatsapp,
       c.email as client_email, c.cnpj as client_cnpj,
-      c.address as client_address, c.neighborhood as client_neighborhood, c.zip as client_zip,
+      c.address as client_address, c.address_number as client_address_number,
+      c.complement as client_complement,
+      c.neighborhood as client_neighborhood, c.zip as client_zip,
       c.state_registration as client_state_registration,
       u.name as rep_name, u.email as rep_email,
       f.name as factory_name, f.contact as factory_contact,
@@ -860,7 +862,7 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
 // Atualiza quantidades de um item (tamanhos para regular, caixas para pack) e recalcula totais
 export async function updateOrderItem(req: AuthRequest, res: Response) {
   const { id, item_id } = req.params
-  const { sizes, boxes_count, custom_grade, unit_price: newUnitPrice, item_obs } = req.body
+  const { sizes, boxes_count, custom_grade, unit_price: newUnitPrice, item_obs, grade_is_per_box } = req.body
 
   const { rows: [order] } = await query(
     'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
@@ -917,15 +919,17 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     if (custom_grade && Array.isArray(custom_grade) && custom_grade.length > 0) {
       // Grade personalizada por cor
       const customArr = custom_grade as CustomGradeEntry[]
-      newTotalPieces = customArr.reduce((s, gc) =>
+      const piecesPerBox = customArr.reduce((s, gc) =>
         s + Object.values(gc.sizes || {}).reduce((ss, v) => ss + Number(v || 0), 0), 0
       )
+      const effectiveBoxes = grade_is_per_box ? (parseInt(boxes_count) || 1) : 1
+      newTotalPieces = piecesPerBox * effectiveBoxes
       if (newTotalPieces <= 0) {
         res.status(400).json({ error: 'Total de peças não pode ser zero' }); return
       }
-      // preço por PEÇA × total de peças
       newSubtotal = Math.round(discountedPrice * newTotalPieces * 100) / 100
-      newBoxesCount = 1
+      // sempre salva o boxes_count enviado pelo frontend (se ausente, usa o calculado)
+      newBoxesCount = boxes_count !== undefined ? (parseInt(boxes_count) || effectiveBoxes) : effectiveBoxes
       newCustomGrade = JSON.stringify(customArr.map(gc => ({
         color: gc.color,
         sizes: gc.sizes,
@@ -1029,6 +1033,50 @@ export async function recalcOrderTotals(req: AuthRequest, res: Response) {
     )
   }
   res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
+}
+
+export async function fixPackTotals(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { rows: [order] } = await query('SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id])
+  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+
+  const { rows: packItems } = await query(
+    `SELECT oi.id, oi.boxes_count, oi.total_pieces, oi.unit_price, oi.product_id
+     FROM order_items oi
+     JOIN products p ON p.id = oi.product_id
+     WHERE oi.order_id=$1 AND p.type='pack'`,
+    [id]
+  )
+
+  const disc = parseFloat(order.discount_pct) || 0
+  const fixed: string[] = []
+
+  for (const item of packItems) {
+    const { rows: grades } = await query(
+      'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
+    )
+    const piecesPerBox = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0)
+    if (piecesPerBox === 0) continue
+    const boxes = Number(item.boxes_count) || 1
+    const newTotal = boxes * piecesPerBox
+    if (newTotal === Number(item.total_pieces)) continue
+    const discountedPrice = Number(item.unit_price) * (1 - disc / 100)
+    const newSubtotal = Math.round(discountedPrice * newTotal * 100) / 100
+    await query(
+      'UPDATE order_items SET total_pieces=$1, subtotal=$2 WHERE id=$3',
+      [newTotal, newSubtotal, item.id]
+    )
+    fixed.push(`${item.id}: ${item.total_pieces}→${newTotal} pç`)
+  }
+
+  const { rows: [totals] } = await query(
+    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val FROM order_items WHERE order_id=$1`, [id]
+  )
+  const newValue = Math.round(Number(totals.val) * 100) / 100
+  await query('UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3',
+    [Number(totals.pcs), newValue, id])
+
+  res.json({ ok: true, fixed, newTotal: Number(totals.pcs), newValue })
 }
 
 // Exclui um pedido (admin ou rep dono do pedido)
@@ -1383,6 +1431,7 @@ async function recalcFaturamentos(orderId: string) {
     UPDATE orders o SET
       valor_faturado_fabrica = (SELECT SUM(valor) FROM order_faturamentos WHERE order_id = $1),
       faturamento_status = CASE
+        WHEN o.faturamento_status = 'encerrado' THEN 'encerrado'
         WHEN NOT EXISTS (SELECT 1 FROM order_faturamentos WHERE order_id = $1) THEN 'pendente'
         WHEN (SELECT SUM(valor) FROM order_faturamentos WHERE order_id = $1) >= o.total_value THEN 'liquidado'
         ELSE 'parcial'
@@ -1390,6 +1439,15 @@ async function recalcFaturamentos(orderId: string) {
       updated_at = NOW()
     WHERE id = $1
   `, [orderId])
+}
+
+export async function encerrarFaturamento(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  await query(
+    `UPDATE orders SET faturamento_status = 'encerrado', updated_at = NOW() WHERE id = $1`,
+    [id]
+  )
+  res.json({ ok: true })
 }
 
 export async function listFaturamentos(req: AuthRequest, res: Response) {
