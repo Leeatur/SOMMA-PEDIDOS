@@ -231,11 +231,11 @@ export function OrderPrint() {
 
       for (const gc of item.custom_grade) {
         seq++
-        const qtde = (gc.total_pieces || Object.values(gc.sizes || {}).reduce((s, v) => s + (v || 0), 0)) * item.boxes_count
+        const qtde = gc.total_pieces || Object.values(gc.sizes || {}).reduce((s, v) => s + (v || 0), 0)
         const sizeCols: Record<string, number> = {}
         for (const s of sizes) {
           const rawVal = gc.sizes[s] ?? gc.sizes[s + ' '] ?? gc.sizes[' ' + s] ?? 0
-          sizeCols[s] = rawVal * item.boxes_count
+          sizeCols[s] = rawVal
         }
         const gradeLabel = sortSizes(Object.keys(gc.sizes)).join('/')
         rows.push({
