@@ -826,8 +826,12 @@ function FechamentoTab({
       {/* Um bloco por representante */}
       {[...grupos.entries()].map(([repNome, repRows]) => {
         const totalRepCom    = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
-        const totalRepFat    = repRows.reduce((s, r) => s + Number(r.valor_faturado_fabrica ?? r.total_value), 0)
+        const totalRepFat    = repRows.reduce((s, r) => s + (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0), 0)
         const totalRepPedido = repRows.reduce((s, r) => s + Number(r.total_value), 0)
+        const totalRepSaldo  = repRows.reduce((s, r) => {
+          if (r.sem_comissao_fabrica || r.faturamento_status === 'encerrado') return s
+          return s + Math.max(0, Number(r.total_value) - (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0))
+        }, 0)
 
         return (
           <div key={repNome} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -840,7 +844,7 @@ function FechamentoTab({
                 <div className="text-right">
                   <p className="text-[10px] text-gray-400">comissão efetiva</p>
                   <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalRepCom)}</p>
-                  <p className="text-[10px] text-gray-400">s/ {fmtR(totalRepFat)} faturado</p>
+                  <p className="text-[10px] text-gray-400">{totalRepFat > 0 ? `s/ ${fmtR(totalRepFat)} faturado` : `${fmtR(totalRepPedido)} em pedidos`}</p>
                 </div>
                 <button
                   onClick={() => exportarRep(repNome, repRows)}
@@ -1005,7 +1009,8 @@ function FechamentoTab({
                       {repRows.length} pedido{repRows.length !== 1 ? 's' : ''}
                     </td>
                     <td className="px-3 py-2 text-right text-[12px] tabular-nums text-gray-500">{fmtR(totalRepPedido)}</td>
-                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-blue-600">{fmtR(totalRepFat)}</td>
+                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-blue-600">{totalRepFat > 0 ? fmtR(totalRepFat) : <span className="text-gray-300">—</span>}</td>
+                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-amber-600">{totalRepSaldo > 0 ? fmtR(totalRepSaldo) : <span className="text-gray-300">—</span>}</td>
                     <td></td>
                     <td className="px-3 py-2 text-right text-[12px] tabular-nums font-bold text-emerald-600">{fmtR(totalRepCom)}</td>
                     <td></td>
