@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award, Target, Pencil, Trash2, X, UserPlus } from 'lucide-react'
+import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award, Target, Pencil, Trash2, X, UserPlus, Download } from 'lucide-react'
 import { ordersApi, reportsApi, goalsApi, factoriesApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -133,23 +133,6 @@ export function Dashboard() {
     setGoalForm({ type: 'factory', factory_id: '', rep_id: '', label: '', target_pieces: '', target_value: '', metric: 'pecas', period_label: '', period_from: '', period_to: '', parent_goal_id: '' })
     setShowGoalModal(true)
   }
-  // "+ Vendedor" dentro do card de uma meta geral: já abre com a fábrica/coleção
-  // travada nela — o usuário só escolhe o vendedor e o alvo. Herda fábrica, unidade
-  // e período da meta geral para o realizado do vendedor fechar com ela.
-  function openNewRepGoal(factoryId: string, factoryGoal: Goal | null) {
-    setEditingGoal(null)
-    setGoalForm({
-      type: 'rep', factory_id: factoryId, rep_id: '',
-      label: factoryGoal?.label || '',
-      target_pieces: '', target_value: '',
-      metric: factoryGoal?.metric || 'pecas',
-      period_label: factoryGoal?.period_label || '',
-      period_from: (factoryGoal?.period_from || '').slice(0, 10),
-      period_to: (factoryGoal?.period_to || '').slice(0, 10),
-      parent_goal_id: factoryGoal?.id || '',
-    })
-    setShowGoalModal(true)
-  }
   function openEditGoal(g: Goal) {
     setEditingGoal(g)
     setGoalForm({ type: g.type, factory_id: g.factory_id||'', rep_id: g.rep_id||'', label: g.label, target_pieces: String(g.target_pieces||''), target_value: String(g.target_value||''), metric: g.metric||'pecas', period_label: g.period_label||'', period_from: (g.period_from||'').slice(0,10), period_to: (g.period_to||'').slice(0,10), parent_goal_id: g.parent_goal_id||'' })
@@ -157,7 +140,7 @@ export function Dashboard() {
   }
   function openNewRepGoal(factory: Goal) {
     setEditingGoal(null)
-    setGoalForm({ type: 'rep', factory_id: factory.factory_id||'', rep_id: '', label: factory.label, target_pieces: '', target_value: '', period_label: factory.period_label||'', period_start: factory.period_start||'', period_end: factory.period_end||'' })
+    setGoalForm({ type: 'rep', factory_id: factory.factory_id||'', rep_id: '', label: factory.label, target_pieces: '', target_value: '', metric: factory.metric||'pecas', period_label: factory.period_label||'', period_from: (factory.period_from||'').slice(0,10), period_to: (factory.period_to||'').slice(0,10), parent_goal_id: factory.id||'' })
     setShowGoalModal(true)
   }
 
@@ -615,7 +598,7 @@ export function Dashboard() {
               ) : (
                 <div className="space-y-5">
                   {brandList.map(fid => {
-                    const { factory, reps, factoryId, factoryName } = groups[fid]
+                    const { factory, reps, factoryName } = groups[fid]
                     const titulo = factory?.label || factoryName
                     const bc = brandColors[factoryName.toUpperCase()] || { from: '#0369a1', to: '#0284c7' }
 
@@ -633,8 +616,8 @@ export function Dashboard() {
                               <button onClick={() => openNewRepGoal(factory)} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white/80 hover:text-white transition-colors" title="Adicionar vendedor"><UserPlus className="h-3.5 w-3.5" /></button>
                               <button onClick={() => openEditGoal(factory)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
                               <button onClick={() => window.confirm('Excluir meta geral?') && deleteGoalMut.mutate(factory.id)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
-                            </>}
-                          </div>
+                            </div>
+                          ) : null}
                         </div>
 
                         {/* Meta geral da fábrica */}
