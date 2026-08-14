@@ -62,6 +62,7 @@ export async function getSales(req: Request, res: Response) {
   const { rows } = await query(
     `SELECT o.created_at::date            AS data,
             u.name                        AS vendedor,
+            COALESCE(c.trade_name, c.name) AS cliente,
             c.city                        AS cidade,
             c.state                       AS uf,
             o.total_value                 AS valor,
@@ -99,6 +100,7 @@ export async function getSales(req: Request, res: Response) {
     vendas: rows.map((r: any) => ({
       data: r.data,
       vendedor: r.vendedor,
+      cliente: r.cliente || '',
       cidade: r.cidade,
       uf: r.uf,
       valor: Number(r.valor),
