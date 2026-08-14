@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, Check, Package, FileDown, Maximize2 } from 'lucide-react'
+import { Search, Image as ImageIcon, ChevronDown, Archive, ToggleLeft, ToggleRight, Lock, Unlock, Pencil, Plus, Trash2, X, Check, Package, FileDown } from 'lucide-react'
 import { productsApi, priceTablesApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
@@ -115,13 +115,12 @@ function ProductDetailModal({
     enabled: isAdmin,
   })
 
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
-
   // ── Image upload state ───────────────────────────────────────────────────
   const [uploadingImage, setUploadingImage] = useState(false)
   const [currentImageUrl, setCurrentImageUrl] = useState(p.image_url)
   const [isDragging, setIsDragging] = useState(false)
   const [imageUploadError, setImageUploadError] = useState('')
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [imageSyncMsg, setImageSyncMsg] = useState('')
   const [editSyncMsg, setEditSyncMsg] = useState('')
   const pasteZoneRef = useRef<HTMLDivElement>(null)
@@ -661,6 +660,12 @@ function ProductDetailModal({
               </div>
             )
           )}
+          {isDragging && currentImageUrl && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-primary/20 text-primary pointer-events-none">
+              <ImageIcon className="h-7 w-7 mb-1" />
+              <span className="text-[12px] font-bold">Solte para substituir</span>
+            </div>
+          )}
         </div>
         {isAdmin && currentImageUrl && (
           <label className={`flex items-center justify-center gap-1.5 text-[11px] cursor-pointer transition-colors mt-1 ${uploadingImage ? 'text-outline' : 'text-outline hover:text-primary'}`}>
@@ -964,6 +969,7 @@ function ProductRow({
 }) {
   const totalPieces = p.grade_configs?.reduce((s, g) => s + g.total_pieces, 0) || 0
   const blockedCount = (p.blocked_sizes || []).length
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   const renderCell = (id: string) => {
     switch (id) {
@@ -1059,21 +1065,43 @@ function ProductRow({
   }
 
   return (
-    <tr
-      className={`border-b border-outline-variant/50 cursor-pointer transition-colors ${
-        p.active ? 'hover:bg-primary/5' : 'bg-surface-container/40 hover:bg-surface-container'
-      }`}
-      onClick={() => onOpenDetail(p)}
-    >
-      {visibleCols.map(col => renderCell(col.id))}
-      {onDuplicate && (
-        <td className="px-2 py-1 w-8" onClick={e => { e.stopPropagation(); onDuplicate(p) }}>
-          <button className="p-1 rounded-lg text-outline hover:text-primary hover:bg-primary/10 transition-colors" title="Duplicar produto">
-            <Plus className="h-3.5 w-3.5" />
+    <>
+      <tr
+        className={`border-b border-outline-variant/50 cursor-pointer transition-colors ${
+          p.active ? 'hover:bg-primary/5' : 'bg-surface-container/40 hover:bg-surface-container'
+        }`}
+        onClick={() => onOpenDetail(p)}
+      >
+        {visibleCols.map(col => renderCell(col.id))}
+        {onDuplicate && (
+          <td className="px-2 py-1 w-8" onClick={e => { e.stopPropagation(); onDuplicate(p) }}>
+            <button className="p-1 rounded-lg text-outline hover:text-primary hover:bg-primary/10 transition-colors" title="Duplicar produto">
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </td>
+        )}
+      </tr>
+      {lightboxUrl && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/25 rounded-full text-white transition-colors"
+            onClick={() => setLightboxUrl(null)}
+          >
+            <X className="h-5 w-5" />
           </button>
-        </td>
+          <img
+            src={lightboxUrl}
+            alt=""
+            className="max-w-[92vw] max-h-[92vh] object-contain rounded-xl shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>,
+        document.body
       )}
-    </tr>
+    </>
   )
 }
 
