@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingCart, TrendingUp, Clock, CheckCircle, Package, Plus, Users, Award, Target, Pencil, Trash2, X, UserPlus, Download } from 'lucide-react'
 import { ordersApi, reportsApi, goalsApi, factoriesApi, usersApi } from '../api/client'
@@ -1019,57 +1019,89 @@ export function Dashboard() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {sales.map(r => (
-                        <tr
-                          key={r.id}
-                          onClick={() => navigate(`/orders/${r.id}`)}
-                          className="hover:bg-primary/5 cursor-pointer transition-colors"
-                        >
-                          <td className="px-3 py-1.5 whitespace-nowrap text-outline/70">
-                            {(() => { const s = String(r.data_venda).substring(0,10); const [y,m,d] = s.split('-'); return `${d}/${m}/${y}` })()}
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap font-semibold text-primary">
-                            {r.vendedor}
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap font-medium text-on-surface">
-                            {r.industria}
-                          </td>
-                          <td className="px-3 py-1.5 max-w-[160px]">
-                            <span className="block truncate font-medium text-on-surface" title={r.razao_social}>
-                              {r.razao_social}
-                            </span>
-                          </td>
-                          <td className="px-3 py-1.5 max-w-[130px]">
-                            <span className="block truncate text-on-surface-variant" title={r.cliente || ''}>
-                              {r.cliente || '—'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap text-on-surface-variant">
-                            {r.cidade || '—'}
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap text-on-surface-variant">
-                            {r.uf || '—'}
-                          </td>
-                          <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-on-surface">
-                            {Number(r.total_pieces).toLocaleString('pt-BR')}
-                          </td>
-                          <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-on-surface">
-                            {fmtR(r.total_value)}
-                          </td>
-                          <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-emerald-700">
-                            {fmtR(r.rep_commission_value)}
-                          </td>
-                          <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-blue-700">
-                            {fmtR(r.office_commission_value)}
-                          </td>
-                          {factoryComm && (
-                            <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-amber-700">
-                              {fmtR(r.guide_commission_value || 0)}
-                            </td>
-                          )}
-                        </tr>
-                      ))}
+                    <tbody>
+                      {Object.entries(
+                        sales.reduce<Record<string, typeof sales>>((acc, r) => {
+                          (acc[r.vendedor] = acc[r.vendedor] || []).push(r)
+                          return acc
+                        }, {})
+                      ).map(([vendedor, rows]) => {
+                        const grpPcs = rows.reduce((s, r) => s + Number(r.total_pieces), 0)
+                        const grpVal = rows.reduce((s, r) => s + Number(r.total_value), 0)
+                        const grpRep = rows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+                        const grpEsc = rows.reduce((s, r) => s + Number(r.office_commission_value), 0)
+                        const grpGui = rows.reduce((s, r) => s + Number(r.guide_commission_value || 0), 0)
+                        const colSpan = factoryComm ? 12 : 11
+                        return (
+                          <Fragment key={vendedor}>
+                            <tr className="bg-primary/10 border-t-2 border-primary/20">
+                              <td colSpan={colSpan} className="px-3 py-1.5 font-bold text-primary text-[11px] uppercase tracking-wide">
+                                {vendedor} — {rows.length} pedido{rows.length !== 1 ? 's' : ''}
+                              </td>
+                            </tr>
+                            {rows.map(r => (
+                              <tr
+                                key={r.id}
+                                onClick={() => navigate(`/orders/${r.id}`)}
+                                className="hover:bg-primary/5 cursor-pointer transition-colors border-b border-gray-50"
+                              >
+                                <td className="px-3 py-1.5 whitespace-nowrap text-outline/70">
+                                  {(() => { const s = String(r.data_venda).substring(0,10); const [y,m,d] = s.split('-'); return `${d}/${m}/${y}` })()}
+                                </td>
+                                <td className="px-3 py-1.5 whitespace-nowrap font-semibold text-primary">
+                                  {r.vendedor}
+                                </td>
+                                <td className="px-3 py-1.5 whitespace-nowrap font-medium text-on-surface">
+                                  {r.industria}
+                                </td>
+                                <td className="px-3 py-1.5 max-w-[160px]">
+                                  <span className="block truncate font-medium text-on-surface" title={r.razao_social}>
+                                    {r.razao_social}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-1.5 max-w-[130px]">
+                                  <span className="block truncate text-on-surface-variant" title={r.cliente || ''}>
+                                    {r.cliente || '—'}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-1.5 whitespace-nowrap text-on-surface-variant">
+                                  {r.cidade || '—'}
+                                </td>
+                                <td className="px-3 py-1.5 whitespace-nowrap text-on-surface-variant">
+                                  {r.uf || '—'}
+                                </td>
+                                <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-on-surface">
+                                  {Number(r.total_pieces).toLocaleString('pt-BR')}
+                                </td>
+                                <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-on-surface">
+                                  {fmtR(r.total_value)}
+                                </td>
+                                <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-emerald-700">
+                                  {fmtR(r.rep_commission_value)}
+                                </td>
+                                <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-blue-700">
+                                  {fmtR(r.office_commission_value)}
+                                </td>
+                                {factoryComm && (
+                                  <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-amber-700">
+                                    {fmtR(r.guide_commission_value || 0)}
+                                  </td>
+                                )}
+                              </tr>
+                            ))}
+                            <tr className="bg-surface-container border-t border-outline-variant/50 text-[11px] font-semibold">
+                              <td colSpan={7} className="px-3 py-1 text-on-surface-variant">
+                                Subtotal
+                              </td>
+                              <td className="px-3 py-1 text-right text-on-surface">{grpPcs.toLocaleString('pt-BR')}</td>
+                              <td className="px-3 py-1 text-right text-on-surface">{fmtR(grpVal)}</td>
+                              <td className="px-3 py-1 text-right text-emerald-700">{fmtR(grpRep)}</td>
+                              <td className="px-3 py-1 text-right text-blue-700">{fmtR(grpEsc)}</td>
+                              {factoryComm && <td className="px-3 py-1 text-right text-amber-700">{fmtR(grpGui)}</td>}
+                            </tr>
+                          </Fragment>
+                        )
+                      })}
                     </tbody>
                     <tfoot>
                       <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[12px]">
