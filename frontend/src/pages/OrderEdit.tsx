@@ -148,13 +148,12 @@ function initSizes(product: Product | OrderItemRaw): Record<string, number> {
     allSizes = sortSizes(parseSizeRange(product.size_range))
   }
 
-  // Inicia todos os tamanhos com 0 (bloqueados ficam em 0 e não editáveis)
   const result: Record<string, number> = Object.fromEntries(allSizes.map(s => [s, 0]))
 
-  // Sobrepõe com valores já salvos (se item existente); bloqueados ficam em 0
+  // Sobrepõe com valores já salvos — tamanhos bloqueados PRESERVAM o valor original
   if ('sizes' in product && product.sizes) {
     for (const [s, v] of Object.entries(product.sizes)) {
-      if (!blocked.has(s)) result[s] = v
+      result[s] = v  // preserva mesmo se bloqueado; só impede edição na UI
     }
   }
 
@@ -1928,8 +1927,8 @@ function ItemRow({
                     return (
                     <td key={size} className="px-0.5 py-0.5">
                       {isBlocked ? (
-                        <div className="w-9 h-7 flex items-center justify-center bg-red-50 border border-red-200 rounded text-[11px] text-red-300 font-bold cursor-not-allowed" title={`Tamanho ${size} bloqueado`}>
-                          🔒
+                        <div className="w-9 h-7 flex items-center justify-center bg-red-50 border border-red-200 rounded text-[11px] text-red-400 font-bold cursor-not-allowed" title={`Tamanho ${size} bloqueado — quantidade preservada`}>
+                          {draftSizes[size] || 0 ? <span className="line-through">{draftSizes[size]}</span> : '🔒'}
                         </div>
                       ) : (
                       <input
