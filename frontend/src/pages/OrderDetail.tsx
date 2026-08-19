@@ -533,23 +533,18 @@ export function OrderDetail() {
       {/* ── Mobile: Order status card ── */}
       <div className="lg:hidden px-4 pt-3">
         <div className="bg-white border border-border-subtle rounded-xl p-3">
-          <div className="flex justify-between items-start mb-2">
-            <div>
+          <div className="flex justify-between items-start gap-2 mb-2">
+            <div className="shrink-0">
               <span className="text-[12px] font-bold text-outline uppercase tracking-wide">Pedido</span>
               <p className="text-lg font-bold text-on-surface leading-tight mt-0.5">{formatOrderNumber(order.order_number)}</p>
             </div>
             {order.status_name && order.status_color ? (
-              <span
-                className="px-3 py-1 rounded-full text-[12px] font-bold uppercase"
-                style={{ backgroundColor: order.status_color + '22', color: order.status_color }}
-              >
-                {order.status_name}
-              </span>
+              <StatusBadge name={order.status_name} color={order.status_color} truncate title={order.status_name} className="mt-1" />
             ) : (
               isAdmin && (
                 <button
                   onClick={() => { setStatusModal(true); setNewStatusId(order.status_id || '') }}
-                  className="px-3 py-1 rounded-full text-[12px] font-bold uppercase bg-surface-container text-on-surface-variant border border-outline-variant"
+                  className="px-3 py-1 rounded-full text-[12px] font-bold uppercase bg-surface-container text-on-surface-variant border border-outline-variant shrink-0"
                 >
                   + Status
                 </button>
