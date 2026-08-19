@@ -349,7 +349,6 @@ export async function productsReport(req: AuthRequest, res: Response) {
     WHERE o.deleted_at IS NULL AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
     GROUP BY oi.reference
     ORDER BY total_pieces DESC
-    LIMIT 100
   `, params)
 
   res.json(rows)
