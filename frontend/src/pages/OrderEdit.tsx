@@ -133,8 +133,6 @@ function parseSizeRange(sizeRange: string | null | undefined): string[] {
 }
 
 function initSizes(product: Product | OrderItemRaw): Record<string, number> {
-  const blocked = new Set(('blocked_sizes' in product ? product.blocked_sizes : null) || [])
-
   // Descobre todos os tamanhos disponíveis para este produto
   let allSizes: string[] = []
   if (product.grade_configs && product.grade_configs.length > 0) {
