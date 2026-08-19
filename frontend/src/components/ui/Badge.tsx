@@ -53,9 +53,11 @@ interface StatusBadgeProps {
   color: string
   icon?: string | null
   className?: string
+  truncate?: boolean
+  title?: string
 }
 
-export function StatusBadge({ name, color, icon, className }: StatusBadgeProps) {
+export function StatusBadge({ name, color, icon, className, truncate: shouldTruncate, title }: StatusBadgeProps) {
   // Convert hex to rgb for background with opacity
   const r = parseInt(color.slice(1, 3), 16)
   const g = parseInt(color.slice(3, 5), 16)
@@ -64,7 +66,8 @@ export function StatusBadge({ name, color, icon, className }: StatusBadgeProps) 
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold',
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold whitespace-nowrap',
+        shouldTruncate && 'max-w-[180px] overflow-hidden',
         className
       )}
       style={{
@@ -72,6 +75,7 @@ export function StatusBadge({ name, color, icon, className }: StatusBadgeProps) 
         color: color,
         border: `1px solid rgba(${r}, ${g}, ${b}, 0.3)`,
       }}
+      title={title}
     >
       {icon
         ? icon.split(' ').filter(Boolean).map((part, i) =>
@@ -79,8 +83,8 @@ export function StatusBadge({ name, color, icon, className }: StatusBadgeProps) 
               ? <img key={i} src={svgIconSrc(part)} alt="" className="w-4 h-4 flex-shrink-0" />
               : <span key={i} className="text-[13px] leading-none">{part}</span>
           )
-        : <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />}
-      {name}
+        : <span className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />}
+      <span className={shouldTruncate ? 'truncate' : undefined}>{name}</span>
     </span>
   )
 }

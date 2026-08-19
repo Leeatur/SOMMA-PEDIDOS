@@ -502,13 +502,11 @@ export function OrderDetail() {
             <ChevronLeft className="h-4 w-4" />
             Pedidos
           </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-[12px] font-bold text-on-surface">{formatOrderNumber(order.order_number)}</h1>
-              {order.status_name && order.status_color && (
-                <StatusBadge name={order.status_name} color={order.status_color} />
-              )}
-            </div>
+          <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
+            <h1 className="text-[12px] font-bold text-on-surface shrink-0">{formatOrderNumber(order.order_number)}</h1>
+            {order.status_name && order.status_color && (
+              <StatusBadge name={order.status_name} color={order.status_color} truncate title={order.status_name} />
+            )}
           </div>
           {isAdmin && (
             <button onClick={() => setAuditModal(true)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-amber-600 transition-colors" title="Histórico de alterações">
