@@ -494,15 +494,15 @@ export function OrderDetail() {
 
       {/* ── Desktop Header ── */}
       <div className="hidden lg:block bg-white border-b border-outline-variant px-8 py-2 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/orders')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant text-[12px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant text-[12px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors shrink-0"
           >
             <ChevronLeft className="h-4 w-4" />
             Pedidos
           </button>
-          <div className="flex-1 min-w-0 flex items-center gap-2">
+          <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
             <h1 className="text-[12px] font-bold text-on-surface shrink-0">{formatOrderNumber(order.order_number)}</h1>
             {order.status_name && order.status_color && (
               <StatusBadge name={order.status_name} color={order.status_color} />
