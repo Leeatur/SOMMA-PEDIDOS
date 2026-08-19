@@ -351,7 +351,7 @@ export function OrderPrint() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #000; background: #fff; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #000; background: #fff; padding-top: calc(env(safe-area-inset-top, 0px) + 52px); }
         .page { width: ${wide ? '297mm' : '210mm'}; min-height: ${wide ? '210mm' : '297mm'}; padding: 8mm 8mm; margin: 0 auto; background: #fff; }
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid #ccc; padding: 2px 4px; }
@@ -384,27 +384,38 @@ export function OrderPrint() {
         .sig-line { flex: 1; text-align: center; }
         .sig-line .line { border-top: 1px solid #333; margin-bottom: 4px; }
         .sig-line .name { font-size: 9px; }
-        .print-btn { position: fixed; top: 8px; right: 12px; background: #1d4ed8; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; z-index: 999; }
+        .no-print-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 999; display: flex; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 12px) 8px calc(env(safe-area-inset-left, 0px) + 12px); background: rgba(255,255,255,0.97); border-bottom: 1px solid #e5e7eb; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+        .no-print-bar button { flex-shrink: 0; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        .btn-back { background: #6b7280; color: #fff; }
+        .btn-share { background: #059669; color: #fff; }
+        .btn-print { background: #1d4ed8; color: #fff; margin-left: auto; }
         .footer-msg { margin-top: 12px; padding: 6px 10px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #555; font-style: italic; }
         @media print {
-          body { margin: 0; }
+          body { margin: 0; padding-top: 0; }
           .page { padding: 8mm 10mm; width: 100%; }
-          .print-btn { display: none; }
+          .no-print-bar { display: none; }
           @page { size: A4 ${wide ? 'landscape' : 'portrait'}; margin: 0; }
         }
       `}</style>
 
-      {/* Botões flutuantes — somem ao imprimir */}
-      <button className="print-btn" onClick={() => window.print()}>
-        🖨️ Imprimir / PDF
-      </button>
-      <button
-        className="print-btn"
-        style={{ right: 'auto', left: 12, background: '#6b7280' }}
-        onClick={() => navigate(`/orders/${id}`)}
-      >
-        ← Voltar
-      </button>
+      {/* Barra de ações — some ao imprimir, respeita safe area do iPhone */}
+      <div className="no-print-bar">
+        <button className="btn-back" onClick={() => navigate(`/orders/${id}`)}>
+          ← Voltar
+        </button>
+        {typeof (navigator as { share?: unknown }).share === 'function' && (
+          <button
+            className="btn-share"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onClick={() => (navigator as any).share({ title: `Pedido #${order.order_number} — ${order.client_name}`, url: window.location.href })}
+          >
+            📤 Compartilhar
+          </button>
+        )}
+        <button className="btn-print" onClick={() => window.print()}>
+          🖨️ Imprimir / PDF
+        </button>
+      </div>
 
       <div className="page">
         {/* ── CABEÇALHO ── */}
