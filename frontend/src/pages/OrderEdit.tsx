@@ -736,8 +736,9 @@ export default function OrderEdit() {
 
       // Edições salvas: descarta o rascunho deste pedido
       clearOrderEditDraft(user?.id, id)
-      qc.invalidateQueries({ queryKey: ['order', id], refetchType: 'all' })
-      qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' })
+      // Aguarda o refetch antes de navegar para garantir dados frescos na tela de detalhe
+      await qc.invalidateQueries({ queryKey: ['order', id], refetchType: 'all' })
+      await qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' })
       navigate(destination === 'list' ? '/orders' : `/orders/${id}`)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
