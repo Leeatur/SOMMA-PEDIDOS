@@ -840,9 +840,7 @@ export function OrderDetail() {
                                   <tr className="bg-white">
                                     {displaySizes.map(s => (
                                       <td key={s} className="px-2 py-1 text-center text-on-surface">
-                                        {blockedSet.has(s.toUpperCase()) && (item.sizes![s] || 0) === 0
-                                          ? <span className="text-red-300 text-[11px]">🔒</span>
-                                          : <span className={blockedSet.has(s.toUpperCase()) ? 'text-red-400 line-through' : ''}>{item.sizes![s] || 0}</span>}
+                                        {item.sizes![s] || 0}
                                       </td>
                                     ))}
                                     <td className="px-2 py-1 text-center font-bold border-l border-outline-variant">{item.total_pieces}</td>

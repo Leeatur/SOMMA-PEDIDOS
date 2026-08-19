@@ -1927,8 +1927,8 @@ function ItemRow({
                     return (
                     <td key={size} className="px-0.5 py-0.5">
                       {isBlocked ? (
-                        <div className="w-9 h-7 flex items-center justify-center bg-red-50 border border-red-200 rounded text-[11px] text-red-400 font-bold cursor-not-allowed" title={`Tamanho ${size} bloqueado — quantidade preservada`}>
-                          {draftSizes[size] || 0 ? <span className="line-through">{draftSizes[size]}</span> : '🔒'}
+                        <div className="w-9 h-7 flex items-center justify-center bg-gray-50 border border-gray-200 rounded text-[11px] text-on-surface font-medium cursor-not-allowed" title={`Tamanho ${size} bloqueado`}>
+                          {draftSizes[size] || 0}
                         </div>
                       ) : (
                       <input
