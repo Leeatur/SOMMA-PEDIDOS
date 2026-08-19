@@ -1182,6 +1182,7 @@ export function Reports() {
   const [dateTo, setDateTo] = useState(todayStr())
   const [factoryId, setFactoryId] = useState('')
   const [repId, setRepId] = useState('')
+  const [productsSearch, setProductsSearch] = useState('')
 
   // Edição inline de comissão no relatório (edição por %)
   const qc = useQueryClient()
@@ -2032,36 +2033,57 @@ export function Reports() {
           !productsQ.data ? null :
           productsQ.data.length === 0
             ? <EmptyState label="Nenhuma referência no período" />
-            : (
-              <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead className="bg-surface-container-low sticky top-0 z-10">
-                      <tr>
-                        <Th>#</Th>
-                        <Th>Referência</Th>
-                        <Th right>Pedidos</Th>
-                        <Th right>Peças</Th>
-                        <Th right>Valor</Th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {productsQ.data.map((p, i) => (
-                        <tr key={p.reference} className="hover:bg-surface-container-low/50">
-                          <td className="px-4 py-2 text-[12px] text-outline/70 w-8">{i + 1}</td>
-                          <td className="px-4 py-2 font-mono text-[12px] font-bold text-on-surface">
-                            {p.reference}
-                          </td>
-                          <Td right>{p.order_count}</Td>
-                          <Td right bold>{fmtN(p.total_pieces)}</Td>
-                          <Td right>{fmtR(p.total_value)}</Td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            : (() => {
+              const q = productsSearch.trim().toLowerCase()
+              const filtered = q
+                ? productsQ.data.filter(p => p.reference.toLowerCase().includes(q))
+                : productsQ.data
+              return (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-outline/50 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Buscar referência..."
+                      value={productsSearch}
+                      onChange={e => setProductsSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 text-[13px] border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                    />
+                  </div>
+                  <div className="bg-white rounded-xl border border-outline-variant overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full">
+                        <thead className="bg-surface-container-low sticky top-0 z-10">
+                          <tr>
+                            <Th>#</Th>
+                            <Th>Referência</Th>
+                            <Th right>Pedidos</Th>
+                            <Th right>Peças</Th>
+                            <Th right>Valor</Th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {filtered.length === 0
+                            ? <tr><td colSpan={5} className="px-4 py-8 text-center text-[12px] text-outline/60">Nenhuma referência encontrada</td></tr>
+                            : filtered.map((p, i) => (
+                              <tr key={p.reference} className="hover:bg-surface-container-low/50">
+                                <td className="px-4 py-2 text-[12px] text-outline/70 w-8">{q ? '—' : i + 1}</td>
+                                <td className="px-4 py-2 font-mono text-[12px] font-bold text-on-surface">
+                                  {p.reference}
+                                </td>
+                                <Td right>{p.order_count}</Td>
+                                <Td right bold>{fmtN(p.total_pieces)}</Td>
+                                <Td right>{fmtR(p.total_value)}</Td>
+                              </tr>
+                            ))
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )
+              )
+            })()
         )}
 
         {/* ═══ CATÁLOGO ═════════════════════════════════════════════════════ */}
