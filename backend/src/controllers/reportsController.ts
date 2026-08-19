@@ -275,7 +275,7 @@ export async function collectionsReport(req: AuthRequest, res: Response) {
       COALESCE(sales.total_value, 0)::numeric           AS total_value
     FROM price_tables pt
     JOIN factories f ON f.id = pt.factory_id
-    JOIN products p ON p.price_table_id = pt.id AND p.active = true
+    JOIN products p ON p.price_table_id = pt.id
     LEFT JOIN (
       SELECT oi.product_id,
         COUNT(DISTINCT o.id)           AS order_count,
