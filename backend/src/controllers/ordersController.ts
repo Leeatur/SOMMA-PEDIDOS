@@ -1485,6 +1485,15 @@ export async function deleteFaturamento(req: AuthRequest, res: Response) {
   res.json({ ok: true })
 }
 
+export async function getOrderAudit(req: AuthRequest, res: Response) {
+  const { id } = req.params
+  const { rows } = await query(
+    `SELECT * FROM order_items_audit WHERE order_id = $1 ORDER BY changed_at DESC LIMIT 200`,
+    [id]
+  )
+  res.json(rows)
+}
+
 export async function updateSemComissao(req: AuthRequest, res: Response) {
   const { id } = req.params
   const { sem_comissao } = req.body as { sem_comissao: boolean }

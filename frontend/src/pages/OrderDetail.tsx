@@ -255,6 +255,7 @@ export function OrderDetail() {
   const [newDiscountPct, setNewDiscountPct] = useState('')
   const [editDiscountModal, setEditDiscountModal] = useState(false)
   const [editDiscountValue, setEditDiscountValue] = useState('')
+  const [auditModal, setAuditModal] = useState(false)
 
   const { data: order, isLoading } = useQuery<OrderDetail>({
     queryKey: ['order', id],
@@ -509,6 +510,11 @@ export function OrderDetail() {
               )}
             </div>
           </div>
+          {isAdmin && (
+            <button onClick={() => setAuditModal(true)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-amber-600 transition-colors" title="Histórico de alterações">
+              <Clock className="h-4.5 w-4.5" />
+            </button>
+          )}
           <button onClick={() => window.open(`/orders/${id}/print`, '_blank')} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors" title="Imprimir pedido">
             <Printer className="h-4.5 w-4.5" />
           </button>
@@ -1607,5 +1613,87 @@ export function OrderDetail() {
         </div>
       </div>
     )}
+    {auditModal && isAdmin && (
+      <AuditModal orderId={id!} onClose={() => setAuditModal(false)} />
+    )}
   </>)
+}
+
+interface AuditRow {
+  id: number; operation: string; changed_at: string; product_name: string
+  old_sizes: Record<string, number> | null; new_sizes: Record<string, number> | null
+  old_total_pieces: number | null; new_total_pieces: number | null
+  old_total_value: number | null; new_total_value: number | null
+  old_rep_comm: number | null; new_rep_comm: number | null
+  old_office_comm: number | null; new_office_comm: number | null
+}
+
+function AuditModal({ orderId, onClose }: { orderId: string; onClose: () => void }) {
+  const { data, isLoading } = useQuery<AuditRow[]>({
+    queryKey: ['order-audit', orderId],
+    queryFn: () => ordersApi.audit(orderId).then(r => r.data),
+  })
+  const fmtR = (v: number | null) => v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const fmtDt = (s: string) => { const d = new Date(s); return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col mx-4">
+        <div className="flex items-center justify-between p-4 border-b border-outline-variant/30">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-amber-600" />
+            <h3 className="font-bold text-on-surface">Histórico de Alterações</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-outline hover:bg-surface-container"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="overflow-auto flex-1 p-4">
+          {isLoading ? (
+            <p className="text-center text-outline py-8 text-sm">Carregando…</p>
+          ) : !data?.length ? (
+            <p className="text-center text-outline py-8 text-sm">Nenhuma alteração registrada para este pedido.</p>
+          ) : (
+            <div className="space-y-3">
+              {data.map(row => {
+                const sizeDiff = row.old_sizes && row.new_sizes
+                  ? Object.keys({ ...row.old_sizes, ...row.new_sizes }).filter(
+                      s => (row.old_sizes![s] || 0) !== (row.new_sizes![s] || 0)
+                    )
+                  : []
+                return (
+                  <div key={row.id} className="border border-outline-variant/40 rounded-xl p-3 text-[12px]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${row.operation === 'DELETE' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {row.operation === 'DELETE' ? 'REMOVIDO' : 'ALTERADO'}
+                      </span>
+                      <span className="font-semibold text-on-surface">{row.product_name || '—'}</span>
+                      <span className="ml-auto text-outline/60">{fmtDt(row.changed_at)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-on-surface-variant">
+                      <div>Peças: <span className="font-semibold text-red-600">{row.old_total_pieces ?? '—'}</span> → <span className="font-semibold text-emerald-700">{row.new_total_pieces ?? '—'}</span></div>
+                      <div>Valor: <span className="font-semibold text-red-600">{fmtR(row.old_total_value)}</span> → <span className="font-semibold text-emerald-700">{fmtR(row.new_total_value)}</span></div>
+                      <div>Com. Rep: <span className="font-semibold text-red-600">{fmtR(row.old_rep_comm)}</span> → <span className="font-semibold text-emerald-700">{fmtR(row.new_rep_comm)}</span></div>
+                      <div>Com. Escr: <span className="font-semibold text-red-600">{fmtR(row.old_office_comm)}</span> → <span className="font-semibold text-emerald-700">{fmtR(row.new_office_comm)}</span></div>
+                    </div>
+                    {sizeDiff.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-outline-variant/20">
+                        <p className="text-outline/60 mb-1">Tamanhos alterados:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {sizeDiff.map(s => (
+                            <span key={s} className="bg-surface-container-low px-2 py-0.5 rounded font-mono">
+                              {s}: <span className="text-red-600">{row.old_sizes![s] || 0}</span> → <span className="text-emerald-700">{row.new_sizes![s] || 0}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }

@@ -132,6 +132,7 @@ router.patch('/orders/:id/restore', authenticate, requireAdmin, orders.restoreOr
 router.post('/orders/:id/duplicate', authenticate, orders.duplicateOrder)
 router.delete('/orders/:id', authenticate, orders.deleteOrder)
 router.post('/orders/:id/items', authenticate, orders.addOrderItems)
+router.get('/orders/:id/audit', authenticate, requireAdmin, orders.getOrderAudit)
 router.patch('/orders/:id/items/:item_id', authenticate, orders.updateOrderItem)
 router.delete('/orders/:id/items/:item_id', authenticate, orders.removeOrderItem)
 router.post('/orders/:id/recalculate', authenticate, orders.recalcOrderTotals)

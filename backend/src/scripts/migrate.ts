@@ -462,6 +462,77 @@ ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_faturamento_status_check;
 ALTER TABLE orders ADD CONSTRAINT orders_faturamento_status_check
   CHECK (faturamento_status IN ('pendente','parcial','liquidado','encerrado'));
 
+-- ─── Auditoria de itens de pedido ────────────────────────────────────────────
+-- Registra automaticamente toda alteração (UPDATE/DELETE) em order_items.
+-- Permite recuperar quantidades, valores e comissões perdidas em qualquer edição.
+
+CREATE TABLE IF NOT EXISTS order_items_audit (
+  id               SERIAL PRIMARY KEY,
+  operation        TEXT NOT NULL,               -- UPDATE | DELETE
+  changed_at       TIMESTAMPTZ DEFAULT NOW(),
+  order_item_id    UUID,
+  order_id         UUID,
+  product_id       UUID,
+  product_name     TEXT,
+  old_sizes        JSONB,
+  new_sizes        JSONB,
+  old_total_pieces INTEGER,
+  new_total_pieces INTEGER,
+  old_total_value  NUMERIC(12,2),
+  new_total_value  NUMERIC(12,2),
+  old_rep_comm     NUMERIC(12,2),
+  new_rep_comm     NUMERIC(12,2),
+  old_office_comm  NUMERIC(12,2),
+  new_office_comm  NUMERIC(12,2)
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_items_audit_order_id ON order_items_audit(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_audit_changed_at ON order_items_audit(changed_at DESC);
+
+CREATE OR REPLACE FUNCTION fn_audit_order_items()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.sizes::text IS DISTINCT FROM NEW.sizes::text
+       OR OLD.total_pieces IS DISTINCT FROM NEW.total_pieces
+       OR OLD.total_value   IS DISTINCT FROM NEW.total_value
+    THEN
+      INSERT INTO order_items_audit (
+        operation, order_item_id, order_id, product_id, product_name,
+        old_sizes, new_sizes,
+        old_total_pieces, new_total_pieces,
+        old_total_value,  new_total_value,
+        old_rep_comm,     new_rep_comm,
+        old_office_comm,  new_office_comm
+      ) VALUES (
+        'UPDATE', OLD.id, OLD.order_id, OLD.product_id, OLD.product_name,
+        OLD.sizes::jsonb, NEW.sizes::jsonb,
+        OLD.total_pieces, NEW.total_pieces,
+        OLD.total_value,  NEW.total_value,
+        OLD.rep_commission_value,  NEW.rep_commission_value,
+        OLD.office_commission_value, NEW.office_commission_value
+      );
+    END IF;
+  ELSIF TG_OP = 'DELETE' THEN
+    INSERT INTO order_items_audit (
+      operation, order_item_id, order_id, product_id, product_name,
+      old_sizes, old_total_pieces, old_total_value,
+      old_rep_comm, old_office_comm
+    ) VALUES (
+      'DELETE', OLD.id, OLD.order_id, OLD.product_id, OLD.product_name,
+      OLD.sizes::jsonb, OLD.total_pieces, OLD.total_value,
+      OLD.rep_commission_value, OLD.office_commission_value
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_audit_order_items ON order_items;
+CREATE TRIGGER trg_audit_order_items
+AFTER UPDATE OR DELETE ON order_items
+FOR EACH ROW EXECUTE FUNCTION fn_audit_order_items();
+
 `
 
 async function migrate() {
