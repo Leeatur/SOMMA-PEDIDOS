@@ -288,7 +288,7 @@ export async function collectionsReport(req: AuthRequest, res: Response) {
         ${salesCond}
       GROUP BY oi.product_id
     ) sales ON sales.product_id = p.id
-    WHERE pt.active = true ${ptWhere}
+    WHERE 1=1 ${ptWhere}
     ORDER BY f.name, pt.name, COALESCE(sales.total_pieces, 0) DESC, p.reference
   `, params)
 
@@ -548,7 +548,7 @@ export async function repPerformanceReport(req: AuthRequest, res: Response) {
       AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date
       ${cond}
     LEFT JOIN order_statuses s ON s.id = o.status_id
-    WHERE u.role = 'representante' AND u.active = true
+    WHERE u.role = 'representante'
     GROUP BY u.id, u.name
     HAVING COUNT(DISTINCT o.id) > 0
     ORDER BY total_value DESC
@@ -580,7 +580,6 @@ export async function abcClientsReport(req: AuthRequest, res: Response) {
       LEFT JOIN users u ON u.id = c.rep_id
       JOIN orders o ON o.client_id = c.id AND o.deleted_at IS NULL
         AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date ${cond}
-      WHERE c.active = true
       GROUP BY c.id, c.name, c.trade_name, c.city, c.state, u.name
     ),
     total AS (SELECT SUM(total_value) AS grand_total FROM client_sales),
@@ -739,7 +738,7 @@ export async function penetracaoReport(req: AuthRequest, res: Response) {
         AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') BETWEEN $1::date AND $2::date
         ${factCond}${NOT_SV}
     ) has_order ON has_order.client_id = c.id
-    WHERE c.active = true ${repCond}
+    WHERE 1=1 ${repCond}
     GROUP BY u.name, c.rep_id
     ORDER BY penetracao_pct DESC NULLS LAST, total_clientes DESC
   `, params)
