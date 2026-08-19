@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ordersApi, companyApi } from '../api/client'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 
 // Ordem lógica de tamanhos
 const SIZE_ORDER = [
@@ -109,6 +111,8 @@ export function OrderPrint() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const autoprint = searchParams.get('autoprint') === '1'
+  const [sharing, setSharing] = useState(false)
+  const pageRef = useRef<HTMLDivElement>(null)
 
   const { data: order } = useQuery<Order>({
     queryKey: ['order', id],
@@ -131,6 +135,39 @@ export function OrderPrint() {
       }
     }
   }, [order, company, autoprint])
+
+  const sharePdf = async () => {
+    const el = pageRef.current
+    if (!el || !order) return
+    setSharing(true)
+    try {
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })
+      const imgData = canvas.toDataURL('image/jpeg', 0.92)
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pdfW = pdf.internal.pageSize.getWidth()
+      const pdfH = pdf.internal.pageSize.getHeight()
+      const ratio = canvas.height / canvas.width
+      const totalMmH = pdfW * ratio
+      let yOffset = 0
+      while (yOffset < totalMmH) {
+        if (yOffset > 0) pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, -yOffset, pdfW, totalMmH)
+        yOffset += pdfH
+      }
+      const blob = pdf.output('blob')
+      const file = new File([blob], `Pedido_${order.order_number}_${order.client_name.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' })
+      const nav = navigator as Navigator & { share?: (data: { title?: string; files?: File[] }) => Promise<void> }
+      if (nav.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await nav.share({ title: `Pedido #${order.order_number}`, files: [file] })
+      } else if (nav.share) {
+        await nav.share({ title: `Pedido #${order.order_number}`, url: window.location.href })
+      }
+    } catch {
+      // usuário cancelou ou navegador não suporta — silencioso
+    } finally {
+      setSharing(false)
+    }
+  }
 
   if (!order || !company) {
     return (
@@ -404,12 +441,8 @@ export function OrderPrint() {
           ← Voltar
         </button>
         {typeof (navigator as { share?: unknown }).share === 'function' && (
-          <button
-            className="btn-share"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onClick={() => (navigator as any).share({ title: `Pedido #${order.order_number} — ${order.client_name}`, url: window.location.href })}
-          >
-            📤 Compartilhar
+          <button className="btn-share" onClick={sharePdf} disabled={sharing}>
+            {sharing ? '⏳ Gerando…' : '📤 Compartilhar'}
           </button>
         )}
         <button className="btn-print" onClick={() => window.print()}>
@@ -417,7 +450,7 @@ export function OrderPrint() {
         </button>
       </div>
 
-      <div className="page">
+      <div className="page" ref={pageRef}>
         {/* ── CABEÇALHO ── */}
         <div className="header-box">
           <div className="company-info">
