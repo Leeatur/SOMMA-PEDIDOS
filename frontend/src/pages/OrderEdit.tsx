@@ -682,10 +682,10 @@ export default function OrderEdit() {
       const removedIds = items.filter(it => it.removed).map(it => it.id)
       for (const iid of removedIds) { await ordersApi.removeItem(id!, iid) }
 
-      // 6. Atualizar itens modificados (tamanhos, grade, preço unitário e observação)
-      for (const it of activeItems) {
+      // 6. Atualizar itens modificados em paralelo (mais rápido em pedidos grandes)
+      await Promise.all(activeItems.map(async it => {
         const origItem = order.items?.find((o: OrderItemRaw) => o.id === it.id)
-        if (!origItem) continue
+        if (!origItem) return
 
         const priceChanged = Math.abs(it.unit_price - Number(origItem.unit_price || 0)) > 0.001
         const obsChanged = it.draftItemObs !== (origItem.item_obs || '')
@@ -716,7 +716,7 @@ export default function OrderEdit() {
             })
           }
         }
-      }
+      }))
 
       // 6. Adicionar novos itens
       if (newItems.length > 0) {
