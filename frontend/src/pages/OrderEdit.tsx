@@ -692,7 +692,9 @@ export default function OrderEdit() {
 
         if (it.type === 'regular') {
           const sizesChanged = JSON.stringify(it.draftSizes) !== JSON.stringify(origItem.sizes || {})
-          if (sizesChanged || priceChanged || obsChanged) {
+          const sizesTotal = Object.values(it.draftSizes).reduce((s: number, v) => s + (Number(v) || 0), 0)
+          // Pula se total = 0 — backend rejeita com 400 (item sem peças = remover via botão ×)
+          if (sizesTotal > 0 && (sizesChanged || priceChanged || obsChanged)) {
             await ordersApi.updateItem(id!, it.id, {
               sizes: it.draftSizes,
               ...(priceChanged ? { unit_price: it.unit_price } : {}),
@@ -742,8 +744,12 @@ export default function OrderEdit() {
       void qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'none' })
       navigate(destination === 'list' ? '/orders' : `/orders/${id}`)
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-      setSaveError(msg || 'Erro ao salvar. Tente novamente.')
+      const axiosErr = err as { response?: { data?: { error?: string; message?: string } }; message?: string }
+      const msg = axiosErr?.response?.data?.error
+             || axiosErr?.response?.data?.message
+             || axiosErr?.message
+             || 'Erro ao salvar. Tente novamente.'
+      setSaveError(msg)
     } finally {
       setSaving(false)
     }
