@@ -142,10 +142,9 @@ export function OrderPrint() {
     const el = pageRef.current
     if (!el || !order) return
     setSharing(true)
-    // Abre janela antes do await para contornar bloqueio de popup do iOS Safari
-    const nav = navigator as Navigator & { share?: (data: { title?: string; files?: File[] }) => Promise<void> }
-    const needsWindow = !(nav.share && navigator.canShare)
-    const fallbackWin = needsWindow ? window.open('', '_blank') : null
+    // Abre janela ANTES do await — iOS Safari bloqueia window.open() após async.
+    // Fecha-a se conseguir compartilhar via Web Share API; senão navega para o blob.
+    const fallbackWin = window.open('', '_blank')
     if (fallbackWin) fallbackWin.document.write('<p style="font-family:sans-serif;padding:24px;color:#555">A gerar PDF…</p>')
     try {
       const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })
@@ -163,9 +162,16 @@ export function OrderPrint() {
       }
       const blob = pdf.output('blob')
       const file = new File([blob], `Pedido_${order.order_number}_${order.client_name.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' })
-      if (nav.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await nav.share({ title: `Pedido #${order.order_number}`, files: [file] })
-      } else {
+      // Tenta Web Share API com arquivo; se não suportar usa a janela já aberta
+      let shared = false
+      try {
+        if (navigator.canShare({ files: [file] })) {
+          fallbackWin?.close()
+          await navigator.share({ title: `Pedido #${order.order_number}`, files: [file] })
+          shared = true
+        }
+      } catch { /* usuário cancelou ou não suporta */ }
+      if (!shared) {
         const blobUrl = URL.createObjectURL(blob)
         setTimeout(() => URL.revokeObjectURL(blobUrl), 30000)
         if (fallbackWin) { fallbackWin.location.href = blobUrl }
