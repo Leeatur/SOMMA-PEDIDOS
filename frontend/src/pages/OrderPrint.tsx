@@ -159,8 +159,21 @@ export function OrderPrint() {
       const nav = navigator as Navigator & { share?: (data: { title?: string; files?: File[] }) => Promise<void> }
       if (nav.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await nav.share({ title: `Pedido #${order.order_number}`, files: [file] })
-      } else if (nav.share) {
-        await nav.share({ title: `Pedido #${order.order_number}`, url: window.location.href })
+      } else {
+        // Fallback: abre o PDF como blob numa nova aba — o usuário usa o botão
+        // de compartilhar nativo do navegador para enviar ao cliente
+        const blobUrl = URL.createObjectURL(blob)
+        const opened = window.open(blobUrl, '_blank')
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000)
+        if (!opened) {
+          // popup bloqueado — tenta download direto
+          const a = document.createElement('a')
+          a.href = blobUrl
+          a.download = file.name
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+        }
       }
     } catch {
       // usuário cancelou ou navegador não suporta — silencioso
