@@ -736,12 +736,10 @@ export default function OrderEdit() {
 
       // Edições salvas: descarta o rascunho deste pedido
       clearOrderEditDraft(user?.id, id)
-      // Aguarda o refetch antes de navegar; allSettled garante que falha de rede no refetch
-      // não apareça como "Erro ao salvar" para o usuário
-      await Promise.allSettled([
-        qc.invalidateQueries({ queryKey: ['order', id], refetchType: 'all' }),
-        qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'all' }),
-      ])
+      // Marca o cache como stale sem aguardar refetch — navega imediatamente.
+      // O OrderDetail buscará os dados frescos sozinho ao montar.
+      void qc.invalidateQueries({ queryKey: ['order', id], refetchType: 'none' })
+      void qc.invalidateQueries({ queryKey: ['orders'], refetchType: 'none' })
       navigate(destination === 'list' ? '/orders' : `/orders/${id}`)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
