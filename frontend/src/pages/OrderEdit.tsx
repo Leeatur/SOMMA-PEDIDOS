@@ -634,6 +634,7 @@ export default function OrderEdit() {
       }
 
       // 2. Info do cabeçalho
+      console.log('[save] updateInfo...')
       await ordersApi.updateInfo(id!, {
         payment_terms: form.payment_terms || null,
         delivery_date: form.delivery_date || null,
@@ -683,49 +684,50 @@ export default function OrderEdit() {
       for (const iid of removedIds) { await ordersApi.removeItem(id!, iid) }
 
       // 6. Atualizar itens modificados em paralelo (mais rápido em pedidos grandes)
-      await Promise.all(activeItems.map(async it => {
+      const norm = (o: Record<string, unknown>) =>
+        Object.fromEntries(
+          Object.entries(o)
+            .map(([k, v]): [string, number] => [k, Number(v)])
+            .filter(([, v]) => v > 0)
+            .sort(([a], [b]) => a.localeCompare(b))
+        )
+      const itemsToUpdate = activeItems.filter(it => {
+        const origItem = order.items?.find((o: OrderItemRaw) => o.id === it.id)
+        if (!origItem) return false
+        const priceChanged = Math.abs(it.unit_price - Number(origItem.unit_price || 0)) > 0.001
+        const obsChanged = it.draftItemObs !== (origItem.item_obs || '')
+        if (it.type === 'regular') {
+          const draftNorm = norm(it.draftSizes)
+          const origNorm  = norm(origItem.sizes || {})
+          const sizesTotal = Object.values(draftNorm).reduce((s: number, v) => s + (Number(v) || 0), 0)
+          return sizesTotal > 0 && (JSON.stringify(draftNorm) !== JSON.stringify(origNorm) || priceChanged || obsChanged)
+        } else {
+          const draftTotal = (it.draftGrade || []).reduce((s, gc) => s + gc.total_pieces, 0)
+          return JSON.stringify(it.draftGrade) !== JSON.stringify(initDraftGrade(origItem))
+            || priceChanged || obsChanged || it.draftBoxes !== (origItem.boxes_count || 1)
+            || Math.abs(draftTotal - Number(origItem.total_pieces || 0)) > 0
+        }
+      })
+      console.log(`[save] itens a atualizar: ${itemsToUpdate.length} de ${activeItems.length}`)
+      await Promise.all(itemsToUpdate.map(async it => {
         const origItem = order.items?.find((o: OrderItemRaw) => o.id === it.id)
         if (!origItem) return
 
         const priceChanged = Math.abs(it.unit_price - Number(origItem.unit_price || 0)) > 0.001
-        const obsChanged = it.draftItemObs !== (origItem.item_obs || '')
 
         if (it.type === 'regular') {
-          // Normaliza: remove zeros, converte para Number (banco retorna strings) e ordena chaves.
-          // Sem isso, TODOS os 35 itens aparecem como "mudado" → timeout.
-          const norm = (o: Record<string, unknown>) =>
-            Object.fromEntries(
-              Object.entries(o)
-                .map(([k, v]): [string, number] => [k, Number(v)])
-                .filter(([, v]) => v > 0)
-                .sort(([a], [b]) => a.localeCompare(b))
-            )
-          const draftNorm = norm(it.draftSizes)
-          const origNorm  = norm(origItem.sizes || {})
-          const sizesChanged = JSON.stringify(draftNorm) !== JSON.stringify(origNorm)
-          const sizesTotal = Object.values(draftNorm).reduce((s: number, v) => s + (Number(v) || 0), 0)
-          // Pula se total = 0 — backend rejeita com 400 (item sem peças = remover via botão ×)
-          if (sizesTotal > 0 && (sizesChanged || priceChanged || obsChanged)) {
-            await ordersApi.updateItem(id!, it.id, {
-              sizes: it.draftSizes,
-              ...(priceChanged ? { unit_price: it.unit_price } : {}),
-              item_obs: it.draftItemObs || null,
-            })
-          }
+          await ordersApi.updateItem(id!, it.id, {
+            sizes: it.draftSizes,
+            ...(priceChanged ? { unit_price: it.unit_price } : {}),
+            item_obs: it.draftItemObs || null,
+          })
         } else {
-          const origGrade = initDraftGrade(origItem)
-          const gradeChanged = JSON.stringify(it.draftGrade) !== JSON.stringify(origGrade)
-          const boxesChanged = it.draftBoxes !== (origItem.boxes_count || 1)
-          const draftTotal = (it.draftGrade || []).reduce((s, gc) => s + gc.total_pieces, 0)
-          const piecesInconsistent = Math.abs(draftTotal - Number(origItem.total_pieces || 0)) > 0
-          if (gradeChanged || priceChanged || obsChanged || boxesChanged || piecesInconsistent) {
-            await ordersApi.updateItem(id!, it.id, {
-              custom_grade: it.draftGrade,
-              boxes_count: it.draftBoxes,
-              ...(priceChanged ? { unit_price: it.unit_price } : {}),
-              item_obs: it.draftItemObs || null,
-            })
-          }
+          await ordersApi.updateItem(id!, it.id, {
+            custom_grade: it.draftGrade,
+            boxes_count: it.draftBoxes,
+            ...(priceChanged ? { unit_price: it.unit_price } : {}),
+            item_obs: it.draftItemObs || null,
+          })
         }
       }))
 
@@ -745,6 +747,7 @@ export default function OrderEdit() {
       }
 
       // Recalcula totais finais a partir dos order_items (garante consistência)
+      console.log('[save] recalculate...')
       await ordersApi.recalculate(id!)
 
       // Edições salvas: descarta o rascunho deste pedido
