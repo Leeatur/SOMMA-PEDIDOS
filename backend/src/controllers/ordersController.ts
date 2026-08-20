@@ -864,9 +864,13 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
   const { id, item_id } = req.params
   const { sizes, boxes_count, custom_grade, unit_price: newUnitPrice, item_obs, grade_is_per_box } = req.body
 
+  console.log(`[updateOrderItem] order=${id} item=${item_id} type=${custom_grade ? 'pack' : 'regular'}`)
+  const t0 = Date.now()
+
   const { rows: [order] } = await query(
     'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
   )
+  console.log(`[updateOrderItem] SELECT orders: ${Date.now() - t0}ms`)
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
   const isAdmin = req.user!.role === 'admin'
@@ -881,6 +885,7 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
      WHERE oi.id=$1 AND oi.order_id=$2`,
     [item_id, id]
   )
+  console.log(`[updateOrderItem] SELECT item: ${Date.now() - t0}ms`)
   if (!item) { res.status(404).json({ error: 'Item não encontrado' }); return }
 
   // Atualização somente de observação (sem recalcular totais)
@@ -954,6 +959,7 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     res.status(400).json({ error: 'Dados inválidos' }); return
   }
 
+  console.log(`[updateOrderItem] before UPDATE item: ${Date.now() - t0}ms`)
   await query(
     `UPDATE order_items SET
        sizes=$1, boxes_count=$2, total_pieces=$3, subtotal=$4, custom_grade=$5, unit_price=$6, item_obs=$7
@@ -961,6 +967,7 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, newCustomGrade, effectiveUnitPrice,
      item_obs !== undefined ? (item_obs || null) : item.item_obs, item_id]
   )
+  console.log(`[updateOrderItem] after UPDATE item: ${Date.now() - t0}ms`)
 
   // Recalcula totais — comissão sobre preço líquido (subtotal)
   const { rows: [totals] } = await query(
@@ -990,6 +997,7 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     )
   }
 
+  console.log(`[updateOrderItem] DONE: ${Date.now() - t0}ms`)
   res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
 }
 
