@@ -659,6 +659,18 @@ export function Orders() {
             <div className="flex items-center gap-2">
               <ColumnConfigButton defs={colDefs} config={config} onSave={save} onReset={reset} />
               <button
+                onClick={() => {
+                  const sel = [...selectedOrderIds]
+                  if (sel.length === 1) setPreviewOrderId(sel[0])
+                }}
+                disabled={selectedOrderIds.size !== 1}
+                className="flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors border-outline-variant bg-white disabled:opacity-40 disabled:cursor-not-allowed text-outline hover:text-on-surface-variant"
+                title={selectedOrderIds.size === 1 ? 'Visualizar pedido selecionado' : 'Selecione 1 pedido para visualizar'}
+              >
+                <Eye className="h-4 w-4" />
+                Visualizar
+              </button>
+              <button
                 onClick={() => qc.invalidateQueries({ queryKey: ['orders'] })}
                 className="flex items-center gap-1 text-xs px-3 py-1 border rounded-lg transition-colors text-outline border-outline-variant bg-white hover:text-on-surface-variant"
                 title="Atualizar lista"
@@ -885,15 +897,6 @@ export function Orders() {
                     <Download size={13} />
                     Exportar Excel
                   </button>
-                  {selectedOrderIds.size === 1 && (
-                    <button
-                      onClick={() => setPreviewOrderId([...selectedOrderIds][0])}
-                      className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-outline-variant bg-white text-on-surface-variant font-medium hover:bg-surface-container transition-colors"
-                    >
-                      <Eye size={13} />
-                      Visualizar
-                    </button>
-                  )}
                   {isAdmin && (
                     <button
                       onClick={handleDeleteSelected}
@@ -999,7 +1002,7 @@ export function Orders() {
                   return (
                   <tr
                     key={o.id}
-                    className={`group border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : hasDraft ? 'bg-amber-50/60' : ''}`}
+                    className={`border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : hasDraft ? 'bg-amber-50/60' : ''}`}
                     onDoubleClick={() => navigate(`/orders/${o.id}`)}
                   >
                     <td style={{ width: 36, minWidth: 36 }} className="pl-3 pr-1 py-2 align-middle relative">
@@ -1007,15 +1010,8 @@ export function Orders() {
                         checked={selectedOrderIds.has(o.id)}
                         onChange={e => toggleOrderSelected(o.id, e as unknown as React.MouseEvent)}
                         onClick={e => e.stopPropagation()}
-                        className="cursor-pointer accent-primary w-3.5 h-3.5 group-hover:hidden"
+                        className="cursor-pointer accent-primary w-3.5 h-3.5"
                       />
-                      <button
-                        onClick={e => { e.stopPropagation(); setPreviewOrderId(o.id) }}
-                        className="hidden group-hover:flex items-center justify-center w-3.5 h-3.5 text-primary hover:text-primary/70 transition-colors"
-                        title="Visualizar pedido"
-                      >
-                        <Eye size={13} />
-                      </button>
                       {hasDraft && (
                         <span
                           className="absolute top-1 right-0.5 w-2 h-2 rounded-full bg-amber-500"
