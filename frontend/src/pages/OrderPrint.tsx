@@ -112,7 +112,9 @@ export function OrderPrint() {
   const [searchParams] = useSearchParams()
   const autoprint = searchParams.get('autoprint') === '1'
   const [sharing, setSharing] = useState(false)
+  const [printing, setPrinting] = useState(false)
   const pageRef = useRef<HTMLDivElement>(null)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
 
   const { data: order } = useQuery<Order>({
     queryKey: ['order', id],
@@ -180,6 +182,34 @@ export function OrderPrint() {
     } finally {
       setSharing(false)
     }
+  }
+
+  const printPdf = async () => {
+    if (!isIOS) { window.print(); return }
+    // No iOS window.print() não funciona — gera o PDF e abre numa nova aba
+    // para o usuário imprimir pelo botão nativo do Safari
+    const el = pageRef.current
+    if (!el || !order) return
+    setPrinting(true)
+    try {
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })
+      const imgData = canvas.toDataURL('image/jpeg', 0.92)
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pdfW = pdf.internal.pageSize.getWidth()
+      const pdfH = pdf.internal.pageSize.getHeight()
+      const ratio = canvas.height / canvas.width
+      const totalMmH = pdfW * ratio
+      let yOffset = 0
+      while (yOffset < totalMmH) {
+        if (yOffset > 0) pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, -yOffset, pdfW, totalMmH)
+        yOffset += pdfH
+      }
+      const blobUrl = URL.createObjectURL(pdf.output('blob'))
+      window.open(blobUrl, '_blank')
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000)
+    } catch { /* silencioso */ }
+    finally { setPrinting(false) }
   }
 
   if (!order || !company) {
@@ -458,8 +488,8 @@ export function OrderPrint() {
             {sharing ? '⏳ Gerando…' : '📤 Compartilhar'}
           </button>
         )}
-        <button className="btn-print" onClick={() => window.print()}>
-          🖨️ Imprimir / PDF
+        <button className="btn-print" onClick={printPdf} disabled={printing}>
+          {printing ? '⏳ Gerando…' : '🖨️ Imprimir / PDF'}
         </button>
       </div>
 
