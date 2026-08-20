@@ -691,10 +691,17 @@ export default function OrderEdit() {
         const obsChanged = it.draftItemObs !== (origItem.item_obs || '')
 
         if (it.type === 'regular') {
-          // Remove zeros da comparação: draftSizes sempre tem todos os tamanhos zerados,
-          // origItem.sizes só tem não-zeros. Sem normalizar, TODOS os itens aparecem como "mudado".
-          const draftNorm = Object.fromEntries(Object.entries(it.draftSizes).filter(([, v]) => Number(v) > 0))
-          const origNorm  = Object.fromEntries(Object.entries(origItem.sizes || {}).filter(([, v]) => Number(v) > 0))
+          // Normaliza: remove zeros, converte para Number (banco retorna strings) e ordena chaves.
+          // Sem isso, TODOS os 35 itens aparecem como "mudado" → timeout.
+          const norm = (o: Record<string, unknown>) =>
+            Object.fromEntries(
+              Object.entries(o)
+                .map(([k, v]): [string, number] => [k, Number(v)])
+                .filter(([, v]) => v > 0)
+                .sort(([a], [b]) => a.localeCompare(b))
+            )
+          const draftNorm = norm(it.draftSizes)
+          const origNorm  = norm(origItem.sizes || {})
           const sizesChanged = JSON.stringify(draftNorm) !== JSON.stringify(origNorm)
           const sizesTotal = Object.values(draftNorm).reduce((s: number, v) => s + (Number(v) || 0), 0)
           // Pula se total = 0 — backend rejeita com 400 (item sem peças = remover via botão ×)
