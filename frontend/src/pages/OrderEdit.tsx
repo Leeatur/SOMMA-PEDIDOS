@@ -691,8 +691,12 @@ export default function OrderEdit() {
         const obsChanged = it.draftItemObs !== (origItem.item_obs || '')
 
         if (it.type === 'regular') {
-          const sizesChanged = JSON.stringify(it.draftSizes) !== JSON.stringify(origItem.sizes || {})
-          const sizesTotal = Object.values(it.draftSizes).reduce((s: number, v) => s + (Number(v) || 0), 0)
+          // Remove zeros da comparação: draftSizes sempre tem todos os tamanhos zerados,
+          // origItem.sizes só tem não-zeros. Sem normalizar, TODOS os itens aparecem como "mudado".
+          const draftNorm = Object.fromEntries(Object.entries(it.draftSizes).filter(([, v]) => Number(v) > 0))
+          const origNorm  = Object.fromEntries(Object.entries(origItem.sizes || {}).filter(([, v]) => Number(v) > 0))
+          const sizesChanged = JSON.stringify(draftNorm) !== JSON.stringify(origNorm)
+          const sizesTotal = Object.values(draftNorm).reduce((s: number, v) => s + (Number(v) || 0), 0)
           // Pula se total = 0 — backend rejeita com 400 (item sem peças = remover via botão ×)
           if (sizesTotal > 0 && (sizesChanged || priceChanged || obsChanged)) {
             await ordersApi.updateItem(id!, it.id, {
