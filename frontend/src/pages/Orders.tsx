@@ -16,6 +16,7 @@ import {
   RefreshCw,
   AlertTriangle,
   Pencil,
+  Eye,
 } from 'lucide-react'
 import { ordersApi, statusesApi, factoriesApi } from '../api/client'
 import { svgIconSrc } from '../components/ui/Badge'
@@ -346,6 +347,7 @@ export function Orders() {
   const [showSummary, setShowSummary] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [showReport, setShowReport] = useState(false)
+  const [previewOrderId, setPreviewOrderId] = useState<string | null>(null)
   const handleImportCreated = useCallback(() => { setShowImport(false) }, [])
 
   // ── rascunhos locais ─────────────────────────────────────────────────────────
@@ -883,6 +885,15 @@ export function Orders() {
                     <Download size={13} />
                     Exportar Excel
                   </button>
+                  {selectedOrderIds.size === 1 && (
+                    <button
+                      onClick={() => setPreviewOrderId([...selectedOrderIds][0])}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-outline-variant bg-white text-on-surface-variant font-medium hover:bg-surface-container transition-colors"
+                    >
+                      <Eye size={13} />
+                      Visualizar
+                    </button>
+                  )}
                   {isAdmin && (
                     <button
                       onClick={handleDeleteSelected}
@@ -988,7 +999,7 @@ export function Orders() {
                   return (
                   <tr
                     key={o.id}
-                    className={`border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : hasDraft ? 'bg-amber-50/60' : ''}`}
+                    className={`group border-b border-outline-variant/50 hover:bg-primary/5 cursor-pointer transition-colors ${selectedOrderIds.has(o.id) ? 'bg-primary/5' : hasDraft ? 'bg-amber-50/60' : ''}`}
                     onDoubleClick={() => navigate(`/orders/${o.id}`)}
                   >
                     <td style={{ width: 36, minWidth: 36 }} className="pl-3 pr-1 py-2 align-middle relative">
@@ -996,8 +1007,15 @@ export function Orders() {
                         checked={selectedOrderIds.has(o.id)}
                         onChange={e => toggleOrderSelected(o.id, e as unknown as React.MouseEvent)}
                         onClick={e => e.stopPropagation()}
-                        className="cursor-pointer accent-primary w-3.5 h-3.5"
+                        className="cursor-pointer accent-primary w-3.5 h-3.5 group-hover:hidden"
                       />
+                      <button
+                        onClick={e => { e.stopPropagation(); setPreviewOrderId(o.id) }}
+                        className="hidden group-hover:flex items-center justify-center w-3.5 h-3.5 text-primary hover:text-primary/70 transition-colors"
+                        title="Visualizar pedido"
+                      >
+                        <Eye size={13} />
+                      </button>
                       {hasDraft && (
                         <span
                           className="absolute top-1 right-0.5 w-2 h-2 rounded-full bg-amber-500"
@@ -1054,6 +1072,43 @@ export function Orders() {
         onClose={() => setShowImport(false)}
         onCreated={handleImportCreated}
       />
+    )}
+
+    {/* Modal de visualização rápida do pedido */}
+    {previewOrderId && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        onClick={() => setPreviewOrderId(null)}
+      >
+        <div
+          className="relative bg-white rounded-xl shadow-2xl flex flex-col"
+          style={{ width: '90vw', height: '92vh', maxWidth: 1100 }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-4 py-2 border-b border-outline-variant/40">
+            <span className="text-sm font-semibold text-on-surface">Visualização do Pedido</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { window.open(`/orders/${previewOrderId}/print`, '_blank'); }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-outline-variant text-xs font-medium hover:bg-surface-container transition-colors"
+              >
+                <Eye size={12} /> Abrir / Imprimir
+              </button>
+              <button
+                onClick={() => setPreviewOrderId(null)}
+                className="p-1 rounded hover:bg-surface-container transition-colors text-on-surface-variant"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+          <iframe
+            src={`/orders/${previewOrderId}/print?preview=1`}
+            className="flex-1 w-full rounded-b-xl"
+            style={{ border: 'none' }}
+          />
+        </div>
+      </div>
     )}
 
   </>
