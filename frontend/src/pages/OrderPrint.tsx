@@ -142,6 +142,11 @@ export function OrderPrint() {
     const el = pageRef.current
     if (!el || !order) return
     setSharing(true)
+    // Abre janela antes do await para contornar bloqueio de popup do iOS Safari
+    const nav = navigator as Navigator & { share?: (data: { title?: string; files?: File[] }) => Promise<void> }
+    const needsWindow = !(nav.share && navigator.canShare)
+    const fallbackWin = needsWindow ? window.open('', '_blank') : null
+    if (fallbackWin) fallbackWin.document.write('<p style="font-family:sans-serif;padding:24px;color:#555">A gerar PDF…</p>')
     try {
       const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })
       const imgData = canvas.toDataURL('image/jpeg', 0.92)
@@ -158,27 +163,16 @@ export function OrderPrint() {
       }
       const blob = pdf.output('blob')
       const file = new File([blob], `Pedido_${order.order_number}_${order.client_name.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' })
-      const nav = navigator as Navigator & { share?: (data: { title?: string; files?: File[] }) => Promise<void> }
       if (nav.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await nav.share({ title: `Pedido #${order.order_number}`, files: [file] })
       } else {
-        // Fallback: abre o PDF como blob numa nova aba — o usuário usa o botão
-        // de compartilhar nativo do navegador para enviar ao cliente
         const blobUrl = URL.createObjectURL(blob)
-        const opened = window.open(blobUrl, '_blank')
         setTimeout(() => URL.revokeObjectURL(blobUrl), 30000)
-        if (!opened) {
-          // popup bloqueado — tenta download direto
-          const a = document.createElement('a')
-          a.href = blobUrl
-          a.download = file.name
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
-        }
+        if (fallbackWin) { fallbackWin.location.href = blobUrl }
+        else { window.open(blobUrl, '_blank') }
       }
     } catch {
-      // usuário cancelou ou navegador não suporta — silencioso
+      if (fallbackWin) fallbackWin.close()
     } finally {
       setSharing(false)
     }
@@ -186,11 +180,12 @@ export function OrderPrint() {
 
   const printPdf = async () => {
     if (!isIOS) { window.print(); return }
-    // No iOS window.print() não funciona — gera o PDF e abre numa nova aba
-    // para o usuário imprimir pelo botão nativo do Safari
     const el = pageRef.current
     if (!el || !order) return
     setPrinting(true)
+    // Abre a janela ANTES do await — iOS Safari bloqueia window.open() após async
+    const win = window.open('', '_blank')
+    if (win) win.document.write('<p style="font-family:sans-serif;padding:24px;color:#555">A gerar PDF…</p>')
     try {
       const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })
       const imgData = canvas.toDataURL('image/jpeg', 0.92)
@@ -206,9 +201,10 @@ export function OrderPrint() {
         yOffset += pdfH
       }
       const blobUrl = URL.createObjectURL(pdf.output('blob'))
-      window.open(blobUrl, '_blank')
+      if (win) { win.location.href = blobUrl }
+      else { window.open(blobUrl, '_blank') }
       setTimeout(() => URL.revokeObjectURL(blobUrl), 30000)
-    } catch { /* silencioso */ }
+    } catch { if (win) win.close() }
     finally { setPrinting(false) }
   }
 
