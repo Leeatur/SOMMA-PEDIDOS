@@ -820,13 +820,6 @@ export default function OrderEdit() {
             {saving ? '...' : 'Salvar'}
           </button>
         </div>
-        {saveError && (
-          <div className="max-w-7xl mx-auto px-4 pb-2">
-            <div className="flex items-center gap-2 text-error text-[12px] bg-error/8 rounded-lg px-3 py-1">
-              <AlertTriangle size={15} /> {saveError}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -1449,6 +1442,18 @@ export default function OrderEdit() {
         onClose={() => setQuickEditProduct(null)}
         onAdd={confirmAddProduct}
       />
+    )}
+    {/* Toast de erro — fixo no fundo, sempre visível independente de scroll */}
+    {saveError && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2
+                      bg-red-600 text-white text-[13px] font-medium px-4 py-3 rounded-xl shadow-2xl
+                      max-w-[90vw] w-max">
+        <AlertTriangle size={16} className="shrink-0" />
+        {saveError}
+        <button onClick={() => setSaveError('')} className="ml-2 opacity-70 hover:opacity-100">
+          <X size={14} />
+        </button>
+      </div>
     )}
     </>
   )
