@@ -31,10 +31,12 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api/, /^\/uploads/],
         runtimeCaching: [
           {
-            urlPattern: /^https?:\/\/.*\/api\//,
+            // Só cacheia GET — PATCH/POST/DELETE nunca passam pelo cache
+            urlPattern: ({ request }) =>
+              /\/api\//.test(request.url) && request.method === 'GET',
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-cache-v6',
+              cacheName: 'api-cache-v7',
               networkTimeoutSeconds: 5,
               expiration: { maxEntries: 500, maxAgeSeconds: 1 * 24 * 60 * 60 },
             },
