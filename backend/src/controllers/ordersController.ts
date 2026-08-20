@@ -866,6 +866,7 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
 
   console.log(`[updateOrderItem] order=${id} item=${item_id} type=${custom_grade ? 'pack' : 'regular'}`)
   const t0 = Date.now()
+  try {
 
   const { rows: [order] } = await query(
     'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
@@ -999,6 +1000,11 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
 
   console.log(`[updateOrderItem] DONE: ${Date.now() - t0}ms`)
   res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error(`[updateOrderItem] ERROR after ${Date.now() - t0}ms:`, msg)
+    if (!res.headersSent) res.status(500).json({ error: `Erro ao atualizar item: ${msg}` })
+  }
 }
 
 // Recalcula totais de um pedido a partir dos order_items (corrige inconsistências)
