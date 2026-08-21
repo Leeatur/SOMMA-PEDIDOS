@@ -132,131 +132,144 @@ async function computeOrderTotals(
 }
 
 export async function listOrders(req: AuthRequest, res: Response) {
-  const { status_id, factory_id, rep_id, date_from, date_to, search, source } = req.query
-  const isAdmin = req.user!.role === 'admin'
+  try {
+    const { status_id, factory_id, rep_id, date_from, date_to, search, source } = req.query
+    const isAdmin = req.user!.role === 'admin'
 
-  let sql = `
-    SELECT o.*,
-      c.name as client_name, c.trade_name as client_trade_name, c.city as client_city,
-      u.name as rep_name,
-      f.name as factory_name,
-      pt.name as price_table_name,
-      s.name as status_name, s.color as status_color, s.icon as status_icon
-    FROM orders o
-    JOIN clients c ON c.id = o.client_id
-    JOIN users u ON u.id = o.rep_id
-    JOIN factories f ON f.id = o.factory_id
-    LEFT JOIN price_tables pt ON pt.id = o.price_table_id
-    LEFT JOIN order_statuses s ON s.id = o.status_id
-    WHERE o.deleted_at IS NULL
-  `
-  const params: unknown[] = []
-  let idx = 1
-  if (!isAdmin) { sql += ` AND o.rep_id = $${idx++}`; params.push(req.user!.id) }
-  if (status_id) { sql += ` AND o.status_id = $${idx++}`; params.push(status_id) }
-  if (factory_id) { sql += ` AND o.factory_id = $${idx++}`; params.push(factory_id) }
-  if (rep_id && isAdmin) { sql += ` AND o.rep_id = $${idx++}`; params.push(rep_id) }
-  if (date_from) { sql += ` AND o.created_at >= $${idx++}`; params.push(date_from) }
-  if (date_to) { sql += ` AND o.created_at <= $${idx++}`; params.push(date_to) }
-  if (source === 'suasvendas') { sql += ` AND o.notes LIKE 'Importado SuasVendas%'` }
-  else { sql += ` AND (o.notes IS NULL OR o.notes NOT LIKE 'Importado SuasVendas%')` }
-  if (search) {
-    sql += ` AND (
-      c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR c.city ILIKE $${idx} OR
-      f.name ILIKE $${idx} OR u.name ILIKE $${idx} OR
-      o.industry_order_number ILIKE $${idx} OR
-      o.payment_terms ILIKE $${idx} OR o.buyer_name ILIKE $${idx} OR
-      o.order_number::text ILIKE $${idx}
-    )`
-    params.push(`%${search}%`)
-    idx++
+    let sql = `
+      SELECT o.*,
+        c.name as client_name, c.trade_name as client_trade_name, c.city as client_city,
+        u.name as rep_name,
+        f.name as factory_name,
+        pt.name as price_table_name,
+        s.name as status_name, s.color as status_color, s.icon as status_icon
+      FROM orders o
+      JOIN clients c ON c.id = o.client_id
+      JOIN users u ON u.id = o.rep_id
+      JOIN factories f ON f.id = o.factory_id
+      LEFT JOIN price_tables pt ON pt.id = o.price_table_id
+      LEFT JOIN order_statuses s ON s.id = o.status_id
+      WHERE o.deleted_at IS NULL
+    `
+    const params: unknown[] = []
+    let idx = 1
+    if (!isAdmin) { sql += ` AND o.rep_id = $${idx++}`; params.push(req.user!.id) }
+    if (status_id) { sql += ` AND o.status_id = $${idx++}`; params.push(status_id) }
+    if (factory_id) { sql += ` AND o.factory_id = $${idx++}`; params.push(factory_id) }
+    if (rep_id && isAdmin) { sql += ` AND o.rep_id = $${idx++}`; params.push(rep_id) }
+    if (date_from) { sql += ` AND o.created_at >= $${idx++}`; params.push(date_from) }
+    if (date_to) { sql += ` AND o.created_at <= $${idx++}`; params.push(date_to) }
+    if (source === 'suasvendas') { sql += ` AND o.notes LIKE 'Importado SuasVendas%'` }
+    else { sql += ` AND (o.notes IS NULL OR o.notes NOT LIKE 'Importado SuasVendas%')` }
+    if (search) {
+      sql += ` AND (
+        c.name ILIKE $${idx} OR c.trade_name ILIKE $${idx} OR c.city ILIKE $${idx} OR
+        f.name ILIKE $${idx} OR u.name ILIKE $${idx} OR
+        o.industry_order_number ILIKE $${idx} OR
+        o.payment_terms ILIKE $${idx} OR o.buyer_name ILIKE $${idx} OR
+        o.order_number::text ILIKE $${idx}
+      )`
+      params.push(`%${search}%`)
+      idx++
+    }
+    sql += ' ORDER BY o.created_at DESC, o.order_number DESC'
+    const { rows } = await query(sql, params)
+    res.json(rows)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[listOrders] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
-  sql += ' ORDER BY o.created_at DESC, o.order_number DESC'
-  const { rows } = await query(sql, params)
-  res.json(rows)
 }
 
 export async function getOrder(req: AuthRequest, res: Response) {
-  const { rows } = await query(
-    `SELECT o.*,
-      c.name as client_name, c.trade_name as client_trade_name,
-      c.city as client_city, c.state as client_state,
-      c.phone as client_phone, c.whatsapp as client_whatsapp,
-      c.email as client_email, c.cnpj as client_cnpj,
-      c.address as client_address, c.address_number as client_address_number,
-      c.complement as client_complement,
-      c.neighborhood as client_neighborhood, c.zip as client_zip,
-      c.state_registration as client_state_registration,
-      u.name as rep_name, u.email as rep_email,
-      f.name as factory_name, f.contact as factory_contact,
-      pt.name as price_table_name,
-      s.name as status_name, s.color as status_color, s.icon as status_icon
-     FROM orders o
-     JOIN clients c ON c.id = o.client_id
-     JOIN users u ON u.id = o.rep_id
-     JOIN factories f ON f.id = o.factory_id
-     JOIN price_tables pt ON pt.id = o.price_table_id
-     LEFT JOIN order_statuses s ON s.id = o.status_id
-     WHERE o.id = $1`,
-    [req.params.id]
-  )
-  if (!rows[0]) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
-  const isAdmin = req.user!.role === 'admin'
-  if (!isAdmin && rows[0].rep_id !== req.user!.id) {
-    res.status(403).json({ error: 'Acesso negado' }); return
-  }
-
-  const { rows: items } = await query(
-    `SELECT oi.*,
-       p.product_name, p.model, p.type, p.image_url, p.size_range, p.blocked_sizes,
-       json_agg(gc ORDER BY gc.sort_order) FILTER (WHERE gc.id IS NOT NULL) as grade_configs
-     FROM order_items oi
-     JOIN products p ON p.id = oi.product_id
-     LEFT JOIN grade_configs gc ON gc.product_id = oi.product_id
-     WHERE oi.order_id = $1
-     GROUP BY oi.id, p.product_name, p.model, p.type, p.image_url, p.size_range, p.blocked_sizes
-     ORDER BY oi.created_at`,
-    [req.params.id]
-  )
-
-  const { rows: history } = await query(
-    `SELECT h.*, u.name as changed_by_name,
-       fs.name as from_status_name, ts.name as to_status_name, ts.color as to_status_color
-     FROM order_status_history h
-     JOIN users u ON u.id = h.changed_by
-     LEFT JOIN order_statuses fs ON fs.id = h.from_status_id
-     JOIN order_statuses ts ON ts.id = h.to_status_id
-     WHERE h.order_id = $1 ORDER BY h.created_at DESC`,
-    [req.params.id]
-  )
-
-  // Auto-correção silenciosa: se os totais da tabela orders divergem dos order_items, recalcula
-  const order = rows[0]
-  const realPcs  = items.reduce((s: number, it: { total_pieces: number }) => s + Number(it.total_pieces), 0)
-  const realVal  = items.reduce((s: number, it: { subtotal: number }) => s + Number(it.subtotal), 0)
-  const storedPcs = Number(order.total_pieces)
-  const storedVal = Number(order.total_value)
-  if (Math.abs(realPcs - storedPcs) > 0 || Math.abs(realVal - storedVal) > 0.01) {
-    const realValFull = items.reduce((s: number, it: { unit_price: number; total_pieces: number }) => s + Number(it.unit_price) * Number(it.total_pieces), 0)
-    const fixedVal = Math.round(realVal * 100) / 100
-    if (order.commission_manual_override) {
-      await query(`UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
-        [realPcs, fixedVal, order.id])
-    } else {
-      await query(
-        `UPDATE orders SET total_pieces=$1, total_value=$2, rep_commission_value=$3, office_commission_value=$4, guide_commission_value=$5, updated_at=NOW() WHERE id=$6`,
-        [realPcs, fixedVal,
-         Math.round(fixedVal * order.rep_commission_pct / 100 * 100) / 100,
-         Math.round(fixedVal * order.office_commission_pct / 100 * 100) / 100,
-         Math.round(fixedVal * (Number(order.guide_commission_pct) || 0) / 100 * 100) / 100,
-         order.id]
-      )
+  try {
+    const { rows } = await query(
+      `SELECT o.*,
+        c.name as client_name, c.trade_name as client_trade_name,
+        c.city as client_city, c.state as client_state,
+        c.phone as client_phone, c.whatsapp as client_whatsapp,
+        c.email as client_email, c.cnpj as client_cnpj,
+        c.address as client_address, c.address_number as client_address_number,
+        c.complement as client_complement,
+        c.neighborhood as client_neighborhood, c.zip as client_zip,
+        c.state_registration as client_state_registration,
+        u.name as rep_name, u.email as rep_email,
+        f.name as factory_name, f.contact as factory_contact,
+        pt.name as price_table_name,
+        s.name as status_name, s.color as status_color, s.icon as status_icon
+       FROM orders o
+       JOIN clients c ON c.id = o.client_id
+       JOIN users u ON u.id = o.rep_id
+       JOIN factories f ON f.id = o.factory_id
+       JOIN price_tables pt ON pt.id = o.price_table_id
+       LEFT JOIN order_statuses s ON s.id = o.status_id
+       WHERE o.id = $1`,
+      [req.params.id]
+    )
+    if (!rows[0]) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+    const isAdmin = req.user!.role === 'admin'
+    if (!isAdmin && rows[0].rep_id !== req.user!.id) {
+      res.status(403).json({ error: 'Acesso negado' }); return
     }
-    order.total_pieces = realPcs
-    order.total_value  = Math.round(realVal * 100) / 100
-  }
 
-  res.json({ ...order, items, history })
+    const { rows: items } = await query(
+      `SELECT oi.*,
+         p.product_name, p.model, p.type, p.image_url, p.size_range, p.blocked_sizes,
+         json_agg(gc ORDER BY gc.sort_order) FILTER (WHERE gc.id IS NOT NULL) as grade_configs
+       FROM order_items oi
+       JOIN products p ON p.id = oi.product_id
+       LEFT JOIN grade_configs gc ON gc.product_id = oi.product_id
+       WHERE oi.order_id = $1
+       GROUP BY oi.id, p.product_name, p.model, p.type, p.image_url, p.size_range, p.blocked_sizes
+       ORDER BY oi.created_at`,
+      [req.params.id]
+    )
+
+    const { rows: history } = await query(
+      `SELECT h.*, u.name as changed_by_name,
+         fs.name as from_status_name, ts.name as to_status_name, ts.color as to_status_color
+       FROM order_status_history h
+       JOIN users u ON u.id = h.changed_by
+       LEFT JOIN order_statuses fs ON fs.id = h.from_status_id
+       JOIN order_statuses ts ON ts.id = h.to_status_id
+       WHERE h.order_id = $1 ORDER BY h.created_at DESC`,
+      [req.params.id]
+    )
+
+    // Auto-correção silenciosa: se os totais da tabela orders divergem dos order_items, recalcula
+    const order = rows[0]
+    const realPcs  = items.reduce((s: number, it: { total_pieces: number }) => s + Number(it.total_pieces), 0)
+    const realVal  = items.reduce((s: number, it: { subtotal: number }) => s + Number(it.subtotal), 0)
+    const storedPcs = Number(order.total_pieces)
+    const storedVal = Number(order.total_value)
+    if (Math.abs(realPcs - storedPcs) > 0 || Math.abs(realVal - storedVal) > 0.01) {
+      const realValFull = items.reduce((s: number, it: { unit_price: number; total_pieces: number }) => s + Number(it.unit_price) * Number(it.total_pieces), 0)
+      void realValFull
+      const fixedVal = Math.round(realVal * 100) / 100
+      if (order.commission_manual_override) {
+        await query(`UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
+          [realPcs, fixedVal, order.id])
+      } else {
+        await query(
+          `UPDATE orders SET total_pieces=$1, total_value=$2, rep_commission_value=$3, office_commission_value=$4, guide_commission_value=$5, updated_at=NOW() WHERE id=$6`,
+          [realPcs, fixedVal,
+           Math.round(fixedVal * order.rep_commission_pct / 100 * 100) / 100,
+           Math.round(fixedVal * order.office_commission_pct / 100 * 100) / 100,
+           Math.round(fixedVal * (Number(order.guide_commission_pct) || 0) / 100 * 100) / 100,
+           order.id]
+        )
+      }
+      order.total_pieces = realPcs
+      order.total_value  = Math.round(realVal * 100) / 100
+    }
+
+    res.json({ ...order, items, history })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[getOrder] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 // Blindagem de preço: só admin pode definir preço customizado. Para vendedor
@@ -489,210 +502,236 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
 // Aceita pct (%) ou value (R$). Quando pct é fornecido, calcula value = total_value * pct / 100
 // e atualiza ambos os campos (pct e value) na tabela orders.
 export async function updateOrderCommission(req: AuthRequest, res: Response) {
-  if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode ajustar comissão' }); return }
-  const {
-    rep_commission_value, office_commission_value,
-    rep_commission_pct, office_commission_pct,
-    guide_commission_pct,
-  } = req.body
+  try {
+    if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode ajustar comissão' }); return }
+    const {
+      rep_commission_value, office_commission_value,
+      rep_commission_pct, office_commission_pct,
+      guide_commission_pct,
+    } = req.body
 
-  const { rows: [order] } = await query(
-    'SELECT id, total_value, rep_commission_pct, office_commission_pct, guide_commission_pct FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
-  )
-  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+    void rep_commission_value; void office_commission_value
 
-  const totalVal = Number(order.total_value) || 0
+    const { rows: [order] } = await query(
+      'SELECT id, total_value, rep_commission_pct, office_commission_pct, guide_commission_pct FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
+    )
+    if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
-  // % informado tem prioridade; caso contrário usa o % atual do pedido no banco
-  // Value é SEMPRE recalculado a partir do % efetivo (nunca usa valor do body diretamente)
-  // Isso garante que editar rep_pct não zera o office_value (e vice-versa)
-  const repPctIn = rep_commission_pct  !== undefined ? parseFloat(String(rep_commission_pct).replace(',','.'))  : null
-  const offPctIn = office_commission_pct !== undefined ? parseFloat(String(office_commission_pct).replace(',','.')) : null
-  const guidePctIn = guide_commission_pct !== undefined ? parseFloat(String(guide_commission_pct).replace(',','.')) : null
-  const effectiveRepPct = (repPctIn !== null && !isNaN(repPctIn)) ? repPctIn : Number(order.rep_commission_pct  || 0)
-  const effectiveOffPct = (offPctIn !== null && !isNaN(offPctIn)) ? offPctIn : Number(order.office_commission_pct || 0)
-  const effectiveGuidePct = (guidePctIn !== null && !isNaN(guidePctIn)) ? guidePctIn : Number(order.guide_commission_pct || 0)
-  const repVal = Math.round(totalVal * effectiveRepPct / 100 * 100) / 100
-  const offVal = Math.round(totalVal * effectiveOffPct / 100 * 100) / 100
-  const guideVal = Math.round(totalVal * effectiveGuidePct / 100 * 100) / 100
-  const repPct = effectiveRepPct
-  const offPct = effectiveOffPct
-  const guidePct = effectiveGuidePct
+    const totalVal = Number(order.total_value) || 0
 
-  // Constrói UPDATE dinâmico — id vai SEMPRE por último como $N final
-  const sets: string[] = []
-  const params: unknown[] = []
+    // % informado tem prioridade; caso contrário usa o % atual do pedido no banco
+    // Value é SEMPRE recalculado a partir do % efetivo (nunca usa valor do body diretamente)
+    // Isso garante que editar rep_pct não zera o office_value (e vice-versa)
+    const repPctIn = rep_commission_pct  !== undefined ? parseFloat(String(rep_commission_pct).replace(',','.'))  : null
+    const offPctIn = office_commission_pct !== undefined ? parseFloat(String(office_commission_pct).replace(',','.')) : null
+    const guidePctIn = guide_commission_pct !== undefined ? parseFloat(String(guide_commission_pct).replace(',','.')) : null
+    const effectiveRepPct = (repPctIn !== null && !isNaN(repPctIn)) ? repPctIn : Number(order.rep_commission_pct  || 0)
+    const effectiveOffPct = (offPctIn !== null && !isNaN(offPctIn)) ? offPctIn : Number(order.office_commission_pct || 0)
+    const effectiveGuidePct = (guidePctIn !== null && !isNaN(guidePctIn)) ? guidePctIn : Number(order.guide_commission_pct || 0)
+    const repVal = Math.round(totalVal * effectiveRepPct / 100 * 100) / 100
+    const offVal = Math.round(totalVal * effectiveOffPct / 100 * 100) / 100
+    const guideVal = Math.round(totalVal * effectiveGuidePct / 100 * 100) / 100
+    const repPct = effectiveRepPct
+    const offPct = effectiveOffPct
+    const guidePct = effectiveGuidePct
 
-  const p = () => params.length  // índice atual após o push
+    // Constrói UPDATE dinâmico — id vai SEMPRE por último como $N final
+    const sets: string[] = []
+    const params: unknown[] = []
 
-  params.push(repVal);  sets.push(`rep_commission_value = $${p()}`)
-  params.push(offVal);  sets.push(`office_commission_value = $${p()}`)
-  params.push(repPct);  sets.push(`rep_commission_pct = $${p()}`)
-  params.push(offPct);  sets.push(`office_commission_pct = $${p()}`)
-  params.push(guideVal); sets.push(`guide_commission_value = $${p()}`)
-  params.push(guidePct); sets.push(`guide_commission_pct = $${p()}`)
+    const p = () => params.length  // índice atual após o push
 
-  sets.push('commission_manual_override = TRUE')
-  sets.push('updated_at = NOW()')
+    params.push(repVal);  sets.push(`rep_commission_value = $${p()}`)
+    params.push(offVal);  sets.push(`office_commission_value = $${p()}`)
+    params.push(repPct);  sets.push(`rep_commission_pct = $${p()}`)
+    params.push(offPct);  sets.push(`office_commission_pct = $${p()}`)
+    params.push(guideVal); sets.push(`guide_commission_value = $${p()}`)
+    params.push(guidePct); sets.push(`guide_commission_pct = $${p()}`)
 
-  params.push(req.params.id)  // id é sempre o último parâmetro
-  const idIdx = p()
+    sets.push('commission_manual_override = TRUE')
+    sets.push('updated_at = NOW()')
 
-  const { rows: [updated] } = await query(
-    `UPDATE orders SET ${sets.join(', ')} WHERE id = $${idIdx}
-     RETURNING rep_commission_value, office_commission_value, guide_commission_value,
-               rep_commission_pct, office_commission_pct, guide_commission_pct, commission_manual_override`,
-    params
-  )
-  res.json(updated)
+    params.push(req.params.id)  // id é sempre o último parâmetro
+    const idIdx = p()
+
+    const { rows: [updated] } = await query(
+      `UPDATE orders SET ${sets.join(', ')} WHERE id = $${idIdx}
+       RETURNING rep_commission_value, office_commission_value, guide_commission_value,
+                 rep_commission_pct, office_commission_pct, guide_commission_pct, commission_manual_override`,
+      params
+    )
+    res.json(updated)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[updateOrderCommission] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 // Reset da comissão manual — volta ao cálculo automático (admin only)
 export async function resetOrderCommission(req: AuthRequest, res: Response) {
-  if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode resetar comissão' }); return }
-  const { rows: [order] } = await query(
-    `SELECT id, price_table_id, discount_pct, rep_commission_pct, office_commission_pct, guide_commission_pct
-     FROM orders WHERE id=$1 AND deleted_at IS NULL`, [req.params.id]
-  )
-  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  try {
+    if (req.user!.role !== 'admin') { res.status(403).json({ error: 'Apenas admin pode resetar comissão' }); return }
+    const { rows: [order] } = await query(
+      `SELECT id, price_table_id, discount_pct, rep_commission_pct, office_commission_pct, guide_commission_pct
+       FROM orders WHERE id=$1 AND deleted_at IS NULL`, [req.params.id]
+    )
+    if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
-  // Recalcula a comissão com base no valor líquido (após desconto)
-  const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(subtotal), 0) AS val_net FROM order_items WHERE order_id=$1`,
-    [order.id]
-  )
-  const valNet = Math.round(Number(totals.val_net) * 100) / 100
-  const newRep = Math.round(valNet * order.rep_commission_pct / 100 * 100) / 100
-  const newOff = Math.round(valNet * order.office_commission_pct / 100 * 100) / 100
-  const newGuide = Math.round(valNet * (Number(order.guide_commission_pct) || 0) / 100 * 100) / 100
+    // Recalcula a comissão com base no valor líquido (após desconto)
+    const { rows: [totals] } = await query(
+      `SELECT COALESCE(SUM(subtotal), 0) AS val_net FROM order_items WHERE order_id=$1`,
+      [order.id]
+    )
+    const valNet = Math.round(Number(totals.val_net) * 100) / 100
+    const newRep = Math.round(valNet * order.rep_commission_pct / 100 * 100) / 100
+    const newOff = Math.round(valNet * order.office_commission_pct / 100 * 100) / 100
+    const newGuide = Math.round(valNet * (Number(order.guide_commission_pct) || 0) / 100 * 100) / 100
 
-  const { rows: [updated] } = await query(
-    `UPDATE orders SET
-       rep_commission_value = $1,
-       office_commission_value = $2,
-       guide_commission_value = $3,
-       commission_manual_override = FALSE,
-       updated_at = NOW()
-     WHERE id = $4
-     RETURNING rep_commission_value, office_commission_value, guide_commission_value, commission_manual_override`,
-    [newRep, newOff, newGuide, order.id]
-  )
-  res.json(updated)
+    const { rows: [updated] } = await query(
+      `UPDATE orders SET
+         rep_commission_value = $1,
+         office_commission_value = $2,
+         guide_commission_value = $3,
+         commission_manual_override = FALSE,
+         updated_at = NOW()
+       WHERE id = $4
+       RETURNING rep_commission_value, office_commission_value, guide_commission_value, commission_manual_override`,
+      [newRep, newOff, newGuide, order.id]
+    )
+    res.json(updated)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[resetOrderCommission] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 // Atualiza campos de informação do pedido
 export async function updateOrderInfo(req: AuthRequest, res: Response) {
-  const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id, rep_id, transportadora } = req.body
-  const { rows: [order] } = await query(
-    'SELECT rep_id, price_table_id, discount_pct, total_value, total_commission_pct, commission_manual_override FROM orders WHERE id=$1',
-    [req.params.id]
-  )
-  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
-  const isAdmin = req.user!.role === 'admin'
-  if (!isAdmin && order.rep_id !== req.user!.id) {
-    res.status(403).json({ error: 'Acesso negado' }); return
-  }
-  if (client_id) {
-    const { rows: [cli] } = await query('SELECT id FROM clients WHERE id=$1 AND active=true', [client_id])
-    if (!cli) { res.status(400).json({ error: 'Cliente não encontrado' }); return }
-  }
-  if (rep_id && isAdmin) {
-    const { rows: [rep] } = await query('SELECT id FROM users WHERE id=$1 AND active=true', [rep_id])
-    if (!rep) { res.status(400).json({ error: 'Representante não encontrado' }); return }
-  }
-
-  const sets: string[] = []
-  const params: unknown[] = []
-  let idx = 1
-
-  sets.push(`payment_terms=$${idx++}`);         params.push(payment_terms ?? null)
-  sets.push(`delivery_date=$${idx++}`);          params.push(delivery_date || null)
-  sets.push(`freight_type=$${idx++}`);           params.push(freight_type || 'CIF')
-  sets.push(`notes=$${idx++}`);                  params.push(notes ?? null)
-  sets.push(`buyer_name=$${idx++}`);             params.push(buyer_name ?? null)
-  sets.push(`industry_order_number=$${idx++}`);  params.push(industry_order_number ?? null)
-  sets.push(`transportadora=$${idx++}`);         params.push(transportadora ?? null)
-  if (client_id) { sets.push(`client_id=$${idx++}`);  params.push(client_id) }
-  if (rep_id && isAdmin) { sets.push(`rep_id=$${idx++}`); params.push(rep_id) }
-
-  // Bug fix: quando admin troca o rep, recalcula o split de comissão baseado no
-  // papel do novo representante (admin → 0% rep + 100% escrit; vendedor → 6% rep + 4% escrit).
-  // Só aplica se a comissão não estiver em modo manual e o rep estiver sendo alterado.
-  if (rep_id && isAdmin && !order.commission_manual_override) {
-    const { rows: [newRep] } = await query('SELECT role FROM users WHERE id=$1', [rep_id])
-    const isRepAdmin = newRep?.role === 'admin'
-
-    // Busca a regra de comissão pela tabela de preços e desconto do pedido
-    const { rows: rules } = await query(
-      `SELECT * FROM discount_commission_rules WHERE price_table_id=$1
-       ORDER BY ABS(discount_pct - $2) ASC LIMIT 1`,
-      [order.price_table_id, parseFloat(order.discount_pct) || 0]
+  try {
+    const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id, rep_id, transportadora } = req.body
+    const { rows: [order] } = await query(
+      'SELECT rep_id, price_table_id, discount_pct, total_value, total_commission_pct, commission_manual_override FROM orders WHERE id=$1',
+      [req.params.id]
     )
-    const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4 }
-    const rule = rules[0] || PE_DEFAULT
-    const totalVal = Number(order.total_value) || 0
+    if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+    const isAdmin = req.user!.role === 'admin'
+    if (!isAdmin && order.rep_id !== req.user!.id) {
+      res.status(403).json({ error: 'Acesso negado' }); return
+    }
+    if (client_id) {
+      const { rows: [cli] } = await query('SELECT id FROM clients WHERE id=$1 AND active=true', [client_id])
+      if (!cli) { res.status(400).json({ error: 'Cliente não encontrado' }); return }
+    }
+    if (rep_id && isAdmin) {
+      const { rows: [rep] } = await query('SELECT id FROM users WHERE id=$1 AND active=true', [rep_id])
+      if (!rep) { res.status(400).json({ error: 'Representante não encontrado' }); return }
+    }
 
-    const newRepPct = isRepAdmin ? 0 : rule.rep_commission_pct
-    const newOffPct = isRepAdmin ? rule.total_commission_pct : rule.office_commission_pct
-    const newRepVal = Math.round(totalVal * newRepPct / 100 * 100) / 100
-    const newOffVal = Math.round(totalVal * newOffPct / 100 * 100) / 100
+    const sets: string[] = []
+    const params: unknown[] = []
+    let idx = 1
 
-    sets.push(`rep_commission_pct=$${idx++}`);    params.push(newRepPct)
-    sets.push(`office_commission_pct=$${idx++}`); params.push(newOffPct)
-    sets.push(`rep_commission_value=$${idx++}`);  params.push(newRepVal)
-    sets.push(`office_commission_value=$${idx++}`); params.push(newOffVal)
+    sets.push(`payment_terms=$${idx++}`);         params.push(payment_terms ?? null)
+    sets.push(`delivery_date=$${idx++}`);          params.push(delivery_date || null)
+    sets.push(`freight_type=$${idx++}`);           params.push(freight_type || 'CIF')
+    sets.push(`notes=$${idx++}`);                  params.push(notes ?? null)
+    sets.push(`buyer_name=$${idx++}`);             params.push(buyer_name ?? null)
+    sets.push(`industry_order_number=$${idx++}`);  params.push(industry_order_number ?? null)
+    sets.push(`transportadora=$${idx++}`);         params.push(transportadora ?? null)
+    if (client_id) { sets.push(`client_id=$${idx++}`);  params.push(client_id) }
+    if (rep_id && isAdmin) { sets.push(`rep_id=$${idx++}`); params.push(rep_id) }
+
+    // Bug fix: quando admin troca o rep, recalcula o split de comissão baseado no
+    // papel do novo representante (admin → 0% rep + 100% escrit; vendedor → 6% rep + 4% escrit).
+    // Só aplica se a comissão não estiver em modo manual e o rep estiver sendo alterado.
+    if (rep_id && isAdmin && !order.commission_manual_override) {
+      const { rows: [newRep] } = await query('SELECT role FROM users WHERE id=$1', [rep_id])
+      const isRepAdmin = newRep?.role === 'admin'
+
+      // Busca a regra de comissão pela tabela de preços e desconto do pedido
+      const { rows: rules } = await query(
+        `SELECT * FROM discount_commission_rules WHERE price_table_id=$1
+         ORDER BY ABS(discount_pct - $2) ASC LIMIT 1`,
+        [order.price_table_id, parseFloat(order.discount_pct) || 0]
+      )
+      const PE_DEFAULT = { total_commission_pct: 10, rep_commission_pct: 6, office_commission_pct: 4 }
+      const rule = rules[0] || PE_DEFAULT
+      const totalVal = Number(order.total_value) || 0
+
+      const newRepPct = isRepAdmin ? 0 : rule.rep_commission_pct
+      const newOffPct = isRepAdmin ? rule.total_commission_pct : rule.office_commission_pct
+      const newRepVal = Math.round(totalVal * newRepPct / 100 * 100) / 100
+      const newOffVal = Math.round(totalVal * newOffPct / 100 * 100) / 100
+
+      sets.push(`rep_commission_pct=$${idx++}`);    params.push(newRepPct)
+      sets.push(`office_commission_pct=$${idx++}`); params.push(newOffPct)
+      sets.push(`rep_commission_value=$${idx++}`);  params.push(newRepVal)
+      sets.push(`office_commission_value=$${idx++}`); params.push(newOffVal)
+    }
+
+    sets.push('updated_at=NOW()')
+
+    params.push(req.params.id)
+    await query(`UPDATE orders SET ${sets.join(', ')} WHERE id=$${idx}`, params)
+    res.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[updateOrderInfo] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
-
-  sets.push('updated_at=NOW()')
-
-  params.push(req.params.id)
-  await query(`UPDATE orders SET ${sets.join(', ')} WHERE id=$${idx}`, params)
-  res.json({ ok: true })
 }
 
 // Remove um item específico de um pedido e recalcula totais
 export async function removeOrderItem(req: AuthRequest, res: Response) {
-  const { id, item_id } = req.params
-  const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1 AND deleted_at IS NULL', [id])
-  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
-  const isAdmin = req.user!.role === 'admin'
-  if (!isAdmin && order.rep_id !== req.user!.id) {
-    res.status(403).json({ error: 'Acesso negado' }); return
-  }
-  const { rows: [item] } = await query('SELECT id FROM order_items WHERE id=$1 AND order_id=$2', [item_id, id])
-  if (!item) { res.status(404).json({ error: 'Item não encontrado' }); return }
+  try {
+    const { id, item_id } = req.params
+    const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1 AND deleted_at IS NULL', [id])
+    if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+    const isAdmin = req.user!.role === 'admin'
+    if (!isAdmin && order.rep_id !== req.user!.id) {
+      res.status(403).json({ error: 'Acesso negado' }); return
+    }
+    const { rows: [item] } = await query('SELECT id FROM order_items WHERE id=$1 AND order_id=$2', [item_id, id])
+    if (!item) { res.status(404).json({ error: 'Item não encontrado' }); return }
 
-  await query('DELETE FROM order_items WHERE id=$1', [item_id])
+    await query('DELETE FROM order_items WHERE id=$1', [item_id])
 
-  // Recalcula totais do pedido — comissão sobre preço líquido (subtotal)
-  const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
-     FROM order_items WHERE order_id=$1`,
-    [id]
-  )
-  const { rows: [o] } = await query('SELECT rep_commission_pct, office_commission_pct, commission_manual_override FROM orders WHERE id=$1', [id])
-  const newValue = Math.round(Number(totals.val) * 100) / 100
-
-  if (o.commission_manual_override) {
-    await query(
-      `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
-      [Number(totals.pcs), newValue, id]
+    // Recalcula totais do pedido — comissão sobre preço líquido (subtotal)
+    const { rows: [totals] } = await query(
+      `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
+       FROM order_items WHERE order_id=$1`,
+      [id]
     )
-  } else {
-    await query(
-      `UPDATE orders SET total_pieces=$1, total_value=$2,
-         rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
-       WHERE id=$5`,
-      [
-        Number(totals.pcs),
-        newValue,
-        Math.round(newValue * o.rep_commission_pct / 100 * 100) / 100,
-        Math.round(newValue * o.office_commission_pct / 100 * 100) / 100,
-        id,
-      ]
-    )
+    const { rows: [o] } = await query('SELECT rep_commission_pct, office_commission_pct, commission_manual_override FROM orders WHERE id=$1', [id])
+    const newValue = Math.round(Number(totals.val) * 100) / 100
+
+    if (o.commission_manual_override) {
+      await query(
+        `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
+        [Number(totals.pcs), newValue, id]
+      )
+    } else {
+      await query(
+        `UPDATE orders SET total_pieces=$1, total_value=$2,
+           rep_commission_value=$3, office_commission_value=$4, updated_at=NOW()
+         WHERE id=$5`,
+        [
+          Number(totals.pcs),
+          newValue,
+          Math.round(newValue * o.rep_commission_pct / 100 * 100) / 100,
+          Math.round(newValue * o.office_commission_pct / 100 * 100) / 100,
+          id,
+        ]
+      )
+    }
+    res.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[removeOrderItem] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
-  res.json({ ok: true })
 }
 
 // Troca a tabela de preços do pedido e recalcula todos os valores
@@ -864,14 +903,11 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
   const { id, item_id } = req.params
   const { sizes, boxes_count, custom_grade, unit_price: newUnitPrice, item_obs, grade_is_per_box } = req.body
 
-  console.log(`[updateOrderItem] order=${id} item=${item_id} type=${custom_grade ? 'pack' : 'regular'}`)
-  const t0 = Date.now()
   try {
 
   const { rows: [order] } = await query(
     'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
   )
-  console.log(`[updateOrderItem] SELECT orders: ${Date.now() - t0}ms`)
   if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
   const isAdmin = req.user!.role === 'admin'
@@ -886,7 +922,6 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
      WHERE oi.id=$1 AND oi.order_id=$2`,
     [item_id, id]
   )
-  console.log(`[updateOrderItem] SELECT item: ${Date.now() - t0}ms`)
   if (!item) { res.status(404).json({ error: 'Item não encontrado' }); return }
 
   // Atualização somente de observação (sem recalcular totais)
@@ -960,7 +995,6 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     res.status(400).json({ error: 'Dados inválidos' }); return
   }
 
-  console.log(`[updateOrderItem] before UPDATE item: ${Date.now() - t0}ms`)
   await query(
     `UPDATE order_items SET
        sizes=$1, boxes_count=$2, total_pieces=$3, subtotal=$4, custom_grade=$5, unit_price=$6, item_obs=$7
@@ -968,7 +1002,6 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     [newSizes ? JSON.stringify(newSizes) : null, newBoxesCount, newTotalPieces, newSubtotal, newCustomGrade, effectiveUnitPrice,
      item_obs !== undefined ? (item_obs || null) : item.item_obs, item_id]
   )
-  console.log(`[updateOrderItem] after UPDATE item: ${Date.now() - t0}ms`)
 
   // Recalcula totais — comissão sobre preço líquido (subtotal)
   const { rows: [totals] } = await query(
@@ -998,168 +1031,203 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     )
   }
 
-  console.log(`[updateOrderItem] DONE: ${Date.now() - t0}ms`)
   res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error(`[updateOrderItem] ERROR after ${Date.now() - t0}ms:`, msg)
+    console.error('[updateOrderItem] ERROR:', msg)
     if (!res.headersSent) res.status(500).json({ error: `Erro ao atualizar item: ${msg}` })
   }
 }
 
 // Recalcula totais de um pedido a partir dos order_items (corrige inconsistências)
 export async function recalcOrderTotals(req: AuthRequest, res: Response) {
-  const { id } = req.params
-  const isAdmin = req.user!.role === 'admin'
-  const { rows: [order] } = await query(
-    'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
-  )
-  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
-  if (!isAdmin && order.rep_id !== req.user!.id) {
-    res.status(403).json({ error: 'Acesso negado' }); return
-  }
-
-  const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
-     FROM order_items WHERE order_id=$1`,
-    [id]
-  )
-  const newValue = Math.round(Number(totals.val) * 100) / 100
-
-  if (order.commission_manual_override) {
-    await query(
-      `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
-      [Number(totals.pcs), newValue, id]
+  try {
+    const { id } = req.params
+    const isAdmin = req.user!.role === 'admin'
+    const { rows: [order] } = await query(
+      'SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id]
     )
-  } else {
-    await query(
-      `UPDATE orders SET total_pieces=$1, total_value=$2,
-         rep_commission_value=$3, office_commission_value=$4, guide_commission_value=$5, updated_at=NOW()
-       WHERE id=$6`,
-      [
-        Number(totals.pcs),
-        newValue,
-        Math.round(newValue * order.rep_commission_pct / 100 * 100) / 100,
-        Math.round(newValue * order.office_commission_pct / 100 * 100) / 100,
-        Math.round(newValue * (Number(order.guide_commission_pct) || 0) / 100 * 100) / 100,
-        id,
-      ]
+    if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+    if (!isAdmin && order.rep_id !== req.user!.id) {
+      res.status(403).json({ error: 'Acesso negado' }); return
+    }
+
+    const { rows: [totals] } = await query(
+      `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val
+       FROM order_items WHERE order_id=$1`,
+      [id]
     )
+    const newValue = Math.round(Number(totals.val) * 100) / 100
+
+    if (order.commission_manual_override) {
+      await query(
+        `UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3`,
+        [Number(totals.pcs), newValue, id]
+      )
+    } else {
+      await query(
+        `UPDATE orders SET total_pieces=$1, total_value=$2,
+           rep_commission_value=$3, office_commission_value=$4, guide_commission_value=$5, updated_at=NOW()
+         WHERE id=$6`,
+        [
+          Number(totals.pcs),
+          newValue,
+          Math.round(newValue * order.rep_commission_pct / 100 * 100) / 100,
+          Math.round(newValue * order.office_commission_pct / 100 * 100) / 100,
+          Math.round(newValue * (Number(order.guide_commission_pct) || 0) / 100 * 100) / 100,
+          id,
+        ]
+      )
+    }
+    res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[recalcOrderTotals] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
-  res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
 }
 
 export async function fixPackTotals(req: AuthRequest, res: Response) {
-  const { id } = req.params
-  const { rows: [order] } = await query('SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id])
-  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+  try {
+    const { id } = req.params
+    const { rows: [order] } = await query('SELECT * FROM orders WHERE id=$1 AND deleted_at IS NULL', [id])
+    if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
 
-  const { rows: packItems } = await query(
-    `SELECT oi.id, oi.boxes_count, oi.total_pieces, oi.unit_price, oi.product_id
-     FROM order_items oi
-     JOIN products p ON p.id = oi.product_id
-     WHERE oi.order_id=$1 AND p.type='pack'`,
-    [id]
-  )
-
-  const disc = parseFloat(order.discount_pct) || 0
-  const fixed: string[] = []
-
-  for (const item of packItems) {
-    const { rows: grades } = await query(
-      'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
+    const { rows: packItems } = await query(
+      `SELECT oi.id, oi.boxes_count, oi.total_pieces, oi.unit_price, oi.product_id
+       FROM order_items oi
+       JOIN products p ON p.id = oi.product_id
+       WHERE oi.order_id=$1 AND p.type='pack'`,
+      [id]
     )
-    const piecesPerBox = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0)
-    if (piecesPerBox === 0) continue
-    const boxes = Number(item.boxes_count) || 1
-    const newTotal = boxes * piecesPerBox
-    if (newTotal === Number(item.total_pieces)) continue
-    const discountedPrice = Number(item.unit_price) * (1 - disc / 100)
-    const newSubtotal = Math.round(discountedPrice * newTotal * 100) / 100
-    await query(
-      'UPDATE order_items SET total_pieces=$1, subtotal=$2 WHERE id=$3',
-      [newTotal, newSubtotal, item.id]
+
+    const disc = parseFloat(order.discount_pct) || 0
+    const fixed: string[] = []
+
+    for (const item of packItems) {
+      const { rows: grades } = await query(
+        'SELECT total_pieces FROM grade_configs WHERE product_id=$1', [item.product_id]
+      )
+      const piecesPerBox = grades.reduce((s: number, g: { total_pieces: number }) => s + g.total_pieces, 0)
+      if (piecesPerBox === 0) continue
+      const boxes = Number(item.boxes_count) || 1
+      const newTotal = boxes * piecesPerBox
+      if (newTotal === Number(item.total_pieces)) continue
+      const discountedPrice = Number(item.unit_price) * (1 - disc / 100)
+      const newSubtotal = Math.round(discountedPrice * newTotal * 100) / 100
+      await query(
+        'UPDATE order_items SET total_pieces=$1, subtotal=$2 WHERE id=$3',
+        [newTotal, newSubtotal, item.id]
+      )
+      fixed.push(`${item.id}: ${item.total_pieces}→${newTotal} pç`)
+    }
+
+    const { rows: [totals] } = await query(
+      `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val FROM order_items WHERE order_id=$1`, [id]
     )
-    fixed.push(`${item.id}: ${item.total_pieces}→${newTotal} pç`)
+    const newValue = Math.round(Number(totals.val) * 100) / 100
+    await query('UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3',
+      [Number(totals.pcs), newValue, id])
+
+    res.json({ ok: true, fixed, newTotal: Number(totals.pcs), newValue })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[fixPackTotals] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
-
-  const { rows: [totals] } = await query(
-    `SELECT COALESCE(SUM(total_pieces),0) AS pcs, COALESCE(SUM(subtotal),0) AS val FROM order_items WHERE order_id=$1`, [id]
-  )
-  const newValue = Math.round(Number(totals.val) * 100) / 100
-  await query('UPDATE orders SET total_pieces=$1, total_value=$2, updated_at=NOW() WHERE id=$3',
-    [Number(totals.pcs), newValue, id])
-
-  res.json({ ok: true, fixed, newTotal: Number(totals.pcs), newValue })
 }
 
 // Exclui um pedido (admin ou rep dono do pedido)
 export async function deleteOrder(req: AuthRequest, res: Response) {
-  const isAdmin = req.user!.role === 'admin'
-  const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id])
-  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
-  if (!isAdmin && order.rep_id !== req.user!.id) {
-    res.status(403).json({ error: 'Acesso negado' }); return
+  try {
+    const isAdmin = req.user!.role === 'admin'
+    const { rows: [order] } = await query('SELECT rep_id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id])
+    if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+    if (!isAdmin && order.rep_id !== req.user!.id) {
+      res.status(403).json({ error: 'Acesso negado' }); return
+    }
+    // Soft delete — move para a lixeira em vez de apagar
+    await query('UPDATE orders SET deleted_at=NOW(), updated_at=NOW() WHERE id=$1', [req.params.id])
+    res.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[deleteOrder] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
-  // Soft delete — move para a lixeira em vez de apagar
-  await query('UPDATE orders SET deleted_at=NOW(), updated_at=NOW() WHERE id=$1', [req.params.id])
-  res.json({ ok: true })
 }
 
 // Lista pedidos na lixeira (admin only)
 export async function listTrashedOrders(req: AuthRequest, res: Response) {
-  const { rows } = await query(
-    `SELECT o.id, o.order_number, o.total_value, o.total_pieces, o.deleted_at, o.created_at,
-       c.name as client_name, c.city as client_city,
-       u.name as rep_name,
-       f.name as factory_name
-     FROM orders o
-     JOIN clients c ON c.id = o.client_id
-     JOIN users u ON u.id = o.rep_id
-     JOIN factories f ON f.id = o.factory_id
-     WHERE o.deleted_at IS NOT NULL
-     ORDER BY o.deleted_at DESC`,
-    []
-  )
-  res.json(rows)
+  try {
+    const { rows } = await query(
+      `SELECT o.id, o.order_number, o.total_value, o.total_pieces, o.deleted_at, o.created_at,
+         c.name as client_name, c.city as client_city,
+         u.name as rep_name,
+         f.name as factory_name
+       FROM orders o
+       JOIN clients c ON c.id = o.client_id
+       JOIN users u ON u.id = o.rep_id
+       JOIN factories f ON f.id = o.factory_id
+       WHERE o.deleted_at IS NOT NULL
+       ORDER BY o.deleted_at DESC`,
+      []
+    )
+    res.json(rows)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[listTrashedOrders] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 // Restaura um pedido da lixeira (admin only)
 export async function restoreOrder(req: AuthRequest, res: Response) {
-  const { rows: [order] } = await query(
-    'SELECT id FROM orders WHERE id=$1 AND deleted_at IS NOT NULL', [req.params.id]
-  )
-  if (!order) { res.status(404).json({ error: 'Pedido não encontrado na lixeira' }); return }
-  await query('UPDATE orders SET deleted_at=NULL, updated_at=NOW() WHERE id=$1', [req.params.id])
-  res.json({ ok: true })
+  try {
+    const { rows: [order] } = await query(
+      'SELECT id FROM orders WHERE id=$1 AND deleted_at IS NOT NULL', [req.params.id]
+    )
+    if (!order) { res.status(404).json({ error: 'Pedido não encontrado na lixeira' }); return }
+    await query('UPDATE orders SET deleted_at=NULL, updated_at=NOW() WHERE id=$1', [req.params.id])
+    res.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[restoreOrder] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 // Sync offline: recebe array de pedidos criados offline
 export async function syncOfflineOrders(req: AuthRequest, res: Response) {
-  const { orders: offlineOrders } = req.body
-  if (!Array.isArray(offlineOrders)) {
-    res.status(400).json({ error: 'orders deve ser um array' }); return
-  }
-  const results = []
-  for (const ord of offlineOrders) {
-    // Evita duplicatas via offline_id
-    const { rows: [existing] } = await query(
-      'SELECT id FROM orders WHERE offline_id=$1', [ord.offline_id]
-    )
-    if (existing) {
-      results.push({ offline_id: ord.offline_id, synced: false, reason: 'Já sincronizado', order_id: existing.id })
-      continue
+  try {
+    const { orders: offlineOrders } = req.body
+    if (!Array.isArray(offlineOrders)) {
+      res.status(400).json({ error: 'orders deve ser um array' }); return
     }
-    // Cria o pedido normalmente
-    const fakeReq = { ...req, body: ord } as AuthRequest
-    let created = false
-    await createOrder(fakeReq, {
-      status: (code: number) => ({ json: (data: unknown) => { if (code < 300) { results.push({ offline_id: ord.offline_id, synced: true, ...data as object }); created = true } } }),
-      json: (data: unknown) => { results.push({ offline_id: ord.offline_id, synced: true, ...data as object }); created = true },
-    } as unknown as Response)
-    if (!created) results.push({ offline_id: ord.offline_id, synced: false, reason: 'Erro ao criar' })
+    const results = []
+    for (const ord of offlineOrders) {
+      // Evita duplicatas via offline_id
+      const { rows: [existing] } = await query(
+        'SELECT id FROM orders WHERE offline_id=$1', [ord.offline_id]
+      )
+      if (existing) {
+        results.push({ offline_id: ord.offline_id, synced: false, reason: 'Já sincronizado', order_id: existing.id })
+        continue
+      }
+      // Cria o pedido normalmente
+      const fakeReq = { ...req, body: ord } as AuthRequest
+      let created = false
+      await createOrder(fakeReq, {
+        status: (code: number) => ({ json: (data: unknown) => { if (code < 300) { results.push({ offline_id: ord.offline_id, synced: true, ...data as object }); created = true } } }),
+        json: (data: unknown) => { results.push({ offline_id: ord.offline_id, synced: true, ...data as object }); created = true },
+      } as unknown as Response)
+      if (!created) results.push({ offline_id: ord.offline_id, synced: false, reason: 'Erro ao criar' })
+    }
+    res.json({ results })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[syncOfflineOrders] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
-  res.json({ results })
 }
 
 // Duplica um pedido: cria um novo pedido idêntico para edição
@@ -1258,88 +1326,100 @@ export async function duplicateOrder(req: AuthRequest, res: Response) {
 
 // ── Resumo rápido de pedidos para a aba Orders ───────────────────────────────
 export async function ordersSummary(req: AuthRequest, res: Response) {
-  const { date_from, date_to, rep_id } = req.query
-  const isAdmin = req.user!.role === 'admin'
+  try {
+    const { date_from, date_to, rep_id } = req.query
+    const isAdmin = req.user!.role === 'admin'
 
-  const params: unknown[] = []
-  let where = `WHERE o.deleted_at IS NULL`
+    const params: unknown[] = []
+    let where = `WHERE o.deleted_at IS NULL`
 
-  if (!isAdmin) { params.push(req.user!.id); where += ` AND o.rep_id = $${params.length}` }
-  else if (rep_id) { params.push(rep_id); where += ` AND o.rep_id = $${params.length}` }
-  if (date_from) { params.push(date_from); where += ` AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= $${params.length}::date` }
-  if (date_to)   { params.push(date_to);   where += ` AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= $${params.length}::date` }
+    if (!isAdmin) { params.push(req.user!.id); where += ` AND o.rep_id = $${params.length}` }
+    else if (rep_id) { params.push(rep_id); where += ` AND o.rep_id = $${params.length}` }
+    if (date_from) { params.push(date_from); where += ` AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= $${params.length}::date` }
+    if (date_to)   { params.push(date_to);   where += ` AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= $${params.length}::date` }
 
-  const base = `FROM orders o
-    JOIN users u     ON u.id = o.rep_id
-    JOIN factories f ON f.id = o.factory_id
-    LEFT JOIN order_statuses s ON s.id = o.status_id
-    ${where}`
+    const base = `FROM orders o
+      JOIN users u     ON u.id = o.rep_id
+      JOIN factories f ON f.id = o.factory_id
+      LEFT JOIN order_statuses s ON s.id = o.status_id
+      ${where}`
 
-  const [byDay, byRep, byFactory, byStatus] = await Promise.all([
-    query(`SELECT DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') AS dia,
-             COUNT(*)::int AS pedidos,
-             COALESCE(SUM(o.total_value),0)::numeric AS total
-           ${base} GROUP BY dia ORDER BY dia DESC LIMIT 30`, params),
+    const [byDay, byRep, byFactory, byStatus] = await Promise.all([
+      query(`SELECT DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') AS dia,
+               COUNT(*)::int AS pedidos,
+               COALESCE(SUM(o.total_value),0)::numeric AS total
+             ${base} GROUP BY dia ORDER BY dia DESC LIMIT 30`, params),
 
-    query(`SELECT u.name AS vendedor,
-             COUNT(*)::int AS pedidos,
-             COALESCE(SUM(o.total_value),0)::numeric AS total
-           ${base} GROUP BY u.id, u.name ORDER BY total DESC`, params),
+      query(`SELECT u.name AS vendedor,
+               COUNT(*)::int AS pedidos,
+               COALESCE(SUM(o.total_value),0)::numeric AS total
+             ${base} GROUP BY u.id, u.name ORDER BY total DESC`, params),
 
-    query(`SELECT f.name AS fabrica,
-             COUNT(*)::int AS pedidos,
-             COALESCE(SUM(o.total_value),0)::numeric AS total
-           ${base} GROUP BY f.id, f.name ORDER BY total DESC`, params),
+      query(`SELECT f.name AS fabrica,
+               COUNT(*)::int AS pedidos,
+               COALESCE(SUM(o.total_value),0)::numeric AS total
+             ${base} GROUP BY f.id, f.name ORDER BY total DESC`, params),
 
-    query(`SELECT COALESCE(s.name,'Sem status') AS status, s.color,
-             COUNT(*)::int AS pedidos,
-             COALESCE(SUM(o.total_value),0)::numeric AS total
-           ${base} GROUP BY s.id, s.name, s.color ORDER BY total DESC`, params),
-  ])
+      query(`SELECT COALESCE(s.name,'Sem status') AS status, s.color,
+               COUNT(*)::int AS pedidos,
+               COALESCE(SUM(o.total_value),0)::numeric AS total
+             ${base} GROUP BY s.id, s.name, s.color ORDER BY total DESC`, params),
+    ])
 
-  res.json({
-    by_day:     byDay.rows,
-    by_rep:     byRep.rows,
-    by_factory: byFactory.rows,
-    by_status:  byStatus.rows,
-  })
+    res.json({
+      by_day:     byDay.rows,
+      by_rep:     byRep.rows,
+      by_factory: byFactory.rows,
+      by_status:  byStatus.rows,
+    })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[ordersSummary] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 // ── Meta Fábricas ─────────────────────────────────────────────────────────────
 // Retorna total de peças vendidas por rep+fábrica no período Jul-Set/2026
 export async function metaFabricas(_req: AuthRequest, res: Response) {
-  const PERIOD_FROM = '2026-07-01'
-  const PERIOD_TO   = '2026-09-30'
+  try {
+    const PERIOD_FROM = '2026-07-01'
+    const PERIOD_TO   = '2026-09-30'
 
-  const now   = new Date()
-  const y     = now.getFullYear()
-  const m     = now.getMonth() + 1
-  const mStr  = String(m).padStart(2, '0')
-  const daysInMonth = new Date(y, m, 0).getDate()
-  const MONTH_FROM = `${y}-${mStr}-01`
-  const MONTH_TO   = `${y}-${mStr}-${daysInMonth}`
-  const TODAY      = now.toISOString().slice(0, 10)
+    const now   = new Date()
+    const y     = now.getFullYear()
+    const m     = now.getMonth() + 1
+    const mStr  = String(m).padStart(2, '0')
+    const daysInMonth = new Date(y, m, 0).getDate()
+    const MONTH_FROM = `${y}-${mStr}-01`
+    const MONTH_TO   = `${y}-${mStr}-${daysInMonth}`
+    const TODAY      = now.toISOString().slice(0, 10)
 
-  const byRepFactory = `
-    SELECT u.id AS rep_id, u.name AS rep_name,
-           f.id AS factory_id, f.name AS factory_name,
-           COALESCE(SUM(o.total_pieces), 0)::int AS total_pieces
-    FROM orders o
-    JOIN users u     ON u.id = o.rep_id
-    JOIN factories f ON f.id = o.factory_id
-    WHERE o.deleted_at IS NULL
-      AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= $1::date
-      AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= $2::date
-    GROUP BY u.id, u.name, f.id, f.name
-    ORDER BY f.name, u.name
-  `
+    const byRepFactory = `
+      SELECT u.id AS rep_id, u.name AS rep_name,
+             f.id AS factory_id, f.name AS factory_name,
+             COALESCE(SUM(o.total_pieces), 0)::int AS total_pieces
+      FROM orders o
+      JOIN users u     ON u.id = o.rep_id
+      JOIN factories f ON f.id = o.factory_id
+      WHERE o.deleted_at IS NULL
+        AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') >= $1::date
+        AND DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo') <= $2::date
+      GROUP BY u.id, u.name, f.id, f.name
+      ORDER BY f.name, u.name
+    `
 
-  const [periodo, mesAtual] = await Promise.all([
-    query(byRepFactory, [PERIOD_FROM, PERIOD_TO]),
-    query(byRepFactory, [MONTH_FROM, MONTH_TO]),
-  ])
+    const [periodo, mesAtual] = await Promise.all([
+      query(byRepFactory, [PERIOD_FROM, PERIOD_TO]),
+      query(byRepFactory, [MONTH_FROM, MONTH_TO]),
+    ])
 
-  res.json({ data: { periodo: periodo.rows, mesAtual: mesAtual.rows, hoje: TODAY, mesAtualRange: { from: MONTH_FROM, to: MONTH_TO } } })
+    res.json({ data: { periodo: periodo.rows, mesAtual: mesAtual.rows, hoje: TODAY, mesAtualRange: { from: MONTH_FROM, to: MONTH_TO } } })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[metaFabricas] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 // ── Alertas de "aniversário" (a cada 15 dias desde a emissão) ─────────────────
@@ -1349,44 +1429,50 @@ export async function metaFabricas(_req: AuthRequest, res: Response) {
 // naturalmente no marco seguinte. Objetivo: cobrar a fábrica por pedidos
 // atrasados na entrega.
 export async function listOrderAlerts(req: AuthRequest, res: Response) {
-  const isAdmin = req.user!.role === 'admin'
+  try {
+    const isAdmin = req.user!.role === 'admin'
 
-  const params: unknown[] = []
-  let repFilter = ''
-  if (!isAdmin) { params.push(req.user!.id); repFilter = ` AND oa.rep_id = $${params.length}` }
+    const params: unknown[] = []
+    let repFilter = ''
+    if (!isAdmin) { params.push(req.user!.id); repFilter = ` AND oa.rep_id = $${params.length}` }
 
-  const { rows } = await query(
-    `WITH order_ages AS (
-       SELECT o.*,
-         GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (NOW() - o.created_at)) / 86400))::int AS age_days
-       FROM orders o
-       WHERE o.deleted_at IS NULL
-     )
-     SELECT
-       oa.id, oa.order_number, oa.created_at, oa.delivery_date,
-       oa.total_value, oa.total_pieces, oa.payment_terms,
-       oa.age_days,
-       (FLOOR(oa.age_days / 15) * 15)::int AS milestone_days,
-       c.id AS client_id, c.name AS client_name, c.trade_name AS client_trade_name, c.city AS client_city,
-       u.id AS rep_id, u.name AS rep_name,
-       f.name AS factory_name,
-       s.name AS status_name, s.color AS status_color, s.icon AS status_icon
-     FROM order_ages oa
-     JOIN clients c ON c.id = oa.client_id
-     JOIN users u ON u.id = oa.rep_id
-     JOIN factories f ON f.id = oa.factory_id
-     LEFT JOIN order_statuses s ON s.id = oa.status_id
-     WHERE oa.age_days >= 15
-       AND (s.is_final IS NOT TRUE)
-       AND NOT EXISTS (
-         SELECT 1 FROM order_alert_dismissals d
-         WHERE d.order_id = oa.id AND d.milestone_days = (FLOOR(oa.age_days / 15) * 15)::int
+    const { rows } = await query(
+      `WITH order_ages AS (
+         SELECT o.*,
+           GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (NOW() - o.created_at)) / 86400))::int AS age_days
+         FROM orders o
+         WHERE o.deleted_at IS NULL
        )
-       ${repFilter}
-     ORDER BY oa.age_days DESC, oa.created_at ASC`,
-    params
-  )
-  res.json(rows)
+       SELECT
+         oa.id, oa.order_number, oa.created_at, oa.delivery_date,
+         oa.total_value, oa.total_pieces, oa.payment_terms,
+         oa.age_days,
+         (FLOOR(oa.age_days / 15) * 15)::int AS milestone_days,
+         c.id AS client_id, c.name AS client_name, c.trade_name AS client_trade_name, c.city AS client_city,
+         u.id AS rep_id, u.name AS rep_name,
+         f.name AS factory_name,
+         s.name AS status_name, s.color AS status_color, s.icon AS status_icon
+       FROM order_ages oa
+       JOIN clients c ON c.id = oa.client_id
+       JOIN users u ON u.id = oa.rep_id
+       JOIN factories f ON f.id = oa.factory_id
+       LEFT JOIN order_statuses s ON s.id = oa.status_id
+       WHERE oa.age_days >= 15
+         AND (s.is_final IS NOT TRUE)
+         AND NOT EXISTS (
+           SELECT 1 FROM order_alert_dismissals d
+           WHERE d.order_id = oa.id AND d.milestone_days = (FLOOR(oa.age_days / 15) * 15)::int
+         )
+         ${repFilter}
+       ORDER BY oa.age_days DESC, oa.created_at ASC`,
+      params
+    )
+    res.json(rows)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[listOrderAlerts] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 // Dispensa o alerta de um pedido para o marco de dias informado (ex.: 15, 30, 45...).
@@ -1394,50 +1480,62 @@ export async function listOrderAlerts(req: AuthRequest, res: Response) {
 // o pedido continue parado — permitindo "excluir a notificação quando necessário"
 // sem escondê-la para sempre.
 export async function dismissOrderAlert(req: AuthRequest, res: Response) {
-  const isAdmin = req.user!.role === 'admin'
-  const milestoneDays = Number(req.body?.milestone_days)
+  try {
+    const isAdmin = req.user!.role === 'admin'
+    const milestoneDays = Number(req.body?.milestone_days)
 
-  if (!Number.isInteger(milestoneDays) || milestoneDays < 15 || milestoneDays % 15 !== 0) {
-    res.status(400).json({ error: 'milestone_days inválido' }); return
+    if (!Number.isInteger(milestoneDays) || milestoneDays < 15 || milestoneDays % 15 !== 0) {
+      res.status(400).json({ error: 'milestone_days inválido' }); return
+    }
+
+    const { rows: [order] } = await query(
+      'SELECT id, rep_id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
+    )
+    if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
+    if (!isAdmin && order.rep_id !== req.user!.id) {
+      res.status(403).json({ error: 'Acesso negado' }); return
+    }
+
+    await query(
+      `INSERT INTO order_alert_dismissals (order_id, milestone_days, dismissed_by)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (order_id, milestone_days) DO NOTHING`,
+      [order.id, milestoneDays, req.user!.id]
+    )
+    res.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[dismissOrderAlert] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
-
-  const { rows: [order] } = await query(
-    'SELECT id, rep_id FROM orders WHERE id=$1 AND deleted_at IS NULL', [req.params.id]
-  )
-  if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
-  if (!isAdmin && order.rep_id !== req.user!.id) {
-    res.status(403).json({ error: 'Acesso negado' }); return
-  }
-
-  await query(
-    `INSERT INTO order_alert_dismissals (order_id, milestone_days, dismissed_by)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (order_id, milestone_days) DO NOTHING`,
-    [order.id, milestoneDays, req.user!.id]
-  )
-  res.json({ ok: true })
 }
 
 export async function updateFaturamento(req: AuthRequest, res: Response) {
-  const { id } = req.params
-  const { valor_faturado, status, sem_comissao } = req.body as {
-    valor_faturado: number | null
-    status: 'pendente' | 'parcial' | 'liquidado'
-    sem_comissao: boolean
+  try {
+    const { id } = req.params
+    const { valor_faturado, status, sem_comissao } = req.body as {
+      valor_faturado: number | null
+      status: 'pendente' | 'parcial' | 'liquidado'
+      sem_comissao: boolean
+    }
+
+    const { rows } = await query(`
+      UPDATE orders SET
+        valor_faturado_fabrica = $1,
+        faturamento_status     = $2,
+        sem_comissao_fabrica   = $3,
+        updated_at             = NOW()
+      WHERE id = $4 AND deleted_at IS NULL
+      RETURNING id, valor_faturado_fabrica, faturamento_status, sem_comissao_fabrica
+    `, [valor_faturado ?? null, status ?? 'pendente', sem_comissao ?? false, id])
+
+    if (!rows.length) return res.status(404).json({ error: 'Pedido não encontrado' })
+    res.json(rows[0])
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[updateFaturamento] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
-
-  const { rows } = await query(`
-    UPDATE orders SET
-      valor_faturado_fabrica = $1,
-      faturamento_status     = $2,
-      sem_comissao_fabrica   = $3,
-      updated_at             = NOW()
-    WHERE id = $4 AND deleted_at IS NULL
-    RETURNING id, valor_faturado_fabrica, faturamento_status, sem_comissao_fabrica
-  `, [valor_faturado ?? null, status ?? 'pendente', sem_comissao ?? false, id])
-
-  if (!rows.length) return res.status(404).json({ error: 'Pedido não encontrado' })
-  res.json(rows[0])
 }
 
 async function recalcFaturamentos(orderId: string) {
@@ -1456,65 +1554,101 @@ async function recalcFaturamentos(orderId: string) {
 }
 
 export async function encerrarFaturamento(req: AuthRequest, res: Response) {
-  const { id } = req.params
-  await query(
-    `UPDATE orders SET faturamento_status = 'encerrado', updated_at = NOW() WHERE id = $1`,
-    [id]
-  )
-  res.json({ ok: true })
+  try {
+    const { id } = req.params
+    await query(
+      `UPDATE orders SET faturamento_status = 'encerrado', updated_at = NOW() WHERE id = $1`,
+      [id]
+    )
+    res.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[encerrarFaturamento] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 export async function listFaturamentos(req: AuthRequest, res: Response) {
-  const { id } = req.params
-  const { rows } = await query(
-    `SELECT id, valor, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
-    [id]
-  )
-  res.json(rows)
+  try {
+    const { id } = req.params
+    const { rows } = await query(
+      `SELECT id, valor, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
+      [id]
+    )
+    res.json(rows)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[listFaturamentos] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 export async function addFaturamento(req: AuthRequest, res: Response) {
-  const { id } = req.params
-  const { valor, data_faturamento } = req.body as { valor: number; data_faturamento: string }
-  if (!valor || !data_faturamento) return res.status(400).json({ error: 'valor e data_faturamento obrigatórios' })
+  try {
+    const { id } = req.params
+    const { valor, data_faturamento } = req.body as { valor: number; data_faturamento: string }
+    if (!valor || !data_faturamento) return res.status(400).json({ error: 'valor e data_faturamento obrigatórios' })
 
-  await query(
-    `INSERT INTO order_faturamentos (order_id, valor, data_faturamento) VALUES ($1, $2, $3)`,
-    [id, valor, data_faturamento]
-  )
-  await recalcFaturamentos(id)
+    await query(
+      `INSERT INTO order_faturamentos (order_id, valor, data_faturamento) VALUES ($1, $2, $3)`,
+      [id, valor, data_faturamento]
+    )
+    await recalcFaturamentos(id)
 
-  const { rows } = await query(
-    `SELECT id, valor, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
-    [id]
-  )
-  res.json(rows)
+    const { rows } = await query(
+      `SELECT id, valor, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
+      [id]
+    )
+    res.json(rows)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[addFaturamento] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 export async function deleteFaturamento(req: AuthRequest, res: Response) {
-  const { id, fatId } = req.params
-  const { rows } = await query(`DELETE FROM order_faturamentos WHERE id = $1 AND order_id = $2 RETURNING id`, [fatId, id])
-  if (!rows.length) return res.status(404).json({ error: 'Faturamento não encontrado' })
-  await recalcFaturamentos(id)
-  res.json({ ok: true })
+  try {
+    const { id, fatId } = req.params
+    const { rows } = await query(`DELETE FROM order_faturamentos WHERE id = $1 AND order_id = $2 RETURNING id`, [fatId, id])
+    if (!rows.length) return res.status(404).json({ error: 'Faturamento não encontrado' })
+    await recalcFaturamentos(id)
+    res.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[deleteFaturamento] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 export async function getOrderAudit(req: AuthRequest, res: Response) {
-  const { id } = req.params
-  const { rows } = await query(
-    `SELECT * FROM order_items_audit WHERE order_id = $1 ORDER BY changed_at DESC LIMIT 200`,
-    [id]
-  )
-  res.json(rows)
+  try {
+    const { id } = req.params
+    const { rows } = await query(
+      `SELECT * FROM order_items_audit WHERE order_id = $1 ORDER BY changed_at DESC LIMIT 200`,
+      [id]
+    )
+    res.json(rows)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[getOrderAudit] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 export async function updateSemComissao(req: AuthRequest, res: Response) {
-  const { id } = req.params
-  const { sem_comissao } = req.body as { sem_comissao: boolean }
-  const { rows } = await query(
-    `UPDATE orders SET sem_comissao_fabrica = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL RETURNING id, sem_comissao_fabrica`,
-    [sem_comissao ?? false, id]
-  )
-  if (!rows.length) return res.status(404).json({ error: 'Pedido não encontrado' })
-  res.json(rows[0])
+  try {
+    const { id } = req.params
+    const { sem_comissao } = req.body as { sem_comissao: boolean }
+    const { rows } = await query(
+      `UPDATE orders SET sem_comissao_fabrica = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL RETURNING id, sem_comissao_fabrica`,
+      [sem_comissao ?? false, id]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Pedido não encontrado' })
+    res.json(rows[0])
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[updateSemComissao] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }

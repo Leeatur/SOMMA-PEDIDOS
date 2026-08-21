@@ -150,6 +150,9 @@ async function runStartupMigrations() {
   `)
   // Ajusta a sequência para continuar a partir do maior order_number atual
   await safe(`SELECT setval(pg_get_serial_sequence('orders', 'order_number'), (SELECT COALESCE(MAX(order_number), 1) FROM orders WHERE order_number IS NOT NULL))`)
+  // Remove trigger quebrado que referenciava coluna total_value (renomeada para subtotal)
+  await safe('DROP TRIGGER IF EXISTS trg_audit_order_items ON order_items')
+  await safe('DROP FUNCTION IF EXISTS fn_audit_order_items()')
   console.log('✅ Migrations de startup concluídas')
 }
 

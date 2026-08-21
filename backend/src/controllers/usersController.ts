@@ -4,18 +4,24 @@ import { query } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 
 export async function listUsers(req: AuthRequest, res: Response) {
-  const { rows } = await query(`
-    SELECT u.id, u.name, u.email, u.role, u.active, u.created_at,
-      COALESCE(
-        array_agg(ufa.factory_id ORDER BY ufa.factory_id) FILTER (WHERE ufa.factory_id IS NOT NULL),
-        '{}'
-      ) AS factory_ids
-    FROM users u
-    LEFT JOIN user_factory_access ufa ON ufa.user_id = u.id
-    GROUP BY u.id
-    ORDER BY u.name
-  `)
-  res.json(rows)
+  try {
+    const { rows } = await query(`
+      SELECT u.id, u.name, u.email, u.role, u.active, u.created_at,
+        COALESCE(
+          array_agg(ufa.factory_id ORDER BY ufa.factory_id) FILTER (WHERE ufa.factory_id IS NOT NULL),
+          '{}'
+        ) AS factory_ids
+      FROM users u
+      LEFT JOIN user_factory_access ufa ON ufa.user_id = u.id
+      GROUP BY u.id
+      ORDER BY u.name
+    `)
+    res.json(rows)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[listUsers] ERROR:', msg)
+    if (!res.headersSent) res.status(500).json({ error: msg })
+  }
 }
 
 export async function createUser(req: AuthRequest, res: Response) {
