@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ShoppingCart, Users, Package, Building2, Tags,
   Settings, LogOut, Plus, UserCog, Wifi, WifiOff, Menu, X,
@@ -76,6 +76,7 @@ async function syncPendingOrders() {
 export function AppLayout() {
   const { user, logout, refreshToken, accessToken } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const online = useOnlineStatus()
   const isAdmin = user?.role === 'admin'
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -101,6 +102,9 @@ export function AppLayout() {
 
   // ESC — fecha UI aberta ou volta para a tela anterior
   useEffect(() => {
+    // Rotas de nível superior: ESC não navega para fora (a página gerencia seu próprio estado)
+    const topLevelRoutes = ['/orders', '/products', '/clients', '/dashboard', '/reports',
+      '/portals', '/pronta-entrega', '/carteira-mapa', '/prospecting']
     const handler = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       // Não navega se o foco estiver num campo de texto
@@ -109,11 +113,13 @@ export function AppLayout() {
       if (mobileOpen) { setMobileOpen(false); return }
       if (moreOpen)   { setMoreOpen(false);   return }
       if (userOpen)   { setUserOpen(false);   return }
+      // Não navega para fora de rotas de nível superior
+      if (topLevelRoutes.includes(location.pathname)) return
       navigate(-1)
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [mobileOpen, moreOpen, userOpen, navigate])
+  }, [mobileOpen, moreOpen, userOpen, navigate, location.pathname])
 
   async function handleLogout() {
     try { if (refreshToken) await authApi.logout(refreshToken) } catch { /* ignore */ }
