@@ -73,6 +73,7 @@ router.post('/price-tables/:id/update-grades', authenticate, requireAdmin, uploa
 router.post('/price-tables/:id/photo-by-ref', authenticate, requireAdmin, upload.single('file'), priceTables.uploadPhotoByRef)
 router.post('/price-tables/:id/gallery-by-ref', authenticate, requireAdmin, upload.single('file'), priceTables.addGalleryImageByRef)
 router.delete('/price-tables/:id/images', authenticate, requireAdmin, priceTables.clearProductImages)
+router.patch('/price-tables/:id/toggle-active', authenticate, requireAdmin, priceTables.togglePriceTableActive)
 router.put('/price-tables/:id', authenticate, requireAdmin, priceTables.updatePriceTableRules)
 router.delete('/price-tables/:id', authenticate, requireAdmin, priceTables.deletePriceTable)
 

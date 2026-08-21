@@ -9,20 +9,21 @@ import { parseStock } from '../services/import/stockImporter'
 import { uploadToR2, isR2Configured } from '../utils/r2'
 
 export async function listPriceTables(req: AuthRequest, res: Response) {
-  const { factory_id } = req.query
+  const { factory_id, include_inactive } = req.query
   const isAdmin = req.user?.role === 'admin'
+  // Admin pode pedir tabelas inativas (bloqueadas); rep sempre vê só ativas
+  const showAll = isAdmin && include_inactive === 'true'
   let sql = `
     SELECT pt.*, f.name as factory_name,
       COUNT(p.id) as product_count
     FROM price_tables pt
     JOIN factories f ON f.id = pt.factory_id
     LEFT JOIN products p ON p.price_table_id = pt.id
-    WHERE pt.active = true
+    WHERE ${showAll ? '1=1' : 'pt.active = true'}
   `
   const params: unknown[] = []
   let idx = 1
   if (factory_id) { sql += ` AND pt.factory_id = $${idx++}`; params.push(factory_id) }
-  // Rep: filtra apenas fábricas autorizadas (se tiver alguma configurada)
   if (!isAdmin) {
     sql += ` AND (
       NOT EXISTS (SELECT 1 FROM user_factory_access WHERE user_id=$${idx})
@@ -1329,5 +1330,20 @@ export async function importStock(req: AuthRequest, res: Response) {
   } catch (err) {
     console.error('importStock', err)
     res.status(400).json({ error: 'Erro ao ler a planilha de estoque' })
+  }
+}
+
+export async function togglePriceTableActive(req: AuthRequest, res: Response) {
+  try {
+    const { rows: [pt] } = await query('SELECT id, active FROM price_tables WHERE id=$1', [req.params.id])
+    if (!pt) { res.status(404).json({ error: 'Tabela não encontrada' }); return }
+    const { rows: [updated] } = await query(
+      'UPDATE price_tables SET active=$1, updated_at=NOW() WHERE id=$2 RETURNING id, active',
+      [!pt.active, req.params.id]
+    )
+    res.json({ ok: true, active: updated.active })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (!res.headersSent) res.status(500).json({ error: msg })
   }
 }

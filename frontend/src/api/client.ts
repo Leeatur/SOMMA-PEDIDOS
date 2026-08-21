@@ -107,8 +107,8 @@ export const factoriesApi = {
 }
 
 export const priceTablesApi = {
-  list: (factory_id?: string) =>
-    apiClient.get('/price-tables', { params: { factory_id } }),
+  list: (factory_id?: string, include_inactive?: boolean) =>
+    apiClient.get('/price-tables', { params: { factory_id, include_inactive: include_inactive ? 'true' : undefined } }),
   get: (id: string) => apiClient.get(`/price-tables/${id}`),
   create: (data: {
     factory_id: string
@@ -188,6 +188,7 @@ export const priceTablesApi = {
   clearProductImages: (id: string) => apiClient.delete(`/price-tables/${id}/images`),
   update: (id: string, data: object) => apiClient.put(`/price-tables/${id}`, data),
   delete: (id: string) => apiClient.delete(`/price-tables/${id}`),
+  toggleActive: (id: string) => apiClient.patch(`/price-tables/${id}/toggle-active`),
 }
 
 export const productsApi = {

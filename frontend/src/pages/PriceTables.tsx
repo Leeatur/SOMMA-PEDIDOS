@@ -34,6 +34,7 @@ interface PriceTable {
   imported_at: string
   created_at: string
   max_cash_discount_pct: number | null
+  active: boolean
 }
 interface DiscountRule {
   discount_pct: number
@@ -74,6 +75,7 @@ export function PriceTables() {
   const [catalogOpen, setCatalogOpen] = useState(false)
   const [selectedTable, setSelectedTable] = useState<PriceTable | null>(null)
   const [deleteTable, setDeleteTable] = useState<PriceTable | null>(null)
+  const [showBlocked, setShowBlocked] = useState(false)
   const [editRulesTable, setEditRulesTable] = useState<PriceTable | null>(null)
   const [editRules, setEditRules] = useState<DiscountRule[]>([])
   const [editName, setEditName] = useState('')
@@ -126,8 +128,8 @@ export function PriceTables() {
   })
 
   const { data: priceTables, isLoading } = useQuery<PriceTable[]>({
-    queryKey: ['price-tables', selectedFactory],
-    queryFn: () => priceTablesApi.list(selectedFactory || undefined).then((r) => r.data),
+    queryKey: ['price-tables', selectedFactory, showBlocked],
+    queryFn: () => priceTablesApi.list(selectedFactory || undefined, showBlocked).then((r) => r.data),
   })
 
   async function handleCreate() {
@@ -178,6 +180,11 @@ export function PriceTables() {
       const msg = err instanceof Error ? err.message : 'Erro ao excluir tabela'
       alert(msg)
     },
+  })
+
+  const toggleActiveMut = useMutation({
+    mutationFn: (id: string) => priceTablesApi.toggleActive(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['price-tables'] }),
   })
 
   const updateRulesMut = useMutation({
@@ -345,7 +352,8 @@ export function PriceTables() {
 
   if (isLoading) return <PageSpinner />
 
-  const tables = priceTables || []
+  const allTables = priceTables || []
+  const tables = allTables
   const factoryOptions = (factories || []).map((f) => ({ value: f.id, label: f.name }))
 
   return (
@@ -355,9 +363,23 @@ export function PriceTables() {
         <div className="w-full flex items-center justify-between">
           <div>
             <h1 className="font-display text-sm font-bold text-on-surface">Tabelas de Preço</h1>
-            <p className="text-[12px] text-outline mt-0.5">{tables.length} tabelas</p>
+            <p className="text-[12px] text-outline mt-0.5">
+              {tables.filter(t => t.active !== false).length} ativas
+              {showBlocked && tables.filter(t => t.active === false).length > 0 &&
+                ` · ${tables.filter(t => t.active === false).length} bloqueadas`}
+            </p>
           </div>
           <div className="flex gap-2">
+            <button
+              onClick={() => setShowBlocked(v => !v)}
+              className={`flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded-lg border transition-colors ${
+                showBlocked
+                  ? 'border-amber-400 bg-amber-50 text-amber-700'
+                  : 'border-outline-variant bg-surface text-outline hover:bg-surface-variant'
+              }`}
+            >
+              {showBlocked ? 'Ocultar bloqueadas' : 'Ver bloqueadas'}
+            </button>
             <Button onClick={() => setCreateOpen(true)} icon={<Plus className="h-4 w-4" />} size="sm" variant="outline">
               Nova Tabela
             </Button>
@@ -389,15 +411,16 @@ export function PriceTables() {
         ) : (
           <div className="space-y-1.5">
             {tables.map((t) => (
-              <Card key={t.id} padding="md">
+              <Card key={t.id} padding="md" className={t.active === false ? 'opacity-60' : ''}>
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${t.active === false ? 'bg-gray-100' : 'bg-emerald-100'}`}>
+                      <FileSpreadsheet className={`h-5 w-5 ${t.active === false ? 'text-gray-400' : 'text-emerald-600'}`} />
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
                         <p className="font-semibold text-on-surface">{t.name}</p>
+                        {t.active === false && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Bloqueada</span>}
                         <button
                           onClick={() => { setRenameTable(t); setRenameValue(t.name) }}
                           title="Renomear tabela"
@@ -463,6 +486,17 @@ export function PriceTables() {
                     >
                       <FileImage className="h-3.5 w-3.5" />
                       {clearImagesMut.isPending ? 'Limpando…' : 'Limpar Fotos'}
+                    </button>
+                    <button
+                      onClick={() => toggleActiveMut.mutate(t.id)}
+                      disabled={toggleActiveMut.isPending}
+                      className={`flex items-center gap-1 text-[12px] px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+                        t.active === false
+                          ? 'text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100'
+                          : 'text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100'
+                      }`}
+                    >
+                      {t.active === false ? '✓ Desbloquear' : '⊘ Bloquear'}
                     </button>
                     <button
                       onClick={() => setDeleteTable(t)}
