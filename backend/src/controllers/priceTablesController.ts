@@ -588,7 +588,7 @@ export async function listProducts(req: AuthRequest, res: Response) {
     params.push(req.user!.id)
     idx++
   }
-  sql += ' GROUP BY p.id, pt.name, f.name ORDER BY LOWER(p.reference)'
+  sql += ' GROUP BY p.id, pt.name, pt.active, f.name ORDER BY LOWER(p.reference)'
   const { rows } = await query(sql, params)
   res.json(rows)
 }
@@ -1181,7 +1181,7 @@ export async function exportProducts(req: AuthRequest, res: Response) {
     sql += ` AND (NOT EXISTS (SELECT 1 FROM user_factory_access WHERE user_id=$${idx}) OR pt.factory_id IN (SELECT factory_id FROM user_factory_access WHERE user_id=$${idx}))`
     params.push(req.user!.id); idx++
   }
-  sql += ' GROUP BY p.id, pt.name, f.name ORDER BY LOWER(p.reference)'
+  sql += ' GROUP BY p.id, pt.name, pt.active, f.name ORDER BY LOWER(p.reference)'
 
   const { rows } = await query(sql, params)
 
