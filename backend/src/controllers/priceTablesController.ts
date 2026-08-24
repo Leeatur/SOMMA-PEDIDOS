@@ -562,6 +562,8 @@ export async function listProducts(req: AuthRequest, res: Response) {
   if (!isAdmin || include_inactive !== 'true') {
     sql += ` AND p.active = true`
   }
+  // Nunca exibe produtos de tabelas bloqueadas (pt.active = false)
+  sql += ` AND (pt.active = true OR pt.active IS NULL)`
   if (price_table_id) { sql += ` AND p.price_table_id = $${idx++}`; params.push(price_table_id) }
   if (type) { sql += ` AND p.type = $${idx++}`; params.push(type) }
   if (sem_foto === 'true') { sql += ` AND (p.image_url IS NULL OR p.image_url = '')` }
