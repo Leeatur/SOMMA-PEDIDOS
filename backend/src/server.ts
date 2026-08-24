@@ -153,6 +153,9 @@ async function runStartupMigrations() {
   // Remove trigger quebrado que referenciava coluna total_value (renomeada para subtotal)
   await safe('DROP TRIGGER IF EXISTS trg_audit_order_items ON order_items')
   await safe('DROP FUNCTION IF EXISTS fn_audit_order_items()')
+  // Garante coluna active em price_tables e inicializa existentes como true
+  await safe('ALTER TABLE price_tables ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true')
+  await safe('UPDATE price_tables SET active = true WHERE active IS NULL')
   console.log('✅ Migrations de startup concluídas')
 }
 
