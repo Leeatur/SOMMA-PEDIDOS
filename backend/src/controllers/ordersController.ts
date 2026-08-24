@@ -447,8 +447,7 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
       [productIds]
     )
     if (blocked.length > 0) {
-      const refs = blocked.map((r: { reference: string }) => r.reference).join(', ')
-      res.status(400).json({ error: `Tabela de preços bloqueada. Referências bloqueadas: ${refs}` })
+      res.status(400).json({ error: 'REFERÊNCIA BLOQUEADA' })
       return
     }
   }
