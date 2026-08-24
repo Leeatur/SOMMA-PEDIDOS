@@ -437,6 +437,22 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
     res.status(403).json({ error: 'Acesso negado' }); return
   }
 
+  // Bloqueia adição de itens cujos produtos pertencem a tabelas inativas
+  const productIds = items.map(i => i.product_id).filter(Boolean)
+  if (productIds.length > 0) {
+    const { rows: blocked } = await query(
+      `SELECT p.reference FROM products p
+       JOIN price_tables pt ON pt.id = p.price_table_id
+       WHERE p.id = ANY($1) AND pt.active = false`,
+      [productIds]
+    )
+    if (blocked.length > 0) {
+      const refs = blocked.map((r: { reference: string }) => r.reference).join(', ')
+      res.status(400).json({ error: `Tabela de preços bloqueada. Referências bloqueadas: ${refs}` })
+      return
+    }
+  }
+
   const dbClient = await pool.connect()
   try {
     await dbClient.query('BEGIN')

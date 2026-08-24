@@ -306,6 +306,10 @@ export function OrderDetail() {
       setAddCart([])
       setProductSearch('')
     },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      alert(msg || 'Erro ao adicionar itens. Verifique se a tabela não está bloqueada.')
+    },
   })
 
   const deleteMut = useMutation({
