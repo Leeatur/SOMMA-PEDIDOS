@@ -88,6 +88,7 @@ interface Product {
   grade_configs: GradeConfig[] | null
   stock?: Record<string, Record<string, number>> | null
   images?: (string | null)[] | null
+  price_table_active?: boolean
 }
 
 interface ClientOption { id: string; name: string; trade_name: string | null; city: string | null; cnpj: string | null }
@@ -552,6 +553,11 @@ export default function OrderEdit() {
   }
 
   const addProduct = (prod: Product) => {
+    if (prod.price_table_active === false) {
+      setShowProdDropdown(false); setProdSearch('')
+      alert('REFERÊNCIA BLOQUEADA')
+      return
+    }
     const existsActive = items.some(it => it.product_id === prod.id && !it.removed)
     const existsNew = newItems.some(it => it.product_id === prod.id)
     if (existsActive || existsNew) {

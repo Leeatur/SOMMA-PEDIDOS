@@ -546,6 +546,7 @@ export async function listProducts(req: AuthRequest, res: Response) {
   let sql = `
     SELECT p.*,
       pt.name as price_table_name,
+      pt.active as price_table_active,
       f.name as factory_name,
       COALESCE((SELECT json_agg(pi.url ORDER BY pi.sort_order, pi.created_at)
                 FROM product_images pi WHERE pi.product_id = p.id), '[]') as images,
