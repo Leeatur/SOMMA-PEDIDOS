@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, Component, type ReactNode, type ErrorInfo } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, ChevronUp, ChevronsUpDown, Trash2, Plus } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
@@ -1170,9 +1170,30 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo }: {
   )
 }
 
+// ─── Error boundary ───────────────────────────────────────────────────────────
+
+class ReportsErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  componentDidCatch(error: Error, info: ErrorInfo) { console.error('[Reports] crash:', error, info) }
+  render() {
+    if (this.state.error) {
+      const msg = (this.state.error as Error).message
+      return (
+        <div className="p-8 text-center">
+          <p className="text-red-600 font-semibold mb-2">Erro ao carregar Relatórios</p>
+          <p className="text-[12px] text-outline font-mono bg-gray-50 rounded p-3 max-w-lg mx-auto break-all">{msg}</p>
+          <button onClick={() => this.setState({ error: null })} className="mt-4 px-4 py-2 text-[12px] bg-primary text-white rounded-lg">Tentar novamente</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 // ─── main component ───────────────────────────────────────────────────────────
 
-export function Reports() {
+function ReportsInner() {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
 
@@ -1591,8 +1612,8 @@ export function Reports() {
           {/* Cabeçalho do relatório ativo — visível na impressão */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
             <div>
-              <h2 className="print-title text-xl font-bold text-on-surface">{currentMeta.title}</h2>
-              <p className="print-subtitle text-[12px] text-outline mt-1 max-w-lg">{currentMeta.description}</p>
+              <h2 className="print-title text-xl font-bold text-on-surface">{currentMeta?.title}</h2>
+              <p className="print-subtitle text-[12px] text-outline mt-1 max-w-lg">{currentMeta?.description}</p>
               <p className="print-period text-[11px] text-outline/60 mt-0.5">
                 Período: {fmtDatePtBR(dateFrom)} – {fmtDatePtBR(dateTo)}
                 {factoryId && factories ? ` · ${factories.find(f=>f.id===factoryId)?.name}` : ''}
@@ -2678,4 +2699,8 @@ export function Reports() {
       </div>
     </div>
   )
+}
+
+export function Reports() {
+  return <ReportsErrorBoundary><ReportsInner /></ReportsErrorBoundary>
 }
