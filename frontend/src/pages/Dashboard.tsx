@@ -888,7 +888,7 @@ export function Dashboard() {
               }
 
               const RepGoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
-                const { raw, pct, fmt, target, achieved, unit } = goalStats(g)
+                const { raw, fmt, target, achieved, unit } = goalStats(g)
                 const isOver = raw > 100
                 // Cores otimizadas para fundo navy/azul escuro:
                 // over → branco (vitória limpa); 100% → verde-esmeralda; 70–99% → azul-claro; 40–69% → âmbar suave; <40% → rosa
