@@ -890,15 +890,14 @@ export function Dashboard() {
               const RepGoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
                 const { raw, fmt, target, achieved, unit } = goalStats(g)
                 const isOver = raw > 100
-                const textColor = '#FFFFFF'
-                const barColor  = '#FBBF24'
+                const barColor = '#F47C20'
                 const escala    = isOver ? Math.max(120, raw + 15) : 100
                 const largura   = Math.min(100, (raw / escala) * 100)
                 const posMeta   = (100 / escala) * 100
                 return (
                   <div className="space-y-1.5">
                     <div className="flex items-end justify-between gap-2">
-                      <span className={`font-black leading-none tracking-tight ${large ? 'text-[34px]' : 'text-[22px]'}`} style={{ color: textColor }}>
+                      <span className={`font-black leading-none tracking-tight text-white ${large ? 'text-[34px]' : 'text-[22px]'}`}>
                         {fmt(achieved)}
                       </span>
                       <span className="text-[11px] text-white/40 pb-1">/ {fmt(target)}{unit}</span>
@@ -915,7 +914,7 @@ export function Dashboard() {
                           ? `+${fmt(achieved - target)}${unit} acima da meta`
                           : raw >= 100 ? '✅ Meta atingida!' : `Faltam ${fmt(target - achieved)}${unit}`}
                       </span>
-                      <span className={`font-bold ${large ? 'text-[14px]' : 'text-[12px]'}`} style={{ color: textColor }}>
+                      <span className={`font-bold ${large ? 'text-[14px]' : 'text-[12px]'}`} style={{ color: '#F47C20' }}>
                         {isOver ? <><span className="mr-0.5">🏆</span>{raw.toFixed(1)}%</> : `${raw.toFixed(1)}%`}
                       </span>
                     </div>
