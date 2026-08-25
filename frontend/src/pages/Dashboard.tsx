@@ -1086,16 +1086,16 @@ export function Dashboard() {
               </div>
             )}
 
-            {!isCompare && salesLoading ? (
+            {salesLoading ? (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-6 flex justify-center">
                 <PageSpinner />
               </div>
-            ) : !isCompare && sales.length === 0 ? (
+            ) : sales.length === 0 ? (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-8 flex flex-col items-center text-center">
                 <Package className="h-7 w-7 text-outline/40 mb-2" />
                 <p className="text-[12px] text-outline/70 font-medium">Nenhuma venda registrada no período</p>
               </div>
-            ) : !isCompare ? (
+            ) : (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-[12px]">
@@ -1225,7 +1225,7 @@ export function Dashboard() {
                   </table>
                 </div>
               </div>
-            ) : null}
+            )}
           </section>
         )}
 
