@@ -85,11 +85,22 @@ export function Dashboard() {
   function setPeriod(p: string) {
     setActivePeriod(p)
     const now = new Date()
-    if (p === 'today')  { setDateFrom(spDate(now)); setDateTo(spDate(now)) }
-    if (p === '7d')     { const d=new Date(now); d.setDate(d.getDate()-6); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
-    if (p === '30d')    { const d=new Date(now); d.setDate(d.getDate()-29); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
-    if (p === 'month')  { const d=new Date(now); d.setDate(1); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
-    if (p === 'custom') { /* usuário digita nas caixas */ }
+    if (p === 'today')      { setDateFrom(spDate(now)); setDateTo(spDate(now)) }
+    if (p === '7d')         { const d=new Date(now); d.setDate(d.getDate()-6); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === '15d')        { const d=new Date(now); d.setDate(d.getDate()-14); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === '30d')        { const d=new Date(now); d.setDate(d.getDate()-29); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === 'month')      { const d=new Date(now); d.setDate(1); setDateFrom(spDate(d)); setDateTo(spDate(now)) }
+    if (p === 'prev_month') {
+      const first=new Date(now.getFullYear(), now.getMonth()-1, 1)
+      const last =new Date(now.getFullYear(), now.getMonth(),   0)
+      setDateFrom(spDate(first)); setDateTo(spDate(last))
+    }
+    if (p === 'compare') {
+      // Busca desde o início do mês anterior até hoje para comparar os dois meses
+      const first=new Date(now.getFullYear(), now.getMonth()-1, 1)
+      setDateFrom(spDate(first)); setDateTo(spDate(now))
+    }
+    if (p === 'custom')     { /* usuário digita nas caixas */ }
   }
 
   // Usa horário de Brasília (America/Sao_Paulo) para evitar bug de timezone UTC vs UTC-3
@@ -231,10 +242,28 @@ export function Dashboard() {
   const fmtR = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0)
 
+  const isCompare = activePeriod === 'compare'
+  // No modo comparativo, separa pedidos por mês
+  const nowBr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date())
+  const currMonthStart = nowBr.slice(0, 7) // 'YYYY-MM'
+  const prevMonthStart = (() => { const d = new Date(); d.setMonth(d.getMonth()-1); return new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(d.getFullYear(), d.getMonth(), 1)).slice(0, 7) })()
+
   const salesRaw = periodSales || []
   const sales = salesRaw
     .filter(r => !factoryFilter || r.industria === factoryFilter)
     // price_table não vem no relatório — quando há filtro de tabela, não restringe aqui
+
+  // Comparativo: divide vendas entre mês anterior e este mês
+  const salesPrevMonth = isCompare ? sales.filter(r => String(r.data_venda).slice(0, 7) === prevMonthStart) : []
+  const salesCurrMonth = isCompare ? sales.filter(r => String(r.data_venda).slice(0, 7) === currMonthStart) : []
+
+  const sumSales = (rows: typeof sales) => ({
+    pcs: rows.reduce((s, r) => s + Number(r.total_pieces), 0),
+    val: rows.reduce((s, r) => s + Number(r.total_value), 0),
+    rep: rows.reduce((s, r) => s + Number(r.rep_commission_value), 0),
+    esc: rows.reduce((s, r) => s + Number(r.office_commission_value), 0),
+    gui: rows.reduce((s, r) => s + Number(r.guide_commission_value || 0), 0),
+  })
   const salesTotalPcs   = sales.reduce((s, r) => s + Number(r.total_pieces), 0)
   const salesTotalVal   = sales.reduce((s, r) => s + Number(r.total_value), 0)
   const salesTotalRepCom = sales.reduce((s, r) => s + Number(r.rep_commission_value), 0)
@@ -266,11 +295,14 @@ export function Dashboard() {
         {/* Filtros — scroll horizontal no mobile */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 lg:px-8 pb-1">
           {[
-            { id: 'today', label: 'Hoje' },
-            { id: '7d',    label: '7 dias' },
-            { id: '30d',   label: '30 dias' },
-            { id: 'month', label: 'Este mês' },
-            { id: 'custom',label: 'Personalizado' },
+            { id: 'today',      label: 'Hoje' },
+            { id: '7d',         label: '7 dias' },
+            { id: '15d',        label: '15 dias' },
+            { id: '30d',        label: '30 dias' },
+            { id: 'month',      label: 'Este mês' },
+            { id: 'prev_month', label: 'Mês Anterior' },
+            { id: 'compare',    label: 'Comparativo' },
+            { id: 'custom',     label: 'Personalizado' },
           ].map(p => (
             <button key={p.id} onClick={() => setPeriod(p.id)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-xl text-[13px] font-semibold border transition-colors active:scale-95 ${
@@ -990,20 +1022,80 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* ─── Resumo de vendas do dia — admin only ────── */}
+        {/* ─── Resumo de vendas do período — admin only ────── */}
         {isAdmin && (
           <section>
-            <SectionTitle>Resumo de Vendas do Período</SectionTitle>
-            {salesLoading ? (
+            <SectionTitle>
+              {isCompare ? 'Comparativo — Mês Anterior vs Este Mês' : 'Resumo de Vendas do Período'}
+            </SectionTitle>
+
+            {/* Modo Comparativo: cards lado a lado */}
+            {isCompare && !salesLoading && (
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {[
+                  { label: 'Mês Anterior', rows: salesPrevMonth, accent: 'text-outline' },
+                  { label: 'Este Mês', rows: salesCurrMonth, accent: 'text-primary' },
+                ].map(({ label, rows, accent }) => {
+                  const t = sumSales(rows)
+                  const byVendedor = Object.entries(
+                    rows.reduce<Record<string, { pcs: number; val: number }>>((acc, r) => {
+                      if (!acc[r.vendedor]) acc[r.vendedor] = { pcs: 0, val: 0 }
+                      acc[r.vendedor].pcs += Number(r.total_pieces)
+                      acc[r.vendedor].val += Number(r.total_value)
+                      return acc
+                    }, {})
+                  ).sort((a, b) => b[1].val - a[1].val)
+                  return (
+                    <div key={label} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4">
+                      <p className={`text-[11px] font-bold uppercase tracking-wide mb-3 ${accent}`}>{label}</p>
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="bg-surface-container rounded-xl p-2 text-center">
+                          <p className="text-[10px] text-outline/70 uppercase tracking-wide">Pedidos</p>
+                          <p className="text-[18px] font-bold text-on-surface">{rows.length}</p>
+                        </div>
+                        <div className="bg-surface-container rounded-xl p-2 text-center">
+                          <p className="text-[10px] text-outline/70 uppercase tracking-wide">Peças</p>
+                          <p className="text-[18px] font-bold text-on-surface">{t.pcs.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div className="bg-surface-container rounded-xl p-2 text-center col-span-2">
+                          <p className="text-[10px] text-outline/70 uppercase tracking-wide">Total Vendas</p>
+                          <p className="text-[20px] font-bold text-on-surface">{fmtR(t.val)}</p>
+                        </div>
+                        <div className="bg-surface-container rounded-xl p-2 text-center">
+                          <p className="text-[10px] text-outline/70 uppercase tracking-wide">Com. Rep</p>
+                          <p className="text-[14px] font-bold text-emerald-700">{fmtR(t.rep)}</p>
+                        </div>
+                        <div className="bg-surface-container rounded-xl p-2 text-center">
+                          <p className="text-[10px] text-outline/70 uppercase tracking-wide">Com. Esc</p>
+                          <p className="text-[14px] font-bold text-blue-700">{fmtR(t.esc)}</p>
+                        </div>
+                      </div>
+                      {byVendedor.length > 0 && (
+                        <div className="space-y-1">
+                          {byVendedor.map(([nome, d]) => (
+                            <div key={nome} className="flex justify-between items-center text-[11px] border-b border-outline-variant/20 pb-1">
+                              <span className="font-medium text-on-surface truncate max-w-[50%]">{nome}</span>
+                              <span className="text-on-surface-variant">{d.pcs.toLocaleString('pt-BR')} pç · {fmtR(d.val)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {!isCompare && salesLoading ? (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-6 flex justify-center">
                 <PageSpinner />
               </div>
-            ) : sales.length === 0 ? (
+            ) : !isCompare && sales.length === 0 ? (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-8 flex flex-col items-center text-center">
                 <Package className="h-7 w-7 text-outline/40 mb-2" />
                 <p className="text-[12px] text-outline/70 font-medium">Nenhuma venda registrada no período</p>
               </div>
-            ) : (
+            ) : !isCompare ? (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-[12px]">
@@ -1133,7 +1225,7 @@ export function Dashboard() {
                   </table>
                 </div>
               </div>
-            )}
+            ) : null}
           </section>
         )}
 
