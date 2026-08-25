@@ -323,7 +323,7 @@ export default function MetaFabricasPage() {
                 <div className="mt-2 flex items-center gap-3">
                   <div className="relative flex-1 bg-white/20 rounded-full h-2 overflow-hidden">
                     <div
-                      className={`h-2 rounded-full transition-all ${fabIsOver ? 'bg-amber-300' : 'bg-white'}`}
+                      className={`h-2 rounded-full transition-all ${fabIsOver ? 'bg-amber-300' : 'bg-sky-300'}`}
                       style={{ width: `${fabBarW}%` }}
                     />
                     {fabGoalPos !== null && (
