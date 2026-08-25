@@ -77,7 +77,7 @@ export async function ordersReport(req: AuthRequest, res: Response) {
     `, [...params]),
     query(`
       SELECT
-        DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo')   AS date,
+        DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo')::text   AS date,
         COUNT(o.id)::int                                       AS order_count,
         COALESCE(SUM(o.total_pieces), 0)::int                 AS total_pieces,
         COALESCE(SUM(o.total_value), 0)::numeric              AS total_value
@@ -104,7 +104,7 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
     SELECT
       o.id,
       o.order_number,
-      DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo')          AS data_venda,
+      DATE(o.created_at AT TIME ZONE 'America/Sao_Paulo')::text          AS data_venda,
       f.name                                                         AS industria,
       u.name                                                         AS vendedor,
       o.industry_order_number                                        AS nr_ped_fabrica,
@@ -171,7 +171,7 @@ export async function commissionsByFaturamento(req: AuthRequest, res: Response) 
   const { rows } = await query(`
     SELECT
       fat.id                                                           AS fat_id,
-      fat.data_faturamento,
+      fat.data_faturamento::text,
       fat.valor::numeric                                               AS valor_faturamento,
       o.id,
       o.order_number,
@@ -497,7 +497,7 @@ export async function inactiveClientsReport(req: AuthRequest, res: Response) {
       c.id, c.name AS razao_social, c.trade_name AS nome_fantasia,
       c.city AS cidade, c.state AS uf, c.phone, c.whatsapp,
       u.name AS rep_name,
-      MAX(o.created_at AT TIME ZONE 'America/Sao_Paulo')::date AS ultimo_pedido,
+      MAX(o.created_at AT TIME ZONE 'America/Sao_Paulo')::date::text AS ultimo_pedido,
       COUNT(o.id)::int                                          AS total_pedidos,
       COALESCE(SUM(o.total_value), 0)::numeric                 AS total_comprado,
       EXTRACT(DAY FROM NOW() - MAX(o.created_at))::int         AS dias_sem_comprar
@@ -574,7 +574,7 @@ export async function abcClientsReport(req: AuthRequest, res: Response) {
         COUNT(o.id)::int                              AS total_pedidos,
         COALESCE(SUM(o.total_value), 0)::numeric      AS total_value,
         COALESCE(SUM(o.total_pieces), 0)::int         AS total_pieces,
-        MAX(o.created_at)::date                       AS ultimo_pedido
+        MAX(o.created_at)::date::text                  AS ultimo_pedido
       FROM clients c
       LEFT JOIN users u ON u.id = c.rep_id
       JOIN orders o ON o.client_id = c.id AND o.deleted_at IS NULL

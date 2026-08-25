@@ -891,7 +891,7 @@ export function Dashboard() {
                 const { raw, fmt, target, achieved, unit } = goalStats(g)
                 const isOver = raw > 100
                 const textColor = '#FFFFFF'
-                const barColor  = isOver ? 'rgba(255,255,255,0.85)' : '#FBBF24'
+                const barColor  = '#FBBF24'
                 const escala    = isOver ? Math.max(120, raw + 15) : 100
                 const largura   = Math.min(100, (raw / escala) * 100)
                 const posMeta   = (100 / escala) * 100
