@@ -1393,8 +1393,10 @@ export function Reports() {
   // ─── tabs config ───────────────────────────────────────────────────────────
 
   // ─── Relatórios visíveis para este usuário ────────────────────────────────
+  // Vendedor vê somente relatórios pertinentes às suas próprias vendas.
+  const REP_VISIBLE_IDS = new Set(['orders', 'commissions', 'projection', 'clients', 'inactive', 'products'])
   const VISIBLE_META = REPORT_META.filter(r =>
-    (r.id !== 'repperformance' && r.id !== 'penetracao') || isAdmin
+    isAdmin || REP_VISIBLE_IDS.has(r.id)
   )
   const currentMeta = VISIBLE_META.find(r => r.id === tab) ?? VISIBLE_META[0]
 
@@ -1612,6 +1614,7 @@ export function Reports() {
         {/* ═══ VISÃO GERAL ══════════════════════════════════════════════════ */}
         {tab === 'orders' && (
           ordersQ.isLoading ? <PageSpinner /> :
+          ordersQ.isError ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-[13px] text-red-700">Erro ao carregar relatório. Tente novamente.</div> :
           !ordersQ.data ? null :
           <div className="space-y-1">
 
@@ -1687,6 +1690,7 @@ export function Reports() {
         {/* ═══ COMISSÕES ════════════════════════════════════════════════════ */}
         {tab === 'commissions' && (
           commissionsQ.isLoading ? <PageSpinner /> :
+          commissionsQ.isError ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-[13px] text-red-700">Erro ao carregar comissões. Tente novamente.</div> :
           !commissionsQ.data ? null :
           commissionsQ.data.length === 0
             ? <EmptyState label="Nenhum dado de comissão no período" />

@@ -571,39 +571,33 @@ export function Dashboard() {
           const GoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
             const s = goalStats(g)
             const isOver = s.raw > 100
-            const color = isOver ? '#F59E0B' : s.raw >= 100 ? '#10B981' : s.raw >= 70 ? '#F59E0B' : s.raw >= 40 ? '#3B82F6' : '#EF4444'
+            const textColor = isOver ? '#FFFFFF' : s.raw >= 100 ? '#34D399' : s.raw >= 70 ? '#93C5FD' : s.raw >= 40 ? '#FCD34D' : '#FCA5A5'
+            const barColor  = isOver ? 'rgba(255,255,255,0.85)' : s.raw >= 100 ? '#34D399' : s.raw >= 70 ? '#60A5FA' : s.raw >= 40 ? '#FBBF24' : '#F87171'
+            const escala   = isOver ? Math.max(120, s.raw + 15) : 100
+            const largura  = Math.min(100, (s.raw / escala) * 100)
+            const posMeta  = (100 / escala) * 100
             return (
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-end justify-between gap-2">
-                  <span className={`font-bold leading-none ${large ? 'text-[32px]' : 'text-[20px]'}`} style={{ color }}>
+                  <span className={`font-black leading-none tracking-tight ${large ? 'text-[34px]' : 'text-[20px]'}`} style={{ color: textColor }}>
                     {s.fmt(s.achieved)}
                   </span>
-                  <span className="text-[11px] text-outline pb-1">/ {s.fmt(s.target)}{s.unit}</span>
+                  <span className="text-[11px] text-white/40 pb-1">/ {s.fmt(s.target)}{s.unit}</span>
                 </div>
-                {/* Passando de 100%, a régua ganha escala: a barra avança além da meta
-                    e um tracinho branco marca onde ficava o 100%. Antes ela travava
-                    cheia e não dava pra ver o quanto passou. */}
-                {(() => {
-                  const escala   = isOver ? Math.max(120, s.raw + 15) : 100
-                  const largura  = Math.min(100, (s.raw / escala) * 100)
-                  const posMeta  = (100 / escala) * 100
-                  return (
-                    <div className={`relative w-full bg-black/10 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${largura}%`, backgroundColor: color }} />
-                      {isOver && (
-                        <div className="absolute top-0 h-full w-0.5 bg-white/80" style={{ left: `${posMeta}%` }} />
-                      )}
-                    </div>
-                  )
-                })()}
+                <div className={`relative w-full bg-white/10 rounded-full overflow-hidden ${large ? 'h-3.5' : 'h-2'}`}>
+                  <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${largura}%`, backgroundColor: barColor }} />
+                  {isOver && (
+                    <div className="absolute top-0 h-full w-0.5 bg-white/50" style={{ left: `${posMeta}%` }} />
+                  )}
+                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-white/70">
+                  <span className="text-[11px] text-white/50">
                     {isOver
-                      ? `+${s.fmt(s.achieved - s.target)}${s.unit} da meta`
+                      ? `+${s.fmt(s.achieved - s.target)}${s.unit} acima da meta`
                       : s.raw >= 100 ? '✅ Meta atingida!' : `Faltam ${s.fmt(Math.max(0, s.target - s.achieved))}${s.unit}`}
                   </span>
-                  <span className="font-bold flex items-center gap-1" style={{ color }}>
-                    {isOver && <span className="text-[20px] leading-none">🏆</span>}
+                  <span className="font-bold flex items-center gap-1" style={{ color: textColor }}>
+                    {isOver && <span className="text-[18px] leading-none">🏆</span>}
                     <span className={isOver ? 'text-[15px]' : 'text-[13px]'}>{s.raw.toFixed(1)}%</span>
                   </span>
                 </div>
@@ -896,25 +890,36 @@ export function Dashboard() {
               const RepGoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
                 const { raw, pct, fmt, target, achieved, unit } = goalStats(g)
                 const isOver = raw > 100
-                const color = isOver ? '#F59E0B' : raw >= 100 ? '#10B981' : raw >= 70 ? '#F59E0B' : raw >= 40 ? '#3B82F6' : '#EF4444'
+                // Cores otimizadas para fundo navy/azul escuro:
+                // over → branco (vitória limpa); 100% → verde-esmeralda; 70–99% → azul-claro; 40–69% → âmbar suave; <40% → rosa
+                const textColor = isOver ? '#FFFFFF' : raw >= 100 ? '#34D399' : raw >= 70 ? '#93C5FD' : raw >= 40 ? '#FCD34D' : '#FCA5A5'
+                const barColor  = isOver ? 'rgba(255,255,255,0.85)' : raw >= 100 ? '#34D399' : raw >= 70 ? '#60A5FA' : raw >= 40 ? '#FBBF24' : '#F87171'
+                const escala    = isOver ? Math.max(120, raw + 15) : 100
+                const largura   = Math.min(100, (raw / escala) * 100)
+                const posMeta   = (100 / escala) * 100
                 return (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <div className="flex items-end justify-between gap-2">
-                      <span className={`font-bold leading-none ${large ? 'text-[32px]' : 'text-[22px]'}`} style={{ color }}>
+                      <span className={`font-black leading-none tracking-tight ${large ? 'text-[34px]' : 'text-[22px]'}`} style={{ color: textColor }}>
                         {fmt(achieved)}
                       </span>
-                      <span className="text-[11px] text-white/50 pb-1">/ {fmt(target)}{unit}</span>
+                      <span className="text-[11px] text-white/40 pb-1">/ {fmt(target)}{unit}</span>
                     </div>
-                    <div className={`w-full bg-black/20 rounded-full overflow-hidden ${large ? 'h-3' : 'h-2'}`}>
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+                    <div className={`relative w-full bg-white/10 rounded-full overflow-hidden ${large ? 'h-3.5' : 'h-2'}`}>
+                      <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${largura}%`, backgroundColor: barColor }} />
+                      {isOver && (
+                        <div className="absolute top-0 h-full w-0.5 bg-white/50" style={{ left: `${posMeta}%` }} />
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-white/60">
+                      <span className="text-[11px] text-white/50">
                         {isOver
-                          ? `+${fmt(achieved - target)}${unit} da meta`
+                          ? `+${fmt(achieved - target)}${unit} acima da meta`
                           : raw >= 100 ? '✅ Meta atingida!' : `Faltam ${fmt(target - achieved)}${unit}`}
                       </span>
-                      <span className="text-[13px] font-bold" style={{ color }}>{isOver ? `🏆 ${raw.toFixed(1)}%` : `${raw.toFixed(1)}%`}</span>
+                      <span className={`font-bold ${large ? 'text-[14px]' : 'text-[12px]'}`} style={{ color: textColor }}>
+                        {isOver ? <><span className="mr-0.5">🏆</span>{raw.toFixed(1)}%</> : `${raw.toFixed(1)}%`}
+                      </span>
                     </div>
                   </div>
                 )
