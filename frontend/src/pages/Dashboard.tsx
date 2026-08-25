@@ -144,9 +144,9 @@ export function Dashboard() {
     setShowGoalModal(true)
   }
 
-  const { data: todaysSales, isLoading: salesLoading } = useQuery<DaySaleRow[]>({
-    queryKey: ['dashboard-today-sales', today],
-    queryFn: () => reportsApi.commissions({ date_from: today, date_to: today }).then(r => r.data),
+  const { data: periodSales, isLoading: salesLoading } = useQuery<DaySaleRow[]>({
+    queryKey: ['dashboard-period-sales', dateFrom, dateTo],
+    queryFn: () => reportsApi.commissions({ date_from: dateFrom, date_to: dateTo }).then(r => r.data),
     enabled: isAdmin,
   })
 
@@ -231,7 +231,10 @@ export function Dashboard() {
   const fmtR = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0)
 
-  const sales = todaysSales || []
+  const salesRaw = periodSales || []
+  const sales = salesRaw
+    .filter(r => !factoryFilter || r.industria === factoryFilter)
+    // price_table não vem no relatório — quando há filtro de tabela, não restringe aqui
   const salesTotalPcs   = sales.reduce((s, r) => s + Number(r.total_pieces), 0)
   const salesTotalVal   = sales.reduce((s, r) => s + Number(r.total_value), 0)
   const salesTotalRepCom = sales.reduce((s, r) => s + Number(r.rep_commission_value), 0)
@@ -990,7 +993,7 @@ export function Dashboard() {
         {/* ─── Resumo de vendas do dia — admin only ────── */}
         {isAdmin && (
           <section>
-            <SectionTitle>Resumo de Vendas do Dia</SectionTitle>
+            <SectionTitle>Resumo de Vendas do Período</SectionTitle>
             {salesLoading ? (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-6 flex justify-center">
                 <PageSpinner />
@@ -998,7 +1001,7 @@ export function Dashboard() {
             ) : sales.length === 0 ? (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-8 flex flex-col items-center text-center">
                 <Package className="h-7 w-7 text-outline/40 mb-2" />
-                <p className="text-[12px] text-outline/70 font-medium">Nenhuma venda registrada hoje</p>
+                <p className="text-[12px] text-outline/70 font-medium">Nenhuma venda registrada no período</p>
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
