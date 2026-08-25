@@ -1027,6 +1027,103 @@ export function Dashboard() {
           </div>
         )}
 
+        {/* ─── Resumo de vendas do período — vendedor (não-admin) ────── */}
+        {!isAdmin && (
+          <section>
+            <SectionTitle>
+              {isCompare ? 'Comparativo — Mês Anterior vs Este Mês' : 'Resumo de Vendas do Período'}
+            </SectionTitle>
+
+            {/* Comparativo: cards lado a lado */}
+            {isCompare && (() => {
+              const toD = (o: Order) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
+              const prevOrds = filteredOrders.filter(o => toD(o).slice(0, 7) === prevMonthStart)
+              const currOrds = filteredOrders.filter(o => toD(o).slice(0, 7) === currMonthStart)
+              const sumO = (rows: Order[]) => ({
+                pcs: rows.reduce((s, o) => s + Number(o.total_pieces), 0),
+                val: rows.reduce((s, o) => s + Number(o.total_value), 0),
+                rep: rows.reduce((s, o) => s + Number(o.rep_commission_value), 0),
+              })
+              return (
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {([{ label: 'Mês Anterior', rows: prevOrds, accent: 'text-outline' }, { label: 'Este Mês', rows: currOrds, accent: 'text-primary' }] as const).map(({ label, rows, accent }) => {
+                    const t = sumO(rows)
+                    return (
+                      <div key={label} className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-4">
+                        <p className={`text-[11px] font-bold uppercase tracking-wide mb-3 ${accent}`}>{label}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-surface-container rounded-xl p-2 text-center">
+                            <p className="text-[10px] text-outline/70 uppercase tracking-wide">Pedidos</p>
+                            <p className="text-[18px] font-bold text-on-surface">{rows.length}</p>
+                          </div>
+                          <div className="bg-surface-container rounded-xl p-2 text-center">
+                            <p className="text-[10px] text-outline/70 uppercase tracking-wide">Peças</p>
+                            <p className="text-[18px] font-bold text-on-surface">{t.pcs.toLocaleString('pt-BR')}</p>
+                          </div>
+                          <div className="bg-surface-container rounded-xl p-2 text-center col-span-2">
+                            <p className="text-[10px] text-outline/70 uppercase tracking-wide">Total Vendas</p>
+                            <p className="text-[20px] font-bold text-on-surface">{fmtR(t.val)}</p>
+                          </div>
+                          <div className="bg-surface-container rounded-xl p-2 text-center col-span-2">
+                            <p className="text-[10px] text-outline/70 uppercase tracking-wide">Minha Comissão</p>
+                            <p className="text-[14px] font-bold text-emerald-700">{fmtR(t.rep)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+
+            {filteredOrders.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm p-8 flex flex-col items-center text-center">
+                <Package className="h-7 w-7 text-outline/40 mb-2" />
+                <p className="text-[12px] text-outline/70 font-medium">Nenhuma venda registrada no período</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-outline-variant/40 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-[12px]">
+                    <thead className="bg-surface-container-low border-b border-outline-variant/50 sticky top-0">
+                      <tr>
+                        {['Data', 'Marca', 'Cliente', 'Cidade', 'Qt. Peças', 'Valor Pedido', 'Minha Comissão'].map(h => (
+                          <th key={h} className="px-3 py-1.5 text-left font-semibold text-outline whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...filteredOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(o => {
+                        const d = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date(o.created_at))
+                        const [y, m, day] = d.split('-')
+                        return (
+                          <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className="hover:bg-primary/5 cursor-pointer transition-colors border-b border-gray-50">
+                            <td className="px-3 py-1.5 whitespace-nowrap text-outline/70">{day}/{m}/{y}</td>
+                            <td className="px-3 py-1.5 whitespace-nowrap font-medium text-on-surface">{o.factory_name}</td>
+                            <td className="px-3 py-1.5 max-w-[160px]"><span className="block truncate font-medium text-on-surface">{o.client_name}</span></td>
+                            <td className="px-3 py-1.5 whitespace-nowrap text-on-surface-variant">{o.client_city || '—'}</td>
+                            <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-on-surface">{Number(o.total_pieces).toLocaleString('pt-BR')}</td>
+                            <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-on-surface">{fmtR(Number(o.total_value))}</td>
+                            <td className="px-3 py-1.5 text-right whitespace-nowrap font-bold text-emerald-700">{fmtR(Number(o.rep_commission_value))}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-surface-container-low border-t-2 border-outline-variant font-bold text-[12px]">
+                        <td colSpan={4} className="px-3 py-1.5 text-on-surface-variant">{filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}</td>
+                        <td className="px-3 py-1.5 text-right text-on-surface">{totalPieces.toLocaleString('pt-BR')}</td>
+                        <td className="px-3 py-1.5 text-right text-on-surface">{fmtR(totalValue)}</td>
+                        <td className="px-3 py-1.5 text-right text-emerald-700">{fmtR(totalRepComm)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
         {/* ─── Resumo de vendas do período — admin only ────── */}
         {isAdmin && (
           <section>
