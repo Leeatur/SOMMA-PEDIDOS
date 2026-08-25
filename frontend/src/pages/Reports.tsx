@@ -26,11 +26,18 @@ function monthStartStr() {
   d.setDate(1)
   return spFmt.format(d)
 }
-// Handles both "YYYY-MM-DD" strings and ISO timestamps returned by pg
-function fmtDatePtBR(d: string | Date): string {
-  const iso = typeof d === 'string' ? d : (d as Date).toISOString()
-  const [y, m, day] = iso.substring(0, 10).split('-')
-  return `${day}/${m}/${y}`
+// Handles "YYYY-MM-DD" strings, ISO timestamps, Date objects, and unexpected values
+function fmtDatePtBR(d: string | Date | null | undefined): string {
+  if (d == null) return '—'
+  if (typeof d === 'string') {
+    const [y, m, day] = d.substring(0, 10).split('-')
+    return day && m && y ? `${day}/${m}/${y}` : d
+  }
+  if (d instanceof Date) {
+    const [y, m, day] = d.toISOString().substring(0, 10).split('-')
+    return `${day}/${m}/${y}`
+  }
+  return String(d)
 }
 
 // ─── types ───────────────────────────────────────────────────────────────────

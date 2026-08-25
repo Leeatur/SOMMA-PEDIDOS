@@ -890,10 +890,8 @@ export function Dashboard() {
               const RepGoalBar = ({ g, large = false }: { g: Goal; large?: boolean }) => {
                 const { raw, fmt, target, achieved, unit } = goalStats(g)
                 const isOver = raw > 100
-                // Cores otimizadas para fundo navy/azul escuro:
-                // over → branco (vitória limpa); 100% → verde-esmeralda; 70–99% → azul-claro; 40–69% → âmbar suave; <40% → rosa
-                const textColor = isOver ? '#FFFFFF' : raw >= 100 ? '#34D399' : raw >= 70 ? '#93C5FD' : raw >= 40 ? '#FCD34D' : '#FCA5A5'
-                const barColor  = isOver ? 'rgba(255,255,255,0.85)' : raw >= 100 ? '#34D399' : raw >= 70 ? '#60A5FA' : raw >= 40 ? '#FBBF24' : '#F87171'
+                const textColor = '#FFFFFF'
+                const barColor  = isOver ? 'rgba(255,255,255,0.85)' : '#FBBF24'
                 const escala    = isOver ? Math.max(120, raw + 15) : 100
                 const largura   = Math.min(100, (raw / escala) * 100)
                 const posMeta   = (100 / escala) * 100
