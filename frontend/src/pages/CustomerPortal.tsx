@@ -90,6 +90,9 @@ const fmtR = (v: number) =>
 
 export function CustomerPortal() {
   const { token } = useParams<{ token: string }>()
+  // ?v=<share_code> — quem compartilhou o link. Fica com a venda no lugar do dono
+  // do catálogo (o backend valida o código antes de creditar).
+  const sharedBy = new URLSearchParams(window.location.search).get('v') || undefined
 
   // Steps: 'loading' | 'cnpj' | 'catalog' | 'cart' | 'success' | 'error'
   const [step, setStep] = useState<string>('loading')
@@ -289,6 +292,7 @@ export function CustomerPortal() {
         grade: i.customGrade ? i.customGrade : (i.grade ? [i.grade] : undefined),
       }))
       const r = await publicPortalApi.submitOrder(token!, {
+        shared_by: sharedBy,
         cnpj: clientData.cnpj,
         client_name: clientData.razao_social,
         trade_name: clientData.nome_fantasia,

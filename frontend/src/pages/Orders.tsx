@@ -56,6 +56,8 @@ interface Order {
   created_at: string
   industry_order_number: string | null
   delivery_date: string | null
+  origin?: string | null        // 'portal' = entrou pelo catálogo eletrônico
+  portal_name?: string | null   // nome do link por onde entrou
   payment_terms: string | null
 }
 
@@ -76,6 +78,7 @@ const ALL_COL_DEFS: ColumnDef[] = [
   { id: 'items',          label: 'Itens (pç)' },
   { id: 'value',          label: 'Valor' },
   { id: 'delivery',       label: 'Prev. Entrega',      defaultVisible: true },
+  { id: 'origem',         label: 'Origem',             defaultVisible: true },
   { id: 'payment',        label: 'Cond. Pagamento',    defaultVisible: true },
   { id: 'politica',       label: 'Política' },
   { id: 'commission',     label: 'Com. Rep.',          defaultVisible: false },
@@ -144,6 +147,14 @@ function OrderCell({ id, o }: { id: string; o: Order }) {
     case 'payment':   return <span className={`${cls} text-on-surface-variant`}>{o.payment_terms || '—'}</span>
     case 'commission': { const v = Number(o.total_value) * Number(o.rep_commission_pct)    / 100; return <span className={`${cls} text-right whitespace-nowrap ${v > 0 ? 'font-semibold text-emerald-600' : 'text-outline/50'}`}>{v > 0 ? formatCurrency(v) : '—'}</span> }
     case 'com_escr':   { const v = Number(o.total_value) * Number(o.office_commission_pct) / 100; return <span className={`${cls} text-right whitespace-nowrap ${v > 0 ? 'font-semibold text-blue-600' : 'text-outline/50'}`}>{v > 0 ? formatCurrency(v) : '—'}</span> }
+    case 'origem':    return o.origin === 'portal' ? (
+      <span className="mx-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700 whitespace-nowrap"
+        title={o.portal_name ? `Catálogo eletrônico · link "${o.portal_name}" (${o.rep_name})` : 'Entrou pelo catálogo eletrônico'}>
+        🔗 Catálogo
+      </span>
+    ) : (
+      <span className="mx-2 inline-block text-[11px] text-outline/50">Sistema</span>
+    )
     case 'politica':  return <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold mx-2 inline-block ${o.discount_pct === 0 ? 'bg-blue-50 text-blue-700' : o.discount_pct <= 5 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>{o.discount_pct > 0 ? `${o.discount_pct}%` : '0%'}</span>
     case 'discount':  return <span className={`${cls} text-right whitespace-nowrap ${o.discount_pct > 0 ? 'font-semibold text-emerald-600' : 'text-outline/50'}`}>{o.discount_pct > 0 ? `-${o.discount_pct}%` : '—'}</span>
     case 'table':     return <span className={`${cls} text-outline/70`}>{o.price_table_name}</span>
@@ -309,6 +320,7 @@ function csvCell(id: string, o: Order): string | number {
     case 'value':        return numBR(o.total_value)
     case 'delivery':     return deliveryBR(o.delivery_date)
     case 'payment':      return o.payment_terms || ''
+    case 'origem':       return o.origin === 'portal' ? `Catálogo${o.portal_name ? ' — ' + o.portal_name : ''}` : 'Sistema'
     case 'politica':     return `${o.discount_pct || 0}%`
     case 'commission':   return numBR(Number(o.total_value) * Number(o.rep_commission_pct) / 100)
     case 'com_escr':     return numBR(Number(o.total_value) * Number(o.office_commission_pct) / 100)

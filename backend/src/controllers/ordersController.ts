@@ -142,13 +142,15 @@ export async function listOrders(req: AuthRequest, res: Response) {
         u.name as rep_name,
         f.name as factory_name,
         pt.name as price_table_name,
-        s.name as status_name, s.color as status_color, s.icon as status_icon
+        s.name as status_name, s.color as status_color, s.icon as status_icon,
+        cp.name as portal_name
       FROM orders o
       JOIN clients c ON c.id = o.client_id
       JOIN users u ON u.id = o.rep_id
       JOIN factories f ON f.id = o.factory_id
       LEFT JOIN price_tables pt ON pt.id = o.price_table_id
       LEFT JOIN order_statuses s ON s.id = o.status_id
+      LEFT JOIN customer_portals cp ON cp.id = o.portal_id
       WHERE o.deleted_at IS NULL
     `
     const params: unknown[] = []
@@ -197,13 +199,15 @@ export async function getOrder(req: AuthRequest, res: Response) {
         u.name as rep_name, u.email as rep_email,
         f.name as factory_name, f.contact as factory_contact,
         pt.name as price_table_name,
-        s.name as status_name, s.color as status_color, s.icon as status_icon
+        s.name as status_name, s.color as status_color, s.icon as status_icon,
+        cp.name as portal_name
        FROM orders o
        JOIN clients c ON c.id = o.client_id
        JOIN users u ON u.id = o.rep_id
        JOIN factories f ON f.id = o.factory_id
        JOIN price_tables pt ON pt.id = o.price_table_id
        LEFT JOIN order_statuses s ON s.id = o.status_id
+       LEFT JOIN customer_portals cp ON cp.id = o.portal_id
        WHERE o.id = $1`,
       [req.params.id]
     )

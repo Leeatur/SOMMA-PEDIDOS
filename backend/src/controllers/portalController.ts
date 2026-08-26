@@ -7,6 +7,11 @@ import crypto from 'crypto'
 
 export async function listPortals(req: AuthRequest, res: Response) {
   const repId = req.user!.role === 'admin' ? req.query.rep_id || req.user!.id : req.user!.id
+  // Garante o código de compartilhamento do usuário (contas antigas podem estar sem).
+  const { rows: [me] } = await query(
+    `UPDATE users SET share_code = COALESCE(share_code, encode(gen_random_bytes(6),'hex'))
+      WHERE id = $1 RETURNING share_code`, [req.user!.id]
+  )
   const { rows } = await query(
     `SELECT cp.*, u.name as rep_name,
        array_agg(DISTINCT f.name) FILTER (WHERE f.id IS NOT NULL) AS factory_names,
@@ -23,31 +28,37 @@ export async function listPortals(req: AuthRequest, res: Response) {
      LEFT JOIN users u ON u.id = cp.rep_id
      LEFT JOIN unnest(cp.factory_ids) fid ON true
      LEFT JOIN factories f ON f.id = fid
-     WHERE cp.rep_id = $1
+     WHERE (cp.rep_id = $1 OR cp.shared_with_team = true)
        AND NOT EXISTS (SELECT 1 FROM pe_catalogs pe WHERE pe.portal_id = cp.id)
      GROUP BY cp.id, u.name
      ORDER BY cp.created_at DESC`,
     [repId]
   )
-  res.json(rows)
+  // is_mine: só o dono (ou admin) edita/exclui. Catálogo da equipe o vendedor só divulga.
+  res.json(rows.map(r => ({
+    ...r,
+    is_mine: r.rep_id === req.user!.id,
+    my_share_code: me?.share_code || null,
+  })))
 }
 
 export async function createPortal(req: AuthRequest, res: Response) {
-  const { name, factory_ids, price_table_ids, expires_at, min_order_value, only_in_stock } = req.body
+  const { name, factory_ids, price_table_ids, expires_at, min_order_value, only_in_stock, shared_with_team } = req.body
   if (!name) { res.status(400).json({ error: 'Nome é obrigatório' }); return }
   const token = crypto.randomBytes(24).toString('hex')
   const repId = req.user!.id
   const { rows: [portal] } = await query(
-    `INSERT INTO customer_portals (rep_id, factory_ids, price_table_ids, token, name, expires_at, min_order_value, only_in_stock)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    `INSERT INTO customer_portals (rep_id, factory_ids, price_table_ids, token, name, expires_at, min_order_value, only_in_stock, shared_with_team)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
     [repId, factory_ids || [], price_table_ids || [], token, name, expires_at || null,
-     Number(min_order_value) || 0, only_in_stock === true]
+     Number(min_order_value) || 0, only_in_stock === true,
+     req.user!.role === 'admin' && shared_with_team === true]
   )
   res.status(201).json(portal)
 }
 
 export async function updatePortal(req: AuthRequest, res: Response) {
-  const { name, factory_ids, active, expires_at, min_order_value, only_in_stock } = req.body
+  const { name, factory_ids, active, expires_at, min_order_value, only_in_stock, shared_with_team } = req.body
   const { rows: [existing] } = await query(
     'SELECT rep_id FROM customer_portals WHERE id=$1', [req.params.id]
   )
@@ -58,11 +69,14 @@ export async function updatePortal(req: AuthRequest, res: Response) {
   const { rows: [portal] } = await query(
     `UPDATE customer_portals SET name=$1, factory_ids=$2, active=$3, expires_at=$4,
       min_order_value=COALESCE($5, min_order_value), only_in_stock=COALESCE($6, only_in_stock),
+      shared_with_team=COALESCE($7, shared_with_team),
       updated_at=NOW()
-     WHERE id=$7 RETURNING *`,
+     WHERE id=$8 RETURNING *`,
     [name, factory_ids || [], active ?? true, expires_at || null,
      min_order_value !== undefined ? Number(min_order_value) : null,
      only_in_stock !== undefined ? only_in_stock === true : null,
+     // Só admin liga/desliga o compartilhamento com a equipe.
+     req.user!.role === 'admin' && shared_with_team !== undefined ? shared_with_team === true : null,
      req.params.id]
   )
   res.json(portal)
@@ -86,6 +100,18 @@ export async function deletePortal(req: AuthRequest, res: Response) {
 }
 
 // ─── Rotas PÚBLICAS (cliente sem login) ──────────────────────────────────────
+
+// Resolve o vendedor que compartilhou o link. O código vem da URL, então é dado
+// de fora: só vale se apontar para um usuário ATIVO. Qualquer outra coisa é
+// ignorada e a venda fica com o dono do link.
+async function resolveSharer(shareCode: unknown) {
+  const code = typeof shareCode === 'string' ? shareCode.trim() : ''
+  if (!code || !/^[a-f0-9]{4,24}$/i.test(code)) return null
+  const { rows: [u] } = await query(
+    `SELECT id FROM users WHERE share_code = $1 AND active = true`, [code.toLowerCase()]
+  )
+  return u?.id || null
+}
 
 async function getPortal(token: string) {
   const { rows: [portal] } = await query(
@@ -367,19 +393,25 @@ export async function submitPortalOrder(req: Request, res: Response) {
   )
   const commRule = commRules[0] || { total_commission_pct: 0, rep_commission_pct: 0, office_commission_pct: 0, guide_commission_pct: 0 }
 
-  const { rows: [repUser] } = await query('SELECT role FROM users WHERE id=$1', [portal.rep_id])
+  // Catálogo da equipe: a venda é de quem divulgou, não do dono do link.
+  const sharerId = await resolveSharer((req.body as { shared_by?: unknown }).shared_by)
+  const orderRepId = sharerId || portal.rep_id
+
+  const { rows: [repUser] } = await query('SELECT role FROM users WHERE id=$1', [orderRepId])
   const isAdminRep = repUser?.role === 'admin'
 
   const { rows: [order] } = await query(
     `INSERT INTO orders (client_id, rep_id, factory_id, price_table_id, status_id, discount_pct, notes, freight_type,
-       payment_terms, total_commission_pct, rep_commission_pct, office_commission_pct, guide_commission_pct)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'CIF',$8,$9,$10,$11,$12) RETURNING *`,
-    [clientId, portal.rep_id, factory_id, price_table_id, initialStatus?.id || null, discPct, notes||null,
+       payment_terms, total_commission_pct, rep_commission_pct, office_commission_pct, guide_commission_pct,
+       origin, portal_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,'CIF',$8,$9,$10,$11,$12,'portal',$13) RETURNING *`,
+    [clientId, orderRepId, factory_id, price_table_id, initialStatus?.id || null, discPct, notes||null,
      payment_terms || null,
      commRule.total_commission_pct,
      isAdminRep ? 0 : commRule.rep_commission_pct,
      isAdminRep ? commRule.total_commission_pct : commRule.office_commission_pct,
-     isAdminRep ? 0 : (Number(commRule.guide_commission_pct) || 0)]
+     isAdminRep ? 0 : (Number(commRule.guide_commission_pct) || 0),
+     portal.id]
   )
 
   // Insere itens — comissão calculada sobre o preço CHEIO (sem desconto à vista)

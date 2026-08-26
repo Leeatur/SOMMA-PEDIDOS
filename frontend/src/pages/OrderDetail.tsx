@@ -107,6 +107,8 @@ interface OrderDetail {
   freight_type: string | null
   buyer_name: string | null
   industry_order_number: string | null
+  origin?: string | null        // 'portal' = entrou pelo catálogo eletrônico
+  portal_name?: string | null   // por qual link de catálogo entrou
   status_name: string | null
   status_color: string | null
   status_id: string | null
@@ -541,6 +543,11 @@ export function OrderDetail() {
             <div className="shrink-0">
               <span className="text-[12px] font-bold text-outline uppercase tracking-wide">Pedido</span>
               <p className="text-lg font-bold text-on-surface leading-tight mt-0.5">{formatOrderNumber(order.order_number)}</p>
+              {order.origin === 'portal' && (
+                <p className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700">
+                  🔗 Catálogo eletrônico{order.portal_name ? ` · ${order.portal_name}` : ''}
+                </p>
+              )}
             </div>
             {order.status_name && order.status_color ? (
               <StatusBadge name={order.status_name} color={order.status_color} truncate title={order.status_name} className="mt-1" />

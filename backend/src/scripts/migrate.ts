@@ -322,6 +322,19 @@ ALTER TABLE customer_portals ADD COLUMN IF NOT EXISTS price_table_ids UUID[] NOT
 ALTER TABLE customer_portals ADD COLUMN IF NOT EXISTS min_order_value NUMERIC(10,2) NOT NULL DEFAULT 0;
 ALTER TABLE customer_portals ADD COLUMN IF NOT EXISTS only_in_stock BOOLEAN NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS idx_customer_portals_token ON customer_portals(token);
+-- Origem do pedido: 'app' (lançado no sistema) ou 'portal' (catálogo eletrônico).
+-- portal_id guarda por qual link entrou; o vendedor vai em orders.rep_id.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS origin VARCHAR(20) NOT NULL DEFAULT 'app';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS portal_id UUID REFERENCES customer_portals(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_orders_origin ON orders(origin);
+-- Catálogo da EQUIPE: criado pelo admin e visível para todos os vendedores.
+-- O link é o mesmo; quem compartilha vai identificado pelo share_code na URL.
+ALTER TABLE customer_portals ADD COLUMN IF NOT EXISTS shared_with_team BOOLEAN NOT NULL DEFAULT false;
+-- Código curto por usuário, usado no fim do link (?v=<share_code>) para creditar
+-- a venda a quem divulgou.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS share_code VARCHAR(12);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_share_code ON users(share_code) WHERE share_code IS NOT NULL;
+UPDATE users SET share_code = encode(gen_random_bytes(6), 'hex') WHERE share_code IS NULL;
 CREATE INDEX IF NOT EXISTS idx_customer_portals_rep ON customer_portals(rep_id);
 
 -- Catálogos de Pronta Entrega (PE) — vincula tabela de preços + portal do cliente

@@ -461,7 +461,7 @@ export const goalsApi = {
 
 export const portalsApi = {
   list: () => apiClient.get('/portals'),
-  create: (data: { name: string; factory_ids: string[]; price_table_ids?: string[]; expires_at?: string; min_order_value?: number; only_in_stock?: boolean }) => apiClient.post('/portals', data),
+  create: (data: { name: string; factory_ids: string[]; price_table_ids?: string[]; expires_at?: string; min_order_value?: number; only_in_stock?: boolean; shared_with_team?: boolean }) => apiClient.post('/portals', data),
   update: (id: string, data: object) => apiClient.put(`/portals/${id}`, data),
   delete: (id: string) => apiClient.delete(`/portals/${id}`),
 }

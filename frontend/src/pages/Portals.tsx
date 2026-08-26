@@ -16,6 +16,10 @@ interface Portal {
   factory_names?: string[]
   price_table_info?: PriceTableInfo[]   // info das tabelas selecionadas (vem do backend)
   active: boolean; created_at: string; expires_at: string | null
+  shared_with_team?: boolean   // catálogo do admin, liberado para toda a equipe
+  is_mine?: boolean            // só o dono (ou admin) edita/exclui
+  my_share_code?: string | null // código de quem está logado, entra no link
+  rep_name?: string
 }
 
 // usa o domínio em que o sistema está sendo acessado (ex.: www.sommafv.com.br)
@@ -24,11 +28,11 @@ const BASE = window.location.origin
 export function Portals() {
   const qc = useQueryClient()
   const { user } = useAuthStore()
-  // const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin'
 
   const [createOpen, setCreateOpen] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', price_table_ids: [] as string[], min_order_value: '', only_in_stock: false })
+  const [form, setForm] = useState({ name: '', price_table_ids: [] as string[], min_order_value: '', only_in_stock: false, shared_with_team: false })
 
   const { data: portals = [], isLoading } = useQuery<Portal[]>({
     queryKey: ['portals'],
@@ -45,11 +49,12 @@ export function Portals() {
       name: form.name, price_table_ids: form.price_table_ids, factory_ids: [],
       min_order_value: parseFloat(form.min_order_value.replace(',', '.')) || 0,
       only_in_stock: form.only_in_stock,
+      shared_with_team: form.shared_with_team,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['portals'] })
       setCreateOpen(false)
-      setForm({ name: '', price_table_ids: [], min_order_value: '', only_in_stock: false })
+      setForm({ name: '', price_table_ids: [], min_order_value: '', only_in_stock: false, shared_with_team: false })
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao criar link. Tente novamente.'
@@ -67,20 +72,27 @@ export function Portals() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['portals'] }),
   })
 
-  function copyLink(token: string, id: string) {
-    navigator.clipboard.writeText(`${BASE}/portal/${token}`)
+  // Link de divulgação. Em catálogo da equipe vai o código de quem está logado,
+  // para o pedido cair no nome de quem compartilhou — e não no dono do catálogo.
+  function linkDe(portal: Portal) {
+    const base = `${BASE}/portal/${portal.token}`
+    return portal.my_share_code ? `${base}?v=${portal.my_share_code}` : base
+  }
+
+  function copyLink(token: string, id: string, portal?: Portal) {
+    navigator.clipboard.writeText(portal ? linkDe(portal) : `${BASE}/portal/${token}`)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
   }
 
   function shareWhatsApp(portal: Portal) {
-    const url = `${BASE}/portal/${portal.token}`
+    const url = linkDe(portal)
     const msg = `Olá! Acesse nosso catálogo online e faça seu pedido diretamente:\n\n${url}\n\nDigite seu CNPJ para entrar e visualizar os produtos disponíveis.`
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
   function shareEmail(portal: Portal) {
-    const url = `${BASE}/portal/${portal.token}`
+    const url = linkDe(portal)
     const subject = `Catálogo Online - SOMMA Força de Vendas`
     const body = `Olá,\n\nAcesse nosso catálogo online e faça seu pedido diretamente pelo link abaixo:\n\n${url}\n\nBasta digitar o CNPJ da sua empresa para entrar e visualizar todos os produtos disponíveis.\n\nAtenciosamente,\n${user?.name}`
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`)
@@ -186,18 +198,24 @@ export function Portals() {
                   </button>
                 </div>
 
+                {portal.shared_with_team && (
+                  <span className="inline-flex items-center gap-1 mb-2 px-2 py-0.5 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700">
+                    👥 Da equipe{portal.is_mine === false && portal.rep_name ? ` · criado por ${portal.rep_name}` : ''}
+                  </span>
+                )}
+
                 {/* URL do link */}
                 <div className="flex items-center gap-2 bg-surface-container-low rounded-xl px-3 py-2 mb-3">
                   <Link2 className="h-3.5 w-3.5 text-outline flex-shrink-0" />
                   <p className="text-[11px] text-outline font-mono truncate flex-1">
-                    {BASE}/portal/{portal.token.substring(0, 20)}...
+                    {BASE}/portal/{portal.token.substring(0, 14)}…{portal.my_share_code ? `?v=${portal.my_share_code}` : ''}
                   </p>
                 </div>
 
                 {/* Ações — scroll horizontal no mobile */}
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                   <button
-                    onClick={() => copyLink(portal.token, portal.id)}
+                    onClick={() => copyLink(portal.token, portal.id, portal)}
                     className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-outline-variant text-[12px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
                   >
                     {copiedId === portal.id ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
@@ -221,7 +239,7 @@ export function Portals() {
                   </button>
 
                   <a
-                    href={`/portal/${portal.token}`}
+                    href={linkDe(portal)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-outline-variant text-[12px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
@@ -230,12 +248,14 @@ export function Portals() {
                     Visualizar
                   </a>
 
+                  {portal.is_mine !== false && (
                   <button
                     onClick={() => window.confirm('Excluir este catálogo? O cliente não conseguirá mais acessar o link.') && deleteMut.mutate(portal.id)}
                     className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 text-red-500 text-[12px] font-semibold hover:bg-red-50 transition-colors ml-auto"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Excluir
                   </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -353,6 +373,24 @@ export function Portals() {
                 <p className="text-[11px] text-outline mt-0.5">Produtos sem estoque aparecem marcados como <strong>esgotado</strong> e não podem ser adicionados ao pedido.</p>
               </div>
             </label>
+
+            {isAdmin && (
+              <label className="flex items-start gap-3 cursor-pointer p-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-low transition-colors">
+                <input
+                  type="checkbox"
+                  checked={form.shared_with_team}
+                  onChange={e => setForm(f => ({ ...f, shared_with_team: e.target.checked }))}
+                  className="w-4 h-4 accent-primary rounded flex-shrink-0 mt-0.5"
+                />
+                <div>
+                  <p className="text-[13px] font-semibold text-on-surface">Liberar para toda a equipe</p>
+                  <p className="text-[11px] text-outline mt-0.5">
+                    O catálogo aparece para todos os vendedores. Cada um recebe o link com o código
+                    dele, então o pedido entra no nome de <strong>quem compartilhou</strong>.
+                  </p>
+                </div>
+              </label>
+            )}
           </div>
         </div>
       </Modal>
