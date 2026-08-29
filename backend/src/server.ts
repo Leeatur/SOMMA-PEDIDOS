@@ -28,7 +28,12 @@ app.use('/uploads', express.static(path.join(__dirname, '../..', 'uploads')))
 app.use('/api', routes)
 
 // Health check
-app.get('/health', (_, res) => res.json({ status: 'ok', ts: new Date() }))
+// commit: sem isto não há como saber se um deploy chegou de verdade.
+app.get('/health', (_, res) => res.json({
+  status: 'ok',
+  commit: (process.env.RAILWAY_GIT_COMMIT_SHA || 'desconhecido').slice(0, 7),
+  ts: new Date(),
+}))
 
 
 // Em produção, serve o frontend buildado (arquivo gerado em frontend/dist)
