@@ -469,6 +469,23 @@ CREATE TABLE IF NOT EXISTS order_faturamentos (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_order_faturamentos_order_id ON order_faturamentos(order_id);
+-- Número da nota fiscal da fábrica. É o que o representante confere contra o
+-- relatório de comissões; sem ele a linha do relatório não identifica a nota.
+ALTER TABLE order_faturamentos ADD COLUMN IF NOT EXISTS nf VARCHAR(30);
+CREATE INDEX IF NOT EXISTS idx_order_faturamentos_data ON order_faturamentos(data_faturamento);
+
+-- Descontos do relatório de comissão (bloco "RELATÓRIO DE DÉBITOS" do formulário
+-- da fábrica): adiantamento, amostra, devolução. Por representante e competência,
+-- para o mês poder ser reimpresso igual depois.
+CREATE TABLE IF NOT EXISTS comissao_debitos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rep_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  competencia CHAR(7) NOT NULL,          -- 'AAAA-MM'
+  descricao VARCHAR(200) NOT NULL,
+  valor NUMERIC(12,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_comissao_debitos_rep ON comissao_debitos(rep_id, competencia);
 
 -- Adiciona status 'encerrado' ao CHECK de faturamento_status
 ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_faturamento_status_check;

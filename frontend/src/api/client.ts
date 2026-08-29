@@ -361,12 +361,31 @@ export const ordersApi = {
     apiClient.patch(`/orders/${id}/sem-comissao`, data),
   listFaturamentos: (id: string) =>
     apiClient.get(`/orders/${id}/faturamentos`),
-  addFaturamento: (id: string, data: { valor: number; data_faturamento: string }) =>
+  addFaturamento: (id: string, data: { valor: number; data_faturamento: string; nf?: string }) =>
     apiClient.post(`/orders/${id}/faturamentos`, data),
   deleteFaturamento: (id: string, fatId: number) =>
     apiClient.delete(`/orders/${id}/faturamentos/${fatId}`),
   encerrarFaturamento: (id: string) =>
     apiClient.post(`/orders/${id}/encerrar-faturamento`),
+}
+
+export interface ComissaoDebito {
+  id: string
+  rep_id: string
+  rep_nome?: string
+  competencia: string
+  descricao: string
+  valor: number | string
+}
+
+// Débitos do fechamento (adiantamento, amostra, devolução) — bloco "RELATÓRIO DE
+// DÉBITOS" do formulário da fábrica.
+export const comissaoDebitosApi = {
+  list: (params: { rep_id?: string; competencia: string }) =>
+    apiClient.get<ComissaoDebito[]>('/comissao-debitos', { params }),
+  create: (data: { rep_id: string; competencia: string; descricao: string; valor: number }) =>
+    apiClient.post<ComissaoDebito>('/comissao-debitos', data),
+  remove: (id: string) => apiClient.delete(`/comissao-debitos/${id}`),
 }
 
 export const reportsApi = {

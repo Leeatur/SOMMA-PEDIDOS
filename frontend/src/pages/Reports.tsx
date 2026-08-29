@@ -57,6 +57,7 @@ interface OrderDay {
 }
 interface CommissionRow {
   id: string
+  rep_id: string
   order_number: number
   data_venda: string
   industria: string
@@ -618,6 +619,7 @@ function FechamentoTab({
     industria: string; vendedor: string; razao_social: string; cliente: string
     total_value: string; rep_commission_pct: string; rep_commission_value: string
     office_commission_value: string; sem_comissao_fabrica: boolean
+    nf: string | null; rep_id: string
   }
 
   const fatQ = useQuery<FatReportRow[]>({
@@ -629,8 +631,12 @@ function FechamentoTab({
   const [expandedSem, setExpandedSem] = useState(false)
   const [newFatData, setNewFatData]   = useState(() => new Date().toISOString().slice(0, 10))
   const [newFatValor, setNewFatValor] = useState('')
+  const [newFatNf, setNewFatNf]       = useState('')
+  // Mês do relatório no formulário da fábrica — ele é sempre mensal e conta pela
+  // data do faturamento.
+  const [competencia, setCompetencia] = useState(() => dateTo.substring(0, 7))
 
-  type FatRow = { id: number; valor: string; data_faturamento: string }
+  type FatRow = { id: number; valor: string; nf: string | null; data_faturamento: string }
 
   const { data: faturamentos = [], isLoading: fatLoading } = useQuery<FatRow[]>({
     queryKey: ['faturamentos', expandedId],
@@ -639,12 +645,12 @@ function FechamentoTab({
   })
 
   const addFatMut = useMutation({
-    mutationFn: ({ orderId, valor, data_faturamento }: { orderId: string; valor: number; data_faturamento: string }) =>
-      ordersApi.addFaturamento(orderId, { valor, data_faturamento }),
+    mutationFn: ({ orderId, valor, data_faturamento, nf }: { orderId: string; valor: number; data_faturamento: string; nf?: string }) =>
+      ordersApi.addFaturamento(orderId, { valor, data_faturamento, nf }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['faturamentos', expandedId] })
       qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
-      setNewFatValor('')
+      setNewFatValor(''); setNewFatNf('')
     },
   })
 
@@ -675,7 +681,7 @@ function FechamentoTab({
     if (expandedId === r.id) { setExpandedId(null); return }
     setExpandedId(r.id)
     setExpandedSem(r.sem_comissao_fabrica ?? false)
-    setNewFatValor('')
+    setNewFatValor(''); setNewFatNf('')
     setNewFatData(new Date().toISOString().slice(0, 10))
   }
 
@@ -683,7 +689,7 @@ function FechamentoTab({
     const raw = newFatValor.replace(/\./g, '').replace(',', '.')
     const valor = parseFloat(raw)
     if (isNaN(valor) || valor <= 0 || !newFatData) return
-    addFatMut.mutate({ orderId, valor, data_faturamento: newFatData })
+    addFatMut.mutate({ orderId, valor, data_faturamento: newFatData, nf: newFatNf.trim() || undefined })
   }
 
   function toggleSort(k: SortKey) {
@@ -839,6 +845,12 @@ function FechamentoTab({
             </button>
           ))}
         </div>
+        <label className="flex items-center gap-1.5 h-8 px-2 text-[12px] border border-gray-200 rounded-lg bg-white"
+          title="Mês do fechamento — o relatório conta pela data do faturamento">
+          <span className="text-gray-500">Fechamento</span>
+          <input type="month" value={competencia} onChange={e => setCompetencia(e.target.value)}
+            className="outline-none text-[12px]" />
+        </label>
         <button onClick={() => window.print()} className="flex items-center gap-1.5 h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white hover:bg-gray-50">
           <Printer className="h-3.5 w-3.5" /> Imprimir
         </button>
@@ -883,6 +895,13 @@ function FechamentoTab({
                   <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalRepCom)}</p>
                   <p className="text-[10px] text-gray-400">{totalRepFat > 0 ? `s/ ${fmtR(totalRepFat)} faturado` : `${fmtR(totalRepPedido)} em pedidos`}</p>
                 </div>
+                <button
+                  onClick={() => window.open(`/reports/comissao/${repRows[0].rep_id}/${competencia}`, '_blank')}
+                  title="Relatório de comissões no formulário da fábrica, pela data do faturamento"
+                  className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  <Printer className="h-3 w-3" /> Relatório do mês
+                </button>
                 <button
                   onClick={() => exportarRep(repNome, repRows)}
                   className="flex items-center gap-1 h-7 px-2.5 text-[11px] bg-gray-800 text-white rounded-lg hover:bg-gray-700"
@@ -971,6 +990,9 @@ function FechamentoTab({
                                         {faturamentos.map(f => (
                                           <div key={f.id} className="flex items-center gap-3 bg-white border border-blue-100 rounded-lg px-3 py-1.5">
                                             <span className="text-[12px] text-gray-500 w-20 flex-shrink-0">{fmtDatePtBR(f.data_faturamento)}</span>
+                                            <span className="text-[12px] text-gray-500 w-24 flex-shrink-0" title="Nota fiscal">
+                                              {f.nf ? `NF ${f.nf}` : '—'}
+                                            </span>
                                             <span className="text-[13px] font-semibold tabular-nums text-gray-800 flex-1">{fmtR(Number(f.valor))}</span>
                                             <button onClick={() => delFatMut.mutate({ orderId: r.id, fatId: f.id })} disabled={delFatMut.isPending} className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40">
                                               <Trash2 className="h-3.5 w-3.5" />
@@ -997,6 +1019,12 @@ function FechamentoTab({
                                       <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Data</p>
                                       <input type="date" value={newFatData} onChange={e => setNewFatData(e.target.value)}
                                         className="h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400" />
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">NF</p>
+                                      <input value={newFatNf} onChange={e => setNewFatNf(e.target.value)}
+                                        placeholder="nº"
+                                        className="w-24 h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400" />
                                     </div>
                                     <div>
                                       <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Valor faturado</p>

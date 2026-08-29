@@ -136,6 +136,7 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
       o.valor_faturado_fabrica,
       o.faturamento_status,
       o.sem_comissao_fabrica,
+      o.rep_id,
       CASE WHEN COALESCE(s.is_final, false) = true
            THEN o.total_value ELSE 0 END::numeric                   AS valor_faturado,
       CASE WHEN COALESCE(s.is_final, false) = false
@@ -173,6 +174,8 @@ export async function commissionsByFaturamento(req: AuthRequest, res: Response) 
       fat.id                                                           AS fat_id,
       fat.data_faturamento::text,
       fat.valor::numeric                                               AS valor_faturamento,
+      fat.nf,
+      o.rep_id,
       o.id,
       o.order_number,
       o.industry_order_number                                          AS nr_ped_fabrica,

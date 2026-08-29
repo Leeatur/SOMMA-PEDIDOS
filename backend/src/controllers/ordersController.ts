@@ -1591,7 +1591,7 @@ export async function listFaturamentos(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params
     const { rows } = await query(
-      `SELECT id, valor, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
+      `SELECT id, valor, nf, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
       [id]
     )
     res.json(rows)
@@ -1605,17 +1605,17 @@ export async function listFaturamentos(req: AuthRequest, res: Response) {
 export async function addFaturamento(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params
-    const { valor, data_faturamento } = req.body as { valor: number; data_faturamento: string }
+    const { valor, data_faturamento, nf } = req.body as { valor: number; data_faturamento: string; nf?: string }
     if (!valor || !data_faturamento) return res.status(400).json({ error: 'valor e data_faturamento obrigatórios' })
 
     await query(
-      `INSERT INTO order_faturamentos (order_id, valor, data_faturamento) VALUES ($1, $2, $3)`,
-      [id, valor, data_faturamento]
+      `INSERT INTO order_faturamentos (order_id, valor, data_faturamento, nf) VALUES ($1, $2, $3, $4)`,
+      [id, valor, data_faturamento, nf?.trim() || null]
     )
     await recalcFaturamentos(id)
 
     const { rows } = await query(
-      `SELECT id, valor, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
+      `SELECT id, valor, nf, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
       [id]
     )
     res.json(rows)

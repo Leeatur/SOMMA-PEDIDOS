@@ -13,6 +13,7 @@ import { Statuses } from './pages/Statuses'
 import { Users } from './pages/Users'
 import { Settings } from './pages/Settings'
 import { OrderPrint } from './pages/OrderPrint'
+import { ComissaoPrint } from './pages/ComissaoPrint'
 import { Products } from './pages/Products'
 import { Reports } from './pages/Reports'
 import { OrdersTrash } from './pages/OrdersTrash'
@@ -116,6 +117,16 @@ export function App() {
         element={
           <RequireAuth>
             <OrderPrint />
+          </RequireAuth>
+        }
+      />
+
+      {/* Relatório de comissões do mês no formulário da fábrica — sem layout */}
+      <Route
+        path="/reports/comissao/:repId/:competencia"
+        element={
+          <RequireAuth>
+            <ComissaoPrint />
           </RequireAuth>
         }
       />

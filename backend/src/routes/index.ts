@@ -8,6 +8,7 @@ import * as factories from '../controllers/factoriesController'
 import * as priceTables from '../controllers/priceTablesController'
 import * as clients from '../controllers/clientsController'
 import * as orders from '../controllers/ordersController'
+import * as comissaoDebitos from '../controllers/comissaoDebitosController'
 import * as statuses from '../controllers/statusController'
 import * as clientsImport from '../controllers/clientsImportController'
 import * as company from '../controllers/companyController'
@@ -126,6 +127,11 @@ router.patch('/orders/:id/sem-comissao', authenticate, requireAdmin, orders.upda
 router.get('/orders/:id/faturamentos', authenticate, requireAdmin, orders.listFaturamentos)
 router.post('/orders/:id/faturamentos', authenticate, requireAdmin, orders.addFaturamento)
 router.delete('/orders/:id/faturamentos/:fatId', authenticate, requireAdmin, orders.deleteFaturamento)
+
+// Débitos do fechamento de comissão (adiantamento, amostra, devolução)
+router.get('/comissao-debitos', authenticate, requireAdmin, comissaoDebitos.listDebitos)
+router.post('/comissao-debitos', authenticate, requireAdmin, comissaoDebitos.createDebito)
+router.delete('/comissao-debitos/:id', authenticate, requireAdmin, comissaoDebitos.deleteDebito)
 router.post('/orders/:id/encerrar-faturamento', authenticate, requireAdmin, orders.encerrarFaturamento)
 router.delete('/orders/:id/commission', authenticate, requireAdmin, orders.resetOrderCommission)
 router.put('/orders/:id/price-table', authenticate, orders.changeOrderPriceTable)
