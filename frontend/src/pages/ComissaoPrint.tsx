@@ -104,14 +104,16 @@ export function ComissaoPrint() {
         .doc { background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; min-height: 100vh; }
         .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 12mm 14mm; box-sizing: border-box; }
         .doc table { width: 100%; border-collapse: collapse; }
-        .doc th, .doc td { font-size: 11px; padding: 3px 5px; }
-        .lin th { border-bottom: 1.5px solid #000; text-align: left; font-size: 10px; letter-spacing: .3px; }
+        /* Fonte menor e colunas de número mais estreitas: com 11px e 74% da largura
+           reservada aos valores, o nome do cliente quebrava em três linhas. */
+        .doc th, .doc td { font-size: 9.5px; padding: 2px 4px; }
+        .lin th { border-bottom: 1.5px solid #000; text-align: left; font-size: 8.5px; letter-spacing: .2px; }
         /* .num sozinho perde para .lin th na especificidade: o título ficava à
            esquerda e o número à direita, desencontrados. */
         .lin th.num { text-align: right; }
         .lin td { border-bottom: 1px solid #e5e5e5; }
         .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .tot td { border-top: 1.5px solid #000; border-bottom: none; font-weight: bold; font-size: 12px; }
+        .tot td { border-top: 1.5px solid #000; border-bottom: none; font-weight: bold; font-size: 10.5px; }
         .titulo { text-align: center; font-weight: bold; font-size: 13px; margin: 14px 0 2px; letter-spacing: .5px; }
         .sub { text-align: center; font-size: 12px; font-weight: bold; }
         .periodo { text-align: center; font-size: 11px; margin-bottom: 12px; }
@@ -159,12 +161,12 @@ export function ComissaoPrint() {
           <table className="lin">
             <thead>
               <tr>
-                <th style={{ width: '14%' }}>DATA</th>
-                <th style={{ width: '10%' }}>NF</th>
+                <th style={{ width: '10%' }}>DATA</th>
+                <th style={{ width: '8%' }}>NF</th>
                 <th>CLIENTE</th>
-                <th className="num" style={{ width: '18%' }}>VLR PGTO</th>
-                <th className="num" style={{ width: '12%' }}>% COM.</th>
-                <th className="num" style={{ width: '20%' }}>VLR. COMISSÃO</th>
+                <th className="num" style={{ width: '13%' }}>VLR PGTO</th>
+                <th className="num" style={{ width: '8%' }}>% COM.</th>
+                <th className="num" style={{ width: '14%' }}>VLR. COMISSÃO</th>
               </tr>
             </thead>
             <tbody>
