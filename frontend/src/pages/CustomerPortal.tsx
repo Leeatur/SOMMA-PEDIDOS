@@ -80,7 +80,12 @@ interface ClientData {
   address: string | null; address_number: string | null; complement: string | null; neighborhood: string | null
   city: string; state: string; zip: string
   phone: string | null; whatsapp?: string | null; email: string | null; situacao: string
-  existing_client: { id: string; name: string; email?: string | null; whatsapp?: string | null } | null
+  existing_client: {
+    id: string; name: string; trade_name?: string | null
+    email?: string | null; whatsapp?: string | null; phone?: string | null
+    address?: string | null; address_number?: string | null; complement?: string | null
+    neighborhood?: string | null; city?: string | null; state?: string | null; zip?: string | null
+  } | null
 }
 
 const fmtR = (v: number) =>
@@ -188,19 +193,40 @@ export function CustomerPortal() {
         setCnpjError(`CNPJ com situação: ${d.situacao}. Entre em contato com nosso representante.`)
         setCnpjLoading(false); return
       }
-      setClientData(d)
       // Se há apenas uma fábrica, seleciona automaticamente (sem mostrar seletor)
       if (factories.length === 1) {
         setSelectedFactory(factories[0])
       }
-      // Pré-preenche contato (cliente existente > Receita) e decide se pede confirmação
-      const preEmail = d.existing_client?.email || d.email || ''
-      const preWhats = d.existing_client?.whatsapp || ''
-      setContactEmail(preEmail)
-      setContactWhatsapp(preWhats)
-      // Vai direto ao catálogo; o contato (e-mail + WhatsApp) é confirmado/corrigido só ao FINALIZAR o pedido
-      setClientData({ ...d, email: preEmail, whatsapp: preWhats })
-      setStep('catalog')
+
+      const ec = d.existing_client
+      if (ec) {
+        // Cliente existente — usa dados do cadastro local como prioridade, Receita como fallback
+        const merged: ClientData = {
+          ...d,
+          razao_social:   ec.name        || d.razao_social,
+          nome_fantasia:  ec.trade_name  ?? d.nome_fantasia,
+          address:        ec.address     || d.address,
+          address_number: ec.address_number || d.address_number,
+          complement:     ec.complement  ?? d.complement,
+          neighborhood:   ec.neighborhood || d.neighborhood,
+          city:           ec.city        || d.city,
+          state:          ec.state       || d.state,
+          zip:            ec.zip         || d.zip,
+          phone:          ec.phone       || d.phone,
+          email:          ec.email       || d.email || '',
+          whatsapp:       ec.whatsapp    || '',
+        }
+        setContactEmail(merged.email || '')
+        setContactWhatsapp(merged.whatsapp || '')
+        setClientData(merged)
+        setStep('catalog')
+      } else {
+        // Cliente novo — salva dados da Receita e pede e-mail + WhatsApp antes do catálogo
+        setClientData({ ...d, email: d.email || '', whatsapp: '' })
+        setContactEmail(d.email || '')
+        setContactWhatsapp('')
+        setStep('contact')
+      }
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
       setCnpjError(msg || 'CNPJ não encontrado na Receita Federal')
