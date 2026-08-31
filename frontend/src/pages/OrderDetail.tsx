@@ -513,6 +513,11 @@ export function OrderDetail() {
             {order.status_name && order.status_color && (
               <StatusBadge name={order.status_name} color={order.status_color} />
             )}
+            {order.origin === 'portal' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700 border border-violet-200 shrink-0">
+                🔗 Catálogo{order.portal_name ? ` · ${order.portal_name}` : ''} · {order.rep_name}
+              </span>
+            )}
           </div>
           <button onClick={() => window.open(`/orders/${id}/print`, '_blank')} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors" title="Imprimir pedido">
             <Printer className="h-4.5 w-4.5" />
@@ -544,8 +549,8 @@ export function OrderDetail() {
               <span className="text-[12px] font-bold text-outline uppercase tracking-wide">Pedido</span>
               <p className="text-lg font-bold text-on-surface leading-tight mt-0.5">{formatOrderNumber(order.order_number)}</p>
               {order.origin === 'portal' && (
-                <p className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700">
-                  🔗 Catálogo eletrônico{order.portal_name ? ` · ${order.portal_name}` : ''}
+                <p className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700 border border-violet-200">
+                  🔗 Catálogo{order.portal_name ? ` · ${order.portal_name}` : ''} · {order.rep_name}
                 </p>
               )}
             </div>
@@ -604,6 +609,11 @@ export function OrderDetail() {
                 <User className="h-3 w-3" /> Representante
               </p>
               <p className="font-medium text-on-surface">{order.rep_name}</p>
+              {order.origin === 'portal' && (
+                <p className="text-[11px] text-violet-600 mt-0.5">
+                  via catálogo{order.portal_name ? ` "${order.portal_name}"` : ''}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-[12px] text-outline mb-0.5 flex items-center gap-1">
