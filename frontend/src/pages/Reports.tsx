@@ -896,7 +896,7 @@ function FechamentoTab({
                   <p className="text-[10px] text-gray-400">{totalRepFat > 0 ? `s/ ${fmtR(totalRepFat)} faturado` : `${fmtR(totalRepPedido)} em pedidos`}</p>
                 </div>
                 <button
-                  onClick={() => window.open(`/reports/comissao/${repRows[0].rep_id}/${competencia}`, '_blank')}
+                  onClick={() => window.open(`/reports/comissao/${repRows[0].rep_id}/${competencia}?from=${dateFrom}&to=${dateTo}`, '_blank')}
                   title="Relatório de comissões no formulário da fábrica, pela data do faturamento"
                   className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { reportsApi, companyApi, comissaoDebitosApi, type ComissaoDebito } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -46,7 +46,13 @@ export function ComissaoPrint() {
   const { repId = '', competencia = '' } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const [from, to] = useMemo(() => limitesDoMes(competencia), [competencia])
+  const [searchParams] = useSearchParams()
+  const customFrom = searchParams.get('from')
+  const customTo   = searchParams.get('to')
+  const [from, to] = useMemo(
+    () => (customFrom && customTo ? [customFrom, customTo] : limitesDoMes(competencia)),
+    [competencia, customFrom, customTo],
+  )
 
   const [novoDesc, setNovoDesc] = useState('')
   const [novoValor, setNovoValor] = useState('')
