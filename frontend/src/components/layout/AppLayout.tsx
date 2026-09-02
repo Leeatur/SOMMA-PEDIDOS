@@ -10,6 +10,7 @@ import {
 // Configurável por instância via VITE_MAPS_URL (combo do cliente); default = login geral
 const MAPS_URL = import.meta.env.VITE_MAPS_URL || 'https://sommamaps.com.br'
 import { useAuthStore } from '../../stores/authStore'
+import { SommaFVLogo } from '../shared/SommaFVLogo'
 import { authApi } from '../../api/client'
 import { db } from '../../db/db'
 import { ordersApi } from '../../api/client'
@@ -217,7 +218,7 @@ export function AppLayout() {
       >
         {/* Logo */}
         <NavLink to="/dashboard" className="flex items-center px-4 pr-3 flex-shrink-0 self-stretch border-r border-white/10">
-          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-[46px] w-auto" />
+          <SommaFVLogo size={34} variant="white" />
         </NavLink>
 
         {/* Nav — linha única */}
@@ -331,7 +332,7 @@ export function AppLayout() {
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex-1 flex justify-center min-w-0">
-          <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-9 w-auto max-w-[180px] object-contain" />
+          <SommaFVLogo size={26} variant="white" showTagline={false} />
         </div>
         <div className="flex items-center gap-2">
           {online ? <Wifi className="h-4 w-4 text-emerald-400" /> : <WifiOff className="h-4 w-4 text-amber-400" />}
@@ -347,7 +348,7 @@ export function AppLayout() {
           <div className="relative w-72 flex flex-col"
             style={{ background: 'linear-gradient(180deg, #0d1f3c, #0b1c30)' }}>
             <div className="flex items-center justify-between px-5 py-4">
-              <img src="/logo-forca-vendas-branco.png" alt="Somma" className="h-10 w-auto" />
+              <SommaFVLogo size={30} variant="white" />
               <button onClick={() => setMobileOpen(false)} className="text-white/50 hover:text-white">
                 <X className="h-5 w-5" />
               </button>

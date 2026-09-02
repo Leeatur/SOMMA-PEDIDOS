@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, ShoppingCart, Users, BarChart3, Package, TrendingUp, Shield, LogIn } from 'lucide-react'
 import { authApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
+import { SommaFVLogo } from '../components/shared/SommaFVLogo'
 
 const isDev = window.location.hostname.startsWith('dev.') || window.location.hostname === 'localhost'
 
@@ -82,7 +83,7 @@ export function Login() {
         {/* Header */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-20 w-auto" />
+            <SommaFVLogo size={56} variant="white" />
             {isDev && (
               <span className="px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-black rounded-full tracking-widest">
                 DEV
@@ -136,7 +137,7 @@ export function Login() {
         {/* Mobile: logo topo */}
         <div className="lg:hidden flex flex-col items-center pt-10 pb-4"
           style={{ background: 'linear-gradient(180deg, #0d1f3c, #0b1c30)' }}>
-          <img src="/logo-forca-vendas-branco.png" alt="Força de Vendas" className="h-16 w-auto" />
+          <SommaFVLogo size={44} variant="white" />
           {isDev && (
             <span className="mt-2 px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-black rounded-full tracking-widest">
               AMBIENTE DEV
