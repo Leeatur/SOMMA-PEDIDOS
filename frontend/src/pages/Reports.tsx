@@ -794,7 +794,7 @@ function FechamentoTab({
       </div>
 
       {modo === 'faturamento' && (
-        <PagamentoMensalView rows={fatQ.data ?? []} loading={fatQ.isLoading} dateFrom={dateFrom} dateTo={dateTo} />
+        <PagamentoMensalView rows={fatQ.data ?? []} loading={fatQ.isLoading} dateFrom={dateFrom} dateTo={dateTo} competencia={competencia} />
       )}
 
       {modo === 'pedido' && (<>
@@ -1110,8 +1110,8 @@ type FatReportRow = {
   office_commission_value: string; sem_comissao_fabrica: boolean
 }
 
-function PagamentoMensalView({ rows, loading, dateFrom, dateTo }: {
-  rows: FatReportRow[]; loading: boolean; dateFrom: string; dateTo: string
+function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia }: {
+  rows: FatReportRow[]; loading: boolean; dateFrom: string; dateTo: string; competencia: string
 }) {
   if (loading) return <PageSpinner />
   if (!rows.length) return <EmptyState label="Nenhum faturamento registrado no período" />
@@ -1138,10 +1138,19 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo }: {
                 <p className="text-[13px] font-semibold text-gray-800">{repNome}</p>
                 <p className="text-[11px] text-gray-400">{repRows.length} faturamento{repRows.length !== 1 ? 's' : ''} · {fmtPeriod}</p>
               </div>
-              <div className="text-right">
-                <p className="text-[10px] text-gray-400">comissão a pagar</p>
-                <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalCom)}</p>
-                <p className="text-[10px] text-gray-400">s/ {fmtR(totalFat)} faturado</p>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-[10px] text-gray-400">comissão a pagar</p>
+                  <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalCom)}</p>
+                  <p className="text-[10px] text-gray-400">s/ {fmtR(totalFat)} faturado</p>
+                </div>
+                <button
+                  onClick={() => window.open(`/reports/comissao/${repRows[0].rep_id}/${competencia}?from=${dateFrom}&to=${dateTo}`, '_blank')}
+                  title="Relatório de comissões no formulário da fábrica"
+                  className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  <Printer className="h-3 w-3" /> Relatório do mês
+                </button>
               </div>
             </div>
             <div className="overflow-x-auto">
