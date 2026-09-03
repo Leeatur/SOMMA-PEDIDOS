@@ -1108,6 +1108,7 @@ type FatReportRow = {
   industria: string; vendedor: string; razao_social: string; cliente: string
   total_value: string; rep_commission_pct: string; rep_commission_value: string
   office_commission_value: string; sem_comissao_fabrica: boolean
+  nf: string | null; rep_id: string
 }
 
 function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia }: {
