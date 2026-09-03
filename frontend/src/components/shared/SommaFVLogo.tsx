@@ -32,8 +32,8 @@ export function SommaFVLogo({
           whiteSpace: 'nowrap',
         }}
       >
-        <span style={{ color: mainColor }}>S</span>
-        <span style={{ color: accentColor }}>FV</span>
+        <span style={{ color: accentColor }}>S</span>
+        <span style={{ color: mainColor }}>FV</span>
       </div>
 
       {showTagline && (
@@ -47,8 +47,8 @@ export function SommaFVLogo({
             whiteSpace: 'nowrap',
           }}
         >
-          <span style={{ color: mainColor }}>Somma </span>
-          <span style={{ color: accentColor }}>Força de Vendas</span>
+          <span style={{ color: accentColor }}>Somma </span>
+          <span style={{ color: mainColor }}>Força de Vendas</span>
         </div>
       )}
     </div>
