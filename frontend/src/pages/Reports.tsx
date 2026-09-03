@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, Component, type ReactNode, type ErrorInfo } 
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, ChevronUp, ChevronsUpDown, Trash2, Plus } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
-import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi } from '../api/client'
+import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi, comissaoDebitosApi, type ComissaoDebito } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
 import { useColumnResize } from '../components/ui/useColumnResize.tsx'
@@ -1111,6 +1111,161 @@ type FatReportRow = {
   nf: string | null; rep_id: string
 }
 
+function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, dateTo }: {
+  repNome: string; repRows: FatReportRow[]; competencia: string
+  fmtPeriod: string; dateFrom: string; dateTo: string
+}) {
+  const qc = useQueryClient()
+  const repId = repRows[0]?.rep_id ?? ''
+  const [showDebitos, setShowDebitos] = useState(false)
+  const [novoDesc, setNovoDesc] = useState('')
+  const [novoValor, setNovoValor] = useState('')
+
+  const totalFat = repRows.reduce((s, r) => s + Number(r.valor_faturamento), 0)
+  const totalCom = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+
+  const debitosQ = useQuery<ComissaoDebito[]>({
+    queryKey: ['comissao-debitos', repId, competencia],
+    queryFn: () => comissaoDebitosApi.list({ rep_id: repId, competencia }).then(r => r.data),
+    enabled: !!repId,
+  })
+  const debitos = debitosQ.data ?? []
+  const totalDeb = debitos.reduce((s, d) => s + Number(d.valor), 0)
+
+  const addDebito = useMutation({
+    mutationFn: () => comissaoDebitosApi.create({
+      rep_id: repId, competencia,
+      descricao: novoDesc.trim(),
+      valor: parseFloat(novoValor.replace(/\./g, '').replace(',', '.')) || 0,
+    }),
+    onSuccess: () => {
+      setNovoDesc(''); setNovoValor('')
+      qc.invalidateQueries({ queryKey: ['comissao-debitos', repId, competencia] })
+    },
+  })
+  const delDebito = useMutation({
+    mutationFn: (id: string) => comissaoDebitosApi.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comissao-debitos', repId, competencia] }),
+  })
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      {/* Cabeçalho do rep */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gray-50/80 border-b border-gray-100">
+        <div>
+          <p className="text-[13px] font-semibold text-gray-800">{repNome}</p>
+          <p className="text-[11px] text-gray-400">{repRows.length} faturamento{repRows.length !== 1 ? 's' : ''} · {fmtPeriod}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="text-right">
+            <p className="text-[10px] text-gray-400">comissão a pagar</p>
+            <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalCom)}</p>
+            {totalDeb > 0 && <p className="text-[10px] text-orange-500">líquido {fmtR(totalCom - totalDeb)}</p>}
+            <p className="text-[10px] text-gray-400">s/ {fmtR(totalFat)} faturado</p>
+          </div>
+          <button
+            onClick={() => setShowDebitos(v => !v)}
+            className={`flex items-center gap-1 h-7 px-2.5 text-[11px] border rounded-lg transition-colors ${debitos.length > 0 ? 'border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100' : 'border-gray-300 text-gray-500 hover:bg-gray-50'}`}
+          >
+            {debitos.length > 0 ? `Débitos (${debitos.length})` : 'Débitos'}
+          </button>
+          <button
+            onClick={() => window.open(`/reports/comissao/${repId}/${competencia}?from=${dateFrom}&to=${dateTo}`, '_blank')}
+            title="Relatório de comissões no formulário da fábrica"
+            className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            <Printer className="h-3 w-3" /> Relatório do mês
+          </button>
+        </div>
+      </div>
+
+      {/* Painel de débitos — expande ao clicar */}
+      {showDebitos && (
+        <div className="px-4 py-3 border-b border-orange-100 bg-orange-50/30">
+          <p className="text-[11px] font-semibold text-gray-600 mb-2">Débitos — competência {competencia}</p>
+          {debitos.length === 0 && !debitosQ.isLoading && (
+            <p className="text-[11px] text-gray-400 mb-2">Nenhum débito lançado.</p>
+          )}
+          <div className="space-y-0.5 mb-2">
+            {debitos.map(d => (
+              <div key={d.id} className="flex items-center justify-between py-1 border-b border-orange-100/60">
+                <span className="text-[12px] text-gray-700">{d.descricao}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] font-medium text-orange-600 tabular-nums">{fmtR(Number(d.valor))}</span>
+                  <button onClick={() => delDebito.mutate(d.id)} className="text-gray-300 hover:text-red-500 text-[10px] leading-none">✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={novoDesc} onChange={e => setNovoDesc(e.target.value)}
+              placeholder="Descrição (adiantamento, amostra…)"
+              className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1 text-[11px] bg-white focus:outline-none focus:border-orange-300"
+            />
+            <input
+              value={novoValor} onChange={e => setNovoValor(e.target.value)}
+              placeholder="0,00"
+              className="w-20 text-right border border-gray-200 rounded-lg px-2.5 py-1 text-[11px] bg-white focus:outline-none focus:border-orange-300"
+            />
+            <button
+              disabled={!novoDesc.trim() || addDebito.isPending}
+              onClick={() => addDebito.mutate()}
+              className="h-[30px] px-3 text-[11px] bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-40 whitespace-nowrap"
+            >
+              + Débito
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tabela de faturamentos */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-[12px]">
+          <thead className="bg-gray-50/50">
+            <tr>
+              <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[80px]">Data fat.</th>
+              <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400">Razão social</th>
+              <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[80px]">Pedido</th>
+              <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[90px]">Doc. fábrica</th>
+              <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[72px]">Indústria</th>
+              <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[96px]">Vlr. faturado</th>
+              <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[44px]">%</th>
+              <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[88px]">Comissão</th>
+            </tr>
+          </thead>
+          <tbody>
+            {repRows.map(r => (
+              <tr key={r.fat_id} className="border-b border-gray-50 hover:bg-gray-50/60">
+                <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{fmtDatePtBR(r.data_faturamento)}</td>
+                <td className="px-3 py-1.5 font-medium text-gray-800 max-w-[180px] truncate">{r.razao_social}</td>
+                <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">#{r.order_number}</td>
+                <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.nr_ped_fabrica || '—'}</td>
+                <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.industria}</td>
+                <td className="px-3 py-1.5 text-right tabular-nums font-medium text-blue-600">{fmtR(r.valor_faturamento)}</td>
+                <td className="px-3 py-1.5 text-right text-gray-400">{Number(r.rep_commission_pct).toFixed(1)}%</td>
+                <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-emerald-600">
+                  {r.sem_comissao_fabrica ? <span className="text-gray-300">—</span> : fmtR(r.rep_commission_value)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-gray-50 border-t border-gray-200">
+              <td colSpan={5} className="px-3 py-2 text-[11px] text-gray-400">
+                {repRows.length} faturamento{repRows.length !== 1 ? 's' : ''}
+              </td>
+              <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-blue-600">{fmtR(totalFat)}</td>
+              <td></td>
+              <td className="px-3 py-2 text-right text-[12px] tabular-nums font-bold text-emerald-600">{fmtR(totalCom)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia }: {
   rows: FatReportRow[]; loading: boolean; dateFrom: string; dateTo: string; competencia: string
 }) {
@@ -1128,77 +1283,17 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia }: {
 
   return (
     <div className="space-y-4">
-      {[...grupos.entries()].map(([repNome, repRows]) => {
-        const totalFat = repRows.reduce((s, r) => s + Number(r.valor_faturamento), 0)
-        const totalCom = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
-
-        return (
-          <div key={repNome} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-50/80 border-b border-gray-100">
-              <div>
-                <p className="text-[13px] font-semibold text-gray-800">{repNome}</p>
-                <p className="text-[11px] text-gray-400">{repRows.length} faturamento{repRows.length !== 1 ? 's' : ''} · {fmtPeriod}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-[10px] text-gray-400">comissão a pagar</p>
-                  <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalCom)}</p>
-                  <p className="text-[10px] text-gray-400">s/ {fmtR(totalFat)} faturado</p>
-                </div>
-                <button
-                  onClick={() => window.open(`/reports/comissao/${repRows[0].rep_id}/${competencia}?from=${dateFrom}&to=${dateTo}`, '_blank')}
-                  title="Relatório de comissões no formulário da fábrica"
-                  className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  <Printer className="h-3 w-3" /> Relatório do mês
-                </button>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[12px]">
-                <thead className="bg-gray-50/50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[80px]">Data fat.</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400">Razão social</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[80px]">Pedido</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[90px]">Doc. fábrica</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[72px]">Indústria</th>
-                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[96px]">Vlr. faturado</th>
-                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[44px]">%</th>
-                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[88px]">Comissão</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {repRows.map(r => (
-                    <tr key={r.fat_id} className="border-b border-gray-50 hover:bg-gray-50/60">
-                      <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{fmtDatePtBR(r.data_faturamento)}</td>
-                      <td className="px-3 py-1.5 font-medium text-gray-800 max-w-[180px] truncate">{r.razao_social}</td>
-                      <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">#{r.order_number}</td>
-                      <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.nr_ped_fabrica || '—'}</td>
-                      <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.industria}</td>
-                      <td className="px-3 py-1.5 text-right tabular-nums font-medium text-blue-600">{fmtR(r.valor_faturamento)}</td>
-                      <td className="px-3 py-1.5 text-right text-gray-400">{Number(r.rep_commission_pct).toFixed(1)}%</td>
-                      <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-emerald-600">
-                        {r.sem_comissao_fabrica ? <span className="text-gray-300">—</span> : fmtR(r.rep_commission_value)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-gray-50 border-t border-gray-200">
-                    <td colSpan={5} className="px-3 py-2 text-[11px] text-gray-400">
-                      {repRows.length} faturamento{repRows.length !== 1 ? 's' : ''}
-                    </td>
-                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-blue-600">{fmtR(totalFat)}</td>
-                    <td></td>
-                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-bold text-emerald-600">{fmtR(totalCom)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        )
-      })}
+      {[...grupos.entries()].map(([repNome, repRows]) => (
+        <PagamentoRepCard
+          key={repNome}
+          repNome={repNome}
+          repRows={repRows}
+          competencia={competencia}
+          fmtPeriod={fmtPeriod}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+        />
+      ))}
 
       {grupos.size > 1 && (
         <div className="bg-white rounded-xl border border-gray-100 px-5 py-4 flex items-center justify-between">
