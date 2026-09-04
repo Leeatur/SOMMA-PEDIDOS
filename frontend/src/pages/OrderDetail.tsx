@@ -26,12 +26,9 @@ import {
   RefreshCw,
   AlertTriangle,
   Copy,
-  Share2,
-  Mail,
-  Phone,
   X,
 } from 'lucide-react'
-import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi, usersApi, apiClient } from '../api/client'
+import { ordersApi, statusesApi, productsApi, clientsApi, priceTablesApi, usersApi } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { StatusBadge } from '../components/ui/Badge'
 import { Card } from '../components/ui/Card'
@@ -236,8 +233,6 @@ export function OrderDetail() {
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null)
   const [deleteModal, setDeleteModal] = useState(false)
   const [cancelModal, setCancelModal] = useState(false)
-  const [shareModal, setShareModal] = useState(false)
-  const [showWaInModal, setShowWaInModal] = useState(false)
 
   const [editInfoModal, setEditInfoModal] = useState(false)
   const [editInfoForm, setEditInfoForm] = useState<EditInfoForm>({
@@ -266,23 +261,7 @@ export function OrderDetail() {
     enabled: !!id,
   })
 
-  function handleDownloadPdf() {
-    if (!order) return
-    import('../utils/orderPdf')
-      .then(({ generateOrderPdf }) => {
-        generateOrderPdf(order as unknown as Parameters<typeof generateOrderPdf>[0])
-        // No desktop o PDF é baixado direto; mostra botão WhatsApp inline no modal
-        if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && order.client_whatsapp) {
-          setShowWaInModal(true)
-        }
-      })
-      .catch(err => {
-        console.error('PDF error:', err)
-        window.open(`${window.location.origin}/api/orders/${id}/pdf`, '_blank')
-      })
-  }
-
-  const { data: statuses } = useQuery<Status[]>({
+const { data: statuses } = useQuery<Status[]>({
     queryKey: ['statuses'],
     queryFn: () => statusesApi.list().then((r) => r.data),
   })
@@ -525,9 +504,6 @@ export function OrderDetail() {
           </div>
           <button onClick={() => window.open(`/orders/${id}/print`, '_blank')} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-primary transition-colors" title="Imprimir pedido">
             <Printer className="h-4.5 w-4.5" />
-          </button>
-          <button onClick={() => setShareModal(true)} className="p-1.5 rounded-lg text-outline hover:bg-surface-container hover:text-emerald-600 transition-colors" title="Compartilhar pedido">
-            <Share2 className="h-4.5 w-4.5" />
           </button>
           <Button size="sm" variant="outline" onClick={() => duplicateMut.mutate()} icon={<Copy className="h-3.5 w-3.5" />} disabled={duplicateMut.isPending}>
             {duplicateMut.isPending ? 'Duplicando…' : 'Duplicar Pedido'}
@@ -1505,146 +1481,6 @@ export function OrderDetail() {
       </div>
     </div>
 
-    {/* ── Modal Compartilhar Pedido ── */}
-
-    {shareModal && order && (
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setShareModal(false); setShowWaInModal(false) }} />
-        <div className="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-on-surface text-base">Compartilhar Pedido #{order.order_number}</h3>
-            <button onClick={() => { setShareModal(false); setShowWaInModal(false) }} className="p-1.5 rounded-lg text-outline hover:bg-surface-container">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="text-[12px] text-outline bg-surface-container-low rounded-xl p-3">
-            <p className="font-semibold text-on-surface">{order.client_name}</p>
-            {order.client_whatsapp && <p>WhatsApp: {order.client_whatsapp}</p>}
-            {order.client_email && <p>E-mail: {order.client_email}</p>}
-          </div>
-
-          {/* PDF */}
-          <button
-            onClick={handleDownloadPdf}
-            className="flex items-center gap-3 w-full bg-orange-500 hover:bg-orange-600 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors active:scale-[0.98]"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current flex-shrink-0"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h8v1H8v-1zm0 3h5v1H8v-1zm0-6h3v1H8v-1z"/></svg>
-            <div className="text-left">
-              <div>📄 Gerar PDF do Pedido</div>
-              <div className="text-xs text-orange-100">Celular: compartilha direto · Desktop: salva como PDF</div>
-            </div>
-          </button>
-
-          {/* WhatsApp inline — aparece após PDF baixado no desktop */}
-          {showWaInModal && order.client_whatsapp && (
-            <a
-              href={`https://wa.me/55${order.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
-                `Olá! Segue o pedido #${String(order.order_number).padStart(4,'0')} da ${order.factory_name} no valor de ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(order.total_value)}.\n\nVisualize aqui: ${window.location.origin}/orders/${id}/print`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => { setShareModal(false); setShowWaInModal(false) }}
-              className="flex items-center gap-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors animate-pulse"
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current flex-shrink-0" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              <div className="text-left">
-                <div>📲 PDF salvo! Abrir WhatsApp</div>
-                <div className="text-xs text-emerald-100">Toque para enviar para o cliente</div>
-              </div>
-            </a>
-          )}
-
-          <div className="flex items-center gap-2 text-outline">
-            <div className="flex-1 h-px bg-outline-variant/30" />
-            <span className="text-[11px]">ou enviar link</span>
-            <div className="flex-1 h-px bg-outline-variant/30" />
-          </div>
-
-          {/* WhatsApp */}
-          {order.client_whatsapp && (
-            <a
-              href={`https://wa.me/55${order.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
-                `Olá! Segue o pedido #${String(order.order_number).padStart(4,'0')} da ${order.factory_name} no valor de ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(order.total_value)}.\n\nVisualize aqui: ${window.location.origin}/orders/${id}/print`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors"
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              Enviar pelo WhatsApp
-            </a>
-          )}
-
-          {/* E-mail — rep sempre no CC */}
-          {order.client_email && (
-            <a
-              href={(() => {
-                const subject = encodeURIComponent(`Pedido #${String(order.order_number).padStart(4,'0')} - ${order.factory_name}`)
-                const body = encodeURIComponent(
-                  `Olá,\n\nSegue o pedido #${String(order.order_number).padStart(4,'0')} da ${order.factory_name}.\n\nValor Total: ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(order.total_value)}\nItens: ${order.total_pieces} peças\n\nVisualize aqui: ${window.location.origin}/orders/${id}/print\n\nAtenciosamente,\n${order.rep_name}${order.rep_email ? '\n'+order.rep_email : ''}`
-                )
-                const cc = order.rep_email ? `&cc=${encodeURIComponent(order.rep_email)}` : ''
-                return `mailto:${order.client_email}?subject=${subject}${cc}&body=${body}`
-              })()}
-              className="flex items-center gap-3 w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors"
-            >
-              <Mail className="h-5 w-5" />
-              <div className="text-left">
-                <div>Enviar por E-mail</div>
-                {order.rep_email && <div className="text-xs text-blue-100">Rep em cópia: {order.rep_email}</div>}
-              </div>
-            </a>
-          )}
-
-          {/* Ligar */}
-          {order.client_phone && (
-            <a
-              href={`tel:${order.client_phone}`}
-              className="flex items-center gap-3 w-full border border-outline-variant hover:bg-surface-container text-on-surface rounded-2xl px-4 py-3 font-semibold text-sm transition-colors"
-            >
-              <Phone className="h-5 w-5 text-outline" />
-              Ligar para o cliente
-            </a>
-          )}
-
-          {(!order.client_whatsapp && !order.client_email && !order.client_phone) && (
-            <p className="text-[12px] text-outline text-center py-2">
-              Nenhum contato cadastrado para este cliente.<br/>
-              <a href={`/clients`} className="text-primary underline">Edite o cadastro do cliente</a> para adicionar.
-            </p>
-          )}
-
-          <div className="flex items-center gap-2 text-outline">
-            <div className="flex-1 h-px bg-outline-variant/30" />
-            <span className="text-[11px]">exportar</span>
-            <div className="flex-1 h-px bg-outline-variant/30" />
-          </div>
-
-          {/* ERP — por pedido */}
-          <button
-            onClick={async () => {
-              try {
-                const r = await apiClient.get(`/orders/${id}/erp-xlsx`, { responseType: 'blob' })
-                const url = URL.createObjectURL(new Blob([r.data]))
-                const a = document.createElement('a')
-                a.href = url
-                a.download = `pedido-${String(order.order_number).padStart(4,'0')}-erp.xlsx`
-                a.click()
-                URL.revokeObjectURL(url)
-              } catch { /* ignore */ }
-            }}
-            className="flex items-center gap-3 w-full bg-violet-600 hover:bg-violet-700 text-white rounded-2xl px-4 py-3 font-semibold text-sm transition-colors active:scale-[0.98]"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current flex-shrink-0"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h3v1H8v-1zm0 3h8v1H8v-1zm0-6h8v1H8v-1z"/></svg>
-            <div className="text-left">
-              <div>Exportar p/ ERP (este pedido)</div>
-              <div className="text-xs text-violet-200">XLSX com todos os itens e Cód. ERP</div>
-            </div>
-          </button>
-        </div>
-      </div>
-    )}
     {auditModal && isAdmin && (
       <AuditModal orderId={id!} onClose={() => setAuditModal(false)} />
     )}

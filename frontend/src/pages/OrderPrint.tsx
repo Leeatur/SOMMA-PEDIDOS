@@ -162,12 +162,14 @@ export function OrderPrint() {
       const filename = `Pedido_${String(order.order_number).padStart(4, '0')}_${order.client_name.replace(/\s+/g, '_')}.pdf`
       const file = new File([blob], filename, { type: 'application/pdf' })
 
-      // Web Share API funciona no Android/iOS e também no macOS/Windows com WhatsApp Desktop instalado
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      // Mobile (Android/iOS): share sheet do SO inclui WhatsApp
+      // Desktop (macOS/Windows): vai direto pro download + WhatsApp Web (share sheet não tem WhatsApp)
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+      if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ title: `Pedido #${order.order_number}`, files: [file] })
-          return // share sheet abriu — usuário escolhe o WhatsApp
-        } catch { /* usuário cancelou — faz download + WhatsApp Web */ }
+          return
+        } catch { /* cancelado */ }
       }
 
       // Fallback: download direto + mostra botão WhatsApp
