@@ -212,7 +212,7 @@ export function Login() {
             {/* Links secundários */}
             <div className="flex items-center justify-between pt-1">
               <a
-                href="https://sommatechnology.com.br"
+                href="https://sommant.com.br"
                 target="_blank" rel="noopener noreferrer"
                 className="text-[12px] text-gray-400 hover:text-orange-500 transition-colors"
               >

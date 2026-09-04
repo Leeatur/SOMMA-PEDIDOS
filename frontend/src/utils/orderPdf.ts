@@ -368,11 +368,7 @@ export function generateOrderPdf(order: Order): void {
   const blob = doc.output('blob')
   const file = new File([blob], filename, { type: 'application/pdf' })
 
-  if (
-    navigator.share &&
-    navigator.canShare?.({ files: [file] }) &&
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-  ) {
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
     navigator.share({ files: [file], title: `Pedido #${num}` }).catch(() => {
       doc.save(filename)
     })
