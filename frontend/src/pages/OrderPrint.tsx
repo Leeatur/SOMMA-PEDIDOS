@@ -181,7 +181,7 @@ export function OrderPrint() {
       if (order.client_whatsapp) {
         const num = order.client_whatsapp.replace(/\D/g, '')
         const num55 = num.startsWith('55') ? num : `55${num}`
-        const text = `Olá! Segue o pedido #${String(order.order_number).padStart(4, '0')} — ${order.factory_name}\nValor: R$ ${fmt(order.total_value)}\n\nVisualize: ${window.location.href}`
+        const text = `Olá! Segue em anexo o pedido #${String(order.order_number).padStart(4, '0')} — ${order.factory_name}\nValor: R$ ${fmt(order.total_value)}`
         setWaLink(`https://wa.me/${num55}?text=${encodeURIComponent(text)}`)
       } else {
         setWaLink('https://web.whatsapp.com/')
