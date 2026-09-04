@@ -505,7 +505,7 @@ export function OrderPrint() {
       {waLink && (
         <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: '#1a7f37', color: '#fff', borderRadius: 14, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', maxWidth: '90vw' }}>
           <span style={{ fontSize: 20 }}>📎</span>
-          <span>PDF baixado! Arraste para a conversa do WhatsApp</span>
+          <span>PDF salvo! No WhatsApp clique em 📎 e selecione o arquivo</span>
           <button onClick={() => setWaLink(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'rgba(255,255,255,0.7)', padding: '0 0 0 8px', lineHeight: 1 }}>✕</button>
         </div>
       )}
