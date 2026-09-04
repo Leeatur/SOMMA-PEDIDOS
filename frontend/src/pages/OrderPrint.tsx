@@ -178,14 +178,15 @@ export function OrderPrint() {
       a.href = url; a.download = filename; a.click()
       setTimeout(() => URL.revokeObjectURL(url), 30000)
 
+      const text = `Olá! Segue em anexo o pedido #${String(order.order_number).padStart(4, '0')} — ${order.factory_name}\nValor: R$ ${fmt(order.total_value)}`
       if (order.client_whatsapp) {
         const num = order.client_whatsapp.replace(/\D/g, '')
         const num55 = num.startsWith('55') ? num : `55${num}`
-        const text = `Olá! Segue em anexo o pedido #${String(order.order_number).padStart(4, '0')} — ${order.factory_name}\nValor: R$ ${fmt(order.total_value)}`
-        setWaLink(`https://wa.me/${num55}?text=${encodeURIComponent(text)}`)
+        window.open(`https://wa.me/${num55}?text=${encodeURIComponent(text)}`, '_blank')
       } else {
-        setWaLink('https://web.whatsapp.com/')
+        window.open('https://web.whatsapp.com/', '_blank')
       }
+      setWaLink('ready')
     } finally {
       setSharing(false)
     }
@@ -500,26 +501,12 @@ export function OrderPrint() {
         </button>
       </div>
 
-      {/* Overlay WhatsApp — aparece após download quando Web Share não disponível */}
+      {/* Toast — WhatsApp abre automático, usuário só arrasta o PDF */}
       {waLink && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
-          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px', width: '100%', maxWidth: 420, boxShadow: '0 -4px 24px rgba(0,0,0,0.15)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <p style={{ fontWeight: 700, fontSize: 15, margin: 0 }}>📄 PDF salvo! Envie pelo WhatsApp</p>
-              <button onClick={() => setWaLink(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280', padding: 4 }}>✕</button>
-            </div>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>O PDF foi baixado. Agora é só abrir o WhatsApp e enviar para o cliente.</p>
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setWaLink(null)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: '#25d366', color: '#fff', borderRadius: 12, padding: '13px 20px', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}
-            >
-              <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, fill: '#fff', flexShrink: 0 }} xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              Abrir WhatsApp
-            </a>
-          </div>
+        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: '#1a7f37', color: '#fff', borderRadius: 14, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.25)', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', maxWidth: '90vw' }}>
+          <span style={{ fontSize: 20 }}>📎</span>
+          <span>PDF baixado! Arraste para a conversa do WhatsApp</span>
+          <button onClick={() => setWaLink(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'rgba(255,255,255,0.7)', padding: '0 0 0 8px', lineHeight: 1 }}>✕</button>
         </div>
       )}
 
