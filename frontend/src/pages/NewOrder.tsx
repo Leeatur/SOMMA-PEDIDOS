@@ -667,6 +667,7 @@ export function NewOrder() {
           unit_price: c.unit_price,
           sizes: c.product.type === 'regular' ? c.sizes : undefined,
           custom_grade: c.custom_grade && c.custom_grade.length > 0 ? c.custom_grade : undefined,
+          item_obs: c.observation || undefined,
         })),
         discount_pct: effectiveDiscountNum,
         // Separar desconto de prazo (comercial) do à vista:

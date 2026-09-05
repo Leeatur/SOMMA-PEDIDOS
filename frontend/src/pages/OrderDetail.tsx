@@ -62,6 +62,7 @@ interface OrderItem {
   grade_configs: GradeConfig[] | null
   blocked_sizes: string[] | null
   size_range: string | null
+  item_obs?: string | null
 }
 
 interface StatusHistory {
@@ -857,6 +858,9 @@ const { data: statuses } = useQuery<Status[]>({
                         </>
                       ) : null}
                     </div>
+                  )}
+                  {item.item_obs && (
+                    <p className="text-[12px] text-amber-700 italic mt-1.5 pt-1.5 border-t border-outline-variant/30">⚠ {item.item_obs}</p>
                   )}
                 </div>
               )
