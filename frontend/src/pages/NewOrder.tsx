@@ -1358,6 +1358,9 @@ export function NewOrder() {
                             <GradePreview configs={item.product.grade_configs} boxCount={item.boxes_count} />
                           )
                         )}
+                        {item.observation && (
+                          <p className="text-[12px] text-amber-700 italic mt-1.5 pt-1.5 border-t border-outline-variant/30">⚠ {item.observation}</p>
+                        )}
                       </div>
                     </div>
                   )
