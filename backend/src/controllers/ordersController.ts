@@ -368,13 +368,16 @@ export async function createOrder(req: AuthRequest, res: Response) {
        needsReview]
     )
 
-    for (const item of totals.enrichedItems) {
+    for (let i = 0; i < totals.enrichedItems.length; i++) {
+      const item = totals.enrichedItems[i]
+      const origItem = items[i]
       await dbClient.query(
-        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, original_unit_price, total_pieces, subtotal, sizes, custom_grade)
-         VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$8,$9)`,
+        `INSERT INTO order_items (order_id, product_id, reference, boxes_count, unit_price, original_unit_price, total_pieces, subtotal, sizes, custom_grade, item_obs)
+         VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$8,$9,$10)`,
         [order.id, item.product_id, item.reference, item.boxes_count, item.unit_price, item.total_pieces, item.subtotal,
          item.sizes ? JSON.stringify(item.sizes) : null,
-         item.custom_grade && Array.isArray(item.custom_grade) && item.custom_grade.length > 0 ? JSON.stringify(item.custom_grade) : null]
+         item.custom_grade && Array.isArray(item.custom_grade) && item.custom_grade.length > 0 ? JSON.stringify(item.custom_grade) : null,
+         (origItem as any).item_obs || null]
       )
     }
 
