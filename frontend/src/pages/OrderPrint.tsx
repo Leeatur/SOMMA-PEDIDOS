@@ -162,27 +162,30 @@ export function OrderPrint() {
       const filename = `Pedido_${String(order.order_number).padStart(4, '0')}_${order.client_name.replace(/\s+/g, '_')}.pdf`
       const file = new File([blob], filename, { type: 'application/pdf' })
 
-      // Mobile (Android/iOS): share sheet do SO inclui WhatsApp
-      // Desktop (macOS/Windows): vai direto pro download + WhatsApp Web (share sheet não tem WhatsApp)
+      const shareText = `Olá! Segue em anexo o pedido #${String(order.order_number).padStart(4, '0')} — ${order.factory_name}\nValor: R$ ${fmt(order.total_value)}`
+
+      // Mobile (Android/iOS): share sheet nativo inclui WhatsApp com PDF anexado
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-      if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
+      if (isMobile && navigator.share) {
         try {
-          await navigator.share({ title: `Pedido #${order.order_number}`, files: [file] })
+          await navigator.share({ title: `Pedido #${order.order_number}`, text: shareText, files: [file] })
           return
-        } catch { /* cancelado */ }
+        } catch (e) {
+          if ((e as Error)?.name === 'AbortError') return // usuário cancelou
+          // files não suportados neste dispositivo — cai no fallback abaixo
+        }
       }
 
-      // Fallback: download direto + mostra botão WhatsApp
+      // Fallback desktop: download direto + abre WhatsApp Web com texto pré-preenchido
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url; a.download = filename; a.click()
       setTimeout(() => URL.revokeObjectURL(url), 30000)
 
-      const text = `Olá! Segue em anexo o pedido #${String(order.order_number).padStart(4, '0')} — ${order.factory_name}\nValor: R$ ${fmt(order.total_value)}`
       if (order.client_whatsapp) {
         const num = order.client_whatsapp.replace(/\D/g, '')
         const num55 = num.startsWith('55') ? num : `55${num}`
-        window.open(`https://wa.me/${num55}?text=${encodeURIComponent(text)}`, '_blank')
+        window.open(`https://wa.me/${num55}?text=${encodeURIComponent(shareText)}`, '_blank')
       } else {
         window.open('https://web.whatsapp.com/', '_blank')
       }
