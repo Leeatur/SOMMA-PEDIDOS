@@ -597,7 +597,7 @@ export function OrderPrint() {
               <tr key={row.seq}>
                 <td className="ctr">{row.seq}</td>
                 <td className="ref">{row.reference}</td>
-                <td>
+                <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', minWidth: 80 }}>
                   {row.product_name}
                   {row.item_obs && <><br /><span style={{ color: '#dc2626', fontStyle: 'italic', fontSize: '9px' }}>{row.item_obs}</span></>}
                 </td>
