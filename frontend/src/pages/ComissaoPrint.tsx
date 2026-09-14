@@ -141,7 +141,7 @@ export function ComissaoPrint() {
       `}</style>
 
       <button className="btn" style={{ right: 12 }} onClick={() => window.print()}>🖨️ Imprimir / PDF</button>
-      <button className="btn" style={{ left: 12, background: '#6b7280' }} onClick={() => navigate(-1)}>← Voltar</button>
+      <button className="btn" style={{ left: 12, background: '#6b7280' }} onClick={() => { if (history.length > 1) navigate(-1); else window.close() }}>← Voltar</button>
 
       <div className="page">
         {/* Cabeçalho da indústria */}

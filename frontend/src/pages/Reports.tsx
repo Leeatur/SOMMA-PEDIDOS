@@ -670,7 +670,8 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
   const debitosQ = useQuery<ComissaoDebito[]>({
     queryKey: ['comissao-debitos', repId, competencia],
     queryFn: () => comissaoDebitosApi.list({ rep_id: repId, competencia }).then(r => r.data),
-    enabled: !!repId,
+    enabled: showDebitos && !!repId,
+    staleTime: 0,
   })
   const debitos = debitosQ.data ?? []
   const totalDeb = debitos.reduce((s, d) => s + Number(d.valor), 0)
@@ -683,12 +684,12 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
     }),
     onSuccess: () => {
       setNovoDesc(''); setNovoValor('')
-      qc.invalidateQueries({ queryKey: ['comissao-debitos', repId, competencia] })
+      qc.invalidateQueries({ queryKey: ['comissao-debitos', repId, competencia], exact: true })
     },
   })
   const delDebito = useMutation({
     mutationFn: (id: string) => comissaoDebitosApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['comissao-debitos', repId, competencia] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comissao-debitos', repId, competencia], exact: true }),
   })
 
   return (
