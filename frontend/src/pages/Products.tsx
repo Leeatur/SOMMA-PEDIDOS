@@ -1073,13 +1073,14 @@ function ProductRow({
         onClick={() => onOpenDetail(p)}
       >
         {visibleCols.map(col => renderCell(col.id))}
-        {onDuplicate && (
+        {/* Última célula cai na coluna sobra do cabeçalho */}
+        {onDuplicate ? (
           <td className="px-2 py-1 w-8" onClick={e => { e.stopPropagation(); onDuplicate(p) }}>
             <button className="p-1 rounded-lg text-outline hover:text-primary hover:bg-primary/10 transition-colors" title="Duplicar produto">
               <Plus className="h-3.5 w-3.5" />
             </button>
           </td>
-        )}
+        ) : <td aria-hidden />}
       </tr>
       {lightboxUrl && createPortal(
         <div
@@ -1796,6 +1797,8 @@ export function Products() {
                     </th>
                   )
                 })}
+                {/* Coluna sobra: segura o espaço livre para o redimensionar seguir o mouse */}
+                <th aria-hidden style={{ padding: 0 }} />
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">

@@ -1701,6 +1701,8 @@ function ReportsInner() {
                                 </th>
                               )
                             })}
+                            {/* Coluna sobra: segura o espaço livre para o redimensionar seguir o mouse */}
+                            <th aria-hidden style={{ padding: 0 }} />
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -1844,6 +1846,7 @@ function ReportsInner() {
                                 )
                                 return null
                               })}
+                              <td aria-hidden />
                             </tr>
                             {expandedFatId === r.id && (
                               <FaturarPanel
@@ -1876,6 +1879,7 @@ function ReportsInner() {
                                 return null
                               })
                             })()}
+                            <td aria-hidden />
                           </tr>
                         </tfoot>
                       </table>

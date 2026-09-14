@@ -1006,6 +1006,9 @@ export function Orders() {
                       </th>
                     )
                   })}
+                  {/* Coluna sobra: fica com o espaço livre, para as outras terem a largura exata
+                      e a borda acompanhar o mouse ao redimensionar */}
+                  <th aria-hidden style={{ padding: 0 }} />
                 </tr>
               </thead>
               <tbody className="bg-white">
@@ -1042,6 +1045,7 @@ export function Orders() {
                         }
                       </td>
                     ))}
+                    <td aria-hidden />
                   </tr>
                   )
                 })}
@@ -1066,6 +1070,7 @@ export function Orders() {
                       </td>
                     )
                   })}
+                  <td aria-hidden />
                 </tr>
               </tfoot>
             </table>
