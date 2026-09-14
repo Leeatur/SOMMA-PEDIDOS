@@ -1630,7 +1630,7 @@ function ReportsInner() {
 
   // ─── Relatórios visíveis para este usuário ────────────────────────────────
   // Vendedor vê somente relatórios pertinentes às suas próprias vendas.
-  const REP_VISIBLE_IDS = new Set(['orders', 'commissions', 'projection', 'clients', 'inactive', 'products'])
+  const REP_VISIBLE_IDS = new Set(['orders', 'commissions', 'projection', 'clients', 'inactive', 'products', 'fechamento', 'historico'])
   const VISIBLE_META = REPORT_META.filter(r =>
     isAdmin || REP_VISIBLE_IDS.has(r.id)
   )
