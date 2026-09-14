@@ -23,6 +23,7 @@ import * as integration from '../controllers/integrationController'
 import * as suasVendasImport from '../controllers/suasVendasImportController'
 import * as importOrder from '../controllers/importOrderController'
 import * as erpExport from '../controllers/erpExportController'
+import * as commissionClosures from '../controllers/commissionClosuresController'
 
 const router = Router()
 
@@ -210,6 +211,11 @@ router.get('/goals', authenticate, goals.listGoals)                        // re
 router.post('/goals', authenticate, requireAdmin, goals.createGoal)
 router.put('/goals/:id', authenticate, requireAdmin, goals.updateGoal)
 router.delete('/goals/:id', authenticate, requireAdmin, goals.deleteGoal)
+
+router.get('/commission-closures', authenticate, commissionClosures.listClosures)
+router.get('/commission-closures/:id', authenticate, commissionClosures.getClosure)
+router.post('/commission-closures', authenticate, requireAdmin, commissionClosures.createClosure)
+router.delete('/commission-closures/:id', authenticate, requireAdmin, commissionClosures.deleteClosure)
 
 export default router
 

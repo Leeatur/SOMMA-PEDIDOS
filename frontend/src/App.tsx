@@ -14,6 +14,7 @@ import { Users } from './pages/Users'
 import { Settings } from './pages/Settings'
 import { OrderPrint } from './pages/OrderPrint'
 import { ComissaoPrint } from './pages/ComissaoPrint'
+import { CommissionClosurePrint } from './pages/CommissionClosurePrint'
 import { Products } from './pages/Products'
 import { Reports } from './pages/Reports'
 import { OrdersTrash } from './pages/OrdersTrash'
@@ -127,6 +128,16 @@ export function App() {
         element={
           <RequireAuth>
             <ComissaoPrint />
+          </RequireAuth>
+        }
+      />
+
+      {/* Fechamento arquivado — lê snapshot do banco, sem dados ao vivo */}
+      <Route
+        path="/reports/fechamento/:id"
+        element={
+          <RequireAuth>
+            <CommissionClosurePrint />
           </RequireAuth>
         }
       />

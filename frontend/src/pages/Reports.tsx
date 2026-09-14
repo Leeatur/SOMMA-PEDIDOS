@@ -1,8 +1,9 @@
 import { useState, useMemo, useRef, Component, type ReactNode, type ErrorInfo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, ChevronUp, ChevronsUpDown, Trash2, Plus } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
-import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi, comissaoDebitosApi, type ComissaoDebito } from '../api/client'
+import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi, comissaoDebitosApi, commissionClosuresApi, type ComissaoDebito, type CommissionClosure } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
 import { useColumnResize } from '../components/ui/useColumnResize.tsx'
@@ -42,7 +43,7 @@ function fmtDatePtBR(d: string | Date | null | undefined): string {
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
-type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance' | 'abc' | 'comparison' | 'region' | 'cidade' | 'penetracao' | 'projection' | 'fechamento'
+type Tab = 'orders' | 'commissions' | 'clients' | 'products' | 'collections' | 'catalog' | 'evolution' | 'inactive' | 'repperformance' | 'abc' | 'comparison' | 'region' | 'cidade' | 'penetracao' | 'projection' | 'fechamento' | 'historico'
 
 // Modo fábrica (NXO): comissão de 3 vias — Loja (rep) + Representante (office) + Guia (guide). Default off.
 const FACTORY_COMM = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
@@ -552,6 +553,7 @@ const REPORT_META: ReportMeta[] = [
   // Equipe
   { id: 'commissions',    group: 'equipe',    title: 'Comissões por Pedido',       description: 'Detalhamento de comissões por vendedor e pedido, com status de faturamento.' },
   { id: 'fechamento',     group: 'equipe',    title: 'Fechamento de Comissão',     description: 'Relatório de fechamento mensal por representante — pronto para enviar.' },
+  { id: 'historico',      group: 'equipe',    title: 'Histórico de Fechamentos',   description: 'Fechamentos arquivados por mês e vendedor, com acesso ao relatório congelado na data do fechamento.' },
   { id: 'repperformance', group: 'equipe',    title: 'Performance da Equipe',      description: 'Ranking comparativo de desempenho entre vendedores no período.' },
   { id: 'projection',     group: 'equipe',    title: 'Projeção de Comissões',      description: 'Comissões em aberto (a faturar) por vendedor — previsão de recebimento.' },
 ]
@@ -600,12 +602,15 @@ function FechamentoTab({
   dateFrom,
   dateTo,
   qc,
+  isAdmin,
 }: {
   commissionsQ: ReturnType<typeof useQuery<CommissionRow[]>>
   dateFrom: string
   dateTo: string
   qc: ReturnType<typeof useQueryClient>
+  isAdmin: boolean
 }) {
+  const navigate                       = useNavigate()
   const [modo, setModo]               = useState<'pedido' | 'faturamento'>('pedido')
   const [search, setSearch]           = useState('')
   const [statusFilt, setStatusFilt]   = useState<FatStatus>('todos')
@@ -635,6 +640,25 @@ function FechamentoTab({
   // Mês do relatório no formulário da fábrica — ele é sempre mensal e conta pela
   // data do faturamento.
   const [competencia, setCompetencia] = useState(() => dateTo.substring(0, 7))
+
+  // Fechamentos arquivados para este mês — indexados por rep_id
+  const closuresQ = useQuery<CommissionClosure[]>({
+    queryKey: ['commission-closures', competencia],
+    queryFn: async () => (await commissionClosuresApi.list({ competencia })).data,
+  })
+  const closuresByRep = useMemo(() => {
+    const m = new Map<string, CommissionClosure>()
+    for (const c of closuresQ.data ?? []) m.set(c.rep_id, c)
+    return m
+  }, [closuresQ.data])
+
+  const closureMut = useMutation({
+    mutationFn: ({ rep_id, rows }: { rep_id: string; rows: unknown[] }) =>
+      commissionClosuresApi.create({ rep_id, competencia, rows }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['commission-closures', competencia] })
+    },
+  })
 
   type FatRow = { id: number; valor: string; nf: string | null; data_faturamento: string }
 
@@ -678,6 +702,7 @@ function FechamentoTab({
   })
 
   function openEdit(r: CommissionRow) {
+    if (!isAdmin) return
     if (expandedId === r.id) { setExpandedId(null); return }
     setExpandedId(r.id)
     setExpandedSem(r.sem_comissao_fabrica ?? false)
@@ -895,6 +920,47 @@ function FechamentoTab({
                   <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalRepCom)}</p>
                   <p className="text-[10px] text-gray-400">{totalRepFat > 0 ? `s/ ${fmtR(totalRepFat)} faturado` : `${fmtR(totalRepPedido)} em pedidos`}</p>
                 </div>
+                {(() => {
+                  const repId = repRows[0]?.rep_id
+                  const closure = repId ? closuresByRep.get(repId) : undefined
+                  const closedAtBR = closure
+                    ? (() => { const [y,m,d] = closure.created_at.substring(0,10).split('-'); return `${d}/${m}` })()
+                    : null
+                  return (
+                    <>
+                      {closure ? (
+                        <button
+                          onClick={() => navigate(`/reports/fechamento/${closure.id}`)}
+                          title="Ver fechamento arquivado"
+                          className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-emerald-300 text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
+                        >
+                          ✓ Fechado {closedAtBR}
+                        </button>
+                      ) : isAdmin && repId ? (
+                        <button
+                          disabled={closureMut.isPending}
+                          onClick={() => {
+                            if (!confirm(`Fechar o mês ${competencia} para ${repNome}? O snapshot será salvo e poderá ser reaberto a qualquer momento.`)) return
+                            const snapshotRows = repRows.map(r => ({
+                              id: r.id,
+                              data_faturamento: r.data_venda,
+                              nf: r.nr_ped_fabrica,
+                              valor_faturado_fabrica: r.valor_faturado_fabrica ?? r.total_value,
+                              razao_social: r.razao_social,
+                              industria: r.industria,
+                              rep_commission_pct: r.rep_commission_pct,
+                              rep_commission_value: r.rep_commission_value,
+                            }))
+                            closureMut.mutate({ rep_id: repId, rows: snapshotRows })
+                          }}
+                          className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 disabled:opacity-50"
+                        >
+                          Fechar Mês
+                        </button>
+                      ) : null}
+                    </>
+                  )
+                })()}
                 <button
                   onClick={() => window.open(`/reports/comissao/${repRows[0].rep_id}/${competencia}?from=${dateFrom}&to=${dateTo}`, '_blank')}
                   title="Relatório de comissões no formulário da fábrica, pela data do faturamento"
@@ -925,7 +991,7 @@ function FechamentoTab({
                     <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[88px]">Saldo fat.</th>
                     <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[44px]">%</th>
                     <SortTh label="Comissão"      k="rep_commission_value"  sort={sort} onSort={toggleSort} className="text-right w-[80px]" />
-                    <th className="px-3 py-2 w-[70px]"></th>
+                    {isAdmin && <th className="px-3 py-2 w-[70px]"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -965,14 +1031,16 @@ function FechamentoTab({
                           <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-emerald-600">
                             {r.sem_comissao_fabrica ? <span className="text-gray-300">—</span> : fmtR(r.rep_commission_value)}
                           </td>
-                          <td className="px-3 py-1.5 text-right">
-                            <button
-                              onClick={() => openEdit(r)}
-                              className={`h-6 px-2 text-[11px] rounded font-medium transition-colors ${isExp ? 'bg-blue-100 text-blue-700' : 'border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
-                            >
-                              {r.faturamento_status === 'pendente' || !r.faturamento_status ? 'Faturar' : 'Editar'}
-                            </button>
-                          </td>
+                          {isAdmin && (
+                            <td className="px-3 py-1.5 text-right">
+                              <button
+                                onClick={() => openEdit(r)}
+                                className={`h-6 px-2 text-[11px] rounded font-medium transition-colors ${isExp ? 'bg-blue-100 text-blue-700' : 'border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
+                              >
+                                {r.faturamento_status === 'pendente' || !r.faturamento_status ? 'Faturar' : 'Editar'}
+                              </button>
+                            </td>
+                          )}
                         </tr>
                         {isExp && (() => {
                           const totalFat = faturamentos.reduce((s, f) => s + Number(f.valor), 0)
@@ -1078,7 +1146,7 @@ function FechamentoTab({
                     <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-amber-600">{totalRepSaldo > 0 ? fmtR(totalRepSaldo) : <span className="text-gray-300">—</span>}</td>
                     <td></td>
                     <td className="px-3 py-2 text-right text-[12px] tabular-nums font-bold text-emerald-600">{fmtR(totalRepCom)}</td>
-                    <td></td>
+                    {isAdmin && <td></td>}
                   </tr>
                 </tfoot>
               </table>
@@ -1335,9 +1403,10 @@ class ReportsErrorBoundary extends Component<{ children: ReactNode }, { error: E
 
 function ReportsInner() {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
   const isAdmin = user?.role === 'admin'
 
-  const [tab, setTab] = useState<Tab>('orders')
+  const [tab, setTab] = useState<Tab>(() => user?.role !== 'admin' ? 'fechamento' : 'orders')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [dateFrom, setDateFrom] = useState(monthStartStr())
   const [dateTo, setDateTo] = useState(todayStr())
@@ -1463,6 +1532,12 @@ function ReportsInner() {
     queryKey: ['rpt-commissions', dateFrom, dateTo, repId, factoryId],
     queryFn: () => reportsApi.commissions({ date_from: dateFrom, date_to: dateTo, rep_id: repId || undefined, factory_id: factoryId || undefined }).then(r => r.data),
     enabled: tab === 'commissions' || tab === 'fechamento',
+  })
+
+  const allClosuresQ = useQuery<CommissionClosure[]>({
+    queryKey: ['commission-closures-all'],
+    queryFn: async () => (await commissionClosuresApi.list()).data,
+    enabled: tab === 'historico',
   })
 
   const clientsQ = useQuery<ClientRow[]>({
@@ -1663,11 +1738,26 @@ function ReportsInner() {
               </button>
             ))}
           </div>
-          <select value={factoryId} onChange={e => setFactoryId(e.target.value)}
-            className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-primary">
-            <option value="">Todos os fornecedores</option>
-            {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
+          {isAdmin && (
+            <select value={factoryId} onChange={e => setFactoryId(e.target.value)}
+              className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="">Todos os fornecedores</option>
+              {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          )}
+          {!isAdmin && catalogFactories.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+              <span className="text-outline text-[11px] font-semibold flex-shrink-0 uppercase tracking-wide">Marca</span>
+              <button onClick={() => setFactoryId('')} className={`flex-shrink-0 px-3 py-1 rounded-xl text-[12px] font-semibold border transition-colors ${!factoryId ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
+                Todas
+              </button>
+              {catalogFactories.map(f => (
+                <button key={f.id} onClick={() => setFactoryId(factoryId === f.id ? '' : f.id)} className={`flex-shrink-0 px-3 py-1 rounded-xl text-[12px] font-semibold border transition-colors ${factoryId === f.id ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
+                  {f.name}
+                </button>
+              ))}
+            </div>
+          )}
           {isAdmin && tab !== 'products' && (
             <select value={repId} onChange={e => setRepId(e.target.value)}
               className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-primary">
@@ -2832,7 +2922,62 @@ function ReportsInner() {
             dateFrom={dateFrom}
             dateTo={dateTo}
             qc={qc}
+            isAdmin={isAdmin}
           />
+        )}
+
+        {/* ═══ HISTÓRICO DE FECHAMENTOS ═════════════════════════════════════ */}
+        {tab === 'historico' && (
+          allClosuresQ.isLoading ? <PageSpinner /> :
+          !allClosuresQ.data?.length ? <EmptyState label="Nenhum fechamento arquivado ainda" /> :
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead className="bg-gray-50/50 border-b border-gray-100">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-400">Competência</th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-400">Vendedor</th>
+                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-400">Pedidos</th>
+                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-400">Faturado</th>
+                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-400">Comissão</th>
+                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-400">Débitos</th>
+                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-400">Líquido</th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-400">Fechado por</th>
+                    <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-400 w-[80px]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allClosuresQ.data.map(c => {
+                    const [cy, cm] = c.competencia.split('-')
+                    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+                    const compLabel = `${meses[Number(cm) - 1]}/${cy}`
+                    const [dy, dm, dd] = c.created_at.substring(0, 10).split('-')
+                    const atLabel = `${dd}/${dm}/${dy}`
+                    return (
+                      <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/60">
+                        <td className="px-4 py-2 font-semibold text-gray-700 whitespace-nowrap">{compLabel}</td>
+                        <td className="px-4 py-2 text-gray-800">{c.rep_name}</td>
+                        <td className="px-4 py-2 text-right text-gray-500 tabular-nums">{c.total_pedidos}</td>
+                        <td className="px-4 py-2 text-right tabular-nums text-gray-700">{fmtR(Number(c.total_faturado))}</td>
+                        <td className="px-4 py-2 text-right tabular-nums font-semibold text-emerald-600">{fmtR(Number(c.total_comissao))}</td>
+                        <td className="px-4 py-2 text-right tabular-nums text-red-500">{Number(c.total_debitos) > 0 ? fmtR(Number(c.total_debitos)) : <span className="text-gray-300">—</span>}</td>
+                        <td className="px-4 py-2 text-right tabular-nums font-bold text-blue-700">{fmtR(Number(c.valor_liquido))}</td>
+                        <td className="px-4 py-2 text-gray-400 text-[11px]">{c.closed_by_name || '—'} · {atLabel}</td>
+                        <td className="px-4 py-2 text-right">
+                          <button
+                            onClick={() => navigate(`/reports/fechamento/${c.id}`)}
+                            className="flex items-center gap-1 h-6 px-2.5 text-[11px] border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 ml-auto"
+                          >
+                            <Printer className="h-3 w-3" /> Ver
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
         </div>

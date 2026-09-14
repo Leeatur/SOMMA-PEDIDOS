@@ -563,6 +563,24 @@ CREATE TRIGGER trg_audit_order_items
 AFTER UPDATE OR DELETE ON order_items
 FOR EACH ROW EXECUTE FUNCTION fn_audit_order_items();
 
+CREATE TABLE IF NOT EXISTS commission_closures (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rep_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rep_name TEXT NOT NULL,
+  competencia CHAR(7) NOT NULL,
+  total_pedidos INTEGER NOT NULL DEFAULT 0,
+  total_faturado NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total_comissao NUMERIC(12,2) NOT NULL DEFAULT 0,
+  total_debitos NUMERIC(12,2) NOT NULL DEFAULT 0,
+  valor_liquido NUMERIC(12,2) NOT NULL DEFAULT 0,
+  snapshot JSONB NOT NULL DEFAULT '[]',
+  debitos JSONB NOT NULL DEFAULT '[]',
+  closed_by_name TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_commission_closures ON commission_closures(rep_id, competencia);
+CREATE INDEX IF NOT EXISTS idx_commission_closures_rep ON commission_closures(rep_id, competencia DESC);
+
 `
 
 async function migrate() {

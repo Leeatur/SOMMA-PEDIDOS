@@ -519,3 +519,29 @@ export const peApi = {
   toggle: (id: string) => apiClient.patch(`/pe/${id}/toggle`),
   delete: (id: string) => apiClient.delete(`/pe/${id}`),
 }
+
+export interface CommissionClosure {
+  id: string
+  rep_id: string
+  rep_name: string
+  competencia: string
+  total_pedidos: number
+  total_faturado: number
+  total_comissao: number
+  total_debitos: number
+  valor_liquido: number
+  snapshot?: unknown[]
+  debitos?: unknown[]
+  closed_by_name: string | null
+  created_at: string
+}
+
+export const commissionClosuresApi = {
+  list: (params?: { rep_id?: string; competencia?: string }) =>
+    apiClient.get<CommissionClosure[]>('/commission-closures', { params }),
+  get: (id: string) =>
+    apiClient.get<CommissionClosure>(`/commission-closures/${id}`),
+  create: (data: { rep_id: string; competencia: string; rows: unknown[] }) =>
+    apiClient.post<CommissionClosure>('/commission-closures', data),
+  remove: (id: string) => apiClient.delete(`/commission-closures/${id}`),
+}
