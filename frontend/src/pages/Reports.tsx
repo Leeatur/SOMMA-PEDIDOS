@@ -706,17 +706,21 @@ function FaturarPanel({ orderId, totalPedido, semComissao: initSem, fatStatus, q
 // ─── FechamentoTab ────────────────────────────────────────────────────────────
 
 function FechamentoTab({
-  dateFrom,
-  dateTo,
   qc,
   isAdmin,
 }: {
-  dateFrom: string
-  dateTo: string
   qc: ReturnType<typeof useQueryClient>
   isAdmin: boolean
 }) {
-  const [competencia, setCompetencia] = useState(() => dateTo.substring(0, 7))
+  const hoje = new Date()
+  const [competencia, setCompetencia] = useState(() => `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`)
+
+  // O período é sempre o mês completo da competência — independente do filtro global
+  const [dateFrom, dateTo] = useMemo(() => {
+    const [y, m] = competencia.split('-').map(Number)
+    const ultimo = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    return [`${competencia}-01`, `${competencia}-${String(ultimo).padStart(2, '0')}`]
+  }, [competencia])
 
   const fatQ = useQuery<FatReportRow[]>({
     queryKey: ['rpt-commissions-fat', dateFrom, dateTo],
@@ -727,7 +731,7 @@ function FechamentoTab({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-1.5 h-8 px-2 text-[12px] border border-gray-200 rounded-lg bg-white"
-          title="Mês de competência para fechar">
+          title="Mês de competência — o período é definido automaticamente">
           <span className="text-gray-500">Competência</span>
           <input type="month" value={competencia} onChange={e => setCompetencia(e.target.value)}
             className="outline-none text-[12px]" />
@@ -2587,8 +2591,6 @@ function ReportsInner() {
         {/* ═══ FECHAMENTO DE COMISSÃO ══════════════════════════════════════ */}
         {tab === 'fechamento' && (
           <FechamentoTab
-            dateFrom={dateFrom}
-            dateTo={dateTo}
             qc={qc}
             isAdmin={isAdmin}
           />
