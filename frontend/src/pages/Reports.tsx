@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, Fragment, Component, type ReactNode, type ErrorInfo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search } from 'lucide-react'
+import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, Trash2, Plus } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi, comissaoDebitosApi, commissionClosuresApi, type ComissaoDebito, type CommissionClosure } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -569,37 +569,38 @@ const GROUPS = [
 
 type OrderFaturamento = { id: number; valor: number; nf: string | null; data_faturamento: string }
 
-function FaturarPanel({ orderId, totalPedido, qc, onClose }: {
-  orderId: string; totalPedido: number
+function FaturarPanel({ orderId, totalPedido, semComissao: initSem, fatStatus, qc, onClose }: {
+  orderId: string; totalPedido: number; semComissao: boolean; fatStatus: string | null
   qc: ReturnType<typeof useQueryClient>; onClose: () => void
 }) {
-  const [novaData, setNovaData] = useState(() => new Date().toISOString().split('T')[0])
-  const [novoValor, setNovoValor] = useState('')
-  const [novaNF, setNovaNF] = useState('')
+  const [newFatData, setNewFatData] = useState(() => new Date().toISOString().slice(0, 10))
+  const [newFatValor, setNewFatValor] = useState('')
+  const [newFatNf, setNewFatNf] = useState('')
+  const [expandedSem, setExpandedSem] = useState(initSem)
 
   const fatsQ = useQuery<OrderFaturamento[]>({
     queryKey: ['order-faturamentos', orderId],
     queryFn: () => ordersApi.listFaturamentos(orderId).then(r => r.data),
     staleTime: 0,
   })
-  const fats = fatsQ.data ?? []
-  const totalFat = fats.reduce((s, f) => s + Number(f.valor), 0)
+  const faturamentos = fatsQ.data ?? []
+  const totalFat = faturamentos.reduce((s, f) => s + Number(f.valor), 0)
   const saldo = totalPedido - totalFat
 
-  const addMut = useMutation({
-    mutationFn: () => ordersApi.addFaturamento(orderId, {
-      valor: parseFloat(novoValor.replace(/\./g, '').replace(',', '.')) || 0,
-      data_faturamento: novaData,
-      nf: novaNF.trim() || undefined,
-    }),
+  const addFatMut = useMutation({
+    mutationFn: () => {
+      const raw = newFatValor.replace(/\./g, '').replace(',', '.')
+      const valor = parseFloat(raw)
+      return ordersApi.addFaturamento(orderId, { valor, data_faturamento: newFatData, nf: newFatNf.trim() || undefined })
+    },
     onSuccess: () => {
-      setNovoValor(''); setNovaNF('')
+      setNewFatValor(''); setNewFatNf('')
       qc.invalidateQueries({ queryKey: ['order-faturamentos', orderId], exact: true })
       qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
       qc.invalidateQueries({ queryKey: ['rpt-commissions-fat'] })
     },
   })
-  const delMut = useMutation({
+  const delFatMut = useMutation({
     mutationFn: (fatId: number) => ordersApi.deleteFaturamento(orderId, fatId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['order-faturamentos', orderId], exact: true })
@@ -607,52 +608,98 @@ function FaturarPanel({ orderId, totalPedido, qc, onClose }: {
       qc.invalidateQueries({ queryKey: ['rpt-commissions-fat'] })
     },
   })
+  const semMut = useMutation({
+    mutationFn: (sem_comissao: boolean) => ordersApi.updateSemComissao(orderId, { sem_comissao }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rpt-commissions'] }),
+  })
+  const encerrarMut = useMutation({
+    mutationFn: () => ordersApi.encerrarFaturamento(orderId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
+      onClose()
+    },
+  })
 
-  function dataBR(iso: string) {
+  const fmtDatePtBR = (iso: string) => {
     const [y, m, d] = String(iso).substring(0, 10).split('-')
     return `${d}/${m}/${y}`
   }
 
   return (
-    <div className="px-4 py-3 bg-blue-50/40 border-b border-blue-100">
-      <div className="flex items-center gap-3 mb-2">
-        <p className="text-[11px] font-semibold text-gray-700">Notas fiscais lançadas</p>
-        {saldo > 0.01 && <span className="text-[11px] text-orange-600 font-medium">Saldo: {fmtR(saldo)}</span>}
-        {saldo <= 0.01 && fats.length > 0 && <span className="text-[11px] text-emerald-600 font-medium">✓ Liquidado</span>}
-        <button onClick={onClose} className="ml-auto text-[11px] text-gray-400 hover:text-gray-700">Fechar ▲</button>
-      </div>
-      {fats.length === 0 && !fatsQ.isLoading && (
-        <p className="text-[11px] text-gray-400 mb-2">Nenhuma nota lançada.</p>
-      )}
-      <div className="mb-2 space-y-0.5">
-        {fats.map(f => (
-          <div key={f.id} className="flex items-center gap-2 text-[11px]">
-            <span className="text-gray-500 w-20">{dataBR(f.data_faturamento)}</span>
-            <span className="text-gray-400 w-24">{f.nf || '—'}</span>
-            <span className="font-medium text-blue-700 tabular-nums">{fmtR(Number(f.valor))}</span>
-            <button onClick={() => delMut.mutate(f.id)} className="text-gray-300 hover:text-red-500 ml-2 text-[10px]">✕</button>
+    <tr className="bg-blue-50/60 border-b border-blue-100">
+      <td colSpan={99} className="px-4 py-3">
+        <div className="space-y-3">
+          {fatsQ.isLoading ? (
+            <p className="text-[12px] text-gray-400">Carregando…</p>
+          ) : faturamentos.length > 0 ? (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1.5">Faturamentos registrados</p>
+              <div className="space-y-1">
+                {faturamentos.map(f => (
+                  <div key={f.id} className="flex items-center gap-3 bg-white border border-blue-100 rounded-lg px-3 py-1.5">
+                    <span className="text-[12px] text-gray-500 w-20 flex-shrink-0">{fmtDatePtBR(f.data_faturamento)}</span>
+                    <span className="text-[12px] text-gray-500 w-24 flex-shrink-0">{f.nf ? `NF ${f.nf}` : '—'}</span>
+                    <span className="text-[13px] font-semibold tabular-nums text-gray-800 flex-1">{fmtR(Number(f.valor))}</span>
+                    <button onClick={() => delFatMut.mutate(f.id)} disabled={delFatMut.isPending} className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-4 mt-2 px-1 text-[11px] flex-wrap">
+                <span className="text-gray-500">Total faturado: <span className="font-semibold text-blue-700">{fmtR(totalFat)}</span></span>
+                <span className={saldo > 0.01 ? 'text-amber-600 font-semibold' : saldo < -0.01 ? 'text-blue-600 font-semibold' : 'text-emerald-600 font-semibold'}>
+                  {saldo > 0.01 ? `Saldo a faturar: ${fmtR(saldo)}` : saldo < -0.01 ? `Faturado acima do pedido: +${fmtR(Math.abs(saldo))}` : '✅ Totalmente faturado'}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[12px] text-gray-400 italic">Nenhum faturamento registrado ainda.</p>
+          )}
+          <div className="flex flex-wrap items-end gap-2 pt-1 border-t border-blue-100">
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Data</p>
+              <input type="date" value={newFatData} onChange={e => setNewFatData(e.target.value)}
+                className="h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">NF</p>
+              <input value={newFatNf} onChange={e => setNewFatNf(e.target.value)} placeholder="nº"
+                className="w-24 h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Valor faturado</p>
+              <input value={newFatValor} onChange={e => setNewFatValor(e.target.value)}
+                placeholder={saldo > 0.01 ? String(saldo.toFixed(2)).replace('.', ',') : '0,00'}
+                className="w-36 h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400 tabular-nums" />
+            </div>
+            <button onClick={() => addFatMut.mutate()} disabled={addFatMut.isPending || !newFatValor || !newFatData}
+              className="h-8 px-3 text-[12px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 flex items-center gap-1.5">
+              <Plus className="h-3.5 w-3.5" />
+              {addFatMut.isPending ? 'Salvando…' : 'Registrar'}
+            </button>
+            <label className="flex items-center gap-1.5 text-[11px] text-gray-600 cursor-pointer ml-2">
+              <input type="checkbox" checked={expandedSem}
+                onChange={e => { setExpandedSem(e.target.checked); semMut.mutate(e.target.checked) }}
+                className="rounded" />
+              Sem comissão do fornecedor
+            </label>
+            {fatStatus === 'encerrado' ? (
+              <span className="text-[11px] text-slate-400 ml-auto italic">Faturamento encerrado</span>
+            ) : faturamentos.length > 0 && (
+              <button
+                onClick={() => { if (confirm('Encerrar o faturamento deste pedido? O saldo restante não será mais cobrado.')) encerrarMut.mutate() }}
+                disabled={encerrarMut.isPending}
+                className="h-8 px-3 text-[12px] border border-slate-300 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 ml-auto"
+              >⊘ Encerrar faturamento</button>
+            )}
+            <button onClick={onClose} className="h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50">
+              Fechar
+            </button>
           </div>
-        ))}
-        {fats.length > 1 && (
-          <div className="text-[11px] font-semibold text-blue-700 pt-1 border-t border-blue-100">
-            Total faturado: {fmtR(totalFat)}
-          </div>
-        )}
-      </div>
-      <div className="flex gap-2 items-center">
-        <input type="date" value={novaData} onChange={e => setNovaData(e.target.value)}
-          className="h-7 px-2 text-[11px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-300" />
-        <input value={novaNF} onChange={e => setNovaNF(e.target.value)} placeholder="NF / Doc."
-          className="h-7 w-24 px-2 text-[11px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-300" />
-        <input value={novoValor} onChange={e => setNovoValor(e.target.value)} placeholder="Valor"
-          className="h-7 w-28 text-right px-2 text-[11px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-300" />
-        <button
-          disabled={!novoValor || addMut.isPending}
-          onClick={() => addMut.mutate()}
-          className="h-7 px-3 text-[11px] font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 whitespace-nowrap"
-        >{addMut.isPending ? '...' : '+ Nota'}</button>
-      </div>
-    </div>
+        </div>
+      </td>
+    </tr>
   )
 }
 
@@ -1789,9 +1836,8 @@ function ReportsInner() {
                                       {isAdmin && (
                                         <button
                                           onClick={e => { e.stopPropagation(); setExpandedFatId(prev => prev === r.id ? null : r.id) }}
-                                          className={`ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded border transition-colors ${expandedFatId === r.id ? 'bg-orange-500 text-white border-orange-500' : 'border-orange-400 text-orange-600 hover:bg-orange-50'}`}
-                                          title="Lançar nota fiscal"
-                                        >NF</button>
+                                          className={`ml-1 h-6 px-2 text-[11px] rounded font-medium transition-colors ${expandedFatId === r.id ? 'bg-blue-100 text-blue-700' : 'border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
+                                        >{r.faturamento_status === 'pendente' || !r.faturamento_status ? 'Faturar' : 'Editar'}</button>
                                       )}
                                     </div>
                                   </td>
@@ -1800,16 +1846,14 @@ function ReportsInner() {
                               })}
                             </tr>
                             {expandedFatId === r.id && (
-                              <tr>
-                                <td colSpan={commCols.filter(c => c.visible && (c.id !== 'com_escr' || isAdmin)).length} className="p-0">
-                                  <FaturarPanel
-                                    orderId={r.id}
-                                    totalPedido={Number(r.total_value)}
-                                    qc={qc}
-                                    onClose={() => setExpandedFatId(null)}
-                                  />
-                                </td>
-                              </tr>
+                              <FaturarPanel
+                                orderId={r.id}
+                                totalPedido={Number(r.total_value)}
+                                semComissao={r.sem_comissao_fabrica}
+                                fatStatus={r.faturamento_status}
+                                qc={qc}
+                                onClose={() => setExpandedFatId(null)}
+                              />
                             )}
                             </Fragment>
                           ))}
