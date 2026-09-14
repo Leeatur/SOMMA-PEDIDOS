@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, Component, type ReactNode, type ErrorInfo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, ChevronUp, ChevronsUpDown, Trash2, Plus } from 'lucide-react'
+import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi, comissaoDebitosApi, commissionClosuresApi, type ComissaoDebito, type CommissionClosure } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -567,312 +567,30 @@ const GROUPS = [
 
 // ─── FechamentoTab ────────────────────────────────────────────────────────────
 
-type SortKey = 'data_venda' | 'razao_social' | 'nr_ped_fabrica' | 'industria' | 'total_value' | 'valor_faturado_fabrica' | 'rep_commission_value'
-type SortDir = 'asc' | 'desc'
-type FatStatus = 'todos' | 'pendente' | 'parcial' | 'liquidado' | 'encerrado'
-
-function FatBadge({ status, sem }: { status: string; sem: boolean }) {
-  if (sem) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-600 border border-red-100">sem com.</span>
-  if (status === 'liquidado') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">✓ liquidado</span>
-  if (status === 'parcial')   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-100">parcial</span>
-  if (status === 'encerrado') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">⊘ encerrado</span>
-  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">pendente</span>
-}
-
-function SortTh({ label, k, sort, onSort, className }: { label: string; k: SortKey; sort: [SortKey, SortDir]; onSort: (k: SortKey) => void; className?: string }) {
-  const [sk, sd] = sort
-  const active = sk === k
-  return (
-    <th
-      className={`px-3 py-2 text-[11px] font-semibold text-gray-500 cursor-pointer select-none whitespace-nowrap hover:text-gray-800 ${className ?? ''}`}
-      onClick={() => onSort(k)}
-    >
-      <span className="inline-flex items-center gap-1">
-        {label}
-        {active
-          ? (sd === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)
-          : <ChevronsUpDown className="h-3 w-3 opacity-30" />}
-      </span>
-    </th>
-  )
-}
-
 function FechamentoTab({
-  commissionsQ,
   dateFrom,
   dateTo,
   qc,
   isAdmin,
 }: {
-  commissionsQ: ReturnType<typeof useQuery<CommissionRow[]>>
   dateFrom: string
   dateTo: string
   qc: ReturnType<typeof useQueryClient>
   isAdmin: boolean
 }) {
-  const navigate                       = useNavigate()
-  const [modo, setModo]               = useState<'pedido' | 'faturamento'>('pedido')
-  const [search, setSearch]           = useState('')
-  const [statusFilt, setStatusFilt]   = useState<FatStatus>('todos')
-  const [repFilt, setRepFilt]         = useState('')
-  const [factFilt, setFactFilt]       = useState('')
-  const [sort, setSort]               = useState<[SortKey, SortDir]>(['data_venda', 'desc'])
-
-  type FatReportRow = {
-    fat_id: number; data_faturamento: string; valor_faturamento: string
-    id: string; order_number: number; nr_ped_fabrica: string | null
-    industria: string; vendedor: string; razao_social: string; cliente: string
-    total_value: string; rep_commission_pct: string; rep_commission_value: string
-    office_commission_value: string; sem_comissao_fabrica: boolean
-    nf: string | null; rep_id: string
-  }
+  const [competencia, setCompetencia] = useState(() => dateTo.substring(0, 7))
 
   const fatQ = useQuery<FatReportRow[]>({
     queryKey: ['rpt-commissions-fat', dateFrom, dateTo],
     queryFn: () => reportsApi.commissionsByFaturamento({ date_from: dateFrom, date_to: dateTo }).then(r => r.data),
-    enabled: modo === 'faturamento',
   })
-  const [expandedId, setExpandedId]   = useState<string | null>(null)
-  const [expandedSem, setExpandedSem] = useState(false)
-  const [newFatData, setNewFatData]   = useState(() => new Date().toISOString().slice(0, 10))
-  const [newFatValor, setNewFatValor] = useState('')
-  const [newFatNf, setNewFatNf]       = useState('')
-  // Mês do relatório no formulário da fábrica — ele é sempre mensal e conta pela
-  // data do faturamento.
-  const [competencia, setCompetencia] = useState(() => dateTo.substring(0, 7))
-
-  // Fechamentos arquivados para este mês — indexados por rep_id
-  const closuresQ = useQuery<CommissionClosure[]>({
-    queryKey: ['commission-closures', competencia],
-    queryFn: async () => (await commissionClosuresApi.list({ competencia })).data,
-  })
-  const closuresByRep = useMemo(() => {
-    const m = new Map<string, CommissionClosure>()
-    for (const c of closuresQ.data ?? []) m.set(c.rep_id, c)
-    return m
-  }, [closuresQ.data])
-
-  const closureMut = useMutation({
-    mutationFn: ({ rep_id, rows }: { rep_id: string; rows: unknown[] }) =>
-      commissionClosuresApi.create({ rep_id, competencia, rows }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['commission-closures', competencia] })
-    },
-  })
-
-  type FatRow = { id: number; valor: string; nf: string | null; data_faturamento: string }
-
-  const { data: faturamentos = [], isLoading: fatLoading } = useQuery<FatRow[]>({
-    queryKey: ['faturamentos', expandedId],
-    queryFn: () => ordersApi.listFaturamentos(expandedId!).then(r => r.data),
-    enabled: !!expandedId,
-  })
-
-  const addFatMut = useMutation({
-    mutationFn: ({ orderId, valor, data_faturamento, nf }: { orderId: string; valor: number; data_faturamento: string; nf?: string }) =>
-      ordersApi.addFaturamento(orderId, { valor, data_faturamento, nf }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['faturamentos', expandedId] })
-      qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
-      setNewFatValor(''); setNewFatNf('')
-    },
-  })
-
-  const delFatMut = useMutation({
-    mutationFn: ({ orderId, fatId }: { orderId: string; fatId: number }) =>
-      ordersApi.deleteFaturamento(orderId, fatId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['faturamentos', expandedId] })
-      qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
-    },
-  })
-
-  const semMut = useMutation({
-    mutationFn: ({ id, sem_comissao }: { id: string; sem_comissao: boolean }) =>
-      ordersApi.updateSemComissao(id, { sem_comissao }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rpt-commissions'] }),
-  })
-
-  const encerrarMut = useMutation({
-    mutationFn: (id: string) => ordersApi.encerrarFaturamento(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
-      setExpandedId(null)
-    },
-  })
-
-  function openEdit(r: CommissionRow) {
-    if (!isAdmin) return
-    if (expandedId === r.id) { setExpandedId(null); return }
-    setExpandedId(r.id)
-    setExpandedSem(r.sem_comissao_fabrica ?? false)
-    setNewFatValor(''); setNewFatNf('')
-    setNewFatData(new Date().toISOString().slice(0, 10))
-  }
-
-  function handleAddFat(orderId: string) {
-    const raw = newFatValor.replace(/\./g, '').replace(',', '.')
-    const valor = parseFloat(raw)
-    if (isNaN(valor) || valor <= 0 || !newFatData) return
-    addFatMut.mutate({ orderId, valor, data_faturamento: newFatData, nf: newFatNf.trim() || undefined })
-  }
-
-  function toggleSort(k: SortKey) {
-    setSort(prev => prev[0] === k ? [k, prev[1] === 'asc' ? 'desc' : 'asc'] : [k, 'asc'])
-  }
-
-  function exportarRep(repNome: string, repRows: CommissionRow[]) {
-    const headers = ['Data', 'Razão Social', 'Nome Fantasia', 'Doc. Fábrica', 'Indústria', 'Vlr. Pedido', 'Vlr. Faturado', 'Saldo a Faturar', '% Com.', 'Comissão (R$)', 'Status']
-    const dataRows = repRows.map(r => {
-      const pedido = Number(r.total_value)
-      const faturado = r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0
-      const saldo = r.sem_comissao_fabrica || r.faturamento_status === 'encerrado' ? '' : Math.max(0, pedido - faturado) || ''
-      return [
-        fmtDatePtBR(r.data_venda),
-        r.razao_social || '',
-        r.cliente || '',
-        r.nr_ped_fabrica || '',
-        r.industria || '',
-        pedido,
-        r.valor_faturado_fabrica != null ? faturado : '',
-        saldo,
-        Number(r.rep_commission_pct),
-        Number(r.rep_commission_value),
-        r.sem_comissao_fabrica ? 'Sem comissão' : (r.faturamento_status ?? 'pendente'),
-      ]
-    })
-    const sumPedido  = repRows.reduce((s, r) => s + Number(r.total_value), 0)
-    const sumFat     = repRows.reduce((s, r) => s + Number(r.valor_faturado_fabrica ?? r.total_value), 0)
-    const sumSaldo   = repRows.reduce((s, r) => {
-      if (r.sem_comissao_fabrica || r.faturamento_status === 'encerrado') return s
-      return s + Math.max(0, Number(r.total_value) - (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0))
-    }, 0)
-    const sumCom     = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
-    exportXlsx(
-      `Fechamento_${repNome.replace(/\s+/g, '_')}_${dateFrom}_${dateTo}`,
-      headers,
-      [...dataRows, [], ['TOTAL', '', '', '', '', sumPedido, sumFat, sumSaldo, '', sumCom, '']],
-    )
-  }
-
-  if (commissionsQ.isLoading) return <PageSpinner />
-  if (!commissionsQ.data?.length) return <EmptyState label="Nenhum pedido no período selecionado" />
-
-  const allRows = commissionsQ.data as CommissionRow[]
-
-  const uniqueReps = [...new Set(allRows.map(r => r.vendedor).filter(Boolean))].sort()
-  const uniqueFacts = [...new Set(allRows.map(r => r.industria).filter(Boolean))].sort()
-
-  const filtered = allRows.filter(r => {
-    if (statusFilt !== 'todos' && (r.faturamento_status ?? 'pendente') !== statusFilt) return false
-    if (repFilt && r.vendedor !== repFilt) return false
-    if (factFilt && r.industria !== factFilt) return false
-    if (search) {
-      const q = search.toLowerCase()
-      const hit = [r.razao_social, r.cliente, r.nr_ped_fabrica, r.industria, r.vendedor]
-        .some(v => String(v ?? '').toLowerCase().includes(q))
-      if (!hit) return false
-    }
-    return true
-  })
-
-  const [sk, sd] = sort
-  const sorted = [...filtered].sort((a, b) => {
-    let av: string | number = a[sk] ?? ''
-    let bv: string | number = b[sk] ?? ''
-    if (sk === 'valor_faturado_fabrica') {
-      av = a.valor_faturado_fabrica ?? a.total_value
-      bv = b.valor_faturado_fabrica ?? b.total_value
-    }
-    if (typeof av === 'string') av = av.toLowerCase()
-    if (typeof bv === 'string') bv = bv.toLowerCase()
-    return sd === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
-  })
-
-  // Métricas globais
-  const pendRows = allRows.filter(r => (r.faturamento_status ?? 'pendente') === 'pendente')
-  const parcRows = allRows.filter(r => r.faturamento_status === 'parcial')
-  const liqRows  = allRows.filter(r => r.faturamento_status === 'liquidado')
-  const encRows  = allRows.filter(r => r.faturamento_status === 'encerrado')
-  const totalComEfetiva = allRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
-
-  // Grupos por rep
-  const grupos = new Map<string, CommissionRow[]>()
-  for (const r of sorted) {
-    const rep = r.vendedor || 'Sem vendedor'
-    if (!grupos.has(rep)) grupos.set(rep, [])
-    grupos.get(rep)!.push(r)
-  }
-
-  const fmtPeriod = `${fmtDatePtBR(dateFrom)} a ${fmtDatePtBR(dateTo)}`
 
   return (
     <div className="space-y-4">
-      {/* Toggle Por Pedido / Por Faturamento */}
-      <div className="flex rounded-xl border border-gray-200 bg-white overflow-hidden text-[12px] w-fit">
-        {([['pedido', 'Por data do pedido'], ['faturamento', 'Por data de faturamento']] as const).map(([v, label]) => (
-          <button key={v} onClick={() => setModo(v)}
-            className={`px-4 h-8 font-medium transition-colors ${modo === v ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {modo === 'faturamento' && (
-        <PagamentoMensalView rows={fatQ.data ?? []} loading={fatQ.isLoading} dateFrom={dateFrom} dateTo={dateTo} competencia={competencia} />
-      )}
-
-      {modo === 'pedido' && (<>
-      {/* Barra de filtros */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar cliente, doc. fábrica…"
-            className="w-full pl-8 pr-3 h-8 text-[12px] border border-gray-200 rounded-lg bg-white outline-none focus:border-blue-400"
-          />
-        </div>
-        {uniqueReps.length > 1 && (
-          <select
-            value={repFilt}
-            onChange={e => setRepFilt(e.target.value)}
-            className="h-8 px-2 text-[12px] border border-gray-200 rounded-lg bg-white outline-none focus:border-blue-400 max-w-[180px]"
-          >
-            <option value="">Todos os vendedores</option>
-            {uniqueReps.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-        )}
-        {uniqueFacts.length > 1 && (
-          <select
-            value={factFilt}
-            onChange={e => setFactFilt(e.target.value)}
-            className="h-8 px-2 text-[12px] border border-gray-200 rounded-lg bg-white outline-none focus:border-blue-400 max-w-[160px]"
-          >
-            <option value="">Todas as indústrias</option>
-            {uniqueFacts.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
-        )}
-        <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden text-[12px]">
-          {(['todos', 'pendente', 'parcial', 'liquidado', 'encerrado'] as FatStatus[]).map(s => (
-            <button
-              key={s}
-              onClick={() => setStatusFilt(s)}
-              className={`px-3 h-8 capitalize transition-colors ${statusFilt === s ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
-            >
-              {s === 'todos' ? 'todos' : s}
-              {s !== 'todos' && (
-                <span className="ml-1 opacity-60">
-                  ({s === 'pendente' ? pendRows.length : s === 'parcial' ? parcRows.length : s === 'liquidado' ? liqRows.length : encRows.length})
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
         <label className="flex items-center gap-1.5 h-8 px-2 text-[12px] border border-gray-200 rounded-lg bg-white"
-          title="Mês do fechamento — o relatório conta pela data do faturamento">
-          <span className="text-gray-500">Fechamento</span>
+          title="Mês de competência para fechar">
+          <span className="text-gray-500">Competência</span>
           <input type="month" value={competencia} onChange={e => setCompetencia(e.target.value)}
             className="outline-none text-[12px]" />
         </label>
@@ -880,291 +598,15 @@ function FechamentoTab({
           <Printer className="h-3.5 w-3.5" /> Imprimir
         </button>
       </div>
-
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: 'pendente', v: pendRows.reduce((s,r)=>s+Number(r.total_value),0), sub: `${pendRows.length} pedidos`, color: 'text-gray-600' },
-          { label: 'parcial',  v: parcRows.reduce((s,r)=>s+Number(r.valor_faturado_fabrica ?? r.total_value),0), sub: `${parcRows.length} pedidos`, color: 'text-amber-600' },
-          { label: 'liquidado', v: liqRows.reduce((s,r)=>s+Number(r.valor_faturado_fabrica ?? r.total_value),0), sub: `${liqRows.length} pedidos`, color: 'text-emerald-600' },
-          { label: 'comissão efetiva', v: totalComEfetiva, sub: `sobre ${fmtR(filtered.reduce((s,r)=>s+Number(r.valor_faturado_fabrica ?? r.total_value),0))} faturado`, color: 'text-blue-600' },
-        ].map(c => (
-          <div key={c.label} className="bg-white rounded-xl border border-gray-100 p-4">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{c.label}</p>
-            <p className={`text-[18px] font-bold ${c.color} font-variant-numeric: tabular-nums`}>{fmtR(c.v)}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">{c.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Um bloco por representante */}
-      {[...grupos.entries()].map(([repNome, repRows]) => {
-        const totalRepCom    = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
-        const totalRepFat    = repRows.reduce((s, r) => s + (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0), 0)
-        const totalRepPedido = repRows.reduce((s, r) => s + Number(r.total_value), 0)
-        const totalRepSaldo  = repRows.reduce((s, r) => {
-          if (r.sem_comissao_fabrica || r.faturamento_status === 'encerrado') return s
-          return s + Math.max(0, Number(r.total_value) - (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0))
-        }, 0)
-
-        return (
-          <div key={repNome} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-50/80 border-b border-gray-100">
-              <div>
-                <p className="text-[13px] font-semibold text-gray-800">{repNome}</p>
-                <p className="text-[11px] text-gray-400">{repRows.length} pedido{repRows.length !== 1 ? 's' : ''} · {fmtPeriod}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-[10px] text-gray-400">comissão efetiva</p>
-                  <p className="text-[15px] font-bold text-emerald-600">{fmtR(totalRepCom)}</p>
-                  <p className="text-[10px] text-gray-400">{totalRepFat > 0 ? `s/ ${fmtR(totalRepFat)} faturado` : `${fmtR(totalRepPedido)} em pedidos`}</p>
-                </div>
-                {(() => {
-                  const repId = repRows[0]?.rep_id
-                  const closure = repId ? closuresByRep.get(repId) : undefined
-                  const closedAtBR = closure
-                    ? (() => { const [_y,m,d] = closure.created_at.substring(0,10).split('-'); return `${d}/${m}` })()
-                    : null
-                  return (
-                    <>
-                      {closure ? (
-                        <button
-                          onClick={() => navigate(`/reports/fechamento/${closure.id}`)}
-                          title="Ver fechamento arquivado"
-                          className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-emerald-300 text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
-                        >
-                          ✓ Fechado {closedAtBR}
-                        </button>
-                      ) : isAdmin && repId ? (
-                        <button
-                          disabled={closureMut.isPending}
-                          onClick={() => {
-                            if (!confirm(`Fechar o mês ${competencia} para ${repNome}? O snapshot será salvo e poderá ser reaberto a qualquer momento.`)) return
-                            const snapshotRows = repRows.map(r => ({
-                              id: r.id,
-                              data_faturamento: r.data_venda,
-                              nf: r.nr_ped_fabrica,
-                              valor_faturado_fabrica: r.valor_faturado_fabrica ?? r.total_value,
-                              razao_social: r.razao_social,
-                              industria: r.industria,
-                              rep_commission_pct: r.rep_commission_pct,
-                              rep_commission_value: r.rep_commission_value,
-                            }))
-                            closureMut.mutate({ rep_id: repId, rows: snapshotRows })
-                          }}
-                          className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 disabled:opacity-50"
-                        >
-                          Fechar Mês
-                        </button>
-                      ) : null}
-                    </>
-                  )
-                })()}
-                <button
-                  onClick={() => window.open(`/reports/comissao/${repRows[0].rep_id}/${competencia}?from=${dateFrom}&to=${dateTo}`, '_blank')}
-                  title="Relatório de comissões no formulário da fábrica, pela data do faturamento"
-                  className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  <Printer className="h-3 w-3" /> Relatório do mês
-                </button>
-                <button
-                  onClick={() => exportarRep(repNome, repRows)}
-                  className="flex items-center gap-1 h-7 px-2.5 text-[11px] bg-gray-800 text-white rounded-lg hover:bg-gray-700"
-                >
-                  <Download className="h-3 w-3" /> Excel
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-[12px]">
-                <thead className="bg-gray-50/50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400 w-[88px]">Status</th>
-                    <SortTh label="Data"         k="data_venda"            sort={sort} onSort={toggleSort} className="text-left w-[72px]" />
-                    <SortTh label="Razão social"  k="razao_social"          sort={sort} onSort={toggleSort} className="text-left" />
-                    <SortTh label="Doc. fábrica"  k="nr_ped_fabrica"        sort={sort} onSort={toggleSort} className="text-left w-[90px]" />
-                    <SortTh label="Indústria"     k="industria"             sort={sort} onSort={toggleSort} className="text-left w-[72px]" />
-                    <SortTh label="Vlr. pedido"   k="total_value"           sort={sort} onSort={toggleSort} className="text-right w-[88px]" />
-                    <SortTh label="Vlr. faturado" k="valor_faturado_fabrica" sort={sort} onSort={toggleSort} className="text-right w-[96px]" />
-                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[88px]">Saldo fat.</th>
-                    <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[44px]">%</th>
-                    <SortTh label="Comissão"      k="rep_commission_value"  sort={sort} onSort={toggleSort} className="text-right w-[80px]" />
-                    {isAdmin && <th className="px-3 py-2 w-[70px]"></th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {repRows.map(r => {
-                    const isExp = expandedId === r.id
-                    const fatVal = r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : null
-                    const diferente = fatVal != null && Math.abs(fatVal - Number(r.total_value)) > 0.01
-
-                    return (
-                      <>
-                        <tr
-                          key={r.id}
-                          className={`border-b border-gray-50 hover:bg-gray-50/60 ${isExp ? 'bg-blue-50/40' : ''}`}
-                        >
-                          <td className="px-3 py-1.5">
-                            <FatBadge status={r.faturamento_status ?? 'pendente'} sem={r.sem_comissao_fabrica ?? false} />
-                          </td>
-                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{fmtDatePtBR(r.data_venda)}</td>
-                          <td className="px-3 py-1.5 font-medium text-gray-800 max-w-[160px] truncate">{r.razao_social}</td>
-                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.nr_ped_fabrica || '—'}</td>
-                          <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{r.industria}</td>
-                          <td className={`px-3 py-1.5 text-right tabular-nums ${diferente ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                            {fmtR(r.total_value)}
-                          </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums font-medium text-blue-600">
-                            {fatVal != null ? fmtR(fatVal) : <span className="text-gray-300">—</span>}
-                          </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums">
-                            {(() => {
-                              if (r.sem_comissao_fabrica || r.faturamento_status === 'encerrado') return <span className="text-gray-300">—</span>
-                              const saldo = Number(r.total_value) - (fatVal ?? 0)
-                              if (saldo <= 0.01) return <span className="text-gray-300">—</span>
-                              return <span className="text-amber-600 font-medium">{fmtR(saldo)}</span>
-                            })()}
-                          </td>
-                          <td className="px-3 py-1.5 text-right text-gray-400">{Number(r.rep_commission_pct).toFixed(1)}%</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-emerald-600">
-                            {r.sem_comissao_fabrica ? <span className="text-gray-300">—</span> : fmtR(r.rep_commission_value)}
-                          </td>
-                          {isAdmin && (
-                            <td className="px-3 py-1.5 text-right">
-                              <button
-                                onClick={() => openEdit(r)}
-                                className={`h-6 px-2 text-[11px] rounded font-medium transition-colors ${isExp ? 'bg-blue-100 text-blue-700' : 'border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
-                              >
-                                {r.faturamento_status === 'pendente' || !r.faturamento_status ? 'Faturar' : 'Editar'}
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                        {isExp && (() => {
-                          const totalFat = faturamentos.reduce((s, f) => s + Number(f.valor), 0)
-                          const saldo = Number(r.total_value) - totalFat
-                          return (
-                            <tr key={`exp-${r.id}`} className="bg-blue-50/60 border-b border-blue-100">
-                              <td colSpan={11} className="px-4 py-3">
-                                <div className="space-y-3">
-                                  {fatLoading ? (
-                                    <p className="text-[12px] text-gray-400">Carregando…</p>
-                                  ) : faturamentos.length > 0 ? (
-                                    <div>
-                                      <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1.5">Faturamentos registrados</p>
-                                      <div className="space-y-1">
-                                        {faturamentos.map(f => (
-                                          <div key={f.id} className="flex items-center gap-3 bg-white border border-blue-100 rounded-lg px-3 py-1.5">
-                                            <span className="text-[12px] text-gray-500 w-20 flex-shrink-0">{fmtDatePtBR(f.data_faturamento)}</span>
-                                            <span className="text-[12px] text-gray-500 w-24 flex-shrink-0" title="Nota fiscal">
-                                              {f.nf ? `NF ${f.nf}` : '—'}
-                                            </span>
-                                            <span className="text-[13px] font-semibold tabular-nums text-gray-800 flex-1">{fmtR(Number(f.valor))}</span>
-                                            <button onClick={() => delFatMut.mutate({ orderId: r.id, fatId: f.id })} disabled={delFatMut.isPending} className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40">
-                                              <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                      <div className="flex gap-4 mt-2 px-1 text-[11px] flex-wrap">
-                                        <span className="text-gray-500">Total faturado: <span className="font-semibold text-blue-700">{fmtR(totalFat)}</span></span>
-                                        <span className={saldo > 0.01 ? 'text-amber-600 font-semibold' : saldo < -0.01 ? 'text-blue-600 font-semibold' : 'text-emerald-600 font-semibold'}>
-                                          {saldo > 0.01
-                                            ? `Saldo a faturar: ${fmtR(saldo)}`
-                                            : saldo < -0.01
-                                              ? `Faturado acima do pedido: +${fmtR(Math.abs(saldo))}`
-                                              : '✅ Totalmente faturado'}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <p className="text-[12px] text-gray-400 italic">Nenhum faturamento registrado ainda.</p>
-                                  )}
-                                  <div className="flex flex-wrap items-end gap-2 pt-1 border-t border-blue-100">
-                                    <div>
-                                      <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Data</p>
-                                      <input type="date" value={newFatData} onChange={e => setNewFatData(e.target.value)}
-                                        className="h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400" />
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">NF</p>
-                                      <input value={newFatNf} onChange={e => setNewFatNf(e.target.value)}
-                                        placeholder="nº"
-                                        className="w-24 h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400" />
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Valor faturado</p>
-                                      <input value={newFatValor} onChange={e => setNewFatValor(e.target.value)}
-                                        placeholder={saldo > 0.01 ? String(saldo.toFixed(2)).replace('.', ',') : '0,00'}
-                                        className="w-36 h-8 px-2.5 text-[12px] border border-blue-200 rounded-lg bg-white outline-none focus:border-blue-400 tabular-nums" />
-                                    </div>
-                                    <button onClick={() => handleAddFat(r.id)} disabled={addFatMut.isPending || !newFatValor || !newFatData}
-                                      className="h-8 px-3 text-[12px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 flex items-center gap-1.5">
-                                      <Plus className="h-3.5 w-3.5" />
-                                      {addFatMut.isPending ? 'Salvando…' : 'Registrar'}
-                                    </button>
-                                    <label className="flex items-center gap-1.5 text-[11px] text-gray-600 cursor-pointer ml-2">
-                                      <input type="checkbox" checked={expandedSem}
-                                        onChange={e => { setExpandedSem(e.target.checked); semMut.mutate({ id: r.id, sem_comissao: e.target.checked }) }}
-                                        className="rounded" />
-                                      Sem comissão do fornecedor
-                                    </label>
-                                    {r.faturamento_status === 'encerrado' ? (
-                                      <span className="text-[11px] text-slate-400 ml-auto italic">Faturamento encerrado</span>
-                                    ) : faturamentos.length > 0 && (
-                                      <button
-                                        onClick={() => { if (confirm('Encerrar o faturamento deste pedido? O saldo restante não será mais cobrado.')) encerrarMut.mutate(r.id) }}
-                                        disabled={encerrarMut.isPending}
-                                        className="h-8 px-3 text-[12px] border border-slate-300 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 ml-auto"
-                                        title="Encerrar faturamento — saldo restante não será cobrado"
-                                      >
-                                        ⊘ Encerrar faturamento
-                                      </button>
-                                    )}
-                                    <button onClick={() => setExpandedId(null)} className="h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50">
-                                      Fechar
-                                    </button>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })()}
-                      </>
-                    )
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-gray-50 border-t border-gray-200">
-                    <td colSpan={5} className="px-3 py-2 text-[11px] text-gray-400">
-                      {repRows.length} pedido{repRows.length !== 1 ? 's' : ''}
-                    </td>
-                    <td className="px-3 py-2 text-right text-[12px] tabular-nums text-gray-500">{fmtR(totalRepPedido)}</td>
-                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-blue-600">{totalRepFat > 0 ? fmtR(totalRepFat) : <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-amber-600">{totalRepSaldo > 0 ? fmtR(totalRepSaldo) : <span className="text-gray-300">—</span>}</td>
-                    <td></td>
-                    <td className="px-3 py-2 text-right text-[12px] tabular-nums font-bold text-emerald-600">{fmtR(totalRepCom)}</td>
-                    {isAdmin && <td></td>}
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        )
-      })}
-
-      {grupos.size > 1 && (
-        <div className="bg-white rounded-xl border border-gray-100 px-5 py-4 flex items-center justify-between">
-          <p className="text-[13px] text-gray-600">{filtered.length} pedido{filtered.length !== 1 ? 's' : ''} no período</p>
-          <div className="text-right">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">comissão efetiva total</p>
-            <p className="text-[20px] font-bold text-emerald-600">{fmtR(totalComEfetiva)}</p>
-          </div>
-        </div>
-      )}
-      </>)}
+      <PagamentoMensalView
+        rows={fatQ.data ?? []}
+        loading={fatQ.isLoading}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        competencia={competencia}
+        isAdmin={isAdmin}
+        qc={qc}
+      />
     </div>
   )
 }
@@ -1179,11 +621,12 @@ type FatReportRow = {
   nf: string | null; rep_id: string
 }
 
-function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, dateTo }: {
+function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, dateTo, isAdmin, qc }: {
   repNome: string; repRows: FatReportRow[]; competencia: string
   fmtPeriod: string; dateFrom: string; dateTo: string
+  isAdmin: boolean; qc: ReturnType<typeof useQueryClient>
 }) {
-  const qc = useQueryClient()
+  const navigate = useNavigate()
   const repId = repRows[0]?.rep_id ?? ''
   const [showDebitos, setShowDebitos] = useState(false)
   const [novoDesc, setNovoDesc] = useState('')
@@ -1191,6 +634,38 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
 
   const totalFat = repRows.reduce((s, r) => s + Number(r.valor_faturamento), 0)
   const totalCom = repRows.reduce((s, r) => s + Number(r.rep_commission_value), 0)
+
+  // Fechamento arquivado para este rep/mês
+  const closureQ = useQuery<CommissionClosure[]>({
+    queryKey: ['commission-closures', repId, competencia],
+    queryFn: async () => (await commissionClosuresApi.list({ rep_id: repId, competencia })).data,
+    enabled: !!repId,
+  })
+  const closure = closureQ.data?.[0] ?? null
+
+  const closureMut = useMutation({
+    mutationFn: (rows: unknown[]) =>
+      commissionClosuresApi.create({ rep_id: repId, competencia, rows }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['commission-closures', repId, competencia] })
+      qc.invalidateQueries({ queryKey: ['all-closures'] })
+    },
+  })
+
+  function handleFecharMes() {
+    if (!confirm(`Fechar o mês ${competencia} para ${repNome}?\nO snapshot dos faturamentos do período será salvo e poderá ser consultado a qualquer momento.`)) return
+    const snapshotRows = repRows.map(r => ({
+      id: String(r.fat_id),
+      data_faturamento: r.data_faturamento,
+      nf: r.nf ?? r.nr_ped_fabrica,
+      valor_faturado_fabrica: Number(r.valor_faturamento),
+      razao_social: r.razao_social,
+      industria: r.industria,
+      rep_commission_pct: Number(r.rep_commission_pct),
+      rep_commission_value: Number(r.rep_commission_value),
+    }))
+    closureMut.mutate(snapshotRows)
+  }
 
   const debitosQ = useQuery<ComissaoDebito[]>({
     queryKey: ['comissao-debitos', repId, competencia],
@@ -1237,6 +712,23 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
           >
             {debitos.length > 0 ? `Débitos (${debitos.length})` : 'Débitos'}
           </button>
+          {closure ? (
+            <button
+              onClick={() => navigate(`/reports/fechamento/${closure.id}`)}
+              title="Ver fechamento arquivado"
+              className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-emerald-300 text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
+            >
+              ✓ Fechado {(() => { const [_y,m,d] = closure.created_at.substring(0,10).split('-'); return `${d}/${m}` })()}
+            </button>
+          ) : isAdmin && repId ? (
+            <button
+              disabled={closureMut.isPending}
+              onClick={handleFecharMes}
+              className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 disabled:opacity-50"
+            >
+              {closureMut.isPending ? 'Salvando…' : 'Fechar Mês'}
+            </button>
+          ) : null}
           <button
             onClick={() => window.open(`/reports/comissao/${repId}/${competencia}?from=${dateFrom}&to=${dateTo}`, '_blank')}
             title="Relatório de comissões no formulário da fábrica"
@@ -1334,8 +826,9 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
   )
 }
 
-function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia }: {
+function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia, isAdmin, qc }: {
   rows: FatReportRow[]; loading: boolean; dateFrom: string; dateTo: string; competencia: string
+  isAdmin: boolean; qc: ReturnType<typeof useQueryClient>
 }) {
   if (loading) return <PageSpinner />
   if (!rows.length) return <EmptyState label="Nenhum faturamento registrado no período" />
@@ -1360,6 +853,8 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia }: {
           fmtPeriod={fmtPeriod}
           dateFrom={dateFrom}
           dateTo={dateTo}
+          isAdmin={isAdmin}
+          qc={qc}
         />
       ))}
 
@@ -1531,7 +1026,7 @@ function ReportsInner() {
   const commissionsQ = useQuery<CommissionRow[]>({
     queryKey: ['rpt-commissions', dateFrom, dateTo, repId, factoryId],
     queryFn: () => reportsApi.commissions({ date_from: dateFrom, date_to: dateTo, rep_id: repId || undefined, factory_id: factoryId || undefined }).then(r => r.data),
-    enabled: tab === 'commissions' || tab === 'fechamento',
+    enabled: tab === 'commissions',
   })
 
   const allClosuresQ = useQuery<CommissionClosure[]>({
@@ -2918,7 +2413,6 @@ function ReportsInner() {
         {/* ═══ FECHAMENTO DE COMISSÃO ══════════════════════════════════════ */}
         {tab === 'fechamento' && (
           <FechamentoTab
-            commissionsQ={commissionsQ}
             dateFrom={dateFrom}
             dateTo={dateTo}
             qc={qc}
