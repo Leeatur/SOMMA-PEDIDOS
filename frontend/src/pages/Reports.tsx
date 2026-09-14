@@ -924,7 +924,7 @@ function FechamentoTab({
                   const repId = repRows[0]?.rep_id
                   const closure = repId ? closuresByRep.get(repId) : undefined
                   const closedAtBR = closure
-                    ? (() => { const [y,m,d] = closure.created_at.substring(0,10).split('-'); return `${d}/${m}` })()
+                    ? (() => { const [_y,m,d] = closure.created_at.substring(0,10).split('-'); return `${d}/${m}` })()
                     : null
                   return (
                     <>

@@ -54,7 +54,6 @@ export function CommissionClosurePrint() {
   const debitos = (closure.debitos as unknown as DebitoRow[]) ?? []
 
   const [y, m] = closure.competencia.split('-')
-  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
   const periodoTxt = `01/${m}/${y} a ${String(new Date(Number(y), Number(m), 0).getDate()).padStart(2,'0')}/${m}/${y}`
 
   const industria = rows[0]?.industria ?? ''
