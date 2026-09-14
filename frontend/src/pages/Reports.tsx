@@ -1828,12 +1828,15 @@ function ReportsInner() {
                                     </td>
                                   )
                                 }
-                                if (id === 'faturado') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
-                                if (id === 'a_faturar') return (
+                                if (id === 'faturado') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{r.valor_faturado_fabrica != null ? fmtR(Number(r.valor_faturado_fabrica)) : <span className="text-on-surface-variant/30">—</span>}</td>
+                                if (id === 'a_faturar') {
+                                  const fatReal = r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0
+                                  const saldoReal = r.sem_comissao_fabrica || r.faturamento_status === 'encerrado' ? 0 : Math.max(0, Number(r.total_value) - fatReal)
+                                  return (
                                   <td key={id} className="px-2 py-1 text-right whitespace-nowrap">
                                     <div className="flex items-center justify-end gap-1">
-                                      {Number(r.falta_faturar) > 0
-                                        ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span>
+                                      {saldoReal > 0.01
+                                        ? <span className="font-bold text-orange-600">{fmtR(saldoReal)}</span>
                                         : <span className="text-on-surface-variant/50">—</span>}
                                       {isAdmin && (
                                         <button
@@ -1843,7 +1846,8 @@ function ReportsInner() {
                                       )}
                                     </div>
                                   </td>
-                                )
+                                  )
+                                }
                                 return null
                               })}
                               <td aria-hidden />
@@ -1874,8 +1878,8 @@ function ReportsInner() {
                                 if (id === 'com_rep')  return <td key={id} className="px-2 py-1.5 text-right text-emerald-700">{fmtR(totalRepComm)}<span className="text-emerald-600/70 text-[11px] font-normal ml-1">({fmtPct(avgRepPct)})</span></td>
                                 if (id === 'com_escr') return <td key={id} className="px-2 py-1.5 text-right text-blue-700">{fmtR(totalOffComm)}<span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(avgOffPct)})</span></td>
                                 if (id === 'com_guia') return <td key={id} className="px-2 py-1.5 text-right text-amber-700">{fmtR(totalGuideComm)}<span className="text-amber-600/70 text-[11px] font-normal ml-1">({fmtPct(avgGuidePct)})</span></td>
-                                if (id === 'faturado') return <td key={id} className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(sum('valor_faturado'))}</td>
-                                if (id === 'a_faturar') return <td key={id} className="px-2 py-1.5 text-right text-orange-600">{fmtR(sum('falta_faturar'))}</td>
+                                if (id === 'faturado') return <td key={id} className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(rows.reduce((s,r) => s + (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0), 0))}</td>
+                                if (id === 'a_faturar') return <td key={id} className="px-2 py-1.5 text-right text-orange-600">{fmtR(rows.reduce((s,r) => { if (r.sem_comissao_fabrica || r.faturamento_status === 'encerrado') return s; return s + Math.max(0, Number(r.total_value) - (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0)) }, 0))}</td>
                                 return null
                               })
                             })()}
@@ -1885,7 +1889,7 @@ function ReportsInner() {
                       </table>
                     </div>
                     <div className="px-4 py-1.5 bg-surface-container-lowest border-t border-outline-variant/50 text-[12px] text-outline/70">
-                      * Valor Faturado = pedidos com status <strong>final</strong>. Falta Faturar = demais pedidos.
+                      * Valor Faturado = soma das notas fiscais lançadas. Saldo a Faturar = restante do pedido (exceto encerrados e sem comissão).
                       O percentual ao lado do total de comissão representa o quanto a comissão total representa sobre o valor total vendido no período filtrado.
                     </div>
                   </div>
