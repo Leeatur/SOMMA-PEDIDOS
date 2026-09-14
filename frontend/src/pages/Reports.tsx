@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, Component, type ReactNode, type ErrorInfo } from 'react'
+import { useState, useMemo, useRef, Fragment, Component, type ReactNode, type ErrorInfo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search } from 'lucide-react'
@@ -565,6 +565,97 @@ const GROUPS = [
   { id: 'equipe',    label: 'Equipe',    icon: <Award className="h-3.5 w-3.5" /> },
 ]
 
+// ─── FaturarPanel — painel inline de notas fiscais por pedido ─────────────────
+
+type OrderFaturamento = { id: number; valor: number; nf: string | null; data_faturamento: string }
+
+function FaturarPanel({ orderId, totalPedido, qc, onClose }: {
+  orderId: string; totalPedido: number
+  qc: ReturnType<typeof useQueryClient>; onClose: () => void
+}) {
+  const [novaData, setNovaData] = useState(() => new Date().toISOString().split('T')[0])
+  const [novoValor, setNovoValor] = useState('')
+  const [novaNF, setNovaNF] = useState('')
+
+  const fatsQ = useQuery<OrderFaturamento[]>({
+    queryKey: ['order-faturamentos', orderId],
+    queryFn: () => ordersApi.listFaturamentos(orderId).then(r => r.data),
+    staleTime: 0,
+  })
+  const fats = fatsQ.data ?? []
+  const totalFat = fats.reduce((s, f) => s + Number(f.valor), 0)
+  const saldo = totalPedido - totalFat
+
+  const addMut = useMutation({
+    mutationFn: () => ordersApi.addFaturamento(orderId, {
+      valor: parseFloat(novoValor.replace(/\./g, '').replace(',', '.')) || 0,
+      data_faturamento: novaData,
+      nf: novaNF.trim() || undefined,
+    }),
+    onSuccess: () => {
+      setNovoValor(''); setNovaNF('')
+      qc.invalidateQueries({ queryKey: ['order-faturamentos', orderId], exact: true })
+      qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
+      qc.invalidateQueries({ queryKey: ['rpt-commissions-fat'] })
+    },
+  })
+  const delMut = useMutation({
+    mutationFn: (fatId: number) => ordersApi.deleteFaturamento(orderId, fatId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order-faturamentos', orderId], exact: true })
+      qc.invalidateQueries({ queryKey: ['rpt-commissions'] })
+      qc.invalidateQueries({ queryKey: ['rpt-commissions-fat'] })
+    },
+  })
+
+  function dataBR(iso: string) {
+    const [y, m, d] = String(iso).substring(0, 10).split('-')
+    return `${d}/${m}/${y}`
+  }
+
+  return (
+    <div className="px-4 py-3 bg-blue-50/40 border-b border-blue-100">
+      <div className="flex items-center gap-3 mb-2">
+        <p className="text-[11px] font-semibold text-gray-700">Notas fiscais lançadas</p>
+        {saldo > 0.01 && <span className="text-[11px] text-orange-600 font-medium">Saldo: {fmtR(saldo)}</span>}
+        {saldo <= 0.01 && fats.length > 0 && <span className="text-[11px] text-emerald-600 font-medium">✓ Liquidado</span>}
+        <button onClick={onClose} className="ml-auto text-[11px] text-gray-400 hover:text-gray-700">Fechar ▲</button>
+      </div>
+      {fats.length === 0 && !fatsQ.isLoading && (
+        <p className="text-[11px] text-gray-400 mb-2">Nenhuma nota lançada.</p>
+      )}
+      <div className="mb-2 space-y-0.5">
+        {fats.map(f => (
+          <div key={f.id} className="flex items-center gap-2 text-[11px]">
+            <span className="text-gray-500 w-20">{dataBR(f.data_faturamento)}</span>
+            <span className="text-gray-400 w-24">{f.nf || '—'}</span>
+            <span className="font-medium text-blue-700 tabular-nums">{fmtR(Number(f.valor))}</span>
+            <button onClick={() => delMut.mutate(f.id)} className="text-gray-300 hover:text-red-500 ml-2 text-[10px]">✕</button>
+          </div>
+        ))}
+        {fats.length > 1 && (
+          <div className="text-[11px] font-semibold text-blue-700 pt-1 border-t border-blue-100">
+            Total faturado: {fmtR(totalFat)}
+          </div>
+        )}
+      </div>
+      <div className="flex gap-2 items-center">
+        <input type="date" value={novaData} onChange={e => setNovaData(e.target.value)}
+          className="h-7 px-2 text-[11px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-300" />
+        <input value={novaNF} onChange={e => setNovaNF(e.target.value)} placeholder="NF / Doc."
+          className="h-7 w-24 px-2 text-[11px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-300" />
+        <input value={novoValor} onChange={e => setNovoValor(e.target.value)} placeholder="Valor"
+          className="h-7 w-28 text-right px-2 text-[11px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-300" />
+        <button
+          disabled={!novoValor || addMut.isPending}
+          onClick={() => addMut.mutate()}
+          className="h-7 px-3 text-[11px] font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 whitespace-nowrap"
+        >{addMut.isPending ? '...' : '+ Nota'}</button>
+      </div>
+    </div>
+  )
+}
+
 // ─── FechamentoTab ────────────────────────────────────────────────────────────
 
 function FechamentoTab({
@@ -957,6 +1048,7 @@ function ReportsInner() {
 
   // Busca no relatório de comissões
   const [commSearch, setCommSearch] = useState('')
+  const [expandedFatId, setExpandedFatId] = useState<string | null>(null)
 
   // Resize das colunas de comissões
   const COMM_DEFAULT_WIDTHS: Record<string, number> = {
@@ -1566,7 +1658,8 @@ function ReportsInner() {
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                           {rows.map(r => (
-                            <tr key={r.id} className="hover:bg-surface-container-low/50 cursor-pointer" onClick={() => window.open(`/orders/${r.id}`, '_self')}>
+                            <Fragment key={r.id}>
+                            <tr className="hover:bg-surface-container-low/50 cursor-pointer" onClick={() => window.open(`/orders/${r.id}`, '_self')}>
                               {commCols.filter(c => c.visible && (c.id !== 'com_escr' || isAdmin)).map(col => {
                                 const id = col.id
                                 if (id === 'data') return <td key={id} className="px-2 py-1 whitespace-nowrap text-on-surface-variant">{fmtDate(r.data_venda)}</td>
@@ -1687,10 +1780,38 @@ function ReportsInner() {
                                   )
                                 }
                                 if (id === 'faturado') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{fmtR(r.valor_faturado)}</td>
-                                if (id === 'a_faturar') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap">{Number(r.falta_faturar) > 0 ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span> : <span className="text-on-surface-variant/50">—</span>}</td>
+                                if (id === 'a_faturar') return (
+                                  <td key={id} className="px-2 py-1 text-right whitespace-nowrap">
+                                    <div className="flex items-center justify-end gap-1">
+                                      {Number(r.falta_faturar) > 0
+                                        ? <span className="font-bold text-orange-600">{fmtR(r.falta_faturar)}</span>
+                                        : <span className="text-on-surface-variant/50">—</span>}
+                                      {isAdmin && (
+                                        <button
+                                          onClick={e => { e.stopPropagation(); setExpandedFatId(prev => prev === r.id ? null : r.id) }}
+                                          className={`ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded border transition-colors ${expandedFatId === r.id ? 'bg-orange-500 text-white border-orange-500' : 'border-orange-400 text-orange-600 hover:bg-orange-50'}`}
+                                          title="Lançar nota fiscal"
+                                        >NF</button>
+                                      )}
+                                    </div>
+                                  </td>
+                                )
                                 return null
                               })}
                             </tr>
+                            {expandedFatId === r.id && (
+                              <tr>
+                                <td colSpan={commCols.filter(c => c.visible && (c.id !== 'com_escr' || isAdmin)).length} className="p-0">
+                                  <FaturarPanel
+                                    orderId={r.id}
+                                    totalPedido={Number(r.total_value)}
+                                    qc={qc}
+                                    onClose={() => setExpandedFatId(null)}
+                                  />
+                                </td>
+                              </tr>
+                            )}
+                            </Fragment>
                           ))}
                         </tbody>
                         <tfoot>
