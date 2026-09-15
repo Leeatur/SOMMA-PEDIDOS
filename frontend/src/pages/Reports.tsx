@@ -155,6 +155,7 @@ const COMM_COL_DEFS: ColumnDef[] = [
   { id: 'com_escr',       label: 'Com. Escr.' },
   { id: 'com_guia',       label: 'Com. Guia' },
   { id: 'faturado',       label: 'Faturado' },
+  { id: 'status_fat',     label: 'Status' },
   { id: 'a_faturar',      label: 'A Faturar' },
 ]
 
@@ -1248,7 +1249,7 @@ function ReportsInner() {
   const COMM_DEFAULT_WIDTHS: Record<string, number> = {
     data: 80, vendedor: 110, industria: 90, nr_fabrica: 90,
     razao_social: 160, nome_fantasia: 130, cidade: 100, uf: 45,
-    valor: 110, politica: 80, com_rep: 130, com_escr: 120, com_guia: 120, faturado: 100, a_faturar: 100,
+    valor: 110, politica: 80, com_rep: 130, com_escr: 120, com_guia: 120, faturado: 100, status_fat: 75, a_faturar: 100,
   }
   const { widths: commWidths, save: saveCommWidths } = useColumnResize('report-commissions-widths', COMM_DEFAULT_WIDTHS)
 
@@ -1802,7 +1803,7 @@ function ReportsInner() {
                                 nr_fabrica:'Doc. Original', razao_social:'Razão Social',
                                 nome_fantasia:'Nome Fantasia', cidade:'Cidade', uf:'UF',
                                 valor:'Valor', politica:'Desc. Coml.', com_rep:'Com. Rep', com_escr:'Com. Escr.',
-                                faturado:'Faturado', a_faturar:'A Faturar',
+                                faturado:'Faturado', status_fat:'Status', a_faturar:'A Faturar',
                               }
                               const isRight = ['valor','politica','com_rep','com_escr','faturado','a_faturar'].includes(colId)
                               return (
@@ -1976,10 +1977,8 @@ function ReportsInner() {
                                   )
                                 }
                                 if (id === 'faturado') return <td key={id} className="px-2 py-1 text-right whitespace-nowrap font-medium text-on-surface-variant">{r.valor_faturado_fabrica != null ? fmtR(Number(r.valor_faturado_fabrica)) : <span className="text-on-surface-variant/30">—</span>}</td>
-                                if (id === 'a_faturar') {
-                                  const fatReal = r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0
-                                  const saldoReal = r.sem_comissao_fabrica || r.faturamento_status === 'encerrado' ? 0 : Math.max(0, Number(r.total_value) - fatReal)
-                                  const fatBadge = r.sem_comissao_fabrica
+                                if (id === 'status_fat') {
+                                  const badge = r.sem_comissao_fabrica
                                     ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 border border-blue-100">Sem com.</span>
                                     : r.faturamento_status === 'encerrado'
                                     ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200">Encerrado</span>
@@ -1987,8 +1986,12 @@ function ReportsInner() {
                                     ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100">Liquidado</span>
                                     : r.faturamento_status === 'parcial'
                                     ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-50 text-orange-500 border border-orange-100">Parcial</span>
-                                    : null
-                                  // Encerrado e liquidado mostram R$0,00; sem comissão não tem saldo a mostrar
+                                    : <span className="text-[10px] text-on-surface-variant/30">—</span>
+                                  return <td key={id} className="px-2 py-1 text-center whitespace-nowrap">{badge}</td>
+                                }
+                                if (id === 'a_faturar') {
+                                  const fatReal = r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0
+                                  const saldoReal = r.sem_comissao_fabrica || r.faturamento_status === 'encerrado' ? 0 : Math.max(0, Number(r.total_value) - fatReal)
                                   const saldoDisplay = r.sem_comissao_fabrica ? null
                                     : (r.faturamento_status === 'encerrado' || r.faturamento_status === 'liquidado')
                                     ? <span className="tabular-nums text-gray-400">{fmtR(0)}</span>
@@ -1997,17 +2000,14 @@ function ReportsInner() {
                                     : null
                                   return (
                                   <td key={id} className="px-2 py-1 text-right whitespace-nowrap">
-                                    <div className="flex flex-col items-end gap-0.5">
-                                      {fatBadge}
-                                      <div className="flex items-center gap-1">
-                                        {saldoDisplay}
-                                        {isAdmin && (
-                                          <button
-                                            onClick={e => { e.stopPropagation(); setExpandedFatId(prev => prev === r.id ? null : r.id) }}
-                                            className={`h-6 px-2 text-[11px] rounded font-medium transition-colors ${expandedFatId === r.id ? 'bg-blue-100 text-blue-700' : 'border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
-                                          >{r.faturamento_status === 'pendente' || !r.faturamento_status ? 'Faturar' : 'Editar'}</button>
-                                        )}
-                                      </div>
+                                    <div className="flex items-center justify-end gap-1">
+                                      {saldoDisplay}
+                                      {isAdmin && (
+                                        <button
+                                          onClick={e => { e.stopPropagation(); setExpandedFatId(prev => prev === r.id ? null : r.id) }}
+                                          className={`h-6 px-2 text-[11px] rounded font-medium transition-colors ${expandedFatId === r.id ? 'bg-blue-100 text-blue-700' : 'border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
+                                        >{r.faturamento_status === 'pendente' || !r.faturamento_status ? 'Faturar' : 'Editar'}</button>
+                                      )}
                                     </div>
                                   </td>
                                   )
@@ -2043,6 +2043,7 @@ function ReportsInner() {
                                 if (id === 'com_escr') return <td key={id} className="px-2 py-1.5 text-right text-blue-700">{fmtR(totalOffComm)}<span className="text-blue-600/70 text-[11px] font-normal ml-1">({fmtPct(avgOffPct)})</span></td>
                                 if (id === 'com_guia') return <td key={id} className="px-2 py-1.5 text-right text-amber-700">{fmtR(totalGuideComm)}<span className="text-amber-600/70 text-[11px] font-normal ml-1">({fmtPct(avgGuidePct)})</span></td>
                                 if (id === 'faturado') return <td key={id} className="px-2 py-1.5 text-right text-on-surface-variant">{fmtR(rows.reduce((s,r) => s + (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0), 0))}</td>
+                                if (id === 'status_fat') return <td key={id} className="px-2 py-1.5" />
                                 if (id === 'a_faturar') return <td key={id} className="px-2 py-1.5 text-right text-orange-600">{fmtR(rows.reduce((s,r) => { if (r.sem_comissao_fabrica || r.faturamento_status === 'encerrado') return s; return s + Math.max(0, Number(r.total_value) - (r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0)) }, 0))}</td>
                                 return null
                               })
