@@ -9,13 +9,16 @@ import { AuthRequest } from '../middleware/auth'
 const COMPETENCIA = /^\d{4}-\d{2}$/
 
 export async function listDebitos(req: AuthRequest, res: Response) {
-  const { rep_id, competencia } = req.query as { rep_id?: string; competencia?: string }
+  const isAdmin = req.user?.role === 'admin'
+  const { competencia } = req.query as { rep_id?: string; competencia?: string }
+  // Não-admin só pode ver os próprios débitos
+  const repId = isAdmin ? (req.query.rep_id as string | undefined) : req.user?.id
   if (!competencia || !COMPETENCIA.test(competencia)) {
     res.status(400).json({ error: 'Competência inválida (use AAAA-MM).' }); return
   }
   const params: unknown[] = [competencia]
   let cond = ''
-  if (rep_id) { params.push(rep_id); cond = ` AND d.rep_id = $${params.length}::uuid` }
+  if (repId) { params.push(repId); cond = ` AND d.rep_id = $${params.length}::uuid` }
   const { rows } = await query(`
     SELECT d.id, d.rep_id, u.name AS rep_nome, d.competencia, d.descricao, d.valor::numeric
       FROM comissao_debitos d

@@ -130,7 +130,7 @@ router.post('/orders/:id/faturamentos', authenticate, requireAdmin, orders.addFa
 router.delete('/orders/:id/faturamentos/:fatId', authenticate, requireAdmin, orders.deleteFaturamento)
 
 // Débitos do fechamento de comissão (adiantamento, amostra, devolução)
-router.get('/comissao-debitos', authenticate, requireAdmin, comissaoDebitos.listDebitos)
+router.get('/comissao-debitos', authenticate, comissaoDebitos.listDebitos)
 router.post('/comissao-debitos', authenticate, requireAdmin, comissaoDebitos.createDebito)
 router.delete('/comissao-debitos/:id', authenticate, requireAdmin, comissaoDebitos.deleteDebito)
 router.post('/orders/:id/encerrar-faturamento', authenticate, requireAdmin, orders.encerrarFaturamento)
