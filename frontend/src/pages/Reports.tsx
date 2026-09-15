@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, Fragment, Component, type ReactNode, type ErrorInfo } from 'react'
+import { useState, useMemo, useRef, useEffect, Fragment, Component, type ReactNode, type ErrorInfo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, Trash2, Plus } from 'lucide-react'
@@ -834,6 +834,28 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
     onSuccess: () => qc.invalidateQueries({ queryKey: ['comissao-debitos', repId, competencia], exact: true }),
   })
 
+  // Auto-calcula e salva o débito de Aline (0,10% do faturamento) para este rep/mês
+  const autoAlineRef = useRef<string>('')
+  useEffect(() => {
+    if (!debitosQ.isSuccess || totalFat === 0 || !repId) return
+    const expectedVal = Math.round(totalFat * 0.001 * 100) / 100
+    const key = `${repId}:${competencia}:${expectedVal.toFixed(2)}`
+    if (autoAlineRef.current === key) return
+    const existing = debitos.find(d => d.descricao.startsWith('BONIFICAÇÃO ALINE ZERVES'))
+    if (existing && Math.abs(Number(existing.valor) - expectedVal) <= 0.01) {
+      autoAlineRef.current = key; return
+    }
+    autoAlineRef.current = key
+    const desc = `BONIFICAÇÃO ALINE ZERVES 0,10% DE R$ ${fmtR(totalFat)}`
+    const doCreate = () => comissaoDebitosApi.create({ rep_id: repId, competencia, descricao: desc, valor: expectedVal })
+      .then(() => qc.invalidateQueries({ queryKey: ['comissao-debitos', repId, competencia], exact: true }))
+    if (existing) {
+      comissaoDebitosApi.remove(existing.id).then(doCreate)
+    } else {
+      doCreate()
+    }
+  }, [debitosQ.isSuccess, debitos, totalFat, repId, competencia, qc])
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
       {/* Cabeçalho do rep */}
@@ -997,6 +1019,65 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia, isA
     grupos.get(rep)!.push(r)
   }
 
+  // Resumo da bonificação de Aline (0,10% do faturamento de cada rep)
+  const alineResumo = [...grupos.entries()].map(([repNome, repRows]) => {
+    const totalFat = repRows.reduce((s, r) => s + Number(r.valor_faturamento), 0)
+    const bonus = Math.round(totalFat * 0.001 * 100) / 100
+    return { repNome, totalFat, bonus }
+  })
+  const totalAline = alineResumo.reduce((s, r) => s + r.bonus, 0)
+
+  function handlePrintAline() {
+    const compMes = competencia.split('-').reverse().join('/')
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="utf-8">
+<title>Bonificação Aline — ${compMes}</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;margin:0;padding:12mm 14mm;box-sizing:border-box}
+  h1{font-size:14px;font-weight:bold;text-align:center;margin:0 0 2px}
+  h2{font-size:12px;font-weight:bold;text-align:center;margin:0 0 2px}
+  p.periodo{font-size:11px;text-align:center;margin:0 0 14px}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:9.5px;text-align:left;border-bottom:1.5px solid #000;padding:2px 4px}
+  th.num{text-align:right}
+  td{font-size:10px;padding:3px 4px;border-bottom:1px solid #e5e5e5}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tot td{border-top:1.5px solid #000;border-bottom:none;font-weight:bold}
+  .liq{margin-top:14px;display:flex;justify-content:space-between;font-weight:bold;font-size:13px;border-top:1.5px solid #000;padding-top:6px}
+  @media print{@page{size:A4 portrait;margin:0}.page{padding:8mm 10mm}}
+</style></head>
+<body>
+<h1>RELATÓRIO DE BONIFICAÇÃO</h1>
+<h2>Aline Zerves — 0,10% do Faturamento por Representante</h2>
+<p class="periodo">Competência: ${compMes} &nbsp;·&nbsp; ${fmtDatePtBR(dateFrom)} a ${fmtDatePtBR(dateTo)}</p>
+<table>
+<thead><tr>
+  <th>REPRESENTANTE</th>
+  <th class="num">VLR FATURADO</th>
+  <th class="num">BONIFICAÇÃO</th>
+  <th class="num">VALOR</th>
+</tr></thead>
+<tbody>
+${alineResumo.map(r => `<tr>
+  <td>${r.repNome}</td>
+  <td class="num">${fmtR(r.totalFat)}</td>
+  <td class="num">0,10%</td>
+  <td class="num">${fmtR(r.bonus)}</td>
+</tr>`).join('')}
+<tr class="tot">
+  <td>${alineResumo.length} representante${alineResumo.length !== 1 ? 's' : ''}</td>
+  <td class="num">${fmtR(alineResumo.reduce((s, r) => s + r.totalFat, 0))}</td>
+  <td></td>
+  <td class="num">${fmtR(totalAline)}</td>
+</tr>
+</tbody></table>
+<div class="liq"><span>TOTAL A RECEBER — ALINE</span><span>${fmtR(totalAline)}</span></div>
+</body></html>`
+    const w = window.open('', '_blank')
+    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300) }
+  }
+
   return (
     <div className="space-y-4">
       {[...grupos.entries()].map(([repNome, repRows]) => (
@@ -1022,6 +1103,56 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia, isA
               {fmtR(rows.reduce((s, r) => s + Number(r.rep_commission_value), 0))}
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Resumo da bonificação da Aline */}
+      {isAdmin && alineResumo.length > 0 && (
+        <div className="bg-white rounded-xl border border-purple-100 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 bg-purple-50/60 border-b border-purple-100">
+            <div>
+              <p className="text-[13px] font-semibold text-purple-900">Bonificação — Aline Zerves</p>
+              <p className="text-[11px] text-purple-400">0,10% do faturamento de cada representante · {competencia.split('-').reverse().join('/')}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-[10px] text-gray-400">total a receber</p>
+                <p className="text-[18px] font-bold text-purple-700">{fmtR(totalAline)}</p>
+              </div>
+              <button onClick={handlePrintAline}
+                className="flex items-center gap-1.5 h-8 px-3 text-[12px] border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-50">
+                <Printer className="h-3.5 w-3.5" /> Relatório da Aline
+              </button>
+            </div>
+          </div>
+          <table className="w-full text-[12px]">
+            <thead className="bg-gray-50/50">
+              <tr>
+                <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-400">Representante</th>
+                <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400">Faturamento</th>
+                <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[60px]">%</th>
+                <th className="px-3 py-2 text-right text-[11px] font-semibold text-gray-400 w-[100px]">Bonificação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alineResumo.map(r => (
+                <tr key={r.repNome} className="border-b border-gray-50">
+                  <td className="px-3 py-1.5 text-gray-700">{r.repNome}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-blue-600 font-medium">{fmtR(r.totalFat)}</td>
+                  <td className="px-3 py-1.5 text-right text-gray-400">0,10%</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-purple-700">{fmtR(r.bonus)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-gray-50 border-t border-gray-200">
+                <td className="px-3 py-2 text-[11px] text-gray-400">{alineResumo.length} rep.</td>
+                <td className="px-3 py-2 text-right text-[12px] tabular-nums font-semibold text-blue-600">{fmtR(alineResumo.reduce((s, r) => s + r.totalFat, 0))}</td>
+                <td></td>
+                <td className="px-3 py-2 text-right text-[13px] tabular-nums font-bold text-purple-700">{fmtR(totalAline)}</td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       )}
     </div>
@@ -1849,27 +1980,34 @@ function ReportsInner() {
                                   const fatReal = r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0
                                   const saldoReal = r.sem_comissao_fabrica || r.faturamento_status === 'encerrado' ? 0 : Math.max(0, Number(r.total_value) - fatReal)
                                   const fatBadge = r.sem_comissao_fabrica
-                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 border border-blue-100 whitespace-nowrap">Sem com.</span>
+                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 border border-blue-100">Sem com.</span>
                                     : r.faturamento_status === 'encerrado'
-                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200 whitespace-nowrap">Encerrado</span>
+                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200">Encerrado</span>
                                     : r.faturamento_status === 'liquidado'
-                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100 whitespace-nowrap">Liquidado</span>
+                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100">Liquidado</span>
                                     : r.faturamento_status === 'parcial'
-                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-50 text-orange-500 border border-orange-100 whitespace-nowrap">Parcial</span>
+                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-50 text-orange-500 border border-orange-100">Parcial</span>
+                                    : null
+                                  // Encerrado e liquidado mostram R$0,00; sem comissão não tem saldo a mostrar
+                                  const saldoDisplay = r.sem_comissao_fabrica ? null
+                                    : (r.faturamento_status === 'encerrado' || r.faturamento_status === 'liquidado')
+                                    ? <span className="tabular-nums text-gray-400">{fmtR(0)}</span>
+                                    : saldoReal > 0.01
+                                    ? <span className="font-bold text-orange-600 tabular-nums">{fmtR(saldoReal)}</span>
                                     : null
                                   return (
                                   <td key={id} className="px-2 py-1 text-right whitespace-nowrap">
-                                    <div className="flex items-center justify-end gap-1">
+                                    <div className="flex flex-col items-end gap-0.5">
                                       {fatBadge}
-                                      {saldoReal > 0.01
-                                        ? <span className="font-bold text-orange-600">{fmtR(saldoReal)}</span>
-                                        : <span className="text-on-surface-variant/50">—</span>}
-                                      {isAdmin && (
-                                        <button
-                                          onClick={e => { e.stopPropagation(); setExpandedFatId(prev => prev === r.id ? null : r.id) }}
-                                          className={`ml-1 h-6 px-2 text-[11px] rounded font-medium transition-colors ${expandedFatId === r.id ? 'bg-blue-100 text-blue-700' : 'border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
-                                        >{r.faturamento_status === 'pendente' || !r.faturamento_status ? 'Faturar' : 'Editar'}</button>
-                                      )}
+                                      <div className="flex items-center gap-1">
+                                        {saldoDisplay}
+                                        {isAdmin && (
+                                          <button
+                                            onClick={e => { e.stopPropagation(); setExpandedFatId(prev => prev === r.id ? null : r.id) }}
+                                            className={`h-6 px-2 text-[11px] rounded font-medium transition-colors ${expandedFatId === r.id ? 'bg-blue-100 text-blue-700' : 'border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'}`}
+                                          >{r.faturamento_status === 'pendente' || !r.faturamento_status ? 'Faturar' : 'Editar'}</button>
+                                        )}
+                                      </div>
                                     </div>
                                   </td>
                                   )
