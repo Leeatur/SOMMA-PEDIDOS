@@ -1848,9 +1848,19 @@ function ReportsInner() {
                                 if (id === 'a_faturar') {
                                   const fatReal = r.valor_faturado_fabrica != null ? Number(r.valor_faturado_fabrica) : 0
                                   const saldoReal = r.sem_comissao_fabrica || r.faturamento_status === 'encerrado' ? 0 : Math.max(0, Number(r.total_value) - fatReal)
+                                  const fatBadge = r.sem_comissao_fabrica
+                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 border border-blue-100 whitespace-nowrap">Sem com.</span>
+                                    : r.faturamento_status === 'encerrado'
+                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200 whitespace-nowrap">Encerrado</span>
+                                    : r.faturamento_status === 'liquidado'
+                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100 whitespace-nowrap">Liquidado</span>
+                                    : r.faturamento_status === 'parcial'
+                                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-50 text-orange-500 border border-orange-100 whitespace-nowrap">Parcial</span>
+                                    : null
                                   return (
                                   <td key={id} className="px-2 py-1 text-right whitespace-nowrap">
                                     <div className="flex items-center justify-end gap-1">
+                                      {fatBadge}
                                       {saldoReal > 0.01
                                         ? <span className="font-bold text-orange-600">{fmtR(saldoReal)}</span>
                                         : <span className="text-on-surface-variant/50">—</span>}
