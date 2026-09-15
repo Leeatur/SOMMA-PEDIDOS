@@ -1308,7 +1308,7 @@ function ReportsInner() {
   const navigate = useNavigate()
   const isAdmin = user?.role === 'admin'
 
-  const [tab, setTab] = useState<Tab>(() => user?.role !== 'admin' ? 'fechamento' : 'orders')
+  const [tab, setTab] = useState<Tab | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [dateFrom, setDateFrom] = useState(monthStartStr())
   const [dateTo, setDateTo] = useState(todayStr())
@@ -1537,7 +1537,7 @@ function ReportsInner() {
   const VISIBLE_META = REPORT_META.filter(r =>
     isAdmin || REP_VISIBLE_IDS.has(r.id)
   )
-  const currentMeta = VISIBLE_META.find(r => r.id === tab) ?? VISIBLE_META[0]
+  const currentMeta = VISIBLE_META.find(r => r.id === tab) ?? null
 
   // ─── Export CSV por relatório ─────────────────────────────────────────────
   function handleExport() {
@@ -1614,79 +1614,101 @@ function ReportsInner() {
     <div className="pb-24 lg:pb-0 reports-page">
       <style>{PRINT_CSS}</style>
 
-      {/* ══ HEADER FIXO: título + filtros (visível na tela, oculto na impressão) ══ */}
+      {/* ══ HEADER FIXO ══ */}
       <div className="no-print bg-white border-b border-outline-variant px-4 py-2.5 lg:px-8">
-        <div className="flex items-center gap-2 mb-2">
-          <BarChart2 className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-bold text-on-surface">Relatórios</h1>
-          <span className="text-[12px] text-outline ml-1">— selecione um relatório na barra lateral</span>
-        </div>
-
-        {/* Filtros */}
-        <div className="flex flex-wrap items-center gap-2">
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary" />
-          <span className="text-outline/70 text-[12px]">–</span>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary" />
-          <div className="flex gap-1">
-            <button onClick={() => { setDateFrom(monthStartStr()); setDateTo(todayStr()) }}
-              className="px-2.5 py-1 text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-primary/20">
-              Este mês
-            </button>
-            {[{ label: 'Hoje', d: 1 }, { label: '7d', d: 7 }, { label: '30d', d: 30 }, { label: '90d', d: 90 }].map(r => (
-              <button key={r.label} onClick={() => setRange(r.d)}
-                className="px-2.5 py-1 text-[11px] font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg transition-colors">
-                {r.label}
-              </button>
-            ))}
+        {tab === null ? (
+          /* ── Home: só o título ── */
+          <div className="flex items-center gap-2">
+            <BarChart2 className="h-5 w-5 text-primary" />
+            <h1 className="text-lg font-bold text-on-surface">Relatórios</h1>
           </div>
-          {isAdmin && (
-            <select value={factoryId} onChange={e => setFactoryId(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-primary">
-              <option value="">Todos os fornecedores</option>
-              {(factories || []).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
-          )}
-          {!isAdmin && catalogFactories.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-              <span className="text-outline text-[11px] font-semibold flex-shrink-0 uppercase tracking-wide">Marca</span>
-              <button onClick={() => setFactoryId('')} className={`flex-shrink-0 px-3 py-1 rounded-xl text-[12px] font-semibold border transition-colors ${!factoryId ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
-                Todas
+        ) : (
+          /* ── Relatório aberto: back + filtros ── */
+          <>
+            <div className="flex items-center gap-2 mb-2">
+              <button onClick={() => setTab(null)}
+                className="flex items-center gap-1 text-[12px] font-semibold text-primary hover:text-primary/80 transition-colors">
+                <ChevronLeft className="h-4 w-4" /> Relatórios
               </button>
-              {catalogFactories.map(f => (
-                <button key={f.id} onClick={() => setFactoryId(factoryId === f.id ? '' : f.id)} className={`flex-shrink-0 px-3 py-1 rounded-xl text-[12px] font-semibold border transition-colors ${factoryId === f.id ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
-                  {f.name}
-                </button>
-              ))}
+              <span className="text-outline/40 text-[12px]">/</span>
+              <span className="text-[13px] font-semibold text-on-surface">{currentMeta?.title}</span>
             </div>
-          )}
-          {isAdmin && tab !== 'products' && (
-            <select value={repId} onChange={e => setRepId(e.target.value)}
-              className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-primary">
-              <option value="">Todos os vendedores</option>
-              {reps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
-          )}
-        </div>
 
-        {/* Tabs mobile (scroll horizontal) */}
-        <div className="lg:hidden flex gap-0 overflow-x-auto scrollbar-hide border-b border-outline-variant mt-2 -mb-[1px]">
-          {VISIBLE_META.map(r => (
-            <button key={r.id} onClick={() => setTab(r.id as Tab)}
-              className={`px-4 py-1.5 text-[11px] font-medium border-b-2 whitespace-nowrap transition-colors -mb-px ${
-                tab === r.id ? 'border-primary text-primary' : 'border-transparent text-outline hover:text-on-surface-variant'}`}>
-              {r.title}
-            </button>
-          ))}
-        </div>
+            {/* Filtros — período */}
+            <div className="flex flex-wrap items-center gap-2">
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary" />
+              <span className="text-outline/70 text-[12px]">–</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                className="border border-outline-variant rounded-lg px-3 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary" />
+              <div className="flex gap-1 flex-wrap">
+                <button onClick={() => { setDateFrom(monthStartStr()); setDateTo(todayStr()) }}
+                  className="px-2.5 py-1 text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-primary/20">
+                  Este mês
+                </button>
+                {[{ label: 'Hoje', d: 1 }, { label: '7d', d: 7 }, { label: '30d', d: 30 }, { label: '90d', d: 90 }].map(r => (
+                  <button key={r.label} onClick={() => setRange(r.d)}
+                    className="px-2.5 py-1 text-[11px] font-medium text-on-surface-variant bg-surface-container hover:bg-surface-container-high rounded-lg transition-colors">
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Filtro de fábrica (admin e rep) */}
+              {(factories || []).length > 0 && (
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+                  <button onClick={() => setFactoryId('')}
+                    className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${!factoryId ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
+                    Todas
+                  </button>
+                  {(factories || []).map(f => (
+                    <button key={f.id} onClick={() => setFactoryId(factoryId === f.id ? '' : f.id)}
+                      className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${factoryId === f.id ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!isAdmin && catalogFactories.length > 1 && (
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+                  <button onClick={() => setFactoryId('')}
+                    className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${!factoryId ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
+                    Todas
+                  </button>
+                  {catalogFactories.map(f => (
+                    <button key={f.id} onClick={() => setFactoryId(factoryId === f.id ? '' : f.id)}
+                      className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${factoryId === f.id ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Filtro de vendedor (admin) */}
+              {isAdmin && tab !== 'products' && reps.length > 0 && (
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+                  <button onClick={() => setRepId('')}
+                    className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${!repId ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
+                    Todos
+                  </button>
+                  {reps.map(u => (
+                    <button key={u.id} onClick={() => setRepId(repId === u.id ? '' : u.id)}
+                      className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${repId === u.id ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'}`}>
+                      {u.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* ══ CORPO: sidebar lateral (desktop) + conteúdo ══ */}
       <div className="flex">
 
-        {/* ── Sidebar lateral (desktop only) — wrapper relativo para o botão flutuante ── */}
-        <div className={`reports-sidebar no-print hidden lg:block relative flex-shrink-0 transition-all duration-200 ${sidebarCollapsed ? 'w-10' : 'w-56'}`}>
+        {/* ── Sidebar lateral (desktop only, só quando um relatório está aberto) ── */}
+        <div className={`reports-sidebar no-print relative flex-shrink-0 transition-all duration-200 ${tab === null ? 'hidden' : 'hidden lg:block'} ${sidebarCollapsed ? 'w-10' : 'w-56'}`}>
 
           {/* Botão flutuante na borda direita — sempre visível, estilo VS Code */}
           <button
@@ -1715,6 +1737,7 @@ function ReportsInner() {
                       }`}>
                       {r.title}
                     </button>
+
                   ))}
                 </div>
               )
@@ -1742,7 +1765,46 @@ function ReportsInner() {
         {/* ── Área de conteúdo ── */}
         <div className="flex-1 min-w-0 reports-content px-4 py-4 lg:px-6">
 
+          {/* ═══ HOME GRID — visível quando nenhum relatório está selecionado ═══ */}
+          {tab === null && (() => {
+            const GROUP_STYLE: Record<string, { bg: string; icon: string; pill: string }> = {
+              vendas:   { bg: 'bg-blue-50',   icon: 'text-blue-600',   pill: 'bg-blue-100 text-blue-700' },
+              clientes: { bg: 'bg-emerald-50', icon: 'text-emerald-600', pill: 'bg-emerald-100 text-emerald-700' },
+              produtos:  { bg: 'bg-amber-50',   icon: 'text-amber-600',   pill: 'bg-amber-100 text-amber-700' },
+              equipe:   { bg: 'bg-violet-50',  icon: 'text-violet-600',  pill: 'bg-violet-100 text-violet-700' },
+            }
+            return (
+              <div className="space-y-8">
+                {GROUPS.map(group => {
+                  const items = VISIBLE_META.filter(r => r.group === group.id)
+                  if (!items.length) return null
+                  const st = GROUP_STYLE[group.id] ?? GROUP_STYLE.vendas
+                  return (
+                    <div key={group.id}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${st.pill}`}>
+                          {group.icon} {group.label}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {items.map(r => (
+                          <button key={r.id} onClick={() => setTab(r.id as Tab)}
+                            className={`text-left p-4 rounded-2xl border border-outline-variant/60 ${st.bg} hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-150 group`}>
+                            <div className={`mb-2 ${st.icon}`}>{group.icon}</div>
+                            <div className="text-[13px] font-bold text-on-surface leading-tight mb-1 group-hover:text-primary transition-colors">{r.title}</div>
+                            <div className="text-[11px] text-outline leading-snug line-clamp-2">{r.description}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+
           {/* Cabeçalho do relatório ativo — visível na impressão */}
+          {tab !== null && (
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
             <div>
               <h2 className="print-title text-xl font-bold text-on-surface">{currentMeta?.title}</h2>
@@ -1764,6 +1826,7 @@ function ReportsInner() {
               </button>
             </div>
           </div>
+          )}
 
         {/* ═══ VISÃO GERAL ══════════════════════════════════════════════════ */}
         {tab === 'orders' && (
