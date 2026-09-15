@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, Fragment, Component, type ReactNode, type ErrorInfo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, Trash2, Plus } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
@@ -1308,7 +1308,11 @@ function ReportsInner() {
   const navigate = useNavigate()
   const isAdmin = user?.role === 'admin'
 
-  const [tab, setTab] = useState<Tab | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = (searchParams.get('tab') as Tab | null) ?? null
+  function setTab(t: Tab | null) {
+    setSearchParams(t ? { tab: t } : {}, { replace: false })
+  }
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [dateFrom, setDateFrom] = useState(monthStartStr())
   const [dateTo, setDateTo] = useState(todayStr())
@@ -1767,32 +1771,34 @@ function ReportsInner() {
 
           {/* ═══ HOME GRID — visível quando nenhum relatório está selecionado ═══ */}
           {tab === null && (() => {
-            const GROUP_STYLE: Record<string, { bg: string; icon: string; pill: string }> = {
-              vendas:   { bg: 'bg-blue-50',   icon: 'text-blue-600',   pill: 'bg-blue-100 text-blue-700' },
-              clientes: { bg: 'bg-emerald-50', icon: 'text-emerald-600', pill: 'bg-emerald-100 text-emerald-700' },
-              produtos:  { bg: 'bg-amber-50',   icon: 'text-amber-600',   pill: 'bg-amber-100 text-amber-700' },
-              equipe:   { bg: 'bg-violet-50',  icon: 'text-violet-600',  pill: 'bg-violet-100 text-violet-700' },
+            const GROUP_STYLE: Record<string, { bg: string; iconBg: string; iconText: string; pill: string; border: string }> = {
+              vendas:   { bg: 'bg-white', iconBg: 'bg-blue-100',   iconText: 'text-blue-600',   pill: 'bg-blue-100 text-blue-700',   border: 'border-blue-100   hover:border-blue-300' },
+              clientes: { bg: 'bg-white', iconBg: 'bg-emerald-100', iconText: 'text-emerald-600', pill: 'bg-emerald-100 text-emerald-700', border: 'border-emerald-100 hover:border-emerald-300' },
+              produtos:  { bg: 'bg-white', iconBg: 'bg-amber-100',   iconText: 'text-amber-600',   pill: 'bg-amber-100 text-amber-700',   border: 'border-amber-100   hover:border-amber-300' },
+              equipe:   { bg: 'bg-white', iconBg: 'bg-violet-100',  iconText: 'text-violet-600',  pill: 'bg-violet-100 text-violet-700',  border: 'border-violet-100  hover:border-violet-300' },
             }
             return (
-              <div className="space-y-8">
+              <div className="space-y-10">
                 {GROUPS.map(group => {
                   const items = VISIBLE_META.filter(r => r.group === group.id)
                   if (!items.length) return null
                   const st = GROUP_STYLE[group.id] ?? GROUP_STYLE.vendas
                   return (
                     <div key={group.id}>
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${st.pill}`}>
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-widest ${st.pill}`}>
                           {group.icon} {group.label}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                         {items.map(r => (
                           <button key={r.id} onClick={() => setTab(r.id as Tab)}
-                            className={`text-left p-4 rounded-2xl border border-outline-variant/60 ${st.bg} hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-150 group`}>
-                            <div className={`mb-2 ${st.icon}`}>{group.icon}</div>
-                            <div className="text-[13px] font-bold text-on-surface leading-tight mb-1 group-hover:text-primary transition-colors">{r.title}</div>
-                            <div className="text-[11px] text-outline leading-snug line-clamp-2">{r.description}</div>
+                            className={`text-left p-5 rounded-2xl border-2 ${st.bg} ${st.border} shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95 transition-all duration-150 group`}>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${st.iconBg} ${st.iconText} group-hover:scale-110 transition-transform`}>
+                              <span className="[&>svg]:h-5 [&>svg]:w-5">{group.icon}</span>
+                            </div>
+                            <div className="text-[15px] font-bold text-on-surface leading-tight mb-1.5 group-hover:text-primary transition-colors">{r.title}</div>
+                            <div className="text-[12px] text-outline leading-snug line-clamp-2">{r.description}</div>
                           </button>
                         ))}
                       </div>
@@ -1975,7 +1981,7 @@ function ReportsInner() {
                       Arraste a borda direita para redimensionar · Arraste o cabeçalho para reordenar
                     </p>
                     <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 265px)' }}>
-                      <table className="text-[12px]" style={{ tableLayout: 'fixed', width: '100%' }}>
+                      <table className="text-[12px]" style={{ tableLayout: 'fixed', minWidth: commCols.filter(c=>c.visible).reduce((s,c)=>s+(commWidths[c.id]??COMM_DEFAULT_WIDTHS[c.id]??100),0) }}>
                         <thead className="bg-surface-container-low sticky top-0 z-10 shadow-sm">
                           <tr>
                             {commCols.filter(c => c.visible && (c.id !== 'com_escr' || isAdmin)).map((col, colIdx, visArr) => {
