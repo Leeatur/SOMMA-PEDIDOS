@@ -1027,6 +1027,44 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia, isA
     staleTime: 10 * 60 * 1000,
   })
 
+  const { data: allUsers = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['users'],
+    queryFn: () => usersApi.list().then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: isAdmin,
+  })
+  const alineUserId = allUsers.find(u => u.name.toLowerCase().includes('aline'))?.id ?? null
+
+  const alineDebQ = useQuery<ComissaoDebito[]>({
+    queryKey: ['comissao-debitos-aline', alineUserId, competencia],
+    queryFn: () => comissaoDebitosApi.list({ rep_id: alineUserId!, competencia }).then(r => r.data),
+    enabled: isAdmin && !!alineUserId,
+  })
+  const alineDebitos: ComissaoDebito[] = alineDebQ.data ?? []
+
+  const [novoAlineDesc, setNovoAlineDesc] = useState('')
+  const [novoAlineValor, setNovoAlineValor] = useState('')
+  const [showAlineDebForm, setShowAlineDebForm] = useState(false)
+
+  const addAlineDeb = useMutation({
+    mutationFn: () => comissaoDebitosApi.create({
+      rep_id: alineUserId!,
+      competencia,
+      descricao: novoAlineDesc.trim(),
+      valor: parseFloat(novoAlineValor.replace(/\./g, '').replace(',', '.')) || 0,
+    }),
+    onSuccess: () => {
+      setNovoAlineDesc(''); setNovoAlineValor('')
+      qc.invalidateQueries({ queryKey: ['comissao-debitos-aline', alineUserId, competencia], exact: true })
+    },
+  })
+  const delAlineDeb = useMutation({
+    mutationFn: (id: string) => comissaoDebitosApi.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comissao-debitos-aline', alineUserId, competencia], exact: true }),
+  })
+
+  const totalAlineDeb = alineDebitos.reduce((s, d) => s + Number(d.valor), 0)
+
   const alineResumo = [...grupos.entries()].map(([repNome, repRows]) => {
     const totalFat = repRows.reduce((s, r) => s + Number(r.valor_faturamento), 0)
     const bonus = Math.round(totalFat * 0.001 * 100) / 100
@@ -1099,7 +1137,21 @@ ${alineResumo.map(r => `      <tr>
       </tr>
     </tbody>
   </table>
-  <div class="liq"><span>VALOR A RECEBER — ALINE ZERVES</span><span>${fmtR(totalAline)}</span></div>
+${alineDebitos.length > 0 ? `
+  <div class="secao" style="margin-top:16px;font-size:11px;font-weight:bold;border-bottom:1px solid #000;padding-bottom:2px">DÉBITOS</div>
+  <table>
+    <tbody>
+${alineDebitos.map(d => `      <tr>
+        <td style="font-size:9.5px;padding:2px 4px">${d.descricao}</td>
+        <td class="num" style="width:22%;font-size:9.5px;padding:2px 4px">${fmtR(Number(d.valor))}</td>
+      </tr>`).join('\n')}
+      <tr class="tot">
+        <td>TOTAL DE DÉBITOS</td>
+        <td class="num">${fmtR(totalAlineDeb)}</td>
+      </tr>
+    </tbody>
+  </table>` : ''}
+  <div class="liq"><span>VALOR LÍQUIDO A RECEBER — ALINE ZERVES</span><span>${fmtR(totalAline - totalAlineDeb)}</span></div>
 </div>
 </body></html>`
     const w = window.open('', '_blank')
@@ -1144,9 +1196,15 @@ ${alineResumo.map(r => `      <tr>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-[10px] text-gray-400">total a receber</p>
-                <p className="text-[18px] font-bold text-purple-700">{fmtR(totalAline)}</p>
+                <p className="text-[10px] text-gray-400">{alineDebitos.length > 0 ? 'líquido a receber' : 'total a receber'}</p>
+                <p className="text-[18px] font-bold text-purple-700">{fmtR(totalAline - totalAlineDeb)}</p>
               </div>
+              {alineUserId && (
+                <button
+                  onClick={() => setShowAlineDebForm(p => !p)}
+                  className={`h-8 px-3 text-[12px] rounded-lg border font-medium transition-colors ${showAlineDebForm ? 'bg-orange-100 text-orange-700 border-orange-200' : 'border-gray-200 text-gray-600 hover:border-orange-300 hover:text-orange-600'}`}
+                >+ Débito</button>
+              )}
               <button onClick={handlePrintAline}
                 className="flex items-center gap-1.5 h-8 px-3 text-[12px] border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-50">
                 <Printer className="h-3.5 w-3.5" /> Relatório da Aline
@@ -1179,8 +1237,46 @@ ${alineResumo.map(r => `      <tr>
                 <td></td>
                 <td className="px-3 py-2 text-right text-[13px] tabular-nums font-bold text-purple-700">{fmtR(totalAline)}</td>
               </tr>
+              {alineDebitos.map(d => (
+                <tr key={d.id} className="bg-orange-50/40 border-t border-orange-100/60">
+                  <td colSpan={3} className="px-3 py-1.5 text-[11px] text-gray-600 italic">{d.descricao}</td>
+                  <td className="px-3 py-1.5 text-right text-[11px] tabular-nums text-orange-600 font-medium whitespace-nowrap">
+                    <span className="flex items-center justify-end gap-1.5">
+                      − {fmtR(Number(d.valor))}
+                      <button onClick={() => delAlineDeb.mutate(d.id)} className="text-gray-300 hover:text-red-400 text-[10px] leading-none">✕</button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {alineDebitos.length > 0 && (
+                <tr className="bg-orange-50/60 border-t border-orange-200/40">
+                  <td colSpan={3} className="px-3 py-1.5 text-[11px] font-semibold text-gray-500">Líquido a receber</td>
+                  <td className="px-3 py-1.5 text-right text-[13px] tabular-nums font-bold text-emerald-700">{fmtR(totalAline - totalAlineDeb)}</td>
+                </tr>
+              )}
             </tfoot>
           </table>
+          {showAlineDebForm && alineUserId && (
+            <div className="flex gap-2 px-3 py-2 border-t border-purple-100 bg-purple-50/30">
+              <input
+                value={novoAlineDesc}
+                onChange={e => setNovoAlineDesc(e.target.value)}
+                placeholder="Descrição do débito"
+                className="flex-1 text-[12px] border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-purple-400"
+              />
+              <input
+                value={novoAlineValor}
+                onChange={e => setNovoAlineValor(e.target.value)}
+                placeholder="0,00"
+                className="w-24 text-[12px] border border-gray-200 rounded px-2 py-1 text-right focus:outline-none focus:border-purple-400"
+              />
+              <button
+                disabled={!novoAlineDesc.trim() || addAlineDeb.isPending}
+                onClick={() => addAlineDeb.mutate()}
+                className="h-7 px-3 text-[12px] bg-orange-500 text-white rounded font-medium disabled:opacity-40"
+              >Lançar</button>
+            </div>
+          )}
         </div>
       )}
     </div>
