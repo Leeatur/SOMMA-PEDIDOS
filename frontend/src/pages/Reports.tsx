@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { BarChart2, ChevronDown, ChevronRight, ChevronLeft, Printer, Download, TrendingUp, Users, Package, Award, Search, Trash2, Plus } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
-import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi, comissaoDebitosApi, commissionClosuresApi, type ComissaoDebito, type CommissionClosure } from '../api/client'
+import { reportsApi, factoriesApi, priceTablesApi, usersApi, ordersApi, comissaoDebitosApi, commissionClosuresApi, companyApi, type ComissaoDebito, type CommissionClosure } from '../api/client'
 import { PageSpinner } from '../components/ui/Spinner'
 import { ColumnDef, ColumnConfigButton, useColumnConfig } from '../components/ui/ColumnConfig'
 import { useColumnResize } from '../components/ui/useColumnResize.tsx'
@@ -1021,6 +1021,12 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia, isA
   }
 
   // Resumo da bonificação de Aline (0,10% do faturamento de cada rep)
+  const { data: company } = useQuery<Record<string, string>>({
+    queryKey: ['company'],
+    queryFn: async () => (await companyApi.get()).data,
+    staleTime: 10 * 60 * 1000,
+  })
+
   const alineResumo = [...grupos.entries()].map(([repNome, repRows]) => {
     const totalFat = repRows.reduce((s, r) => s + Number(r.valor_faturamento), 0)
     const bonus = Math.round(totalFat * 0.001 * 100) / 100
@@ -1030,50 +1036,71 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia, isA
 
   function handlePrintAline() {
     const compMes = competencia.split('-').reverse().join('/')
+    const periodoTxt = `${fmtDatePtBR(dateFrom).replace(/\//g, '.')} a ${fmtDatePtBR(dateTo).replace(/\//g, '.')}`
+    const companyName = company?.name || ''
+    const companyAddr = [company?.address, company?.city, company?.state].filter(Boolean).join(' - ')
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="utf-8">
 <title>Bonificação Aline — ${compMes}</title>
 <style>
-  body{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;margin:0;padding:12mm 14mm;box-sizing:border-box}
-  h1{font-size:14px;font-weight:bold;text-align:center;margin:0 0 2px}
-  h2{font-size:12px;font-weight:bold;text-align:center;margin:0 0 2px}
-  p.periodo{font-size:11px;text-align:center;margin:0 0 14px}
-  table{width:100%;border-collapse:collapse}
-  th{font-size:9.5px;text-align:left;border-bottom:1.5px solid #000;padding:2px 4px}
-  th.num{text-align:right}
-  td{font-size:10px;padding:3px 4px;border-bottom:1px solid #e5e5e5}
-  td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .tot td{border-top:1.5px solid #000;border-bottom:none;font-weight:bold}
-  .liq{margin-top:14px;display:flex;justify-content:space-between;font-weight:bold;font-size:13px;border-top:1.5px solid #000;padding-top:6px}
-  @media print{@page{size:A4 portrait;margin:0}.page{padding:8mm 10mm}}
+  .doc{background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;min-height:100vh}
+  .page{width:210mm;min-height:297mm;margin:0 auto;padding:12mm 14mm;box-sizing:border-box}
+  .doc table{width:100%;border-collapse:collapse}
+  .doc th,.doc td{font-size:9.5px;padding:2px 4px}
+  .lin th{border-bottom:1.5px solid #000;text-align:left;font-size:8.5px;letter-spacing:.2px}
+  .lin th.num{text-align:right}
+  .lin td{border-bottom:1px solid #e5e5e5}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tot td{border-top:1.5px solid #000;border-bottom:none;font-weight:bold;font-size:10.5px}
+  .titulo{text-align:center;font-weight:bold;font-size:13px;margin:14px 0 2px;letter-spacing:.5px}
+  .sub{text-align:center;font-size:12px;font-weight:bold}
+  .periodo{text-align:center;font-size:11px;margin-bottom:12px}
+  .marca{text-align:right;font-size:20px;font-weight:bold;line-height:1.05}
+  .empresa{font-size:12px;font-weight:bold}
+  .end{font-size:10px;color:#333}
+  .liq{margin-top:10px;border-top:1.5px solid #000;padding-top:6px;display:flex;justify-content:space-between;font-weight:bold;font-size:13px}
+  .btn{position:fixed;top:8px;background:#1d4ed8;color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;z-index:999}
+  @media print{.btn{display:none!important}.page{width:100%;min-height:0;padding:8mm 10mm}@page{size:A4 portrait;margin:0}}
 </style></head>
-<body>
-<h1>RELATÓRIO DE BONIFICAÇÃO</h1>
-<h2>Aline Zerves — 0,10% do Faturamento por Representante</h2>
-<p class="periodo">Competência: ${compMes} &nbsp;·&nbsp; ${fmtDatePtBR(dateFrom)} a ${fmtDatePtBR(dateTo)}</p>
-<table>
-<thead><tr>
-  <th>REPRESENTANTE</th>
-  <th class="num">VLR FATURADO</th>
-  <th class="num">BONIFICAÇÃO</th>
-  <th class="num">VALOR</th>
-</tr></thead>
-<tbody>
-${alineResumo.map(r => `<tr>
-  <td>${r.repNome}</td>
-  <td class="num">${fmtR(r.totalFat)}</td>
-  <td class="num">0,10%</td>
-  <td class="num">${fmtR(r.bonus)}</td>
-</tr>`).join('')}
-<tr class="tot">
-  <td>${alineResumo.length} representante${alineResumo.length !== 1 ? 's' : ''}</td>
-  <td class="num">${fmtR(alineResumo.reduce((s, r) => s + r.totalFat, 0))}</td>
-  <td></td>
-  <td class="num">${fmtR(totalAline)}</td>
-</tr>
-</tbody></table>
-<div class="liq"><span>TOTAL A RECEBER — ALINE</span><span>${fmtR(totalAline)}</span></div>
+<body class="doc">
+<button class="btn" style="right:12px" onclick="window.print()">🖨️ Imprimir / PDF</button>
+<button class="btn" style="left:12px;background:#6b7280" onclick="window.close()">← Fechar</button>
+<div class="page">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div class="empresa">${companyName}</div>
+      <div class="end">${companyAddr}</div>
+    </div>
+    <div class="marca">SOMMA</div>
+  </div>
+  <div class="titulo">RELATÓRIO DE BONIFICAÇÃO</div>
+  <div class="sub">Aline Zerves — 0,10% do Faturamento por Representante</div>
+  <div class="periodo">PERÍODO: ${periodoTxt}.</div>
+  <table class="lin">
+    <thead><tr>
+      <th>REPRESENTANTE</th>
+      <th class="num" style="width:20%">VLR FATURADO</th>
+      <th class="num" style="width:10%">%</th>
+      <th class="num" style="width:18%">BONIFICAÇÃO</th>
+    </tr></thead>
+    <tbody>
+${alineResumo.map(r => `      <tr>
+        <td>${r.repNome}</td>
+        <td class="num">${fmtR(r.totalFat)}</td>
+        <td class="num">0,10%</td>
+        <td class="num">${fmtR(r.bonus)}</td>
+      </tr>`).join('\n')}
+      <tr class="tot">
+        <td>${alineResumo.length} representante${alineResumo.length !== 1 ? 's' : ''}</td>
+        <td class="num">${fmtR(alineResumo.reduce((s, r) => s + r.totalFat, 0))}</td>
+        <td></td>
+        <td class="num">${fmtR(totalAline)}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="liq"><span>VALOR A RECEBER — ALINE ZERVES</span><span>${fmtR(totalAline)}</span></div>
+</div>
 </body></html>`
     const w = window.open('', '_blank')
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300) }
