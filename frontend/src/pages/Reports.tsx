@@ -812,7 +812,7 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
   const debitosQ = useQuery<ComissaoDebito[]>({
     queryKey: ['comissao-debitos', repId, competencia],
     queryFn: () => comissaoDebitosApi.list({ rep_id: repId, competencia }).then(r => r.data),
-    enabled: showDebitos && !!repId,
+    enabled: !!repId,
     staleTime: 0,
   })
   const debitos = debitosQ.data ?? []
@@ -849,12 +849,14 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
             {totalDeb > 0 && <p className="text-[10px] text-orange-500">líquido {fmtR(totalCom - totalDeb)}</p>}
             <p className="text-[10px] text-gray-400">s/ {fmtR(totalFat)} faturado</p>
           </div>
-          <button
-            onClick={() => setShowDebitos(v => !v)}
-            className={`flex items-center gap-1 h-7 px-2.5 text-[11px] border rounded-lg transition-colors ${debitos.length > 0 ? 'border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100' : 'border-gray-300 text-gray-500 hover:bg-gray-50'}`}
-          >
-            {debitos.length > 0 ? `Débitos (${debitos.length})` : 'Débitos'}
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowDebitos(v => !v)}
+              className="flex items-center gap-1 h-7 px-2.5 text-[11px] border border-gray-300 text-gray-500 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              + Débito
+            </button>
+          )}
           {closure ? (
             <button
               onClick={() => navigate(`/reports/fechamento/${closure.id}`)}
@@ -882,28 +884,12 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
         </div>
       </div>
 
-      {/* Painel de débitos — expande ao clicar */}
-      {showDebitos && (
-        <div className="px-4 py-3 border-b border-orange-100 bg-orange-50/30">
-          <p className="text-[11px] font-semibold text-gray-600 mb-2">Débitos — competência {competencia}</p>
-          {debitos.length === 0 && !debitosQ.isLoading && (
-            <p className="text-[11px] text-gray-400 mb-2">Nenhum débito lançado.</p>
-          )}
-          <div className="space-y-0.5 mb-2">
-            {debitos.map(d => (
-              <div key={d.id} className="flex items-center justify-between py-1 border-b border-orange-100/60">
-                <span className="text-[12px] text-gray-700">{d.descricao}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-medium text-orange-600 tabular-nums">{fmtR(Number(d.valor))}</span>
-                  <button onClick={() => delDebito.mutate(d.id)} className="text-gray-300 hover:text-red-500 text-[10px] leading-none">✕</button>
-                </div>
-              </div>
-            ))}
-          </div>
+      {showDebitos && isAdmin && (
+        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
           <div className="flex gap-2">
             <input
               value={novoDesc} onChange={e => setNovoDesc(e.target.value)}
-              placeholder="Descrição (adiantamento, amostra…)"
+              placeholder="Descrição do débito (adiantamento, amostra…)"
               className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1 text-[11px] bg-white focus:outline-none focus:border-orange-300"
             />
             <input
@@ -916,7 +902,7 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
               onClick={() => addDebito.mutate()}
               className="h-[30px] px-3 text-[11px] bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-40 whitespace-nowrap"
             >
-              + Débito
+              Lançar
             </button>
           </div>
         </div>
@@ -962,6 +948,32 @@ function PagamentoRepCard({ repNome, repRows, competencia, fmtPeriod, dateFrom, 
               <td></td>
               <td className="px-3 py-2 text-right text-[12px] tabular-nums font-bold text-emerald-600">{fmtR(totalCom)}</td>
             </tr>
+            {debitos.map(d => (
+              <tr key={d.id} className="bg-orange-50/40 border-t border-orange-100/60">
+                <td colSpan={6} className="px-3 py-1.5 text-[11px] text-gray-600 italic">{d.descricao}</td>
+                <td></td>
+                <td className="px-3 py-1.5 text-right text-[11px] tabular-nums text-orange-600 font-medium whitespace-nowrap">
+                  <span className="flex items-center justify-end gap-1.5">
+                    − {fmtR(Number(d.valor))}
+                    {isAdmin && (
+                      <button onClick={() => delDebito.mutate(d.id)}
+                        className="text-gray-300 hover:text-red-400 text-[10px] leading-none">✕</button>
+                    )}
+                  </span>
+                </td>
+              </tr>
+            ))}
+            {debitos.length > 0 && (
+              <tr className="bg-orange-50/60 border-t border-orange-200/40">
+                <td colSpan={6} className="px-3 py-1.5 text-[11px] font-semibold text-gray-500">
+                  Líquido a receber
+                </td>
+                <td></td>
+                <td className="px-3 py-1.5 text-right text-[13px] tabular-nums font-bold text-emerald-700">
+                  {fmtR(totalCom - totalDeb)}
+                </td>
+              </tr>
+            )}
           </tfoot>
         </table>
       </div>
