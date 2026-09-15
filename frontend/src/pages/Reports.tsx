@@ -1083,7 +1083,7 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia, isA
 <title>Bonificação Aline — ${compMes}</title>
 <style>
   .doc{background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;min-height:100vh}
-  .page{width:210mm;min-height:297mm;margin:0 auto;padding:12mm 14mm;box-sizing:border-box}
+  .page{width:210mm;min-height:297mm;margin:0 auto;padding:30mm 20mm 20mm 30mm;box-sizing:border-box}
   .doc table{width:100%;border-collapse:collapse}
   .doc th,.doc td{font-size:9.5px;padding:2px 4px}
   .lin th{border-bottom:1.5px solid #000;text-align:left;font-size:8.5px;letter-spacing:.2px}
@@ -1099,7 +1099,7 @@ function PagamentoMensalView({ rows, loading, dateFrom, dateTo, competencia, isA
   .end{font-size:10px;color:#333}
   .liq{margin-top:10px;border-top:1.5px solid #000;padding-top:6px;display:flex;justify-content:space-between;font-weight:bold;font-size:13px}
   .btn{position:fixed;top:8px;background:#1d4ed8;color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;z-index:999}
-  @media print{.btn{display:none!important}.page{width:100%;min-height:0;padding:8mm 10mm}@page{size:A4 portrait;margin:0}}
+  @media print{.btn{display:none!important}.page{width:100%;min-height:0;padding:0}@page{size:A4 portrait;margin:30mm 20mm 20mm 30mm}}
 </style></head>
 <body class="doc">
 <button class="btn" style="right:12px" onclick="window.print()">🖨️ Imprimir / PDF</button>

@@ -108,7 +108,7 @@ export function ComissaoPrint() {
     <div className="doc">
       <style>{`
         .doc { background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; min-height: 100vh; }
-        .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 12mm 14mm; box-sizing: border-box; }
+        .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 30mm 20mm 20mm 30mm; box-sizing: border-box; }
         .doc table { width: 100%; border-collapse: collapse; }
         /* Fonte menor e colunas de número mais estreitas: com 11px e 74% da largura
            reservada aos valores, o nome do cliente quebrava em três linhas. */
@@ -135,8 +135,8 @@ export function ComissaoPrint() {
         .del { border: none; background: none; color: #b91c1c; cursor: pointer; font-size: 11px; }
         @media print {
           .btn, .add, .del, .no-print { display: none !important; }
-          .page { width: 100%; min-height: 0; padding: 8mm 10mm; }
-          @page { size: A4 portrait; margin: 0; }
+          .page { width: 100%; min-height: 0; padding: 0; }
+          @page { size: A4 portrait; margin: 30mm 20mm 20mm 30mm; }
         }
       `}</style>
 
