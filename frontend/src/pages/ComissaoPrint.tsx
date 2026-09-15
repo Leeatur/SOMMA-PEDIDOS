@@ -135,8 +135,8 @@ export function ComissaoPrint() {
         .del { border: none; background: none; color: #b91c1c; cursor: pointer; font-size: 11px; }
         @media print {
           .btn, .add, .del, .no-print { display: none !important; }
-          .page { width: 100%; min-height: 0; padding: 0; }
-          @page { size: A4 portrait; margin: 30mm 20mm 20mm 30mm; }
+          .page { width: 100%; min-height: 0; padding: 30mm 20mm 20mm 30mm; }
+          @page { size: A4 portrait; margin: 0; }
         }
       `}</style>
 
