@@ -737,9 +737,6 @@ function FechamentoTab({
           <input type="month" value={competencia} onChange={e => setCompetencia(e.target.value)}
             className="outline-none text-[12px]" />
         </label>
-        <button onClick={() => window.print()} className="flex items-center gap-1.5 h-8 px-3 text-[12px] border border-gray-200 rounded-lg bg-white hover:bg-gray-50">
-          <Printer className="h-3.5 w-3.5" /> Imprimir
-        </button>
       </div>
       <PagamentoMensalView
         rows={fatQ.data ?? []}
