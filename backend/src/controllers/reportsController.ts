@@ -137,10 +137,12 @@ export async function commissionsReport(req: AuthRequest, res: Response) {
       o.faturamento_status,
       o.sem_comissao_fabrica,
       o.rep_id,
-      CASE WHEN COALESCE(s.is_final, false) = true
-           THEN o.total_value ELSE 0 END::numeric                   AS valor_faturado,
-      CASE WHEN COALESCE(s.is_final, false) = false
-           THEN o.total_value ELSE 0 END::numeric                   AS falta_faturar,
+      -- Faturado = soma das notas lançadas (valor_faturado_fabrica é recalculado a cada nota);
+      -- antes dependia do status final e mostrava R$ 0,00 em pedido já faturado.
+      COALESCE(o.valor_faturado_fabrica, 0)::numeric                 AS valor_faturado,
+      CASE WHEN o.faturamento_status = 'encerrado' THEN 0
+           ELSE GREATEST(o.total_value - COALESCE(o.valor_faturado_fabrica, 0), 0)
+      END::numeric                                                   AS falta_faturar,
       s.name                                                         AS status_name,
       s.color                                                        AS status_color
     FROM orders o
