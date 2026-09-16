@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search,
@@ -12,7 +12,7 @@ import {
   MapPin,
   User,
 } from 'lucide-react'
-import { clientsApi } from '../../api/client'
+import { clientsApi, apiClient } from '../../api/client'
 import { maskCnpj, maskPhone, maskCep } from '../../utils/masks'
 import { Modal } from './Modal'
 import { Button } from './Button'
@@ -82,6 +82,27 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
     new Set(['phone', 'whatsapp', 'email'])
   )
   const [errors, setErrors] = useState<Partial<FormData>>({})
+  const [dupClients, setDupClients] = useState<{ id: string; name: string; trade_name: string | null; cnpj: string | null }[]>([])
+  const [confirmedDup, setConfirmedDup] = useState(false)
+  const [dupError, setDupError] = useState('')
+  const dupTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const checkDuplicate = useCallback((name: string, cnpj?: string) => {
+    if (dupTimer.current) clearTimeout(dupTimer.current)
+    const trimName = name.trim()
+    const cnpjDigits = (cnpj || '').replace(/\D/g, '')
+    if (trimName.length < 3 && cnpjDigits.length < 14) { setDupClients([]); return }
+    dupTimer.current = setTimeout(async () => {
+      try {
+        const params: Record<string, string> = {}
+        if (cnpjDigits.length >= 14) params.cnpj = cnpjDigits
+        else if (trimName.length >= 3) params.name = trimName
+        const res = await apiClient.get<{ data: { id: string; name: string; trade_name: string | null; cnpj: string | null }[] }>('/clients/check-duplicate', { params })
+        setDupClients(res.data.data)
+        if (res.data.data.length === 0) setConfirmedDup(false)
+      } catch { setDupClients([]) }
+    }, 600)
+  }, [])
 
   function set(field: keyof FormData, value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -151,11 +172,16 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
       whatsapp: form.whatsapp || undefined,
       email: form.email || undefined,
       notes: form.notes || undefined,
+      ...(confirmedDup ? { forceCreate: true } : {}),
     } as any),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['clients'] })
       onCreated(res.data)
       handleClose()
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error
+      if (msg) setDupError(msg)
     },
   })
 
@@ -185,6 +211,9 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
     setCnpjFound(false)
     setNeedsConfirm(new Set(['phone', 'whatsapp', 'email']))
     setErrors({})
+    setDupClients([])
+    setConfirmedDup(false)
+    setDupError('')
     onClose()
   }
 
@@ -205,6 +234,7 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               onChange={e => {
                 const masked = maskCnpj(e.target.value)
                 setCnpjInput(masked)
+                checkDuplicate(form.name, masked)
                 // Auto-busca assim que completar os 14 dígitos
                 if (masked.replace(/\D/g, '').length === 14) lookupCnpj(masked)
               }}
@@ -249,10 +279,39 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
               </label>
               <input
                 value={form.name}
-                onChange={e => set('name', e.target.value)}
+                onChange={e => { set('name', e.target.value); checkDuplicate(e.target.value, cnpjInput) }}
                 className={`w-full px-3 py-1 text-[12px] border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.name ? 'border-red-400' : 'border-outline-variant'}`}
               />
               {errors.name && <p className="text-[12px] text-red-500 mt-0.5">{errors.name}</p>}
+
+              {/* Alerta de duplicata */}
+              {dupClients.length > 0 && (
+                <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-amber-800 mb-1.5">
+                      {dupClients.length === 1 ? 'Este cliente já está cadastrado!' : `${dupClients.length} clientes similares encontrados!`}
+                    </p>
+                    <div className="space-y-1">
+                      {dupClients.map(d => (
+                        <div key={d.id} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-amber-200">
+                          <Building2 className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-semibold text-gray-800 truncate">{d.name}</p>
+                            {d.trade_name && <p className="text-[11px] text-gray-500 truncate">{d.trade_name}</p>}
+                            {d.cnpj && <p className="text-[11px] text-gray-400">{d.cnpj}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+                      <input type="checkbox" checked={confirmedDup} onChange={e => setConfirmedDup(e.target.checked)}
+                        className="w-4 h-4 rounded border-amber-400 accent-amber-600" />
+                      <span className="text-[11px] font-semibold text-amber-800">Confirmo que é um cliente diferente — cadastrar mesmo assim</span>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-[12px] font-medium text-on-surface-variant mb-1">Nome Fantasia</label>
@@ -423,9 +482,14 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
         </div>
 
         {/* ── Ações ── */}
-        {createMut.isError && (
+        {createMut.isError && !dupError && (
           <p className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-1">
             Erro ao salvar cliente. Tente novamente.
+          </p>
+        )}
+        {dupError && (
+          <p className="text-[12px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {dupError}
           </p>
         )}
         <div className="flex gap-3 pt-1">
@@ -436,6 +500,8 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
             className="flex-1"
             onClick={handleSubmit}
             loading={createMut.isPending}
+            disabled={dupClients.length > 0 && !confirmedDup}
+            title={dupClients.length > 0 && !confirmedDup ? 'Marque a confirmação acima para continuar' : undefined}
           >
             Salvar e Selecionar
           </Button>

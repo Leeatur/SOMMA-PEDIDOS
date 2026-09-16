@@ -101,6 +101,7 @@ router.patch('/products/:id/blocked-sizes', authenticate, requireAdmin, priceTab
 router.get('/clients', authenticate, clients.listClients)
 router.get('/clients/export/xlsx', authenticate, clients.exportClients)
 router.get('/clients/map', authenticate, clients.clientsMap)
+router.get('/clients/check-duplicate', authenticate, clients.checkDuplicateClient)
 router.get('/clients/:id', authenticate, clients.getClient)
 router.post('/clients', authenticate, clients.createClient)
 router.put('/clients/:id', authenticate, clients.updateClient)

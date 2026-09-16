@@ -56,10 +56,58 @@ export async function getClient(req: AuthRequest, res: Response) {
   }
 }
 
+export async function checkDuplicateClient(req: AuthRequest, res: Response) {
+  const { name, cnpj } = req.query
+  const matches: { id: string; name: string; trade_name: string | null; cnpj: string | null }[] = []
+  if (cnpj && String(cnpj).replace(/\D/g, '').length >= 14) {
+    const digits = String(cnpj).replace(/\D/g, '')
+    const { rows } = await query(
+      `SELECT id, name, trade_name, cnpj FROM clients WHERE regexp_replace(cnpj,'[^0-9]','','g')=$1 AND active=true LIMIT 3`,
+      [digits]
+    )
+    matches.push(...rows)
+  } else if (name && String(name).trim().length >= 3) {
+    const { rows } = await query(
+      `SELECT id, name, trade_name, cnpj FROM clients WHERE LOWER(name)=LOWER($1) AND active=true LIMIT 3`,
+      [String(name).trim()]
+    )
+    matches.push(...rows)
+  }
+  res.json({ data: matches })
+}
+
 export async function createClient(req: AuthRequest, res: Response) {
   try {
-    const { name, trade_name, cnpj, cpf, state_registration, address, address_number, complement, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name } = req.body
+    const { name, trade_name, cnpj, cpf, state_registration, address, address_number, complement, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name, forceCreate } = req.body
     if (!name) { res.status(400).json({ error: 'Nome é obrigatório' }); return }
+
+    // Bloco duro: CNPJ duplicado
+    if (cnpj) {
+      const digits = String(cnpj).replace(/\D/g, '')
+      if (digits.length >= 14) {
+        const { rows } = await query(
+          `SELECT name FROM clients WHERE regexp_replace(cnpj,'[^0-9]','','g')=$1 AND active=true LIMIT 1`,
+          [digits]
+        )
+        if (rows.length > 0) {
+          res.status(409).json({ error: `CNPJ já cadastrado para "${rows[0].name}". Edite o cliente existente.`, code: 'DUPLICATE_CNPJ' })
+          return
+        }
+      }
+    }
+
+    // Bloco suave: nome duplicado (bypassável com forceCreate)
+    if (!forceCreate) {
+      const { rows } = await query(
+        `SELECT name FROM clients WHERE LOWER(name)=LOWER($1) AND active=true LIMIT 1`,
+        [String(name).trim()]
+      )
+      if (rows.length > 0) {
+        res.status(409).json({ error: `Já existe um cliente com o nome "${rows[0].name}".`, code: 'DUPLICATE_NAME' })
+        return
+      }
+    }
+
     const assignedRep = req.user!.role === 'admin' ? (rep_id || req.user!.id) : req.user!.id
     const { rows } = await query(
       `INSERT INTO clients (name, trade_name, cnpj, cpf, state_registration, address, address_number, complement, neighborhood, city, state, zip, phone, whatsapp, email, rep_id, notes, buyer_name)
