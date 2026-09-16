@@ -286,16 +286,16 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
 
               {/* Alerta de duplicata */}
               {dupClients.length > 0 && (
-                <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                <div className="mt-2 bg-red-50 border-2 border-red-400 rounded-xl p-3 flex gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-amber-800 mb-1.5">
-                      {dupClients.length === 1 ? 'Este cliente já está cadastrado!' : `${dupClients.length} clientes similares encontrados!`}
+                    <p className="text-[13px] font-bold text-red-700 mb-1.5">
+                      ⛔ {dupClients.length === 1 ? 'Este cliente já está cadastrado!' : `${dupClients.length} clientes similares encontrados!`}
                     </p>
                     <div className="space-y-1">
                       {dupClients.map(d => (
-                        <div key={d.id} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-amber-200">
-                          <Building2 className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                        <div key={d.id} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-red-200">
+                          <Building2 className="h-3.5 w-3.5 text-red-500 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[12px] font-semibold text-gray-800 truncate">{d.name}</p>
                             {d.trade_name && <p className="text-[11px] text-gray-500 truncate">{d.trade_name}</p>}
@@ -306,8 +306,8 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
                     </div>
                     <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
                       <input type="checkbox" checked={confirmedDup} onChange={e => setConfirmedDup(e.target.checked)}
-                        className="w-4 h-4 rounded border-amber-400 accent-amber-600" />
-                      <span className="text-[11px] font-semibold text-amber-800">Confirmo que é um cliente diferente — cadastrar mesmo assim</span>
+                        className="w-4 h-4 rounded accent-red-600" />
+                      <span className="text-[11px] font-semibold text-red-700">Confirmo que é um cliente diferente — cadastrar mesmo assim</span>
                     </label>
                   </div>
                 </div>
@@ -488,8 +488,8 @@ export function NewClientModal({ open, onClose, onCreated }: Props) {
           </p>
         )}
         {dupError && (
-          <p className="text-[12px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 flex items-center gap-1.5">
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {dupError}
+          <p className="text-[12px] text-red-700 bg-red-50 border-2 border-red-400 rounded-lg px-3 py-2 flex items-center gap-1.5 font-semibold">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> {dupError}
           </p>
         )}
         <div className="flex gap-3 pt-1">
