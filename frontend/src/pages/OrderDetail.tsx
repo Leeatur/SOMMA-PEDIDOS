@@ -75,6 +75,15 @@ interface StatusHistory {
   created_at: string
 }
 
+// Quem criou/duplicou/alterou/faturou — junta com o histórico de status na tela
+interface OrderEvento {
+  id: string
+  tipo: string
+  descricao: string
+  user_name: string | null
+  created_at: string
+}
+
 interface OrderDetail {
   id: string
   order_number: number
@@ -113,6 +122,7 @@ interface OrderDetail {
   created_at: string
   items: OrderItem[]
   history: StatusHistory[]
+  eventos?: OrderEvento[]
 }
 
 interface EditInfoForm {
@@ -868,12 +878,29 @@ const { data: statuses } = useQuery<Status[]>({
           </div>
         </div>
 
-        {/* Status History */}
-        {order.history.length > 0 && (
+        {/* Histórico do pedido: status + eventos (criou, duplicou, alterou, faturou…) */}
+        {(order.history.length > 0 || (order.eventos?.length ?? 0) > 0) && (
           <div>
-            <h2 className="text-[12px] font-semibold text-on-surface-variant mb-2">Histórico de Status</h2>
-            <div className="space-y-1">
-              {order.history.map((h) => (
+            <h2 className="text-[12px] font-semibold text-on-surface-variant mb-2">Histórico do pedido</h2>
+            <div className="space-y-1.5">
+              {[
+                ...order.history.map(h => ({ tipo: 'status' as const, em: h.created_at, h })),
+                ...(order.eventos ?? []).map(e => ({ tipo: 'evento' as const, em: e.created_at, e })),
+              ].sort((a, b) => new Date(b.em).getTime() - new Date(a.em).getTime()).map((linha) => linha.tipo === 'evento' ? (
+                <div key={linha.e.id} className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center bg-surface-container border border-outline-variant">
+                      <Clock className="h-3 w-3 text-outline" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] text-on-surface">{linha.e.descricao}</p>
+                    <p className="text-[12px] text-outline mt-0.5">
+                      {linha.e.user_name ?? 'Usuário removido'} &bull; {formatDateTime(linha.e.created_at)}
+                    </p>
+                  </div>
+                </div>
+              ) : (() => { const h = linha.h; return (
                 <div key={h.id} className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-0.5">
                     <div
@@ -885,6 +912,8 @@ const { data: statuses } = useQuery<Status[]>({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
+                      {/* Primeira linha do histórico = nascimento do pedido */}
+                      {!h.from_status_name && <span className="text-[12px] font-semibold text-on-surface">Criou o pedido</span>}
                       <StatusBadge name={h.to_status_name} color={h.to_status_color} />
                       {h.from_status_name && (
                         <span className="text-[12px] text-outline/70">← {h.from_status_name}</span>
@@ -898,7 +927,7 @@ const { data: statuses } = useQuery<Status[]>({
                     )}
                   </div>
                 </div>
-              ))}
+              ) })())}
             </div>
           </div>
         )}

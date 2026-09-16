@@ -474,6 +474,18 @@ CREATE INDEX IF NOT EXISTS idx_order_faturamentos_order_id ON order_faturamentos
 ALTER TABLE order_faturamentos ADD COLUMN IF NOT EXISTS nf VARCHAR(30);
 CREATE INDEX IF NOT EXISTS idx_order_faturamentos_data ON order_faturamentos(data_faturamento);
 
+-- Eventos do pedido (quem criou/duplicou/alterou/faturou/excluiu). Status segue no
+-- order_status_history; a tela junta os dois numa linha do tempo.
+CREATE TABLE IF NOT EXISTS order_eventos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  tipo VARCHAR(40) NOT NULL,
+  descricao TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_order_eventos_order ON order_eventos(order_id, created_at);
+
 -- Descontos do relatório de comissão (bloco "RELATÓRIO DE DÉBITOS" do formulário
 -- da fábrica): adiantamento, amostra, devolução. Por representante e competência,
 -- para o mês poder ser reimpresso igual depois.

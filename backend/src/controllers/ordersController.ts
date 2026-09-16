@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { query, pool } from '../config/database'
 import { AuthRequest } from '../middleware/auth'
 import { PoolClient } from 'pg'
+import { registrarEvento, brl, numPedido, dataBR, chaveGrade } from '../utils/orderEventos'
 
 interface CustomGradeEntry { color: string | null; sizes: Record<string, number>; total_pieces: number }
 
@@ -268,7 +269,15 @@ export async function getOrder(req: AuthRequest, res: Response) {
       order.total_value  = Math.round(realVal * 100) / 100
     }
 
-    res.json({ ...order, items, history })
+    const { rows: eventos } = await query(
+      `SELECT e.id, e.tipo, e.descricao, e.created_at, u.name AS user_name
+       FROM order_eventos e
+       LEFT JOIN users u ON u.id = e.user_id
+       WHERE e.order_id = $1 ORDER BY e.created_at DESC`,
+      [req.params.id]
+    )
+
+    res.json({ ...order, items, history, eventos })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[getOrder] ERROR:', msg)
@@ -510,6 +519,9 @@ export async function addOrderItems(req: AuthRequest, res: Response) {
     }
 
     await dbClient.query('COMMIT')
+    const refs = [...new Set(items.map(i => i.reference).filter(Boolean))].join(', ')
+    await registrarEvento(orderId, req.user!.id, 'itens_adicionados',
+      `Adicionou ${items.length} ${items.length > 1 ? 'itens' : 'item'}: ${refs} (+${newTotals.totalPieces} pç)`)
     res.json({ message: 'Itens adicionados', total_pieces: allTotals.totalPieces, total_value: allTotals.totalValue })
   } catch (err) {
     await dbClient.query('ROLLBACK')
@@ -582,6 +594,7 @@ export async function updateOrderCommission(req: AuthRequest, res: Response) {
                  rep_commission_pct, office_commission_pct, guide_commission_pct, commission_manual_override`,
       params
     )
+    await registrarEvento(req.params.id, req.user!.id, 'comissao', 'Ajustou a comissão manualmente')
     res.json(updated)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -621,6 +634,7 @@ export async function resetOrderCommission(req: AuthRequest, res: Response) {
        RETURNING rep_commission_value, office_commission_value, guide_commission_value, commission_manual_override`,
       [newRep, newOff, newGuide, order.id]
     )
+    await registrarEvento(order.id, req.user!.id, 'comissao', 'Voltou a comissão ao cálculo automático')
     res.json(updated)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -634,7 +648,10 @@ export async function updateOrderInfo(req: AuthRequest, res: Response) {
   try {
     const { payment_terms, delivery_date, freight_type, notes, buyer_name, industry_order_number, client_id, rep_id, transportadora } = req.body
     const { rows: [order] } = await query(
-      'SELECT rep_id, price_table_id, discount_pct, total_value, total_commission_pct, commission_manual_override FROM orders WHERE id=$1',
+      `SELECT rep_id, price_table_id, discount_pct, total_value, total_commission_pct, commission_manual_override,
+              client_id, payment_terms, delivery_date::text AS delivery_date_txt, freight_type, notes, buyer_name,
+              industry_order_number, transportadora
+       FROM orders WHERE id=$1`,
       [req.params.id]
     )
     if (!order) { res.status(404).json({ error: 'Pedido não encontrado' }); return }
@@ -697,6 +714,33 @@ export async function updateOrderInfo(req: AuthRequest, res: Response) {
 
     params.push(req.params.id)
     await query(`UPDATE orders SET ${sets.join(', ')} WHERE id=$${idx}`, params)
+
+    // Histórico: só o que de fato mudou — a tela de edição reenvia tudo ao salvar.
+    const mudou: string[] = []
+    const txt = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim())
+    const campo = (rotulo: string, antes: unknown, depois: unknown) => {
+      const a = txt(antes), d = txt(depois)
+      if (a.toUpperCase() !== d.toUpperCase()) mudou.push(`${rotulo}: ${a || '—'} → ${d || '—'}`)
+    }
+    campo('condição', order.payment_terms, payment_terms ?? null)
+    campo('frete', order.freight_type, freight_type || 'CIF')
+    campo('entrega', dataBR(order.delivery_date_txt), dataBR(delivery_date))
+    campo('comprador', order.buyer_name, buyer_name ?? null)
+    campo('nº pedido fábrica', order.industry_order_number, industry_order_number ?? null)
+    campo('transportadora', order.transportadora, transportadora ?? null)
+    if (txt(order.notes).toUpperCase() !== txt(notes ?? null).toUpperCase()) mudou.push('observações')
+    const nomeDe = async (sql: string, id: unknown): Promise<string> =>
+      id ? ((await query(sql, [id])).rows[0]?.nome ?? '—') : '—'
+    if (client_id && client_id !== order.client_id) {
+      const sql = 'SELECT name AS nome FROM clients WHERE id=$1'
+      mudou.push(`cliente: ${await nomeDe(sql, order.client_id)} → ${await nomeDe(sql, client_id)}`)
+    }
+    if (rep_id && isAdmin && rep_id !== order.rep_id) {
+      const sql = 'SELECT name AS nome FROM users WHERE id=$1'
+      mudou.push(`vendedor: ${await nomeDe(sql, order.rep_id)} → ${await nomeDe(sql, rep_id)}`)
+    }
+    if (mudou.length) await registrarEvento(req.params.id, req.user!.id, 'alterado', `Alterou ${mudou.join('; ')}`)
+
     res.json({ ok: true })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -715,7 +759,7 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
     if (!isAdmin && order.rep_id !== req.user!.id) {
       res.status(403).json({ error: 'Acesso negado' }); return
     }
-    const { rows: [item] } = await query('SELECT id FROM order_items WHERE id=$1 AND order_id=$2', [item_id, id])
+    const { rows: [item] } = await query('SELECT id, reference, total_pieces FROM order_items WHERE id=$1 AND order_id=$2', [item_id, id])
     if (!item) { res.status(404).json({ error: 'Item não encontrado' }); return }
 
     await query('DELETE FROM order_items WHERE id=$1', [item_id])
@@ -748,6 +792,8 @@ export async function removeOrderItem(req: AuthRequest, res: Response) {
         ]
       )
     }
+    await registrarEvento(id, req.user!.id, 'item_removido',
+      `Removeu o item ${item.reference} (${Number(item.total_pieces)} pç)`)
     res.json({ ok: true })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -910,6 +956,20 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
     )
 
     await dbClient.query('COMMIT')
+
+    const mudouTab: string[] = []
+    if (price_table_id !== order.price_table_id) {
+      const { rows: nomes } = await query(
+        'SELECT id, name FROM price_tables WHERE id = ANY($1::uuid[])',
+        [[order.price_table_id, price_table_id].filter(Boolean)]
+      )
+      const nome = (tid: string) => nomes.find((n: { id: string }) => n.id === tid)?.name ?? '—'
+      mudouTab.push(`tabela: ${nome(order.price_table_id)} → ${nome(price_table_id)}`)
+    }
+    const discAntes = Number(order.discount_pct) || 0
+    if (Math.abs(disc - discAntes) > 0.001) mudouTab.push(`desconto: ${discAntes}% → ${disc}%`)
+    if (mudouTab.length) await registrarEvento(orderId, req.user!.id, 'tabela', `Alterou ${mudouTab.join('; ')}`)
+
     res.json({ ok: true, total_value: totals.totalValue, total_pieces: totals.totalPieces })
   } catch (err) {
     await dbClient.query('ROLLBACK')
@@ -1053,6 +1113,20 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     )
   }
 
+  const mudouItem: string[] = []
+  if (Number(item.total_pieces) !== newTotalPieces) {
+    mudouItem.push(`${Number(item.total_pieces)} → ${newTotalPieces} pç`)
+  } else if (chaveGrade(item.sizes, item.custom_grade) !== chaveGrade(newSizes, newCustomGrade)) {
+    mudouItem.push('grade')
+  }
+  if (Math.abs(Number(item.unit_price) - effectiveUnitPrice) > 0.004) {
+    mudouItem.push(`preço ${brl(item.unit_price)} → ${brl(effectiveUnitPrice)}`)
+  }
+  if (String(item.item_obs ?? '').trim() !== String(item_obs ?? '').trim()) mudouItem.push('observação do item')
+  if (mudouItem.length) {
+    await registrarEvento(id, req.user!.id, 'item_alterado', `Alterou o item ${item.reference}: ${mudouItem.join('; ')}`)
+  }
+
   res.json({ ok: true, total_pieces: Number(totals.pcs), total_value: newValue })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -1170,6 +1244,7 @@ export async function deleteOrder(req: AuthRequest, res: Response) {
     }
     // Soft delete — move para a lixeira em vez de apagar
     await query('UPDATE orders SET deleted_at=NOW(), updated_at=NOW() WHERE id=$1', [req.params.id])
+    await registrarEvento(req.params.id, req.user!.id, 'excluido', 'Excluiu o pedido (foi para a lixeira)')
     res.json({ ok: true })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -1210,6 +1285,7 @@ export async function restoreOrder(req: AuthRequest, res: Response) {
     )
     if (!order) { res.status(404).json({ error: 'Pedido não encontrado na lixeira' }); return }
     await query('UPDATE orders SET deleted_at=NULL, updated_at=NOW() WHERE id=$1', [req.params.id])
+    await registrarEvento(req.params.id, req.user!.id, 'restaurado', 'Restaurou o pedido da lixeira')
     res.json({ ok: true })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -1293,7 +1369,7 @@ export async function duplicateOrder(req: AuthRequest, res: Response) {
         notes, payment_terms, freight_type, delivery_date, buyer_name,
         synced_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW())
-       RETURNING id`,
+       RETURNING id, order_number`,
       [
         orig.client_id, orig.rep_id, orig.factory_id, orig.price_table_id,
         initStatus?.id || null,
@@ -1335,6 +1411,8 @@ export async function duplicateOrder(req: AuthRequest, res: Response) {
     }
 
     await dbClient.query('COMMIT')
+    await registrarEvento(newOrder.id, req.user!.id, 'duplicado', `Duplicou a partir do pedido ${numPedido(orig.order_number)}`)
+    await registrarEvento(orig.id, req.user!.id, 'duplicado', `Duplicou este pedido, gerando o ${numPedido(newOrder.order_number)}`)
     res.status(201).json({ id: newOrder.id })
   } catch (err) {
     await dbClient.query('ROLLBACK')
@@ -1582,6 +1660,7 @@ export async function encerrarFaturamento(req: AuthRequest, res: Response) {
       `UPDATE orders SET faturamento_status = 'encerrado', updated_at = NOW() WHERE id = $1`,
       [id]
     )
+    await registrarEvento(id, req.user!.id, 'saldo_encerrado', 'Encerrou o saldo (a fábrica não vai faturar o restante)')
     res.json({ ok: true })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -1616,6 +1695,8 @@ export async function addFaturamento(req: AuthRequest, res: Response) {
       [id, valor, data_faturamento, nf?.trim() || null]
     )
     await recalcFaturamentos(id)
+    await registrarEvento(id, req.user!.id, 'nota_lancada',
+      `Lançou nota${nf?.trim() ? ` NF ${nf.trim()}` : ''} de ${brl(valor)} (faturada em ${dataBR(data_faturamento)})`)
 
     const { rows } = await query(
       `SELECT id, valor, nf, data_faturamento, created_at FROM order_faturamentos WHERE order_id = $1 ORDER BY data_faturamento ASC, created_at ASC`,
@@ -1632,9 +1713,11 @@ export async function addFaturamento(req: AuthRequest, res: Response) {
 export async function deleteFaturamento(req: AuthRequest, res: Response) {
   try {
     const { id, fatId } = req.params
-    const { rows } = await query(`DELETE FROM order_faturamentos WHERE id = $1 AND order_id = $2 RETURNING id`, [fatId, id])
+    const { rows } = await query(`DELETE FROM order_faturamentos WHERE id = $1 AND order_id = $2 RETURNING id, nf, valor, data_faturamento::text AS data`, [fatId, id])
     if (!rows.length) return res.status(404).json({ error: 'Faturamento não encontrado' })
     await recalcFaturamentos(id)
+    await registrarEvento(id, req.user!.id, 'nota_excluida',
+      `Excluiu a nota${rows[0].nf ? ` NF ${rows[0].nf}` : ''} de ${brl(rows[0].valor)} (${dataBR(rows[0].data)})`)
     res.json({ ok: true })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -1667,6 +1750,8 @@ export async function updateSemComissao(req: AuthRequest, res: Response) {
       [sem_comissao ?? false, id]
     )
     if (!rows.length) return res.status(404).json({ error: 'Pedido não encontrado' })
+    await registrarEvento(id, req.user!.id, 'sem_comissao',
+      sem_comissao ? 'Marcou "sem comissão do fornecedor"' : 'Desmarcou "sem comissão do fornecedor"')
     res.json(rows[0])
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
