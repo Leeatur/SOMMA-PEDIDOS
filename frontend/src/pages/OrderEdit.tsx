@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Save, X, Search, Trash2, AlertTriangle,
-  Loader2, Eye, Printer, Check,
+  Loader2, Eye, Printer, Check, Minus, Plus,
 } from 'lucide-react'
 import {
   ordersApi, clientsApi, usersApi, statusesApi, productsApi, priceTablesApi, paymentConditionsApi,
@@ -185,6 +185,42 @@ function initDraftGradeFromProduct(prod: Product): DraftGradeEntry[] {
   }))
 }
 
+// Grade fechada por cores (2+ grades, ex. NXO): o pedido é por PACOTE de cada grade,
+// nunca tamanho a tamanho. Devolve quantos pacotes de cada grade o item tem, ou null
+// quando a grade não fecha em pacotes inteiros (pedido antigo mexido por tamanho) —
+// aí a tela mantém a grade aberta para não perder nada.
+function gradeFechadaMults(
+  configs: GradeConfig[] | null | undefined, grade: DraftGradeEntry[], boxes: number,
+): number[] | null {
+  if (!configs || configs.length === 0 || !(configs.length > 1 || MULTI_GRADE)) return null
+  const cx = boxes || 1
+  const cor = (c: string | null | undefined) => (c || '').trim().toUpperCase()
+  const tam = (obj: Record<string, number>) =>
+    Object.fromEntries(Object.entries(obj || {}).map(([k, v]) => [k.trim(), Number(v) || 0]))
+  if (grade.some(e => e.total_pieces > 0 && !configs.some(g => cor(g.color) === cor(e.color)))) return null
+  const mults: number[] = []
+  for (const g of configs) {
+    const e = grade.find(x => cor(x.color) === cor(g.color))
+    if (!e || e.total_pieces === 0) { mults.push(0); continue }
+    if (!g.total_pieces) return null
+    const m = Math.round(e.total_pieces * cx / g.total_pieces)
+    const gs = tam(g.sizes), es = tam(e.sizes)
+    const chaves = new Set([...Object.keys(gs), ...Object.keys(es)])
+    for (const k of chaves) if ((es[k] || 0) * cx !== (gs[k] || 0) * m) return null
+    mults.push(m)
+  }
+  return mults
+}
+
+function gradeDosPacotes(configs: GradeConfig[], mults: number[]): DraftGradeEntry[] {
+  return configs.map((g, i) => ({
+    color: g.color,
+    sort_order: g.sort_order,
+    sizes: Object.fromEntries(Object.entries(g.sizes).map(([k, q]) => [k.trim(), Number(q) * (mults[i] || 0)])),
+    total_pieces: g.total_pieces * (mults[i] || 0),
+  }))
+}
+
 function calcPieces(item: EditableItem | NewItem): number {
   if (item.type === 'regular') {
     return Object.values(item.draftSizes).reduce((s, v) => s + (v || 0), 0)
@@ -201,6 +237,8 @@ const ORDER_EDIT_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 // Modo fábrica (NXO): comissão de 3 vias — Loja (rep) + Escritório (office) + Guia (guide). Default off.
 const FACTORY_COMM = import.meta.env.VITE_FACTORY_COMMISSION === 'true'
+// Mesmo interruptor do Novo Pedido: pack sempre por pacote de grade
+const MULTI_GRADE = import.meta.env.VITE_MULTI_GRADE === 'true'
 
 function orderEditDraftKey(userId?: string, orderId?: string) {
   return `somma_orderedit_draft_${userId || 'anon'}_${orderId || ''}`
@@ -552,6 +590,27 @@ export default function OrderEdit() {
     }))
   }
 
+  // Grade fechada: muda o nº de pacotes de uma grade e remonta a grade do item
+  const setGradeMult = (itemId: string, colorIdx: number, mult: number) => {
+    setItems(prev => prev.map(it => {
+      if (it.id !== itemId || !it.grade_configs) return it
+      const mults = gradeFechadaMults(it.grade_configs, it.draftGrade, it.draftBoxes)
+      if (!mults) return it
+      mults[colorIdx] = Math.max(0, mult)
+      return { ...it, draftGrade: gradeDosPacotes(it.grade_configs, mults), draftBoxes: 1 }
+    }))
+  }
+
+  const setNewGradeMult = (tempId: string, colorIdx: number, mult: number) => {
+    setNewItems(prev => prev.map(it => {
+      if (it.tempId !== tempId || !it.grade_configs) return it
+      const mults = gradeFechadaMults(it.grade_configs, it.draftGrade, it.draftBoxes)
+      if (!mults) return it
+      mults[colorIdx] = Math.max(0, mult)
+      return { ...it, draftGrade: gradeDosPacotes(it.grade_configs, mults), draftBoxes: 1 }
+    }))
+  }
+
   const addProduct = (prod: Product) => {
     if (prod.price_table_active === false) {
       setShowProdDropdown(false); setProdSearch('')
@@ -729,7 +788,7 @@ export default function OrderEdit() {
           })
         } else {
           await ordersApi.updateItem(id!, it.id, {
-            custom_grade: it.draftGrade,
+            custom_grade: it.draftGrade.filter(gc => gc.total_pieces > 0),
             boxes_count: it.draftBoxes,
             ...(priceChanged ? { unit_price: it.unit_price } : {}),
             item_obs: it.draftItemObs || null,
@@ -746,7 +805,7 @@ export default function OrderEdit() {
           unit_price: it.unit_price,
           sizes: it.type === 'regular' ? it.draftSizes : undefined,
           // pack sempre tem grade; regular multicor também envia custom_grade (detalhe por cor)
-          custom_grade: it.draftGrade.length > 0 ? it.draftGrade : undefined,
+          custom_grade: it.draftGrade.some(gc => gc.total_pieces > 0) ? it.draftGrade.filter(gc => gc.total_pieces > 0) : undefined,
           item_obs: it.draftItemObs || null,
         }))
         await ordersApi.addItems(id!, toAdd)
@@ -1362,6 +1421,7 @@ export default function OrderEdit() {
                     onSizeChange={(size, val) => updateSize(it.id, size, val)}
                     onBoxesChange={val => updateBoxes(it.id, val)}
                     onGradeChange={(colorIdx, size, val) => updateGrade(it.id, colorIdx, size, val)}
+                    onGradeMultChange={(colorIdx, mult) => setGradeMult(it.id, colorIdx, mult)}
                     onPriceChange={val => updateExistingPrice(it.id, val)}
                     onRemove={() => removeItem(it.id)}
                     priceTableName={order?.price_table_name}
@@ -1395,6 +1455,7 @@ export default function OrderEdit() {
                     onSizeChange={(size, val) => updateNewSize(it.tempId, size, val)}
                     onBoxesChange={val => updateNewBoxes(it.tempId, val)}
                     onGradeChange={(colorIdx, size, val) => updateNewGrade(it.tempId, colorIdx, size, val)}
+                    onGradeMultChange={(colorIdx, mult) => setNewGradeMult(it.tempId, colorIdx, mult)}
                     onPriceChange={val => updateNewPrice(it.tempId, val)}
                     onRemove={() => removeNewItem(it.tempId)}
                     isNew
@@ -1774,6 +1835,7 @@ interface ItemRowProps {
   onSizeChange: (size: string, val: number) => void
   onBoxesChange: (val: number) => void
   onGradeChange: (colorIdx: number, size: string, val: number) => void
+  onGradeMultChange?: (colorIdx: number, mult: number) => void   // grade fechada: pacotes por grade
   onPriceChange?: (val: number) => void
   onRemove: () => void
   isNew?: boolean
@@ -1789,7 +1851,7 @@ function ItemRow({
   index, checked, onToggle, reference, productName, imageUrl, type, unitPrice, originalUnitPrice,
   orderPolicyDiscPct, orderCashDiscPct,
   gradeConfigs: _gradeConfigs, draftSizes, draftBoxes, draftGrade,
-  onSizeChange, onBoxesChange, onGradeChange, onPriceChange, onRemove, isNew, priceTableName,
+  onSizeChange, onBoxesChange, onGradeChange, onGradeMultChange, onPriceChange, onRemove, isNew, priceTableName,
   productObservation, itemObs, onObsChange, canEditPrice, blockedSizes = [],
 }: ItemRowProps) {
   const blocked = new Set(blockedSizes.map(s => s.toUpperCase()))
@@ -1984,7 +2046,38 @@ function ItemRow({
         )}
 
         {/* Pack: tabela cor × tamanho */}
-        {type === 'pack' && draftGrade.length > 0 && (
+        {/* Grade fechada (ex. NXO): quantidade por PACOTE de cada grade — tamanho a tamanho não se mexe */}
+        {type === 'pack' && onGradeMultChange && (() => {
+          const mults = gradeFechadaMults(_gradeConfigs, draftGrade, draftBoxes)
+          if (!mults || !_gradeConfigs) return null
+          return (
+            <div className="space-y-1.5">
+              {_gradeConfigs.map((g, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-[12px] font-semibold text-on-surface min-w-[72px] whitespace-nowrap">{g.color || `Grade ${i + 1}`}</span>
+                  <button type="button" onClick={() => onGradeMultChange(i, mults[i] - 1)}
+                    className="w-7 h-7 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-container">
+                    <Minus className="h-3.5 w-3.5 text-on-surface-variant" />
+                  </button>
+                  <input type="number" min={0} value={mults[i]}
+                    onChange={e => onGradeMultChange(i, parseInt(e.target.value) || 0)}
+                    onFocus={e => e.target.select()}
+                    className="w-12 text-center border border-outline-variant rounded-lg py-1 text-[13px] font-bold focus:outline-none focus:border-primary bg-white" />
+                  <button type="button" onClick={() => onGradeMultChange(i, mults[i] + 1)}
+                    className="w-7 h-7 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-container">
+                    <Plus className="h-3.5 w-3.5 text-on-surface-variant" />
+                  </button>
+                  <span className="text-[11px] text-outline whitespace-nowrap">
+                    × {g.total_pieces} pç = <b className="text-on-surface">{g.total_pieces * mults[i]}</b>
+                  </span>
+                </div>
+              ))}
+              <p className="text-[11px] text-outline">Grade fechada: quantidade por pacote de cada grade.</p>
+            </div>
+          )
+        })()}
+
+        {type === 'pack' && draftGrade.length > 0 && !(onGradeMultChange && gradeFechadaMults(_gradeConfigs, draftGrade, draftBoxes)) && (
           <div className="overflow-x-auto">
             <table className="text-[12px] border-collapse w-full">
               <thead className="bg-surface-container-lowest sticky top-0 z-10">

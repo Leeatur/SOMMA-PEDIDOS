@@ -1039,7 +1039,19 @@ export async function updateOrderItem(req: AuthRequest, res: Response) {
     newSizes = sizesMap
     newBoxesCount = 1
   } else if (item.product_type === 'pack') {
-    if (custom_grade && Array.isArray(custom_grade) && custom_grade.length > 0) {
+    // Salvar só preço/observação não pode apagar a grade montada: sem grade nova e com
+    // o mesmo nº de caixas, o item fica com a grade que já tinha (pedido #0069 NXO
+    // perdeu as quantidades assim — voltava para 1 pacote padrão).
+    const gradeSalva = typeof item.custom_grade === 'string' ? JSON.parse(item.custom_grade) : item.custom_grade
+    const semGradeNova = !(custom_grade && Array.isArray(custom_grade) && custom_grade.length > 0)
+    const mesmasCaixas = boxes_count === undefined || boxes_count === null
+      || (parseInt(boxes_count) || 1) === Number(item.boxes_count)
+    if (semGradeNova && Array.isArray(gradeSalva) && gradeSalva.length > 0 && mesmasCaixas) {
+      newTotalPieces = Number(item.total_pieces)
+      newSubtotal = Math.round(discountedPrice * newTotalPieces * 100) / 100
+      newBoxesCount = Number(item.boxes_count)
+      newCustomGrade = JSON.stringify(gradeSalva)
+    } else if (custom_grade && Array.isArray(custom_grade) && custom_grade.length > 0) {
       // Grade personalizada por cor
       const customArr = custom_grade as CustomGradeEntry[]
       const piecesPerBox = customArr.reduce((s, gc) =>
