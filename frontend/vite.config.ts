@@ -6,7 +6,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt': a versão nova NÃO recarrega a tela sozinha — quem está digitando um
+      // pedido não perde o que fez. O aviso "Nova versão disponível" (UpdatePrompt)
+      // aparece e o usuário aplica quando quiser.
+      registerType: 'prompt',
       includeAssets: ['apple-touch-icon.png', 'logo-somma.svg'],
       manifest: {
         name: 'SOMMA Força de Vendas',
@@ -25,7 +28,6 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MB (jsPDF aumentou o bundle)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         cleanupOutdatedCaches: true,
-        skipWaiting: true,
         clientsClaim: true,
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/uploads/],
