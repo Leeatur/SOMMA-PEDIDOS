@@ -20,7 +20,7 @@ export function SommaFVLogo({
   return (
     <div
       className={className}
-      style={{ display: 'flex', flexDirection: 'column', gap: size * 0.1, userSelect: 'none' }}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: size * 0.1, userSelect: 'none' }}
     >
       <div
         style={{
