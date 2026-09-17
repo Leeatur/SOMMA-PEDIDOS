@@ -677,6 +677,67 @@ export default function OrderEdit() {
   // destination: para onde navegar ao salvar com sucesso
   // 'detail'  → /orders/:id  (padrão do botão "Salvar")
   // 'list'    → /orders      (botão "Salvar e Voltar")
+  // Os mesmos dados alimentam a linha da tabela (computador) e o cartão (celular)
+  const propsItem = (it: EditableItem, idx: number) => ({
+    index: idx + 1,
+    checked: selectedIds.has(it.id),
+    onToggle: () => toggleSelected(it.id),
+    reference: it.reference,
+    productName: it.product_name,
+    imageUrl: it.image_url,
+    type: it.type,
+    unitPrice: it.unit_price,
+    originalUnitPrice: it.original_unit_price,
+    orderPolicyDiscPct: policyDiscountPct,
+    orderCashDiscPct: parseFloat(form.discount_pct.replace(',', '.')) || 0,
+    gradeConfigs: it.grade_configs,
+    draftSizes: it.draftSizes,
+    draftBoxes: it.draftBoxes,
+    draftGrade: it.draftGrade,
+    blockedSizes: it.blocked_sizes || [],
+    onSizeChange: (size: string, val: number) => updateSize(it.id, size, val),
+    onBoxesChange: (val: number) => updateBoxes(it.id, val),
+    onGradeChange: (colorIdx: number, size: string, val: number) => updateGrade(it.id, colorIdx, size, val),
+    onGradeMultChange: (colorIdx: number, mult: number) => setGradeMult(it.id, colorIdx, mult),
+    onPriceChange: (val: number) => updateExistingPrice(it.id, val),
+    onRemove: () => removeItem(it.id),
+    priceTableName: order?.price_table_name,
+    productObservation: it.observation,
+    itemObs: it.draftItemObs,
+    onObsChange: (val: string) => updateExistingItemObs(it.id, val),
+    canEditPrice: isAdmin,
+  })
+
+  const propsNovoItem = (it: NewItem, idx: number) => ({
+    index: items.filter(i => !i.removed).length + idx + 1,
+    checked: selectedIds.has(it.tempId),
+    onToggle: () => toggleSelected(it.tempId),
+    reference: it.reference,
+    productName: it.product_name,
+    imageUrl: it.image_url,
+    type: it.type,
+    unitPrice: it.unit_price,
+    originalUnitPrice: null,
+    orderPolicyDiscPct: policyDiscountPct,
+    orderCashDiscPct: parseFloat(form.discount_pct.replace(',', '.')) || 0,
+    gradeConfigs: it.grade_configs,
+    draftSizes: it.draftSizes,
+    draftBoxes: it.draftBoxes,
+    draftGrade: it.draftGrade,
+    blockedSizes: it.blocked_sizes || [],
+    onSizeChange: (size: string, val: number) => updateNewSize(it.tempId, size, val),
+    onBoxesChange: (val: number) => updateNewBoxes(it.tempId, val),
+    onGradeChange: (colorIdx: number, size: string, val: number) => updateNewGrade(it.tempId, colorIdx, size, val),
+    onGradeMultChange: (colorIdx: number, mult: number) => setNewGradeMult(it.tempId, colorIdx, mult),
+    onPriceChange: (val: number) => updateNewPrice(it.tempId, val),
+    onRemove: () => removeNewItem(it.tempId),
+    isNew: true,
+    priceTableName: order?.price_table_name,
+    itemObs: it.draftItemObs,
+    onObsChange: (val: string) => updateNewItemObs(it.tempId, val),
+    canEditPrice: isAdmin,
+  })
+
   const handleSave = async (destination: 'detail' | 'list' = 'detail') => {
     if (!order) return
     setSaving(true)
@@ -1368,8 +1429,8 @@ export default function OrderEdit() {
             </div>
           )}
 
-          {/* Tabela de itens — scrollável horizontalmente no desktop */}
-          <div className="overflow-x-auto">
+          {/* Tabela de itens — computador (no celular vira cartão, logo abaixo) */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full min-w-max text-[12px]">
               <thead className="bg-surface-container-lowest sm:sticky sm:top-0 z-10">
                 <tr className="bg-surface-container-low text-on-surface-variant text-[12px]">
@@ -1405,70 +1466,12 @@ export default function OrderEdit() {
 
                 {/* Itens existentes */}
                 {[...items].sort((a, b) => a.reference.localeCompare(b.reference, undefined, { numeric: true })).map((it, idx) => !it.removed && (
-                  <ItemRow
-                    key={it.id}
-                    index={idx + 1}
-                    checked={selectedIds.has(it.id)}
-                    onToggle={() => toggleSelected(it.id)}
-                    reference={it.reference}
-                    productName={it.product_name}
-                    imageUrl={it.image_url}
-                    type={it.type}
-                    unitPrice={it.unit_price}
-                    originalUnitPrice={it.original_unit_price}
-                    orderPolicyDiscPct={policyDiscountPct}
-                    orderCashDiscPct={parseFloat(form.discount_pct.replace(',', '.')) || 0}
-                    gradeConfigs={it.grade_configs}
-                    draftSizes={it.draftSizes}
-                    draftBoxes={it.draftBoxes}
-                    draftGrade={it.draftGrade}
-                    blockedSizes={it.blocked_sizes || []}
-                    onSizeChange={(size, val) => updateSize(it.id, size, val)}
-                    onBoxesChange={val => updateBoxes(it.id, val)}
-                    onGradeChange={(colorIdx, size, val) => updateGrade(it.id, colorIdx, size, val)}
-                    onGradeMultChange={(colorIdx, mult) => setGradeMult(it.id, colorIdx, mult)}
-                    onPriceChange={val => updateExistingPrice(it.id, val)}
-                    onRemove={() => removeItem(it.id)}
-                    priceTableName={order?.price_table_name}
-                    productObservation={it.observation}
-                    itemObs={it.draftItemObs}
-                    onObsChange={val => updateExistingItemObs(it.id, val)}
-                    canEditPrice={isAdmin}
-                  />
+                  <ItemRow key={it.id} {...propsItem(it, idx)} />
                 ))}
 
                 {/* Novos itens */}
                 {newItems.map((it, idx) => (
-                  <ItemRow
-                    key={it.tempId}
-                    index={items.filter(i => !i.removed).length + idx + 1}
-                    checked={selectedIds.has(it.tempId)}
-                    onToggle={() => toggleSelected(it.tempId)}
-                    reference={it.reference}
-                    productName={it.product_name}
-                    imageUrl={it.image_url}
-                    type={it.type}
-                    unitPrice={it.unit_price}
-                    originalUnitPrice={null}
-                    orderPolicyDiscPct={policyDiscountPct}
-                    orderCashDiscPct={parseFloat(form.discount_pct.replace(',', '.')) || 0}
-                    gradeConfigs={it.grade_configs}
-                    draftSizes={it.draftSizes}
-                    draftBoxes={it.draftBoxes}
-                    draftGrade={it.draftGrade}
-                    blockedSizes={it.blocked_sizes || []}
-                    onSizeChange={(size, val) => updateNewSize(it.tempId, size, val)}
-                    onBoxesChange={val => updateNewBoxes(it.tempId, val)}
-                    onGradeChange={(colorIdx, size, val) => updateNewGrade(it.tempId, colorIdx, size, val)}
-                    onGradeMultChange={(colorIdx, mult) => setNewGradeMult(it.tempId, colorIdx, mult)}
-                    onPriceChange={val => updateNewPrice(it.tempId, val)}
-                    onRemove={() => removeNewItem(it.tempId)}
-                    isNew
-                    priceTableName={order?.price_table_name}
-                    itemObs={it.draftItemObs}
-                    onObsChange={val => updateNewItemObs(it.tempId, val)}
-                    canEditPrice={isAdmin}
-                  />
+                  <ItemRow key={it.tempId} {...propsNovoItem(it, idx)} />
                 ))}
 
                 {activeItems.length === 0 && newItems.length === 0 && (
@@ -1480,6 +1483,21 @@ export default function OrderEdit() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Celular: um cartão por item — a tabela larga jogava a grade para fora da tela */}
+          <div className="lg:hidden px-3 py-3 space-y-2">
+            {[...items].sort((a, b) => a.reference.localeCompare(b.reference, undefined, { numeric: true })).map((it, idx) => !it.removed && (
+              <ItemRow key={it.id} {...propsItem(it, idx)} layout="card" />
+            ))}
+            {newItems.map((it, idx) => (
+              <ItemRow key={it.tempId} {...propsNovoItem(it, idx)} layout="card" />
+            ))}
+            {activeItems.length === 0 && newItems.length === 0 && (
+              <p className="text-center text-[12px] text-on-surface-variant py-6">
+                Nenhum item. Use a busca acima para adicionar produtos.
+              </p>
+            )}
           </div>
 
           {/* Totais */}
@@ -1841,6 +1859,7 @@ interface ItemRowProps {
   onBoxesChange: (val: number) => void
   onGradeChange: (colorIdx: number, size: string, val: number) => void
   onGradeMultChange?: (colorIdx: number, mult: number) => void   // grade fechada: pacotes por grade
+  layout?: 'row' | 'card'   // 'card' = celular (a tabela larga não cabe na tela)
   onPriceChange?: (val: number) => void
   onRemove: () => void
   isNew?: boolean
@@ -1857,6 +1876,7 @@ function ItemRow({
   orderPolicyDiscPct, orderCashDiscPct,
   gradeConfigs: _gradeConfigs, draftSizes, draftBoxes, draftGrade,
   onSizeChange, onBoxesChange, onGradeChange, onGradeMultChange, onPriceChange, onRemove, isNew, priceTableName,
+  layout = 'row',
   productObservation, itemObs, onObsChange, canEditPrice, blockedSizes = [],
 }: ItemRowProps) {
   const blocked = new Set(blockedSizes.map(s => s.toUpperCase()))
@@ -1891,61 +1911,18 @@ function ItemRow({
 
   const inputNum = 'w-10 text-center border border-outline-variant rounded px-0.5 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary bg-white'
 
-  return (
-    <tr className={`align-top hover:bg-surface-container/40 transition-colors ${isNew ? 'bg-primary/3' : ''} ${checked ? 'bg-primary/5' : ''}`}>
-
-      {/* Checkbox seleção */}
-      <td className="pl-3 pr-1 py-2 align-middle">
-        <input type="checkbox" checked={!!checked} onChange={onToggle}
-          className="cursor-pointer accent-primary w-3.5 h-3.5" />
-      </td>
-
-      {/* # */}
-      <td className="px-4 py-2 text-[12px] text-on-surface-variant">{index}</td>
-
-      {/* Produto */}
-      <td className="px-2 py-2">
-        <div className="flex items-center gap-2 min-w-[280px] max-w-[340px]">
-          {imageUrl
-            ? <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded shrink-0" />
-            : <div className="w-10 h-10 rounded bg-surface-container-low shrink-0" />}
-          <div className="min-w-0">
-            <p className="font-semibold text-on-surface text-[12px]">{reference}</p>
-            {priceTableName && <p className="text-[12px] text-primary/70 font-medium leading-tight">{priceTableName}</p>}
-            <p className="text-[12px] text-on-surface-variant max-w-[260px]">{productName}</p>
-            {productObservation && (
-              <p className="text-[11px] font-bold text-red-600 uppercase mt-0.5 flex items-center gap-1">
-                <span>⚠️</span>{productObservation}
-              </p>
-            )}
-            {itemObs && (
-              <p className="text-[11px] font-medium text-red-600 italic mt-0.5">{itemObs}</p>
-            )}
-            {onObsChange !== undefined && (
-              <input
-                type="text"
-                value={itemObs || ''}
-                onChange={e => onObsChange(e.target.value)}
-                placeholder="Obs. do item..."
-                className="mt-1 w-full border border-outline-variant/50 rounded px-1.5 py-0.5 text-[11px] text-on-surface-variant bg-surface focus:outline-none focus:border-primary/50"
-              />
-            )}
-          </div>
-        </div>
-      </td>
-
-      {/* R$ Tabela — preço original (somente leitura) */}
-      <td className="px-3 py-2 text-right text-[12px] align-middle whitespace-nowrap text-outline/70">
+  // Os mesmos blocos servem à tabela (computador) e ao cartão (celular)
+  const blocoTabela = (<>
         {originalUnitPrice != null && originalUnitPrice !== unitPrice
           ? <span className="line-through text-outline/50">{Number(originalUnitPrice).toFixed(2).replace('.', ',')}</span>
           : originalUnitPrice != null
             ? Number(originalUnitPrice).toFixed(2).replace('.', ',')
             : <span className="text-outline/30">—</span>
         }
-      </td>
+      
+  </>)
 
-      {/* Preço Final — editável só para admin; vendedor apenas visualiza */}
-      <td className="px-3 py-2 text-right text-[12px] align-middle whitespace-nowrap">
+  const blocoPreco = (<>
         <div className="flex flex-col items-end gap-0.5">
           {canEditPrice ? (<>
           <div className="flex items-center gap-0.5">
@@ -2001,11 +1978,10 @@ function ItemRow({
             <span className="text-[12px] font-semibold text-primary">R$ {effectiveUnitPrice.toFixed(2).replace('.', ',')}</span>
           )}
         </div>
-      </td>
+      
+  </>)
 
-      {/* Grade / Quantidades */}
-      <td className="px-3 py-2">
-
+  const blocoGrade = (<>
         {/* Regular: uma linha de inputs por tamanho */}
         {type === 'regular' && sizes.length > 0 && (
           <div className="overflow-x-auto">
@@ -2131,33 +2107,144 @@ function ItemRow({
         {type === 'regular' && sizes.length === 0 && (
           <span className="text-[12px] text-on-surface-variant italic">sem grade</span>
         )}
+      
+  </>)
+
+  const blocoPecas = type === 'pack' ? (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onBoxesChange(Math.max(1, draftBoxes - 1))}
+          className="w-6 h-6 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 text-[13px] font-bold leading-none"
+        >−</button>
+        <span className="text-[12px] font-semibold text-on-surface min-w-[32px] text-center">{draftBoxes}cx</span>
+        <button
+          type="button"
+          onClick={() => onBoxesChange(draftBoxes + 1)}
+          className="w-6 h-6 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 text-[13px] font-bold leading-none"
+        >+</button>
+      </div>
+      <span className="text-[11px] text-outline">{pieces} pç</span>
+    </div>
+  ) : (
+    <span className="inline-block bg-surface-container text-on-surface font-semibold text-[12px] px-2 py-0.5 rounded-lg min-w-[40px] text-center">
+      {pieces}
+    </span>
+  )
+
+  const blocoProduto = (<>
+        <div className="flex items-center gap-2 min-w-[280px] max-w-[340px]">
+          {imageUrl
+            ? <img src={imageUrl} alt="" className="w-10 h-10 object-cover rounded shrink-0" />
+            : <div className="w-10 h-10 rounded bg-surface-container-low shrink-0" />}
+          <div className="min-w-0">
+            <p className="font-semibold text-on-surface text-[12px]">{reference}</p>
+            {priceTableName && <p className="text-[12px] text-primary/70 font-medium leading-tight">{priceTableName}</p>}
+            <p className="text-[12px] text-on-surface-variant max-w-[260px]">{productName}</p>
+            {productObservation && (
+              <p className="text-[11px] font-bold text-red-600 uppercase mt-0.5 flex items-center gap-1">
+                <span>⚠️</span>{productObservation}
+              </p>
+            )}
+            {itemObs && (
+              <p className="text-[11px] font-medium text-red-600 italic mt-0.5">{itemObs}</p>
+            )}
+            {onObsChange !== undefined && (
+              <input
+                type="text"
+                value={itemObs || ''}
+                onChange={e => onObsChange(e.target.value)}
+                placeholder="Obs. do item..."
+                className="mt-1 w-full border border-outline-variant/50 rounded px-1.5 py-0.5 text-[11px] text-on-surface-variant bg-surface focus:outline-none focus:border-primary/50"
+              />
+            )}
+          </div>
+        </div>
+      
+  </>)
+
+  // Celular: um cartão por item — na tabela larga a grade ficava fora da tela
+  if (layout === 'card') {
+    return (
+      <div className={`rounded-xl border px-3 py-3 ${isNew ? 'border-primary/40 bg-primary/5' : checked ? 'border-primary/40 bg-primary/5' : 'border-outline-variant/60 bg-white'}`}>
+        <div className="flex items-start gap-2">
+          <input type="checkbox" checked={!!checked} onChange={onToggle}
+            className="mt-1 cursor-pointer accent-primary w-4 h-4 shrink-0" />
+          {imageUrl
+            ? <img src={imageUrl} alt="" className="w-12 h-12 object-cover rounded shrink-0" />
+            : <div className="w-12 h-12 rounded bg-surface-container-low shrink-0" />}
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-on-surface text-[13px]">{index}. {reference}</p>
+            {priceTableName && <p className="text-[11px] text-primary/70 font-medium leading-tight">{priceTableName}</p>}
+            <p className="text-[12px] text-on-surface-variant leading-tight">{productName}</p>
+            {productObservation && (
+              <p className="text-[11px] font-bold text-red-600 uppercase mt-0.5">⚠️ {productObservation}</p>
+            )}
+            {isNew && <span className="text-[11px] text-primary font-medium">+ novo</span>}
+          </div>
+          <button onClick={onRemove}
+            className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 shrink-0">
+            <Trash2 size={16} />
+          </button>
+        </div>
+
+        {onObsChange !== undefined && (
+          <input
+            type="text"
+            value={itemObs || ''}
+            onChange={e => onObsChange(e.target.value)}
+            placeholder="Obs. do item..."
+            className="mt-2 w-full border border-outline-variant/50 rounded-lg px-2 py-1 text-[12px] text-on-surface-variant bg-surface focus:outline-none focus:border-primary/50"
+          />
+        )}
+
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <span className="text-[11px] text-outline font-medium uppercase tracking-wide">
+            {canEditPrice ? 'Preço final' : 'Preço'}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-outline/70">{blocoTabela}</span>
+            {blocoPreco}
+          </div>
+        </div>
+
+        <div className="mt-2 pt-2 border-t border-outline-variant/40">{blocoGrade}</div>
+
+        <div className="mt-2 pt-2 border-t border-outline-variant/40 flex items-center justify-between gap-2 text-[12px]">
+          {blocoPecas}
+          <span className="font-bold text-on-surface">{formatCurrency(subtotal)}</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <tr className={`align-top hover:bg-surface-container/40 transition-colors ${isNew ? 'bg-primary/3' : ''} ${checked ? 'bg-primary/5' : ''}`}>
+
+      {/* Checkbox seleção */}
+      <td className="pl-3 pr-1 py-2 align-middle">
+        <input type="checkbox" checked={!!checked} onChange={onToggle}
+          className="cursor-pointer accent-primary w-3.5 h-3.5" />
       </td>
 
+      {/* # */}
+      <td className="px-4 py-2 text-[12px] text-on-surface-variant">{index}</td>
+
+      {/* Produto */}
+      <td className="px-2 py-2">{blocoProduto}</td>
+
+      {/* R$ Tabela — preço original (somente leitura) */}
+      <td className="px-3 py-2 text-right text-[12px] align-middle whitespace-nowrap text-outline/70">{blocoTabela}</td>
+
+      {/* Preço Final — editável só para admin; vendedor apenas visualiza */}
+      <td className="px-3 py-2 text-right text-[12px] align-middle whitespace-nowrap">{blocoPreco}</td>
+
+      {/* Grade / Quantidades */}
+      <td className="px-3 py-2">{blocoGrade}</td>
+
       {/* Total peças */}
-      <td className="px-3 py-2 text-right align-middle">
-        {type === 'pack' ? (
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => onBoxesChange(Math.max(1, draftBoxes - 1))}
-                className="w-6 h-6 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 text-[13px] font-bold leading-none"
-              >−</button>
-              <span className="text-[12px] font-semibold text-on-surface min-w-[32px] text-center">{draftBoxes}cx</span>
-              <button
-                type="button"
-                onClick={() => onBoxesChange(draftBoxes + 1)}
-                className="w-6 h-6 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 text-[13px] font-bold leading-none"
-              >+</button>
-            </div>
-            <span className="text-[11px] text-outline">{pieces} pç</span>
-          </div>
-        ) : (
-          <span className="inline-block bg-surface-container text-on-surface font-semibold text-[12px] px-2 py-0.5 rounded-lg min-w-[40px] text-center">
-            {pieces}
-          </span>
-        )}
-      </td>
+      <td className="px-3 py-2 text-right align-middle">{blocoPecas}</td>
 
       {/* Total R$ */}
       <td className="px-3 py-2 text-right font-medium text-on-surface align-middle whitespace-nowrap text-[12px]">
