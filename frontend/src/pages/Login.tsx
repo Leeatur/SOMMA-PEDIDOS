@@ -76,9 +76,9 @@ export function Login() {
 
         {/* Círculo decorativo laranja */}
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #E07B27, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, #CC5521, transparent 70%)' }} />
         <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #E07B27, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, #CC5521, transparent 70%)' }} />
 
         {/* Header */}
         <div className="relative z-10">
@@ -98,7 +98,7 @@ export function Login() {
 
           <h1 className="mt-5 text-3xl lg:text-[2.75rem] font-black text-white leading-[1.08]">
             Sua equipe de vendas<br />
-            <span style={{ color: '#E07B27' }}>em um só lugar.</span>
+            <span style={{ color: '#CC5521' }}>em um só lugar.</span>
           </h1>
           <p className="mt-3 text-white/55 text-base max-w-lg leading-relaxed">
             Pedidos, clientes, comissões e catálogo de pronta entrega — tudo integrado para o representante vender mais.

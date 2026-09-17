@@ -15,7 +15,7 @@ export function SommaFVLogo({
   className = '',
 }: SommaFVLogoProps) {
   const mainColor   = variant === 'white' ? '#ffffff' : '#0d1f3c';
-  const accentColor = '#F47C20';
+  const accentColor = '#CC5521';
 
   return (
     <div
