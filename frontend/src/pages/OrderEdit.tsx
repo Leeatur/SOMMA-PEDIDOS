@@ -745,8 +745,13 @@ export default function OrderEdit() {
       }
 
       // 5. Remover itens marcados (sequencial para evitar race condition nos totais)
+      // 404 é ignorado: item já foi removido por outro processo, estado desejado atingido.
       const removedIds = items.filter(it => it.removed).map(it => it.id)
-      for (const iid of removedIds) { await ordersApi.removeItem(id!, iid) }
+      for (const iid of removedIds) {
+        try { await ordersApi.removeItem(id!, iid) } catch (e: unknown) {
+          if ((e as { response?: { status?: number } })?.response?.status !== 404) throw e
+        }
+      }
 
       // 6. Atualizar itens modificados em paralelo (mais rápido em pedidos grandes)
       const norm = (o: Record<string, unknown>) =>
