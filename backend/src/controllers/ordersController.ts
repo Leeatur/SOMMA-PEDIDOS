@@ -842,7 +842,7 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
 
     // Busca itens atuais
     const { rows: currentItems } = await dbClient.query(
-      'SELECT id, reference, boxes_count, sizes, product_id FROM order_items WHERE order_id=$1',
+      'SELECT id, reference, boxes_count, sizes, custom_grade, product_id FROM order_items WHERE order_id=$1',
       [orderId]
     )
 
@@ -894,8 +894,13 @@ export async function changeOrderPriceTable(req: AuthRequest, res: Response) {
         itemPieces = sizesTotal
         subtotal = discountedPrice * itemPieces
       } else {
-        const piecesPerBox = gradeMapPT.get(newProduct.id) ?? 1
-        itemPieces = (item.boxes_count || 1) * piecesPerBox
+        // A grade montada pelo item manda. Sem isto, salvar desconto/tabela jogava
+        // o pack de volta para 1 pacote padrão e comia as quantidades (pedido #0073).
+        const gradeSalva = typeof item.custom_grade === 'string' ? JSON.parse(item.custom_grade) : item.custom_grade
+        const piecesPerBox = Array.isArray(gradeSalva) && gradeSalva.length > 0
+          ? gradeSalva.reduce((s: number, gc: { total_pieces?: number }) => s + Number(gc.total_pieces || 0), 0)
+          : (gradeMapPT.get(newProduct.id) ?? 1)
+        itemPieces = (item.boxes_count || 1) * (piecesPerBox || 1)
         subtotal = discountedPrice * itemPieces
       }
 
